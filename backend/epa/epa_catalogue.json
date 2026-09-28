@@ -1,0 +1,230 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "docket_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.97
+    },
+    {
+      "name": "civil_action_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "facility_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "frs_registry_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "respondent_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.95
+    },
+    {
+      "name": "respondent_facility_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "parent_company_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.91
+    },
+    {
+      "name": "plaintiff_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "facility_address",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.94,
+      "pii": true
+    },
+    {
+      "name": "attorney_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92,
+      "pii": true
+    },
+    {
+      "name": "attorney_email",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93,
+      "pii": true
+    },
+    {
+      "name": "signatory_title",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "court_district",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "epa_region",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.95
+    },
+    {
+      "name": "state_jurisdiction",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.93
+    },
+    {
+      "name": "statute_cited",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.93
+    },
+    {
+      "name": "regulation_citation",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "epa_waste_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "hazardous_waste_stream",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "unit_or_process_name",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.88
+    },
+    {
+      "name": "cbi_redaction_flag",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "civil_penalty_usd",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.94
+    },
+    {
+      "name": "stipulated_penalty_usd",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.9
+    },
+    {
+      "name": "sep_value_usd",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.88
+    },
+    {
+      "name": "compliance_deadline_days",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.87
+    },
+    {
+      "name": "violation_count",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.89
+    },
+    {
+      "name": "filing_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.94
+    },
+    {
+      "name": "lodged_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.93
+    },
+    {
+      "name": "compliance_milestone_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "violation_description",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.88
+    },
+    {
+      "name": "injunctive_relief_summary",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.86
+    },
+    {
+      "name": "corrective_action_measure",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.87
+    },
+    {
+      "name": "monitoring_requirement",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.85
+    },
+    {
+      "name": "reporting_requirement",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.85
+    },
+    {
+      "name": "termination_condition",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.84
+    }
+  ]
+}

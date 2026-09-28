@@ -1,0 +1,1254 @@
+{
+  "graph_domains": [
+    {
+      "domain_id": "capital-projects",
+      "name": "Capital Projects",
+      "expected_sources": [
+        "EPBCS plan cube",
+        "PeopleSoft GL",
+        "PeopleSoft approvals",
+        "PMO attributes"
+      ],
+      "fit": "strong",
+      "note": "All four expected sources are connected and profiled (Pack capital-projects v1.3.0).",
+      "unmet_note": "No plan cube, ledger or approval source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "water-wastewater",
+      "name": "Water & Wastewater",
+      "expected_sources": [
+        "Rate-case register",
+        "In-service register",
+        "Compliance driver dimension"
+      ],
+      "fit": "strong",
+      "note": "Overlay water-wastewater v0.9.1 is bound; rate jurisdictions and compliance drivers resolve.",
+      "unmet_note": "No rate-case or in-service source connected.",
+      "rank": 2
+    },
+    {
+      "domain_id": "schedule-delivery",
+      "name": "Schedule & Delivery",
+      "expected_sources": [
+        "Primavera P6",
+        "Field progress claims"
+      ],
+      "fit": "partial",
+      "note": "Dates resolve from the plan extract only — no schedule source is connected, so schedule variance is a date arithmetic, not a critical-path answer.",
+      "unmet_note": "No P6 or progress-claim source connected.",
+      "rank": 3
+    },
+    {
+      "domain_id": "commitments",
+      "name": "Commitments & Procurement",
+      "expected_sources": [
+        "Purchase orders",
+        "Encumbrance ledger"
+      ],
+      "fit": "none",
+      "note": "The commitment link of the value chain is a schema type with zero members, so 'what is committed but not yet spent' is not answerable from this demo package.",
+      "unmet_note": "The shipped extract carries no PO table.",
+      "rank": 4
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "finance-exec",
+      "name": "Finance Executive",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "focus": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+      "top_questions": [
+        "hq1",
+        "hq5",
+        "hq7",
+        "hq11",
+        "hq12",
+        "hq33"
+      ]
+    },
+    {
+      "persona_id": "programme-director",
+      "name": "Programme Director",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "focus": "Asks which projects are slipping and what that does to the programme envelope.",
+      "top_questions": [
+        "hq14"
+      ]
+    },
+    {
+      "persona_id": "procurement-lead",
+      "name": "Procurement Lead",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contract",
+        "vendor",
+        "change order",
+        "award",
+        "commitment"
+      ],
+      "focus": "Asks what has been awarded, what has changed since award, and to whom."
+    },
+    {
+      "persona_id": "controller",
+      "name": "Controller",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "focus": "Asks whether the ledger and the plan agree, and where they do not.",
+      "top_questions": [
+        "hq9"
+      ]
+    },
+    {
+      "persona_id": "project-manager",
+      "name": "Project Manager",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "project",
+        "progress",
+        "in-service",
+        "milestone",
+        "scope"
+      ],
+      "focus": "Asks where a single project stands against its own plan."
+    },
+    {
+      "persona_id": "rate-case-lead",
+      "name": "Rate-Case Lead",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "focus": "Asks which assets will be in service in time for the next filing.",
+      "top_questions": [
+        "hq28",
+        "hq29",
+        "hq35"
+      ]
+    },
+    {
+      "persona_id": "compliance-lead",
+      "name": "Compliance Lead",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "compliance",
+        "driver",
+        "PFAS",
+        "lead service line",
+        "regulatory"
+      ],
+      "focus": "Asks what the regulatory drivers oblige and what they cost.",
+      "top_questions": [
+        "hqW1",
+        "hqW2"
+      ]
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "hq1",
+      "text": "Are we going to spend the authorized capital this fiscal year?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q01",
+      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.gl at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq5",
+      "text": "What is the burn rate against current approved, by programme?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q05",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq7",
+      "text": "Where is forecast diverging from budget, by programme and category?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q07",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq9",
+      "text": "How far has the approved baseline moved since original approval, and who approved each move?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q09",
+      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr + — at medium confidence (0.72)."
+    },
+    {
+      "question_id": "hq11",
+      "text": "Which projects show no variance against current approved but material variance against original?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q11",
+      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq12",
+      "text": "How does the forward plan compare with the sum of project-life forecasts?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q12",
+      "rationale": "Resolves across northline_epbcs.plan + — at medium confidence (0.79)."
+    },
+    {
+      "question_id": "hq14",
+      "text": "Which projects are trending to overrun, and by how much?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q14",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + — at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq28",
+      "text": "What in-service value lands inside the current test year?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "persona": "Rate-Case Lead",
+      "answer_id": "Q27",
+      "rationale": "Resolves across configuration + northline_pmo.attributes + — at medium confidence (0.77)."
+    },
+    {
+      "question_id": "hq29",
+      "text": "What capital is at risk of missing the filing window, and what is it worth?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "persona": "Rate-Case Lead",
+      "answer_id": "Q28",
+      "rationale": "Resolves across configuration + northline_epbcs.plan + northline_pmo.attributes at medium confidence (0.75)."
+    },
+    {
+      "question_id": "hq33",
+      "text": "For every figure on this page, tell me where it came from and how old it is.",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q33",
+      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr + northline_psoft.gl + src_drive at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq35",
+      "text": "What happens to FY26 if we defer the second half of the programme by two quarters?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "persona": "Rate-Case Lead",
+      "answer_id": "Q35",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + — at high confidence (0.88)."
+    },
+    {
+      "question_id": "hqW1",
+      "text": "Is our PFAS spend on track against the compliance deadline?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "compliance",
+        "driver",
+        "PFAS",
+        "lead service line",
+        "regulatory"
+      ],
+      "persona": "Compliance Lead",
+      "answer_id": "Q39",
+      "rationale": "Resolves across configuration + northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl at medium confidence (0.79)."
+    },
+    {
+      "question_id": "hqW2",
+      "text": "Are we replacing lead service lines fast enough to meet the mandated rate?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "compliance",
+        "driver",
+        "PFAS",
+        "lead service line",
+        "regulatory"
+      ],
+      "persona": "Compliance Lead",
+      "answer_id": "Q40",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl + — at low confidence (0.42)."
+    },
+    {
+      "question_id": "hq2",
+      "text": "Where is authorized capital stalling — which stage of the chain is it stuck at?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q02",
+      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.gl at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq4",
+      "text": "Which projects hold authorization but show no activity this year?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q04",
+      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan + northline_pmo.attributes at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq6",
+      "text": "If spend continues at the current rate, where does the year land?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q06",
+      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan at medium confidence (0.74)."
+    },
+    {
+      "question_id": "hq8",
+      "text": "What is the variance against the current approved baseline, and against the original?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q08",
+      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan + northline_psoft.appr at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq13",
+      "text": "What share of the total gap is attributable to a single programme or driver?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q13",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq15",
+      "text": "Why did the estimate at completion move on Quarrydown WTP?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "project",
+        "progress",
+        "in-service",
+        "milestone",
+        "scope"
+      ],
+      "persona": "Project Manager",
+      "answer_id": "Q15",
+      "rationale": "Resolves across northline_epbcs.plan + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + Email — Kelso Ridge Constructors, 2026-01-04 + Email — Kelso Ridge Constructors, 2026-04-12 + Email — Kelso Ridge Constructors, 2026-05-31 + Email — Marchetti & Vance Engineers, 2026-04-18 + PRJ:C25B315_658 → CON:QDN-2025-C01 → CO:* at medium confidence (0.78)."
+    },
+    {
+      "question_id": "hq16",
+      "text": "Which movements have an explanation on record, and which are unexplained?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q16",
+      "rationale": "Resolves across northline_epbcs.plan + Email — Vasquez Heritage Builders, 2024-04-26 + Not connected + Project ← resolved ← observation at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq17",
+      "text": "Is this overrun scope, escalation, schedule, or estimate error?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "project",
+        "progress",
+        "in-service",
+        "milestone",
+        "scope"
+      ],
+      "persona": "Project Manager",
+      "answer_id": "Q17",
+      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-01-04 + Email — Amberline Civil Works, 2026-07-10 + Email — Vasquez Heritage Builders, 2024-04-26 + Email — Priya Novaczek, 2026-04-23 + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + Not connected at medium confidence (0.71)."
+    },
+    {
+      "question_id": "hq18",
+      "text": "Which contractors' projects overrun most often?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contract",
+        "vendor",
+        "change order",
+        "award",
+        "commitment"
+      ],
+      "persona": "Procurement Lead",
+      "answer_id": "Q18",
+      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-05-31 + Email — Halloway Underground, 2025-08-01 + Contract document set + northline_pmo.attributes + Not connected at low confidence (0.48)."
+    },
+    {
+      "question_id": "hq19",
+      "text": "Which explanations came from correspondence rather than from a person?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q19",
+      "rationale": "Resolves across Edge method distribution + Email — Tomas Marchetti, 2026-04-17 + Email — Thorne & Dain Drilling Company, 2026-05-25 + Not connected at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq21",
+      "text": "Which commitments exceed their authorization?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contract",
+        "vendor",
+        "change order",
+        "award",
+        "commitment"
+      ],
+      "persona": "Procurement Lead",
+      "answer_id": "Q21",
+      "rationale": "Resolves across Drive: contract documents + northline_epbcs.plan at medium confidence (0.71)."
+    },
+    {
+      "question_id": "hq22",
+      "text": "What is committed but not yet incurred, by project and by vendor?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "project",
+        "progress",
+        "in-service",
+        "milestone",
+        "scope"
+      ],
+      "persona": "Project Manager",
+      "answer_id": "Q22",
+      "rationale": "Resolves across Drive: contract documents + northline_psoft.gl at medium confidence (0.66)."
+    },
+    {
+      "question_id": "hq25",
+      "text": "What is sitting in CWIP past its in-service date?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q25",
+      "rationale": "Resolves across northline_pmo.attributes + northline_psoft.gl at low confidence (0.55)."
+    },
+    {
+      "question_id": "hq27",
+      "text": "Which completed projects are not yet unitized?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q26",
+      "rationale": "Resolves across 05_knowledge_graph/knowledge_graph.json at high confidence (0.91)."
+    },
+    {
+      "question_id": "hqW5",
+      "text": "Which mandated work is at risk of missing its consent-order milestone?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "compliance",
+        "driver",
+        "PFAS",
+        "lead service line",
+        "regulatory"
+      ],
+      "persona": "Compliance Lead",
+      "answer_id": "Q29",
+      "rationale": "Resolves across northline_pmo.attributes + northline_epbcs.plan at medium confidence (0.69)."
+    },
+    {
+      "question_id": "hq30",
+      "text": "Show me the path from a purchase order through the budget line to the asset it builds.",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "project",
+        "progress",
+        "in-service",
+        "milestone",
+        "scope"
+      ],
+      "persona": "Project Manager",
+      "answer_id": "Q30",
+      "rationale": "Resolves across graph gap register + src_drive + northline_epbcs.plan at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq31",
+      "text": "Which vendors work across more than one project, and how sure are we they are the same firm?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contract",
+        "vendor",
+        "change order",
+        "award",
+        "commitment"
+      ],
+      "persona": "Procurement Lead",
+      "answer_id": "Q31",
+      "rationale": "Resolves across src_drive + A-04 entity resolution at medium confidence (0.72)."
+    },
+    {
+      "question_id": "hq32",
+      "text": "Where do our systems disagree about the same thing?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q32",
+      "rationale": "Resolves across A-04 entity resolution register + entity_mapping_2026Q1.xlsx + northline_pmo.attributes at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq34",
+      "text": "Which assets are these projects building, and how critical are those assets?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q34",
+      "rationale": "Resolves across northline_pmo.attributes + graph gap register at medium confidence (0.68)."
+    },
+    {
+      "question_id": "hq36",
+      "text": "What if materials escalation runs three points above our assumption?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast",
+        "spend",
+        "authorized",
+        "underspend",
+        "variance"
+      ],
+      "persona": "Finance Executive",
+      "answer_id": "Q36",
+      "rationale": "Resolves across src_drive + northline_epbcs.plan at medium confidence (0.66)."
+    },
+    {
+      "question_id": "hq37",
+      "text": "Can we accelerate FY27 work into FY26, and what does that collide with?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q37",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at medium confidence (0.71)."
+    },
+    {
+      "question_id": "hq38",
+      "text": "What is the smallest set of projects we could defer to take $0 out of FY26?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "persona": "Rate-Case Lead",
+      "answer_id": "Q38",
+      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.86)."
+    },
+    {
+      "question_id": "hqM1",
+      "text": "What has the contractor told us about Quarrydown that isn't in the numbers?",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "programme",
+        "delivery",
+        "schedule",
+        "phase",
+        "portfolio"
+      ],
+      "persona": "Programme Director",
+      "answer_id": "Q41",
+      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-01-04 + Email — Kelso Ridge Constructors, 2026-04-12 + Email — Kelso Ridge Constructors, 2026-05-31 + Email — Marchetti & Vance Engineers, 2026-04-18 + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + northline_epbcs.plan at medium confidence (0.79)."
+    },
+    {
+      "question_id": "hqM2",
+      "text": "Which projects will not be in service before the rate case filing?",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate case",
+        "jurisdiction",
+        "in-service",
+        "rate base",
+        "filing"
+      ],
+      "persona": "Rate-Case Lead",
+      "answer_id": "Q42",
+      "rationale": "Resolves across Email — Florian Lundqvist, 2026-04-24 + Email — Dorothea Halloran, 2026-04-25 + Email — Jasper Tarnowski, 2026-04-21 + Email — Marcus Estergard, 2026-04-20 + Email — Kiran Novaczek, 2026-04-14 + northline_epbcs.plan + Not connected at medium confidence (0.76)."
+    },
+    {
+      "question_id": "hqM3",
+      "text": "Show me the change orders with the message that explains each one.",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "ledger",
+        "close",
+        "accrual",
+        "reconciliation",
+        "cwip"
+      ],
+      "persona": "Controller",
+      "answer_id": "Q43",
+      "rationale": "Resolves across Change Order Log exhibits, 5 conformed agreements + Email — Kelso Ridge Constructors, 2026-03-08 + Email — Delmar Sinclair Construction Co., 2026-01-24 + Email — Delmar Sinclair Construction Co., 2026-06-12 + CO:* ← references ← observation at high confidence (0.87)."
+    }
+  ],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mulbacdo8",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "test1",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Contract Escalation Exposure",
+          "description": "The value of this period's work booked under contract lines carrying an escalation clause, as a share of contracted spend.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        },
+        {
+          "name": "Work Order Backlog Age",
+          "description": "Median age in days of work orders that are open and past their scheduled start.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        },
+        {
+          "name": "Cost per Work Order by Vendor",
+          "description": "Mean cost of a completed work order, grouped by the vendor that carried it out and normalised by work-order class.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gdrive:capital-delivery-docs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gmail:nishant.srivastav@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "If spend continues at the current rate, where does the year land?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `ITD Actuals`, `FY23 Actuals`, `FY24 Actuals`, `FY25 Actuals`, `FY26 Actuals`, `Rate Impact`\nFROM `plan`.`vw_project_plan_capex`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-09-28T13:57:47.989Z"
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "capital-programme-intelligence",
+      "use_case_id": "uc_capital_programs",
+      "name": "Capital Programme Intelligence",
+      "description": "One model over the budget cube, the ledger, the approval chain and the project attribute registry, so a capital question resolves once and states which vintage, which basis and which scope it was answered at.",
+      "match_phrases": [
+        "capital programme",
+        "forecast vintage",
+        "working forecast",
+        "in-service date",
+        "rate case",
+        "change order",
+        "authorized capital"
+      ],
+      "personas": [
+        "finance-exec",
+        "programme-director",
+        "procurement-lead",
+        "controller",
+        "project-manager",
+        "rate-case-lead",
+        "compliance-lead"
+      ],
+      "metrics": [
+        "total-forecast-remaining-large-proj",
+        "total-anticipated-cost",
+        "budget-consumed-to-date",
+        "forecast-bud-consumed-at-completion",
+        "full-year-budget-variance",
+        "year-to-date-ytd-budget-variance",
+        "current-month-budget-variance",
+        "overrun-amount"
+      ],
+      "hero_questions": [
+        "hq1",
+        "hq5",
+        "hq7",
+        "hq9",
+        "hq11",
+        "hq12",
+        "hq14",
+        "hq28",
+        "hq29",
+        "hq33",
+        "hq35",
+        "hqW1",
+        "hqW2"
+      ]
+    }
+  ],
+  "graph_metrics": [
+    {
+      "metric_id": "total-forecast-remaining-large-proj",
+      "name": "Total_Forecast_Remaining_Large_Proj",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "total",
+        "forecast",
+        "remaining",
+        "large",
+        "proj"
+      ],
+      "definition": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]+[Sum of FY28 Working Budget]+[Sum of FY29 Working Budget]+[Sum of FY30 Working Budget]+[Sum of FY31 Working Budget]+[Sum of FY32 Working Budget]"
+    },
+    {
+      "metric_id": "total-anticipated-cost",
+      "name": "Total_Anticipated_Cost",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "total",
+        "anticipated",
+        "cost"
+      ],
+      "definition": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]"
+    },
+    {
+      "metric_id": "budget-consumed-to-date",
+      "name": "Budget_Consumed_to_Date",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "budget",
+        "consumed",
+        "date"
+      ],
+      "definition": "Budget_Consumed_to_Date = [Inception to Date (ITD) Actuals] / [Most Recent Budget Plan in PeopleSoft (Value)]"
+    },
+    {
+      "metric_id": "forecast-bud-consumed-at-completion",
+      "name": "Forecast Bud Consumed at Completion",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "forecast",
+        "bud",
+        "consumed",
+        "completion"
+      ],
+      "definition": "Forecast Bud Consumed at Completion = [Total_Anticipated_Cost] / [Most Recent Budget Plan in PeopleSoft (Value)]"
+    },
+    {
+      "metric_id": "full-year-budget-variance",
+      "name": "Full Year Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "full",
+        "year",
+        "budget",
+        "variance"
+      ],
+      "definition": "Variance = [Forecast 6+6] - January_Calendarization Budget YTD"
+    },
+    {
+      "metric_id": "year-to-date-ytd-budget-variance",
+      "name": "Year-to-Date (YTD) Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "year",
+        "date",
+        "ytd",
+        "budget",
+        "variance"
+      ],
+      "definition": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)"
+    },
+    {
+      "metric_id": "current-month-budget-variance",
+      "name": "Current Month Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "current",
+        "month",
+        "budget",
+        "variance"
+      ],
+      "definition": "Variance = Actual(Current Month) − Budget(Current Month)"
+    },
+    {
+      "metric_id": "overrun-amount",
+      "name": "Overrun amount",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "overrun",
+        "amount"
+      ],
+      "definition": "Overrun Amount =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURN\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )"
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "variance-explained",
+      "name": "Variance explained",
+      "format": "narrative + metric row + signed bar",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "variance",
+        "overrun",
+        "underspend",
+        "against plan"
+      ]
+    },
+    {
+      "format_id": "vintage-comparison",
+      "name": "Vintage comparison",
+      "format": "metric row + line, one series per vintage",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "forecast",
+        "vintage",
+        "3+9",
+        "working",
+        "MTP"
+      ]
+    },
+    {
+      "format_id": "project-detail",
+      "name": "Project 360",
+      "format": "narrative + fact table + contract lines",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "project",
+        "single",
+        "detail",
+        "360"
+      ]
+    },
+    {
+      "format_id": "ranked-exception",
+      "name": "Ranked exception list",
+      "format": "table ranked by measure, with a declared floor",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "ranking",
+        "worst",
+        "top",
+        "floor",
+        "materiality"
+      ]
+    },
+    {
+      "format_id": "calendar-forecast",
+      "name": "Calendar / filing view",
+      "format": "table by date + monthly bar",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "in-service",
+        "filing",
+        "rate case",
+        "calendar"
+      ]
+    },
+    {
+      "format_id": "rollup",
+      "name": "Portfolio rollup",
+      "format": "metric row + grouped bar",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "portfolio",
+        "region",
+        "category",
+        "business unit"
+      ]
+    },
+    {
+      "format_id": "trend",
+      "name": "Trend",
+      "format": "line over periods with an actual/forecast break",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "monthly",
+        "trend",
+        "over time",
+        "phasing"
+      ]
+    },
+    {
+      "format_id": "composition",
+      "name": "Composition",
+      "format": "donut + share table",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "share",
+        "mix",
+        "composition",
+        "split"
+      ]
+    },
+    {
+      "format_id": "refusal",
+      "name": "Refusal",
+      "format": "narrative only, naming what is missing and why",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "cannot",
+        "refuse",
+        "not answerable",
+        "missing"
+      ]
+    },
+    {
+      "format_id": "provenance",
+      "name": "Provenance",
+      "format": "narrative + evidence table + traversal",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "how do you know",
+        "evidence",
+        "source",
+        "resolution"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4115 @@
+{
+  "projects": [
+    {
+      "project_id": "vrio-contextweave-demo",
+      "display_name": "EPA Hazwaste",
+      "location": "US",
+      "datasets": [
+        {
+          "dataset_id": "epa_hazwaste",
+          "location": "US",
+          "description": "Gold business views over EPA e-Manifest shipments, RCRA compliance and FRS facility identity",
+          "semantic_layer": "Gold (business views)",
+          "tables": [
+            {
+              "table_id": "e_manifest",
+              "label": "e-Manifest (shipments)",
+              "type": "VIEW",
+              "grain": "one hazardous-waste shipment (manifest)",
+              "rows": 1200,
+              "columns": 50,
+              "size_gb": 0,
+              "partitioned": false
+            },
+            {
+              "table_id": "e_manifest_all",
+              "label": "e-Manifest — enriched",
+              "type": "VIEW",
+              "grain": "one shipment + generator/receiver/transporter profiles",
+              "rows": 1200,
+              "columns": 92,
+              "size_gb": 0,
+              "partitioned": false
+            },
+            {
+              "table_id": "RCRA_compliance",
+              "label": "RCRA Compliance (eval/viol/enf)",
+              "type": "VIEW",
+              "grain": "one evaluation/violation/enforcement line item",
+              "rows": 364,
+              "columns": 30,
+              "size_gb": 0,
+              "partitioned": false
+            },
+            {
+              "table_id": "RCRA_Compliance_Summary",
+              "label": "RCRA Compliance — facility summary",
+              "type": "VIEW",
+              "grain": "one facility (compliance 360)",
+              "rows": 49,
+              "columns": 9,
+              "size_gb": 0,
+              "partitioned": false
+            },
+            {
+              "table_id": "FRS_Facility_profile",
+              "label": "FRS Facility Profile",
+              "type": "VIEW",
+              "grain": "one facility (identity + RCRA/FRS attributes)",
+              "rows": 49,
+              "columns": 25,
+              "size_gb": 0,
+              "partitioned": false
+            },
+            {
+              "table_id": "cw_project_master",
+              "label": "Capital projects",
+              "grain": "one row per capital project",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 8
+            },
+            {
+              "table_id": "cw_program_master",
+              "label": "Capital programmes",
+              "grain": "one row per capital programme",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 4
+            },
+            {
+              "table_id": "cw_vendor_master",
+              "label": "Delivery contractors",
+              "grain": "one row per contracting vendor",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 3
+            },
+            {
+              "table_id": "cw_project_gate_log",
+              "label": "Capital gate decisions",
+              "grain": "one row per project and gate decision",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-cw-transport-ops",
+      "display_name": "VLS Transport Ops",
+      "location": "US",
+      "datasets": [
+        {
+          "dataset_id": "transport_ops",
+          "location": "US",
+          "description": "Custody-chain views: which transporter carried which manifest leg, and over what route.",
+          "semantic_layer": "gold",
+          "tables": [
+            {
+              "table_id": "transporter_manifests",
+              "label": "Transporter manifests (legs)",
+              "type": "VIEW",
+              "grain": "one manifest leg carried by one transporter",
+              "rows": 4820,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 12
+            },
+            {
+              "table_id": "route_segments",
+              "label": "Route segments",
+              "type": "VIEW",
+              "grain": "one origin→destination segment of a shipment",
+              "rows": 9640,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-cw-sandbox",
+      "display_name": "Compliance Sandbox",
+      "location": "EU",
+      "datasets": [
+        {
+          "dataset_id": "compliance_sandbox",
+          "location": "EU",
+          "description": "Staging for enforcement filings that have not been resolved to a facility yet.",
+          "semantic_layer": "bronze",
+          "tables": [
+            {
+              "table_id": "enforcement_staging",
+              "label": "Enforcement staging",
+              "type": "TABLE",
+              "grain": "one enforcement action awaiting review",
+              "rows": 640,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 9
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "credentials": [
+    {
+      "project_id": "vrio-contextweave-demo",
+      "credential_handle": "cred-handle-8b41d0c6"
+    },
+    {
+      "project_id": "vrio-cw-transport-ops",
+      "credential_handle": "cred-handle-3f7c91ab"
+    },
+    {
+      "project_id": "vrio-cw-sandbox",
+      "credential_handle": "cred-handle-c02de845"
+    }
+  ],
+  "column_profiles": {
+    "epa_hazwaste.e_manifest": [
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Unique EPA manifest tracking number (MTN) for the hazardous waste shipment; 9 digits plus a 3-character suffix (e.g. 012345678ELC). Primary key of the manifest.",
+        "derivation": "llm",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "updated_date",
+        "label": "UPDATED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the manifest record was last updated in EPA's e-Manifest system.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 780
+      },
+      {
+        "column_id": "shipped_date",
+        "label": "SHIPPED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the hazardous waste shipment departed the generator site; start of the cradle-to-grave chain.",
+        "derivation": "llm",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 766
+      },
+      {
+        "column_id": "received_date",
+        "label": "RECEIVED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the designated receiving facility acknowledged receipt of the waste.",
+        "derivation": "llm",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 782
+      },
+      {
+        "column_id": "status",
+        "label": "STATUS",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Manifest lifecycle status in e-Manifest (Pending, Scheduled, InTransit, ReadyForSignature, Received, Signed, Corrected).",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "submission_type",
+        "label": "SUBMISSION TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "How the manifest was submitted to e-Manifest: FullElectronic, Hybrid, DataImage5Copy, or Image.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "origin_type",
+        "label": "ORIGIN TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Origin classification of the manifest: Service (routine shipment), Rejection, or Residue.",
+        "derivation": "llm",
+        "confidence": 0.72,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "generator_id",
+        "label": "GENERATOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID number (RCRA site ID) of the hazardous waste generator; first two characters are the state postal code.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_name",
+        "label": "GENERATOR NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Name of the hazardous waste generator listed on the manifest.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_mail_street_no",
+        "label": "GENERATOR MAIL STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address street number of the generator.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1135
+      },
+      {
+        "column_id": "generator_mail_street1",
+        "label": "GENERATOR MAIL STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 1 of the generator.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_mail_street2",
+        "label": "GENERATOR MAIL STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 2 of the generator (suite/building), often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "generator_mail_city",
+        "label": "GENERATOR MAIL CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address city of the generator.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "generator_mail_zip",
+        "label": "GENERATOR MAIL ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address ZIP code of the generator.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_mail_state",
+        "label": "GENERATOR MAIL STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address state (postal code) of the generator.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_location_street_no",
+        "label": "GENERATOR LOCATION STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site street number of the generator.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1136
+      },
+      {
+        "column_id": "generator_location_street1",
+        "label": "GENERATOR LOCATION STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 1 of the generator.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_location_street2",
+        "label": "GENERATOR LOCATION STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 2 of the generator, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "generator_location_city",
+        "label": "GENERATOR LOCATION CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site city of the generator.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "generator_location_zip",
+        "label": "GENERATOR LOCATION ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site ZIP code of the generator.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_location_state",
+        "label": "GENERATOR LOCATION STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site state (postal code) of the generator.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_contact_company_name",
+        "label": "GENERATOR CONTACT COMPANY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Company name of the generator's manifest contact.",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "des_facility_id",
+        "label": "DES FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID number of the designated receiving facility (TSDF) that accepts the waste.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_facility_name",
+        "label": "DES FACILITY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Name of the designated receiving facility (TSDF). Appears under both legacy and current corporate names for the same EPA ID.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "des_fac_mail_street_no",
+        "label": "DES FAC MAIL STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address street number of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_street1",
+        "label": "DES FAC MAIL STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 1 of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_street2",
+        "label": "DES FAC MAIL STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 2 of the designated facility, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "des_fac_mail_city",
+        "label": "DES FAC MAIL CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address city of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_zip",
+        "label": "DES FAC MAIL ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address ZIP code of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_state",
+        "label": "DES FAC MAIL STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address state (postal code) of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street_no",
+        "label": "DES FAC LOCATION STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site street number of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street1",
+        "label": "DES FAC LOCATION STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 1 of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street2",
+        "label": "DES FAC LOCATION STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 2 of the designated facility, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "des_fac_location_city",
+        "label": "DES FAC LOCATION CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site city of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_zip",
+        "label": "DES FAC LOCATION ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site ZIP code of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_state",
+        "label": "DES FAC LOCATION STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site state (postal code) of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_contact_company_name",
+        "label": "DES FAC CONTACT COMPANY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Company name of the designated facility's manifest contact.",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "manifest_residue",
+        "label": "MANIFEST RESIDUE",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Flag indicating the manifest documents residue remaining in an emptied container or rejected-load residue.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "rejection",
+        "label": "REJECTION",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Flag indicating the shipment was rejected (fully or partially) by the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "total_quantity_acute_kg",
+        "label": "TOTAL QUANTITY ACUTE KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of acute hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 88.1,
+        "distinct": 120
+      },
+      {
+        "column_id": "total_quantity_acute_tons",
+        "label": "TOTAL QUANTITY ACUTE TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of acute hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 88.1,
+        "distinct": 120
+      },
+      {
+        "column_id": "total_quantity_haz_kg",
+        "label": "TOTAL QUANTITY HAZ KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.92,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_haz_tons",
+        "label": "TOTAL QUANTITY HAZ TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.92,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_acute_kg",
+        "label": "TOTAL QUANTITY NON ACUTE KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-acute hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_acute_tons",
+        "label": "TOTAL QUANTITY NON ACUTE TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-acute hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_haz_kg",
+        "label": "TOTAL QUANTITY NON HAZ KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 59.8,
+        "distinct": 467
+      },
+      {
+        "column_id": "total_quantity_non_haz_tons",
+        "label": "TOTAL QUANTITY NON HAZ TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 59.8,
+        "distinct": 467
+      },
+      {
+        "column_id": "total_quantity_kg",
+        "label": "TOTAL QUANTITY KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of all waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1184
+      },
+      {
+        "column_id": "total_quantity_tons",
+        "label": "TOTAL QUANTITY TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of all waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1184
+      },
+      {
+        "column_id": "broker_id",
+        "label": "BROKER ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID of the broker arranging the shipment, if any; often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 100,
+        "distinct": 0
+      }
+    ],
+    "epa_hazwaste.e_manifest_all": [
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Unique EPA manifest tracking number (MTN) for the hazardous waste shipment; 9 digits plus a 3-character suffix (e.g. 012345678ELC). Primary key of the manifest.",
+        "derivation": "llm",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "updated_date",
+        "label": "UPDATED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the manifest record was last updated in EPA's e-Manifest system.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 780
+      },
+      {
+        "column_id": "shipped_date",
+        "label": "SHIPPED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the hazardous waste shipment departed the generator site; start of the cradle-to-grave chain.",
+        "derivation": "llm",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 766
+      },
+      {
+        "column_id": "received_date",
+        "label": "RECEIVED DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the designated receiving facility acknowledged receipt of the waste.",
+        "derivation": "llm",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 782
+      },
+      {
+        "column_id": "status",
+        "label": "STATUS",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Manifest lifecycle status in e-Manifest (Pending, Scheduled, InTransit, ReadyForSignature, Received, Signed, Corrected).",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "submission_type",
+        "label": "SUBMISSION TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "How the manifest was submitted to e-Manifest: FullElectronic, Hybrid, DataImage5Copy, or Image.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "origin_type",
+        "label": "ORIGIN TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Origin classification of the manifest: Service (routine shipment), Rejection, or Residue.",
+        "derivation": "llm",
+        "confidence": 0.72,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "generator_id",
+        "label": "GENERATOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID number (RCRA site ID) of the hazardous waste generator; first two characters are the state postal code.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_name",
+        "label": "GENERATOR NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Name of the hazardous waste generator listed on the manifest.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_mail_street_no",
+        "label": "GENERATOR MAIL STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address street number of the generator.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1135
+      },
+      {
+        "column_id": "generator_mail_street1",
+        "label": "GENERATOR MAIL STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 1 of the generator.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_mail_street2",
+        "label": "GENERATOR MAIL STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 2 of the generator (suite/building), often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "generator_mail_city",
+        "label": "GENERATOR MAIL CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address city of the generator.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "generator_mail_zip",
+        "label": "GENERATOR MAIL ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address ZIP code of the generator.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_mail_state",
+        "label": "GENERATOR MAIL STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address state (postal code) of the generator.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_location_street_no",
+        "label": "GENERATOR LOCATION STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site street number of the generator.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1136
+      },
+      {
+        "column_id": "generator_location_street1",
+        "label": "GENERATOR LOCATION STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 1 of the generator.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_location_street2",
+        "label": "GENERATOR LOCATION STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 2 of the generator, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "generator_location_city",
+        "label": "GENERATOR LOCATION CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site city of the generator.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "generator_location_zip",
+        "label": "GENERATOR LOCATION ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site ZIP code of the generator.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_location_state",
+        "label": "GENERATOR LOCATION STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site state (postal code) of the generator.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_contact_company_name",
+        "label": "GENERATOR CONTACT COMPANY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Company name of the generator's manifest contact.",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "des_facility_id",
+        "label": "DES FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID number of the designated receiving facility (TSDF) that accepts the waste.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_facility_name",
+        "label": "DES FACILITY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Name of the designated receiving facility (TSDF). Appears under both legacy and current corporate names for the same EPA ID.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "des_fac_mail_street_no",
+        "label": "DES FAC MAIL STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address street number of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_street1",
+        "label": "DES FAC MAIL STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 1 of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_street2",
+        "label": "DES FAC MAIL STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Mailing-address line 2 of the designated facility, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "des_fac_mail_city",
+        "label": "DES FAC MAIL CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address city of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_zip",
+        "label": "DES FAC MAIL ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address ZIP code of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_mail_state",
+        "label": "DES FAC MAIL STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Mailing-address state (postal code) of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street_no",
+        "label": "DES FAC LOCATION STREET NO",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site street number of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street1",
+        "label": "DES FAC LOCATION STREET1",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 1 of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_street2",
+        "label": "DES FAC LOCATION STREET2",
+        "type": "STRING",
+        "class": "address",
+        "description": "Physical-site address line 2 of the designated facility, often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": true,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "des_fac_location_city",
+        "label": "DES FAC LOCATION CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site city of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_zip",
+        "label": "DES FAC LOCATION ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site ZIP code of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_location_state",
+        "label": "DES FAC LOCATION STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Physical-site state (postal code) of the designated facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "des_fac_contact_company_name",
+        "label": "DES FAC CONTACT COMPANY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Company name of the designated facility's manifest contact.",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "manifest_residue",
+        "label": "MANIFEST RESIDUE",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Flag indicating the manifest documents residue remaining in an emptied container or rejected-load residue.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "rejection",
+        "label": "REJECTION",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Flag indicating the shipment was rejected (fully or partially) by the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "total_quantity_acute_kg",
+        "label": "TOTAL QUANTITY ACUTE KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of acute hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 88.1,
+        "distinct": 120
+      },
+      {
+        "column_id": "total_quantity_acute_tons",
+        "label": "TOTAL QUANTITY ACUTE TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of acute hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 88.1,
+        "distinct": 120
+      },
+      {
+        "column_id": "total_quantity_haz_kg",
+        "label": "TOTAL QUANTITY HAZ KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.92,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_haz_tons",
+        "label": "TOTAL QUANTITY HAZ TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.92,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_acute_kg",
+        "label": "TOTAL QUANTITY NON ACUTE KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-acute hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_acute_tons",
+        "label": "TOTAL QUANTITY NON ACUTE TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-acute hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1177
+      },
+      {
+        "column_id": "total_quantity_non_haz_kg",
+        "label": "TOTAL QUANTITY NON HAZ KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-hazardous waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 59.8,
+        "distinct": 467
+      },
+      {
+        "column_id": "total_quantity_non_haz_tons",
+        "label": "TOTAL QUANTITY NON HAZ TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of non-hazardous waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 59.8,
+        "distinct": 467
+      },
+      {
+        "column_id": "total_quantity_kg",
+        "label": "TOTAL QUANTITY KG",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of all waste on the manifest, in kilograms.",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1184
+      },
+      {
+        "column_id": "total_quantity_tons",
+        "label": "TOTAL QUANTITY TONS",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Total quantity of all waste on the manifest, in tons.",
+        "derivation": "llm",
+        "confidence": 0.93,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1184
+      },
+      {
+        "column_id": "broker_id",
+        "label": "BROKER ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA ID of the broker arranging the shipment, if any; often blank.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "generator_target_facility",
+        "label": "generator_target_facility",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Seed-list facility key for the generator; links the generator to its facility-360 records across tables.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_primary_name",
+        "label": "generator_primary_name",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Primary generator facility name from EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_registry_id",
+        "label": "generator_registry_id",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "12-digit FRS registry ID of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_rcra_name",
+        "label": "generator_rcra_name",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Generator facility name from the EPA RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_activity_location",
+        "label": "generator_activity_location",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code for the agency regulating the generator (RCRAInfo activity location).",
+        "derivation": "llm",
+        "confidence": 0.75,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_street",
+        "label": "generator_street",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1130
+      },
+      {
+        "column_id": "generator_city",
+        "label": "generator_city",
+        "type": "STRING",
+        "class": "geo",
+        "description": "City of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "generator_state",
+        "label": "generator_state",
+        "type": "STRING",
+        "class": "geo",
+        "description": "State of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "generator_zip",
+        "label": "generator_zip",
+        "type": "STRING",
+        "class": "geo",
+        "description": "ZIP code of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_fed_waste_generator",
+        "label": "generator_fed_waste_generator",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo federal waste generator status of the generator: 1=LQG, 2=SQG, 3=VSQG, N=not a generator.",
+        "derivation": "llm",
+        "confidence": 0.7,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "generator_transporter_flag",
+        "label": "generator_transporter_flag",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Y/N flag indicating whether the generator is also a registered hazardous waste transporter.",
+        "derivation": "llm",
+        "confidence": 0.68,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_active_site",
+        "label": "generator_active_site",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo active-site indicator string for the generator (position-coded: H/P/A/C/S, '-'=inactive).",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_operating_tsdf",
+        "label": "generator_operating_tsdf",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo operating-TSDF indicator string for the generator (position-coded: L/I/B/S/T/H).",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "generator_total_evaluations",
+        "label": "generator_total_evaluations",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA compliance evaluations recorded for the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 17
+      },
+      {
+        "column_id": "generator_total_violations",
+        "label": "generator_total_violations",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA violations recorded for the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 7
+      },
+      {
+        "column_id": "generator_total_enforcements",
+        "label": "generator_total_enforcements",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA enforcement actions recorded for the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 5
+      },
+      {
+        "column_id": "generator_last_evaluation_date",
+        "label": "generator_last_evaluation_date",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date of the most recent RCRA evaluation of the generator facility.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "generator_last_enforcement_date",
+        "label": "generator_last_enforcement_date",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date of the most recent RCRA enforcement action against the generator (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.84,
+        "pii": false,
+        "null_pct": 51.8,
+        "distinct": 15
+      },
+      {
+        "column_id": "generator_total_penalty_amount",
+        "label": "generator_total_penalty_amount",
+        "type": "NUMERIC",
+        "class": "measure",
+        "description": "Sum of RCRA enforcement penalties against the generator facility, in USD.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "receiver_target_facility",
+        "label": "receiver_target_facility",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Seed-list facility key for the receiving facility (the TSDF).",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_primary_name",
+        "label": "receiver_primary_name",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Primary receiving-facility name from EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_registry_id",
+        "label": "receiver_registry_id",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "12-digit FRS registry ID of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_rcra_name",
+        "label": "receiver_rcra_name",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Receiving-facility name from the EPA RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_activity_location",
+        "label": "receiver_activity_location",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code for the agency regulating the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.75,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_street",
+        "label": "receiver_street",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_city",
+        "label": "receiver_city",
+        "type": "STRING",
+        "class": "geo",
+        "description": "City of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_state",
+        "label": "receiver_state",
+        "type": "STRING",
+        "class": "geo",
+        "description": "State of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_zip",
+        "label": "receiver_zip",
+        "type": "STRING",
+        "class": "geo",
+        "description": "ZIP code of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_fed_waste_generator",
+        "label": "receiver_fed_waste_generator",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo federal waste generator status of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.7,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_transporter_flag",
+        "label": "receiver_transporter_flag",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Y/N flag indicating whether the receiving facility is also a registered transporter.",
+        "derivation": "llm",
+        "confidence": 0.68,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_active_site",
+        "label": "receiver_active_site",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo active-site indicator string for the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_operating_tsdf",
+        "label": "receiver_operating_tsdf",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo operating-TSDF indicator string for the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_total_evaluations",
+        "label": "receiver_total_evaluations",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA compliance evaluations recorded for the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_total_violations",
+        "label": "receiver_total_violations",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA violations recorded for the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_total_enforcements",
+        "label": "receiver_total_enforcements",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total RCRA enforcement actions recorded for the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_last_evaluation_date",
+        "label": "receiver_last_evaluation_date",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date of the most recent RCRA evaluation of the receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "receiver_last_enforcement_date",
+        "label": "receiver_last_enforcement_date",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date of the most recent RCRA enforcement action against the receiving facility (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.84,
+        "pii": false,
+        "null_pct": 100,
+        "distinct": 0
+      },
+      {
+        "column_id": "receiver_total_penalty_amount",
+        "label": "receiver_total_penalty_amount",
+        "type": "NUMERIC",
+        "class": "measure",
+        "description": "Sum of RCRA enforcement penalties against the receiving facility, in USD.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "transporter_count",
+        "label": "TRANSPORTER_COUNT",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Number of transporters that carried the shipment between generator and receiving facility.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "transporter_names",
+        "label": "TRANSPORTER_NAMES",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Pipe-delimited list of transporter names on the manifest, in order of custody.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 128
+      },
+      {
+        "column_id": "transporter_ids",
+        "label": "TRANSPORTER_IDS",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Pipe-delimited list of transporter EPA IDs on the manifest, in order of custody.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 128
+      },
+      {
+        "column_id": "total_days_in_possession",
+        "label": "TOTAL_DAYS_IN_POSSESSION",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Total days the waste was in transporter possession between shipment and receipt.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9
+      }
+    ],
+    "epa_hazwaste.RCRA_compliance": [
+      {
+        "column_id": "target_facility",
+        "label": "target_facility",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Seed-list facility key; links this compliance record to the facility's 360 records across tables.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "pgm_sys_id",
+        "label": "PGM_SYS_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "RCRA site identification number (EPA ID) of the facility; first two characters are the state postal code (e.g. TXD003913381).",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "registry_id",
+        "label": "REGISTRY_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "12-digit unique facility identifier from EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "isn_rcr_eval",
+        "label": "ISN_RCR_EVAL",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Internal sequence number identifying the RCRA evaluation record in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 364
+      },
+      {
+        "column_id": "eval_type",
+        "label": "EVAL_TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo evaluation type code (e.g. CEI, FRR, CDI, FUI).",
+        "derivation": "llm",
+        "confidence": 0.78,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 6
+      },
+      {
+        "column_id": "eval_type_desc",
+        "label": "EVAL_TYPE_DESC",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Human-readable description of the evaluation type (e.g. Compliance Evaluation Inspection).",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 6
+      },
+      {
+        "column_id": "eval_identifier",
+        "label": "EVAL_IDENTIFIER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Identifier of the specific evaluation activity in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 364
+      },
+      {
+        "column_id": "eval_lead_agency",
+        "label": "EVAL_LEAD_AGENCY",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Lead agency that conducted the evaluation (State, EPA, or Tribe).",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "eval_activity_location",
+        "label": "EVAL_ACTIVITY_LOCATION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code where the evaluation activity was recorded.",
+        "derivation": "llm",
+        "confidence": 0.74,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "eval_date",
+        "label": "EVAL_DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date the RCRA compliance evaluation was conducted.",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 340
+      },
+      {
+        "column_id": "official_flag",
+        "label": "OFFICIAL_FLAG",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Boolean indicating whether the evaluation is an official regulatory action.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "pipeline_flag",
+        "label": "PIPELINE_FLAG",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Boolean indicating whether the record is in the RCRAInfo processing pipeline (not yet finalized).",
+        "derivation": "llm",
+        "confidence": 0.7,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "viol_type",
+        "label": "VIOL_TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo violation type code identifying the regulatory citation area (e.g. generator, manifest, LDR, TSD).",
+        "derivation": "llm",
+        "confidence": 0.77,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 9
+      },
+      {
+        "column_id": "viol_seq",
+        "label": "VIOL_SEQ",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Sequence number of the violation within the evaluation.",
+        "derivation": "llm",
+        "confidence": 0.75,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 4
+      },
+      {
+        "column_id": "viol_activity_location",
+        "label": "VIOL_ACTIVITY_LOCATION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code where the violation was recorded.",
+        "derivation": "llm",
+        "confidence": 0.74,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 4
+      },
+      {
+        "column_id": "viol_determined_by_agency",
+        "label": "VIOL_DETERMINED_BY_AGENCY",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Agency that determined the violation (State, EPA, or Tribe).",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 2
+      },
+      {
+        "column_id": "viol_agency",
+        "label": "VIOL_AGENCY",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Agency responsible for the violation record in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.76,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 2
+      },
+      {
+        "column_id": "viol_determined_date",
+        "label": "VIOL_DETERMINED_DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the violation was determined (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 92
+      },
+      {
+        "column_id": "actual_rtc_date",
+        "label": "ACTUAL_RTC_DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Actual return-to-compliance date: the date the facility actually returned to compliance (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 80.5,
+        "distinct": 68
+      },
+      {
+        "column_id": "viol_rtc_date",
+        "label": "VIOL_RTC_DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Scheduled/recorded return-to-compliance date for the violation (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 80.5,
+        "distinct": 68
+      },
+      {
+        "column_id": "found_violation",
+        "label": "FOUND_VIOLATION",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Indicates whether a violation was found for the evaluation (populated when a violation determination exists).",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 74.7,
+        "distinct": 1
+      },
+      {
+        "column_id": "enf_type_desc",
+        "label": "ENF_TYPE_DESC",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Description of the enforcement action type (e.g. Written Informal, Initial Administrative Penalty Order).",
+        "derivation": "llm",
+        "confidence": 0.83,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 5
+      },
+      {
+        "column_id": "case_id",
+        "label": "CASE_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Enforcement case identifier in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.84,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 31
+      },
+      {
+        "column_id": "enf_action_date",
+        "label": "ENF_ACTION_DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date the enforcement action was issued (MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.84,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 31
+      },
+      {
+        "column_id": "penalty_amount",
+        "label": "PENALTY_AMOUNT",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Monetary penalty assessed for the enforcement action, in USD (stored as string).",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 92.3,
+        "distinct": 9
+      },
+      {
+        "column_id": "enf_comp_action_cost",
+        "label": "ENF_COMP_ACTION_COST",
+        "type": "STRING",
+        "class": "measure",
+        "description": "Estimated cost of complementary/compliance actions required by the enforcement (stored as string).",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 4
+      },
+      {
+        "column_id": "enf_activity_location",
+        "label": "ENF_ACTIVITY_LOCATION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code where the enforcement activity was recorded.",
+        "derivation": "llm",
+        "confidence": 0.74,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 4
+      },
+      {
+        "column_id": "enf_agency",
+        "label": "ENF_AGENCY",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Agency that issued the enforcement action (State, EPA, or Tribe).",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 2
+      },
+      {
+        "column_id": "enf_identifier",
+        "label": "ENF_IDENTIFIER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Identifier of the specific enforcement activity in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 31
+      },
+      {
+        "column_id": "enf_key",
+        "label": "ENF_KEY",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Composite key uniquely identifying the enforcement record in RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 91.5,
+        "distinct": 31
+      }
+    ],
+    "epa_hazwaste.RCRA_Compliance_Summary": [
+      {
+        "column_id": "target_facility",
+        "label": "target_facility",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Target facility name from the project's seed facility list; key used to link facility-360 records across tables and views.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "pgm_sys_id",
+        "label": "PGM_SYS_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "RCRA site identification number (EPA ID) of the facility, assigned by the implementing state or EPA region; first two characters are the state postal code (e.g. TXD003913381). Program-system ID linking to RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "registry_id",
+        "label": "REGISTRY_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "12-digit unique facility identifier assigned by EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "total_evaluations",
+        "label": "TOTAL_EVALUATIONS",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Count of distinct RCRA compliance evaluations (inspections) recorded for the facility in RCRAInfo compliance monitoring and enforcement data.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 18
+      },
+      {
+        "column_id": "total_violations",
+        "label": "TOTAL_VIOLATIONS",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Count of RCRA compliance records for the facility where a violation determination is recorded (FOUND_VIOLATION populated) in RCRAInfo data.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 8
+      },
+      {
+        "column_id": "total_enforcements",
+        "label": "TOTAL_ENFORCEMENTS",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Count of distinct RCRA enforcement actions recorded for the facility in RCRAInfo compliance monitoring and enforcement data.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 5
+      },
+      {
+        "column_id": "last_evaluation_date",
+        "label": "LAST_EVALUATION_DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date of the most recent RCRA compliance evaluation recorded for the facility.",
+        "derivation": "llm",
+        "confidence": 0.92,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "last_enforcement_date",
+        "label": "LAST_ENFORCEMENT_DATE",
+        "type": "STRING",
+        "class": "date",
+        "description": "Date of the most recent RCRA enforcement action recorded for the facility (stored as an MM/DD/YYYY string).",
+        "derivation": "llm",
+        "confidence": 0.84,
+        "pii": false,
+        "null_pct": 65.3,
+        "distinct": 17
+      },
+      {
+        "column_id": "total_penalty_amount",
+        "label": "TOTAL_PENALTY_AMOUNT",
+        "type": "NUMERIC",
+        "class": "measure",
+        "description": "Sum of monetary penalty amounts in US dollars from RCRA enforcement actions recorded for the facility.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 13
+      }
+    ],
+    "epa_hazwaste.FRS_Facility_profile": [
+      {
+        "column_id": "target_facility",
+        "label": "target_facility",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Target facility name from the project's seed facility list; key used to link facility-360 records across tables and views.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "primary_name",
+        "label": "PRIMARY_NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Primary facility name from EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "pgm_sys_id",
+        "label": "PGM_SYS_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "RCRA site identification number (EPA ID) of the facility, assigned by the implementing state or EPA region; first two characters are the state postal code (e.g. TXD003913381). Program-system ID linking to RCRAInfo.",
+        "derivation": "llm",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "registry_id",
+        "label": "REGISTRY_ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "12-digit unique facility identifier assigned by EPA's Facility Registry Service (FRS).",
+        "derivation": "llm",
+        "confidence": 0.94,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "facility_name",
+        "label": "FACILITY_NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Facility name from the EPA RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "activity_location",
+        "label": "ACTIVITY_LOCATION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Two-character state postal code indicating the location of the agency regulating the handler (RCRAInfo activity location).",
+        "derivation": "llm",
+        "confidence": 0.75,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "street_address",
+        "label": "STREET_ADDRESS",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address of the facility location from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "city_name",
+        "label": "CITY_NAME",
+        "type": "STRING",
+        "class": "geo",
+        "description": "City of the facility location from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 15
+      },
+      {
+        "column_id": "state_code",
+        "label": "STATE_CODE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "State code of the facility location from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "zip_code",
+        "label": "ZIP_CODE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "ZIP code of the facility location from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 20
+      },
+      {
+        "column_id": "latitude83",
+        "label": "LATITUDE83",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Latitude of the facility in decimal degrees, NAD83 datum, from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "longitude83",
+        "label": "LONGITUDE83",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Longitude of the facility in decimal degrees, NAD83 datum, from the RCRAInfo handler record.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "fed_waste_generator",
+        "label": "FED_WASTE_GENERATOR",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo federal waste generator status code, determined by the quantity and/or toxicity of hazardous waste generated: 1 = Large Quantity Generator (LQG), 2 = Small Quantity Generator (SQG), 3 = Very Small Quantity Generator (VSQG, formerly CESQG), N = not a generator; blank/null = unverified.",
+        "derivation": "llm",
+        "confidence": 0.7,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "transporter",
+        "label": "TRANSPORTER",
+        "type": "STRING",
+        "class": "flag",
+        "description": "Y/N flag from RCRAInfo; Y indicates the handler is engaged in the transportation of hazardous waste.",
+        "derivation": "llm",
+        "confidence": 0.68,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "active_site",
+        "label": "ACTIVE_SITE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo active-site indicator string; each position flags potential activity subject to RCRA regulation: H = Handler activities, P = Permitting activities, A = Corrective Action activities, C = Converter, S = State-specific activities; '-' = not active (e.g. 'HP---' = active handler and permitting activities).",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "operating_tsdf",
+        "label": "OPERATING_TSDF",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "RCRAInfo Operating TSDF universe indicator; letters flag the operating treatment/storage/disposal unit types at the facility: L = Land Disposal, I = Incinerator, B = Boiler/Industrial Furnace, S = Storage, T = Treatment, H = Solid Waste Management; all dashes = not in the operating TSDF universe (e.g. 'LI-ST-').",
+        "derivation": "llm",
+        "confidence": 0.63,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "fac_name",
+        "label": "FAC_NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Facility name from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "fac_street",
+        "label": "FAC_STREET",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address of the facility from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": true,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "fac_city",
+        "label": "FAC_CITY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "City of the facility from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.88,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 15
+      },
+      {
+        "column_id": "fac_state",
+        "label": "FAC_STATE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "State of the facility from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.87,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "fac_zip",
+        "label": "FAC_ZIP",
+        "type": "STRING",
+        "class": "geo",
+        "description": "ZIP code of the facility from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.86,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 20
+      },
+      {
+        "column_id": "fac_county",
+        "label": "FAC_COUNTY",
+        "type": "STRING",
+        "class": "geo",
+        "description": "County of the facility from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.85,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9
+      },
+      {
+        "column_id": "fac_epa_region",
+        "label": "FAC_EPA_REGION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "EPA region (01-10) in which the facility is located, from the FRS record.",
+        "derivation": "llm",
+        "confidence": 0.82,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 3
+      },
+      {
+        "column_id": "latitude_measure",
+        "label": "LATITUDE_MEASURE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Latitude of the facility in decimal degrees from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      },
+      {
+        "column_id": "longitude_measure",
+        "label": "LONGITUDE_MEASURE",
+        "type": "STRING",
+        "class": "geo",
+        "description": "Longitude of the facility in decimal degrees from the EPA Facility Registry Service (FRS) record.",
+        "derivation": "llm",
+        "confidence": 0.8,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 49
+      }
+    ],
+    "transport_ops.transporter_manifests": [
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA manifest tracking number (MTN) this leg belongs to. Joins to e_manifest.",
+        "derivation": "seeded",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "transporter_epa_id",
+        "label": "TRANSPORTER EPA ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA identification number of the transporter carrying the leg.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 62
+      },
+      {
+        "column_id": "transporter_name",
+        "label": "TRANSPORTER NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Registered name of the transporter company.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 58
+      },
+      {
+        "column_id": "leg_sequence",
+        "label": "LEG SEQUENCE",
+        "type": "INTEGER",
+        "class": "dimension",
+        "description": "Position of this leg in the shipment’s custody chain, starting at 1.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "pickup_date",
+        "label": "PICKUP DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date the transporter took custody of the shipment.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 720
+      },
+      {
+        "column_id": "delivery_date",
+        "label": "DELIVERY DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date custody passed to the next transporter or to the receiving facility.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 1.4,
+        "distinct": 731
+      },
+      {
+        "column_id": "origin_state",
+        "label": "ORIGIN STATE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "US state the leg departed from.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 31
+      },
+      {
+        "column_id": "destination_state",
+        "label": "DESTINATION STATE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "US state the leg arrived in.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 28
+      },
+      {
+        "column_id": "quantity_tons",
+        "label": "QUANTITY TONS",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Tonnage moved on this leg, as declared on the manifest.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1840
+      },
+      {
+        "column_id": "container_count",
+        "label": "CONTAINER COUNT",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Number of containers on the leg.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 47
+      },
+      {
+        "column_id": "hazard_class",
+        "label": "HAZARD CLASS",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "DOT hazard class declared for the load. An attribute of the shipment, not an entity.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9
+      },
+      {
+        "column_id": "signature_captured",
+        "label": "SIGNATURE CAPTURED",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Whether an electronic signature was captured at hand-off.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      }
+    ],
+    "transport_ops.route_segments": [
+      {
+        "column_id": "segment_id",
+        "label": "SEGMENT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Surrogate key for the origin→destination segment.",
+        "derivation": "seeded",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9640
+      },
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Manifest the segment belongs to. Joins to e_manifest and to transporter_manifests.",
+        "derivation": "seeded",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "origin_facility_id",
+        "label": "ORIGIN FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id of the facility the segment departed from.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "destination_facility_id",
+        "label": "DESTINATION FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id of the facility the segment arrived at.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "origin_address",
+        "label": "ORIGIN ADDRESS",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address on file for the origin handler.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "destination_lat",
+        "label": "DESTINATION LAT",
+        "type": "FLOAT",
+        "class": "geo",
+        "description": "Latitude of the destination handler, from the FRS facility record.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "destination_lon",
+        "label": "DESTINATION LON",
+        "type": "FLOAT",
+        "class": "geo",
+        "description": "Longitude of the destination handler, from the FRS facility record.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "distance_miles",
+        "label": "DISTANCE MILES",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Road distance of the segment.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2410
+      },
+      {
+        "column_id": "transit_hours",
+        "label": "TRANSIT HOURS",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Elapsed hours between departure and arrival scans.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 3.2,
+        "distinct": 1880
+      },
+      {
+        "column_id": "departed_at",
+        "label": "DEPARTED AT",
+        "type": "TIMESTAMP",
+        "class": "date",
+        "description": "Timestamp of the departure scan.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9310
+      }
+    ],
+    "compliance_sandbox.enforcement_staging": [
+      {
+        "column_id": "staging_id",
+        "label": "STAGING ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Surrogate key for the staged enforcement row.",
+        "derivation": "seeded",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 640
+      },
+      {
+        "column_id": "facility_epa_id",
+        "label": "FACILITY EPA ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id the action is filed against.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 118
+      },
+      {
+        "column_id": "facility_name",
+        "label": "FACILITY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Facility name as it appears on the filing, before resolution.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 121
+      },
+      {
+        "column_id": "enforcement_type",
+        "label": "ENFORCEMENT TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Type of action filed. An attribute of the action, not an entity of its own.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 6
+      },
+      {
+        "column_id": "filed_date",
+        "label": "FILED DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date the action was filed.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 512
+      },
+      {
+        "column_id": "penalty_usd",
+        "label": "PENALTY USD",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Penalty assessed, in US dollars. Null where none was assessed.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 41.7,
+        "distinct": 209
+      },
+      {
+        "column_id": "reviewed",
+        "label": "REVIEWED",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Whether a reviewer has cleared the row for promotion.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "reviewer_email",
+        "label": "REVIEWER EMAIL",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Address of the reviewer who cleared the row. Personal data.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": true,
+        "null_pct": 58.3,
+        "distinct": 9
+      },
+      {
+        "column_id": "review_note",
+        "label": "REVIEW NOTE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Free-text note the reviewer left when clearing or rejecting the row.",
+        "derivation": "seeded",
+        "confidence": 0.78,
+        "pii": false,
+        "null_pct": 61.1,
+        "distinct": 264
+      }
+    ],
+    "epa_hazwaste.cw_project_master": [
+      {
+        "column_id": "project_id",
+        "label": "PROJECT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key. Joins to cw_project_gate_log.project_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "program_id",
+        "label": "PROGRAM ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The programme this project is funded under. Joins to cw_program_master.program_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_id",
+        "label": "VENDOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The primary delivery contractor. Joins to cw_vendor_master.vendor_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "project_name",
+        "label": "PROJECT NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the project is called on a filing and in the portfolio register.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "lifecycle_phase",
+        "label": "LIFECYCLE PHASE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Where the project sits in the stage-gate sequence: Define, Execute, Commission, Closed.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "authorized_amount",
+        "label": "AUTHORIZED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "The approved capital envelope for this project, in dollars.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "in_service_date",
+        "label": "IN SERVICE DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the asset is expected to go into service. No class stated here so it is read from the type.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "is_active",
+        "label": "IS ACTIVE",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the project is still open for spend. Derived class: flag.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_program_master": [
+      {
+        "column_id": "program_id",
+        "label": "PROGRAM ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The programme key, as the budget cube stores it.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "program_name",
+        "label": "PROGRAM NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "The programme's name - Water Treatment Renewal, Distribution Mains, and so on.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "approved_envelope",
+        "label": "APPROVED ENVELOPE",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "The programme's total approved capital envelope across its projects.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "portfolio_owner_email",
+        "label": "PORTFOLIO OWNER EMAIL",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who owns the programme. Marked PII, so it answers the PII chip in the dictionary.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_vendor_master": [
+      {
+        "column_id": "vendor_id",
+        "label": "VENDOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The vendor key as procurement issues it.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_name",
+        "label": "VENDOR NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "The contracting entity's registered name.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_region",
+        "label": "VENDOR REGION",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The operating region the vendor is contracted to work in.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_project_gate_log": [
+      {
+        "column_id": "gate_id",
+        "label": "GATE ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The gate decision key.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "project_id",
+        "label": "PROJECT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The project the decision was made against. Declared as an identifier here, which is what lets the tab suggest the join.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_number",
+        "label": "GATE NUMBER",
+        "type": "INT64",
+        "class": "measure",
+        "description": "Which gate in the stage sequence this decision closes. Derived class: measure.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "decided_on",
+        "label": "DECIDED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the gate was decided. Derived class: date.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "released_amount",
+        "label": "RELEASED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "What the gate released against the envelope, in dollars.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_notes",
+        "label": "GATE NOTES",
+        "type": null,
+        "class": "text",
+        "description": "",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ]
+  },
+  "column_vocabulary": [
+    {
+      "name": "manifest_tracking_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.96
+    },
+    {
+      "name": "generator_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "transporter_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "designated_facility_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "frs_registry_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "handler_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.93
+    },
+    {
+      "name": "evaluation_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "violation_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "enforcement_action_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "waste_line_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.91
+    },
+    {
+      "name": "generator_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "transporter_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92
+    },
+    {
+      "name": "designated_facility_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92
+    },
+    {
+      "name": "facility_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "owner_operator_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9
+    },
+    {
+      "name": "parent_company_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.89
+    },
+    {
+      "name": "generator_contact_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "generator_contact_email",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93,
+      "pii": true
+    },
+    {
+      "name": "generator_contact_phone",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92,
+      "pii": true
+    },
+    {
+      "name": "generator_address_line1",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.89,
+      "pii": true
+    },
+    {
+      "name": "generator_city",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "generator_state",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "generator_county",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "generator_zip",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "facility_city",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "facility_state",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "facility_zip",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "naics_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "sic_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.89
+    },
+    {
+      "name": "federal_waste_generator_status",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "epa_waste_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "management_method_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "container_type",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "unit_of_measure",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.93
+    },
+    {
+      "name": "manifest_status",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "submission_type",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "evaluation_type",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "violation_type",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "rcra_statute_citation",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "enforcement_type",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "lead_agency",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.93
+    },
+    {
+      "name": "epa_region",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.95
+    },
+    {
+      "name": "container_count",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.93
+    },
+    {
+      "name": "total_quantity_kg",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.94
+    },
+    {
+      "name": "penalty_assessed_usd",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.93
+    },
+    {
+      "name": "days_to_compliance",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.9
+    },
+    {
+      "name": "shipped_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.95
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.95
+    },
+    {
+      "name": "evaluation_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.94
+    },
+    {
+      "name": "violation_determined_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.93
+    }
+  ],
+  "drives": [
+    {
+      "drive_id": "compliance-docs",
+      "display_name": "Compliance Docs",
+      "kind": "shared_drive",
+      "owner": "nishant.srivastav@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_08_unstructured",
+          "name": "Compliance Manager",
+          "path": "/Compliance Docs/08_unstructured",
+          "description": "EPA enforcement documents — consent decrees, complaints, settlements and CAFOs, mapped into the graph by entity extraction",
+          "documents": [
+            {
+              "document_id": "d_denka_cafo",
+              "name": "rcra-06-2025-0910-denka-performance-elastomer-llc-cafo.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "cafo",
+              "doc_type_label": "Consent Agreement/Final Order",
+              "linked_entity": "Denka Performance Elastomer LLC",
+              "pages": 38,
+              "size_mb": 3.1,
+              "entities": 26,
+              "modified": "2025-09-10T00:00:00Z"
+            },
+            {
+              "document_id": "d_chemours_cd",
+              "name": "chemours-cd.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 96,
+              "size_mb": 6.4,
+              "entities": 33,
+              "modified": "2025-04-22T00:00:00Z"
+            },
+            {
+              "document_id": "d_chemours_cp",
+              "name": "chemours-cp.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 41,
+              "size_mb": 2.8,
+              "entities": 24,
+              "modified": "2025-04-22T00:00:00Z"
+            },
+            {
+              "document_id": "d_pcs_nitrogen_cd",
+              "name": "pcsnitrogenfertilizerlp-cd.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "PCS Nitrogen Fertilizer LP",
+              "pages": 74,
+              "size_mb": 5.2,
+              "entities": 30,
+              "modified": "2024-11-14T00:00:00Z"
+            },
+            {
+              "document_id": "d_simplot_don_cd_mod",
+              "name": "simplot-don-cd-app9-modification-june-2025-cbi-redacted.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (modification)",
+              "linked_entity": "J.R. Simplot Company Don Plant",
+              "pages": 29,
+              "size_mb": 2.3,
+              "entities": 22,
+              "modified": "2025-06-30T00:00:00Z"
+            },
+            {
+              "document_id": "d_stericycle_complaint",
+              "name": "u.s._v._stericycle_complaint.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 33,
+              "size_mb": 2.1,
+              "entities": 23,
+              "modified": "2024-08-06T00:00:00Z"
+            },
+            {
+              "document_id": "d_stericycle_settlement",
+              "name": "united-states-v-stericycle-stipulation-and-order-of-settlement-jan-17-2025.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "settlement",
+              "doc_type_label": "Settlement",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 47,
+              "size_mb": 3.6,
+              "entities": 27,
+              "modified": "2025-01-17T00:00:00Z"
+            }
+          ],
+          "parent_id": null
+        },
+        {
+          "folder_id": "f_08_decrees",
+          "parent_id": "f_08_unstructured",
+          "name": "decrees",
+          "path": "/Compliance Docs/08_unstructured/decrees",
+          "description": "Consent decrees split out of the root folder, by filing.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cd_appendix",
+              "name": "chemours-cd-appendix-b.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (appendix)",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 24,
+              "size_mb": 2.2,
+              "entities": 15,
+              "modified": "2025-11-04T00:00:00Z"
+            },
+            {
+              "document_id": "d_pcs_nitrogen_cd_exhibit",
+              "name": "pcsnitrogenfertilizerlp-cd-exhibit-2.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (exhibit)",
+              "linked_entity": "PCS Nitrogen Fertilizer LP",
+              "pages": 17,
+              "size_mb": 1.5,
+              "entities": 8,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_08_decrees_2025",
+          "parent_id": "f_08_decrees",
+          "name": "2025",
+          "path": "/Compliance Docs/08_unstructured/decrees/2025",
+          "description": "Decree filings and modifications entered in 2025.",
+          "documents": [
+            {
+              "document_id": "d_simplot_don_cd_mod_signed",
+              "name": "simplot-don-cd-modification-signed-2025.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (modification)",
+              "linked_entity": "J.R. Simplot Company Don Plant",
+              "pages": 31,
+              "size_mb": 2.8,
+              "entities": 22,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_08_settlements",
+          "parent_id": "f_08_unstructured",
+          "name": "settlements",
+          "path": "/Compliance Docs/08_unstructured/settlements",
+          "description": "Stipulations and settlement orders.",
+          "documents": [
+            {
+              "document_id": "d_stericycle_settlement_exhibit",
+              "name": "stericycle-settlement-exhibit-a.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "settlement",
+              "doc_type_label": "Settlement (exhibit)",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 12,
+              "size_mb": 1.1,
+              "entities": 20,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "my-drive-compliance-lead",
+      "display_name": "My Drive",
+      "kind": "my_drive",
+      "folders": [
+        {
+          "folder_id": "f_my_intake",
+          "parent_id": null,
+          "name": "Intake",
+          "path": "/My Drive/Intake",
+          "description": "Filings dropped here before they are filed to the shared drive.",
+          "documents": [
+            {
+              "document_id": "d_denka_cafo_intake",
+              "name": "denka-cafo-intake-copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "cafo",
+              "doc_type_label": "Consent Agreement/Final Order",
+              "linked_entity": "Denka Performance Elastomer LLC",
+              "pages": 38,
+              "size_mb": 3.4,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_intake_q3",
+          "parent_id": "f_my_intake",
+          "name": "Q3 2025",
+          "path": "/My Drive/Intake/Q3 2025",
+          "description": "Intake for the third quarter.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cp_notes",
+              "name": "chemours-complaint-working-notes.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint (working copy)",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 9,
+              "size_mb": 0.8,
+              "entities": 17,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_review",
+          "parent_id": null,
+          "name": "Under review",
+          "path": "/My Drive/Under review",
+          "description": "Documents a reviewer has open.",
+          "documents": [
+            {
+              "document_id": "d_stericycle_complaint_review",
+              "name": "stericycle-complaint-review-copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 21,
+              "size_mb": 1.9,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "vls-legal",
+      "display_name": "VLS Legal",
+      "kind": "shared_drive",
+      "folders": [
+        {
+          "folder_id": "f_legal_active",
+          "parent_id": null,
+          "name": "Active matters",
+          "path": "/VLS Legal/Active matters",
+          "description": "Open matters, one folder per state.",
+          "documents": []
+        },
+        {
+          "folder_id": "f_legal_active_la",
+          "parent_id": "f_legal_active",
+          "name": "Louisiana",
+          "path": "/VLS Legal/Active matters/Louisiana",
+          "description": "Louisiana filings.",
+          "documents": [
+            {
+              "document_id": "d_pcs_nitrogen_cd_la",
+              "name": "pcs-nitrogen-cd-la-filing.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "PCS Nitrogen Fertilizer LP",
+              "pages": 44,
+              "size_mb": 4,
+              "entities": 18,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_legal_active_nc",
+          "parent_id": "f_legal_active",
+          "name": "North Carolina",
+          "path": "/VLS Legal/Active matters/North Carolina",
+          "description": "North Carolina filings.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cd_nc",
+              "name": "chemours-cd-nc-filing.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 96,
+              "size_mb": 8.6,
+              "entities": 19,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_legal_archive",
+          "parent_id": null,
+          "name": "Archive",
+          "path": "/VLS Legal/Archive",
+          "description": "Closed matters, retained for the record.",
+          "documents": [
+            {
+              "document_id": "d_denka_cafo_archive",
+              "name": "denka-cafo-closed.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "cafo",
+              "doc_type_label": "Consent Agreement/Final Order",
+              "linked_entity": "Denka Performance Elastomer LLC",
+              "pages": 38,
+              "size_mb": 3.4,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "drive_credentials": [
+    {
+      "drive_id": "compliance-docs",
+      "credential_handle": "drive-handle-5e97a2b4"
+    },
+    {
+      "drive_id": "my-drive-compliance-lead",
+      "credential_handle": "drive-handle-1c48fa03"
+    },
+    {
+      "drive_id": "vls-legal",
+      "credential_handle": "drive-handle-9ab7e510"
+    }
+  ],
+  "document_extractions": {
+    "d_denka_cafo": {
+      "extraction_id": "DOC:denka_cafo",
+      "extracted_entity": "Denka Performance Elastomer LLC",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_facility": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "linked_manifests": 28,
+      "confidence": 0.9
+    },
+    "d_chemours_cd": {
+      "extraction_id": "DOC:chemours_cd",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.9
+    },
+    "d_chemours_cp": {
+      "extraction_id": "DOC:chemours_cp",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.9
+    },
+    "d_pcs_nitrogen_cd": {
+      "extraction_id": "DOC:pcs_cd",
+      "extracted_entity": "PCS Nitrogen Fertilizer LP",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_facility": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "linked_manifests": 21,
+      "confidence": 0.9
+    },
+    "d_simplot_don_cd_mod": {
+      "extraction_id": "DOC:simplot_cd",
+      "extracted_entity": "J.R. Simplot Company Don Plant",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:IDD698205633",
+      "resolved_facility": "J.R. Simplot Company Don Plant",
+      "state": "ID",
+      "linked_manifests": 15,
+      "confidence": 0.9
+    },
+    "d_stericycle_complaint": {
+      "extraction_id": "DOC:stericycle_cp",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.9
+    },
+    "d_stericycle_settlement": {
+      "extraction_id": "DOC:stericycle_set",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.9
+    },
+    "d_chemours_cd_appendix": {
+      "extraction_id": "DOC:chemours_cd_appendix",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_pcs_nitrogen_cd_exhibit": {
+      "extraction_id": "DOC:pcs_nitrogen_cd_exhibit",
+      "extracted_entity": "PCS Nitrogen Fertilizer LP",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_facility": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "linked_manifests": 21,
+      "confidence": 0.88
+    },
+    "d_simplot_don_cd_mod_signed": {
+      "extraction_id": "DOC:simplot_don_cd_mod_signed",
+      "extracted_entity": "J.R. Simplot Company Don Plant",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:IDD698205633",
+      "resolved_facility": "J.R. Simplot Company Don Plant",
+      "state": "ID",
+      "linked_manifests": 15,
+      "confidence": 0.88
+    },
+    "d_stericycle_settlement_exhibit": {
+      "extraction_id": "DOC:stericycle_settlement_exhibit",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.88
+    },
+    "d_denka_cafo_intake": {
+      "extraction_id": "DOC:denka_cafo_intake",
+      "extracted_entity": "Denka Performance Elastomer LLC",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_facility": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "linked_manifests": 28,
+      "confidence": 0.88
+    },
+    "d_chemours_cp_notes": {
+      "extraction_id": "DOC:chemours_cp_notes",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_stericycle_complaint_review": {
+      "extraction_id": "DOC:stericycle_complaint_review",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.88
+    },
+    "d_pcs_nitrogen_cd_la": {
+      "extraction_id": "DOC:pcs_nitrogen_cd_la",
+      "extracted_entity": "PCS Nitrogen Fertilizer LP",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_facility": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "linked_manifests": 21,
+      "confidence": 0.88
+    },
+    "d_chemours_cd_nc": {
+      "extraction_id": "DOC:chemours_cd_nc",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_denka_cafo_archive": {
+      "extraction_id": "DOC:denka_cafo_archive",
+      "extracted_entity": "Denka Performance Elastomer LLC",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_facility": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "linked_manifests": 28,
+      "confidence": 0.88
+    }
+  }
+}

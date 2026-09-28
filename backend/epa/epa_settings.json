@@ -1,0 +1,222 @@
+{
+  "google_account": {
+    "email": "nishant.srivastav@vriodigital.com",
+    "name": "Nishant Srivastav"
+  },
+  "settings": {
+    "users": [
+      {
+        "id": 1,
+        "role_id": "business_user_executive",
+        "name": "Ellis Hargrove",
+        "email": "ellis.hargrove@vriodigital.com"
+      },
+      {
+        "id": 2,
+        "role_id": "domain_architect",
+        "name": "Dana Whitfield",
+        "email": "dana.whitfield@vriodigital.com"
+      },
+      {
+        "id": 3,
+        "role_id": "business_user_project",
+        "name": "Rei Nakamura",
+        "email": "rei.nakamura@vriodigital.com"
+      },
+      {
+        "id": 4,
+        "role_id": "platform_admin",
+        "name": "Adaeze Okonjo",
+        "email": "adaeze.okonjo@vriodigital.com"
+      },
+      {
+        "id": 5,
+        "role_id": "domain_architect",
+        "name": "Nishant Srivastav",
+        "email": "nishant.srivastav@vriodigital.com"
+      },
+      {
+        "id": 6,
+        "role_id": "domain_architect",
+        "name": "ContextWeave Group",
+        "email": "contextweave.group@vriodigital.com"
+      }
+    ],
+    "defaults": {
+      "business_user_executive": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "domain_architect": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "business_user_project": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "platform_admin": {
+        "reports": false,
+        "ask": false,
+        "what-if": false,
+        "ai-submissions": false,
+        "new-graph": false,
+        "sources": false,
+        "catalog": false,
+        "graph-studio": false,
+        "audit": false,
+        "settings": true
+      }
+    },
+    "read_only": {
+      "platform_admin": [
+        "settings"
+      ]
+    },
+    "nav_permissions": {
+      "business_user_executive": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "domain_architect": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "business_user_project": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false
+      },
+      "platform_admin": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "ai-submissions": false,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": true
+      }
+    },
+    "report_permissions": {
+      "business_user_executive": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "domain_architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "business_user_project": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "platform_admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      }
+    },
+    "report_defaults": {
+      "business_user_executive": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "domain_architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "business_user_project": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "platform_admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      }
+    }
+  },
+  "auth_roles": [
+    {
+      "role_id": "business_user_executive",
+      "label": "Business User — Executive",
+      "access_note": "Business figures and KPI answers only. No underlying structure exposed."
+    },
+    {
+      "role_id": "domain_architect",
+      "label": "Domain Architect",
+      "access_note": "No cost or business figures. Structure and lineage for owned domains only."
+    },
+    {
+      "role_id": "business_user_project",
+      "label": "Business User — Project Level",
+      "access_note": "Business figures for the assigned project only. No underlying structure exposed."
+    },
+    {
+      "role_id": "platform_admin",
+      "label": "Platform Admin",
+      "access_note": "No business figures. Structure, lineage, cost and access only."
+    }
+  ],
+  "change_signals": [],
+  "data_model": {
+    "suggestions": [],
+    "entities": []
+  }
+}

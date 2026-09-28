@@ -197,7 +197,16 @@ export const MERGE_PLAN = {
    * figure the tile shows is now summed from the documents themselves, so there is nothing
    * single-valued left in this key to have a rule of its own.
    */
-  mail_corpus: { deep: { documents: { union: 'document_id' } } },
+  mail_corpus: {
+    deep: {
+      source_id: 'primary',
+      document_count: 'primary',
+      chunk_count: 'primary',
+      char_count: 'primary',
+      documents_chunked_today: 'primary',
+      documents: { union: 'document_id' },
+    },
+  },
 
   /*
    * The two documents that used to be files of their own, and both are the **tenant's** rather than

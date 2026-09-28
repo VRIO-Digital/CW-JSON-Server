@@ -1,0 +1,1065 @@
+{
+  "whatif": {
+    "copy": {
+      "page_title": "What-if",
+      "banner": "PFAS treatment program · Veolia municipal water · GAC + ion-exchange build · base forecast $120M against a $132M authorized envelope",
+      "subtitle": "Move only what the graph can attribute. The locked and residual slices never move.",
+      "overlay_pill": "◈ read-only overlay · never writes back",
+      "tabs": [
+        {
+          "key": "author",
+          "label": "Authoring"
+        },
+        {
+          "key": "runtime",
+          "label": "Runtime"
+        }
+      ],
+      "data_note": "Extracted from the built page at runtime by _build/extract_whatif.js. Nothing here is hand-typed; if the page changes, re-run the extractor rather than editing this file."
+    },
+    "state_defaults": {
+      "tab": "author",
+      "step": 1,
+      "count": 2,
+      "watch": {
+        "forecast": true,
+        "contingency": true,
+        "variance": false,
+        "committed": false
+      },
+      "pool": "all"
+    },
+    "facility": {
+      "id": "PRG:pfas-treatment",
+      "name": "PFAS treatment program",
+      "role": "Veolia municipal water · GAC + ion-exchange build",
+      "baseline": {
+        "forecast": 120,
+        "contingency": 6,
+        "months": 34
+      },
+      "appetite": {
+        "forecast": 132,
+        "approved": 126
+      }
+    },
+    "transporters": [],
+    "generators": [],
+    "candidate_pools": [],
+    "_not_applicable": {
+      "transporters": "CAPEX has no carrier dimension; the lever axis is the cost decomposition.",
+      "generators": "CAPEX exposes continuous levers, not a pool of swappable candidates.",
+      "candidate_pools": "Same reason. The CAPEX equivalents are `slices` and `levers` below."
+    },
+    "watched_measures": [
+      {
+        "key": "forecast",
+        "label": "Remaining forecast to complete",
+        "source": "ERP",
+        "field": "forecast",
+        "format": "currency_m",
+        "unit": "$M",
+        "inherited": true,
+        "baseline_field": "at_base",
+        "appetite_field": "limit_usd_m",
+        "breach": 132,
+        "grounds": "Σ attributable slices, judged vs the authorized envelope",
+        "at_base": 120,
+        "judgement_at_base": "$12M under the $132M envelope",
+        "watched_by_default": true
+      },
+      {
+        "key": "contingency",
+        "label": "Contingency drawn",
+        "source": "CTR",
+        "field": "contingency",
+        "format": "currency_m",
+        "unit": "$M",
+        "inherited": true,
+        "baseline_field": "at_base",
+        "appetite_field": "limit_usd_m",
+        "breach": 18,
+        "grounds": "Contingency register — $18M authorized",
+        "at_base": 12,
+        "judgement_at_base": "$6M of the $18M reserve still uncommitted",
+        "watched_by_default": true
+      },
+      {
+        "key": "variance",
+        "label": "Variance to approved budget",
+        "source": "ERP",
+        "field": "variance",
+        "format": "currency_m",
+        "unit": "$M",
+        "inherited": true,
+        "baseline_field": "at_base",
+        "appetite_field": "limit_usd_m",
+        "breach": null,
+        "grounds": "Forecast − board-approved 126M",
+        "at_base": -6,
+        "judgement_at_base": "$6M under the $126M board approval",
+        "watched_by_default": false
+      },
+      {
+        "key": "committed",
+        "label": "Committed cost (signed)",
+        "source": "CTR",
+        "field": "committed",
+        "format": "currency_m",
+        "unit": "$M",
+        "inherited": true,
+        "baseline_field": "at_base",
+        "appetite_field": "limit_usd_m",
+        "breach": 132,
+        "grounds": "Fixed-price subcontracts + committed labor rate card",
+        "at_base": 48,
+        "judgement_at_base": "$48M contractually committed of the $132M envelope",
+        "watched_by_default": false
+      }
+    ],
+    "formats": {
+      "integer": {
+        "template": "{v}",
+        "desc": "whole number, printed as-is"
+      },
+      "currency_k": {
+        "template": "${v/1000}k",
+        "desc": "USD divided by 1000, suffixed k"
+      },
+      "currency_m": {
+        "template": "${v}M",
+        "desc": "USD millions, one decimal"
+      },
+      "percent": {
+        "template": "{v}%",
+        "desc": "percent change against the base case"
+      },
+      "boolean_yesno": {
+        "template": "{v?yes:no}",
+        "desc": "1/true -> 'yes', 0/false -> 'no'"
+      }
+    },
+    "resolvable": [
+      {
+        "keywords": [
+          "forecast",
+          "remaining",
+          "complete",
+          "etc",
+          "at completion"
+        ],
+        "resolves_to": "forecast",
+        "note": "grounds to the summed slice decomposition",
+        "verdict": "resolved"
+      },
+      {
+        "keywords": [
+          "contingency",
+          "reserve",
+          "draw"
+        ],
+        "resolves_to": "contingency",
+        "note": "grounds to the contingency register (CTR)",
+        "verdict": "resolved"
+      },
+      {
+        "keywords": [
+          "variance",
+          "overrun",
+          "over budget",
+          "budget",
+          "approved"
+        ],
+        "resolves_to": "variance",
+        "note": "grounds to forecast − board-approved budget",
+        "verdict": "resolved"
+      },
+      {
+        "keywords": [
+          "committed",
+          "commitment",
+          "signed",
+          "purchase order",
+          " po "
+        ],
+        "resolves_to": "committed",
+        "note": "grounds to signed subcontracts + committed rate card",
+        "verdict": "resolved"
+      },
+      {
+        "keywords": [
+          "date",
+          "in-service",
+          "in service",
+          "schedule",
+          "completion date",
+          "when",
+          "finish",
+          "timeline"
+        ],
+        "resolves_to": null,
+        "note": "the graph holds committed milestone dates, but a predicted in-service date needs a forecasting model this product does not have and will not fake",
+        "verdict": "refused"
+      },
+      {
+        "keywords": [
+          "per gallon",
+          "unit cost",
+          "per unit",
+          "throughput",
+          "capacity",
+          "$/"
+        ],
+        "resolves_to": null,
+        "note": "nothing in this graph resolves a unit cost — no throughput or treated-volume is modelled",
+        "verdict": "refused"
+      }
+    ],
+    "resolve_copy": {
+      "resolved": {
+        "tone": "ok",
+        "title": "Resolved — \"{label}\" added.",
+        "body": "It grounds in a measure the graph already holds."
+      },
+      "grounds_not_inherited": {
+        "tone": "warn",
+        "title": "Grounds, but not as an inherited-risk measure.",
+        "body": "It resolves, and the answer says so on its face."
+      },
+      "refused": {
+        "tone": "bad",
+        "title": "Doesn't ground.",
+        "body": "A predicted in-service date or unit cost is refused, not guessed. See resolvable_measures."
+      }
+    },
+    "authoring": {
+      "steps": [
+        {
+          "n": 1,
+          "key": "setup",
+          "title": "Set up",
+          "heading": "Set up",
+          "help": "Choose the measures this frame watches and how many cases you want side by side.",
+          "note": null,
+          "add_measure": {
+            "label": "Add a measure the graph can support",
+            "placeholder": "e.g. index-driven materials exposure, contingency drawdown…",
+            "button": "Resolve against graph",
+            "help": "A predicted in-service date or unit cost is refused, not guessed. See resolvable_measures."
+          }
+        },
+        {
+          "n": 2,
+          "key": "levers",
+          "title": "Set your levers",
+          "heading": "Set your levers",
+          "help": "Only the slices the graph can attribute expose a lever. The rest are shown and locked, with the reason.",
+          "note": null,
+          "preview_rows": 5,
+          "graph_link": "◈ Show the graph this frame references"
+        },
+        {
+          "n": 3,
+          "key": "review",
+          "title": "Review",
+          "heading": "Review",
+          "help": "The frame and each case's lever positions are what gets saved — never the computed figures.",
+          "note": null
+        }
+      ],
+      "scenario_count": {
+        "heading": "How many cases do you want side by side?",
+        "help": "Each case is one set of lever positions against the same frame.",
+        "options": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "default": 2
+      },
+      "lever_config": {
+        "mat": {
+          "exposed": true,
+          "min": -10,
+          "max": 30
+        },
+        "lab": {
+          "exposed": true,
+          "min": -5,
+          "max": 20
+        },
+        "cont": {
+          "exposed": true,
+          "min": 0,
+          "max": 18
+        }
+      },
+      "cases": [
+        {
+          "name": "Base case",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 12
+          }
+        },
+        {
+          "name": "Steel spike",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 12
+          }
+        }
+      ],
+      "cta_step1": "Continue — set your levers →",
+      "cta_step2": "Continue — review →",
+      "cta_step3": "Save frame & run →"
+    },
+    "runtime": {
+      "compare": {
+        "min": 1,
+        "max": 4,
+        "default": 2,
+        "help": "“Add to compare” opens a saved case as a new column beside this one."
+      },
+      "scenario_card": {
+        "load_label": "Lever positions — the levers",
+        "name_placeholder": "Name this case (e.g. Index +15%)",
+        "trace_link": "▸ Trace every figure to its source slice",
+        "trace_header": "These figures come from the attributed cost decomposition: three source systems, one slice each.",
+        "residual_note": "Cost the graph cannot attribute to a slice does not move with any lever and is stated separately.",
+        "clean_note": "No lever on this case crosses the authorized envelope.",
+        "graph_link": "◈ Show the graph this references"
+      },
+      "headroom": {
+        "label": "Headroom — the inverse question",
+        "formula": "floor((envelope - base_forecast) / slice_base) as a percent of the slice",
+        "measure": "forecast",
+        "against": "appetite.forecast",
+        "sentence": "{room}{unit} more on {driver} before the base case crosses the envelope.",
+        "help": "Goal-Seek-style and exact — the inverse of the decomposition, not a forecast.",
+        "worked_example": {
+          "question": "How far can the commodity index rise before the base case crosses the authorized envelope?",
+          "answer_pct": 25,
+          "solved_from": "envelope 132M − base forecast 120M = 12M of headroom ÷ the 48M index-linked slice",
+          "note": "Goal-Seek-style and exact — the inverse of the decomposition, not a forecast."
+        }
+      },
+      "saved_library": {
+        "title": "Saved scenario library",
+        "stores": "Lever positions and the frame, never the computed figures. Re-opening recomputes.",
+        "empty": "None yet. Save a case above to keep it here.",
+        "full_help": "Compare strip is full (4). Remove a column to add another.",
+        "save_btn": "＋ Save this scenario",
+        "update_btn": "↻ Update saved scenario",
+        "saved_flag": "✓ Saved to library",
+        "add_btn": "Add to compare",
+        "default_name_template": "{driver} {sign}{value}{unit}"
+      },
+      "closing_note": "A lever moves only the slice the graph can attribute to that driver. Locked slices and the unattributed residual never move — smearing an unattributed figure across the answer is the dishonesty this design refuses.",
+      "sources": [
+        {
+          "key": "CTR",
+          "label": "Signed lump-sum subcontracts",
+          "color": "#047857",
+          "line": "solid"
+        },
+        {
+          "key": "DEF",
+          "label": "Not decomposable from the current graph",
+          "color": "#475569",
+          "line": "solid"
+        },
+        {
+          "key": "ERP",
+          "label": "SAP timesheets + committed rate card",
+          "color": "#1d4ed8",
+          "line": "solid"
+        },
+        {
+          "key": "IDX",
+          "label": "Platts steel / GAC media index feed",
+          "color": "#b45309",
+          "line": "solid"
+        }
+      ],
+      "worked_examples": [
+        {
+          "case": "Base case",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 12
+          },
+          "forecast_usd_m": 120,
+          "vs_envelope_usd_m": -12,
+          "crosses_envelope": false,
+          "slice_breakdown": {
+            "mat": 48,
+            "lab": 30,
+            "sub": 18,
+            "cont": 12,
+            "res": 12
+          }
+        },
+        {
+          "case": "Steel spike +18%",
+          "vals": {
+            "mat": 18,
+            "lab": 0,
+            "cont": 12
+          },
+          "forecast_usd_m": 128.6,
+          "vs_envelope_usd_m": -3.4,
+          "crosses_envelope": false,
+          "slice_breakdown": {
+            "mat": 56.6,
+            "lab": 30,
+            "sub": 18,
+            "cont": 12,
+            "res": 12
+          }
+        },
+        {
+          "case": "Full reserve drawn",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 18
+          },
+          "forecast_usd_m": 126,
+          "vs_envelope_usd_m": -6,
+          "crosses_envelope": false,
+          "slice_breakdown": {
+            "mat": 48,
+            "lab": 30,
+            "sub": 18,
+            "cont": 18,
+            "res": 12
+          }
+        },
+        {
+          "case": "Index +30% and labor +20% — the authored ceiling",
+          "vals": {
+            "mat": 30,
+            "lab": 20,
+            "cont": 18
+          },
+          "forecast_usd_m": 146.4,
+          "vs_envelope_usd_m": 14.4,
+          "crosses_envelope": true,
+          "slice_breakdown": {
+            "mat": 62.4,
+            "lab": 36,
+            "sub": 18,
+            "cont": 18,
+            "res": 12
+          }
+        }
+      ]
+    },
+    "graph_reference": {
+      "node_types": [
+        {
+          "key": "BudgetPlanVersion",
+          "label": "BudgetPlanVersion",
+          "color": "#475569"
+        },
+        {
+          "key": "BusinessUnit",
+          "label": "BusinessUnit",
+          "color": "#475569"
+        },
+        {
+          "key": "ChangeOrder",
+          "label": "ChangeOrder",
+          "color": "#475569"
+        },
+        {
+          "key": "Classification",
+          "label": "Classification",
+          "color": "#475569"
+        },
+        {
+          "key": "Contract",
+          "label": "Contract",
+          "color": "#475569"
+        },
+        {
+          "key": "Document",
+          "label": "Document",
+          "color": "#475569"
+        },
+        {
+          "key": "InServiceAsset",
+          "label": "InServiceAsset",
+          "color": "#475569"
+        },
+        {
+          "key": "Measure",
+          "label": "Measure",
+          "color": "#475569"
+        },
+        {
+          "key": "Person",
+          "label": "Person",
+          "color": "#475569"
+        },
+        {
+          "key": "PlanVintage",
+          "label": "PlanVintage",
+          "color": "#475569"
+        },
+        {
+          "key": "Programme",
+          "label": "Programme",
+          "color": "#475569"
+        },
+        {
+          "key": "Project",
+          "label": "Project",
+          "color": "#475569",
+          "risk_colors": {
+            "high": "red",
+            "med": "amber",
+            "low": "green"
+          }
+        },
+        {
+          "key": "RateJurisdiction",
+          "label": "RateJurisdiction",
+          "color": "#475569"
+        },
+        {
+          "key": "Region",
+          "label": "Region",
+          "color": "#475569"
+        },
+        {
+          "key": "RegulatoryDriver",
+          "label": "RegulatoryDriver",
+          "color": "#475569"
+        },
+        {
+          "key": "State",
+          "label": "State",
+          "color": "#475569"
+        },
+        {
+          "key": "Vendor",
+          "label": "Vendor",
+          "color": "#475569"
+        }
+      ],
+      "relationships": [
+        "AGGREGATES_OVER",
+        "AMENDS",
+        "AWARDED_TO",
+        "BELONGS_TO",
+        "CHANGES",
+        "CLASSIFIED_AS",
+        "CONTAINS",
+        "DELIVERS",
+        "DESCRIBES",
+        "DOCUMENTED_BY",
+        "DRIVEN_BY",
+        "ENGINEERED_BY",
+        "FILED_UNDER",
+        "HAS_PLAN_VERSION",
+        "ISSUED_AT_VINTAGE",
+        "LOCATED_IN",
+        "MANAGED_BY",
+        "PLACES_IN_SERVICE",
+        "RECOVERED_THROUGH",
+        "REGULATED_BY",
+        "RESOLVES_TO",
+        "RESOLVES_TO_VINTAGE",
+        "ROLLS_UP_TO"
+      ],
+      "frame": {
+        "description": "The frame — the programme node, its attributed cost slices and the source feed behind each one.",
+        "center_node": "facility",
+        "edge": "ATTRIBUTED_TO",
+        "max_drawn": 5
+      },
+      "scenario_subgraph": {
+        "description": "What one case traverses: each moved slice back to the feed that prices it, and forward to the watched measure.",
+        "nodes": [
+          "mat",
+          "lab",
+          "sub",
+          "cont",
+          "res"
+        ]
+      }
+    },
+    "headroom": {
+      "mat": {
+        "room": 25,
+        "avg": 48,
+        "carrying": 3,
+        "appetite": 132,
+        "unit": "%",
+        "sentence": "Commodity index can rise 25% before the base case crosses the $132M envelope"
+      },
+      "lab": {
+        "room": 40,
+        "avg": 30,
+        "carrying": 3,
+        "appetite": 132,
+        "unit": "%",
+        "sentence": "Labor rate can rise 40% before the base case crosses the $132M envelope"
+      },
+      "cont": {
+        "room": 12,
+        "avg": 12,
+        "carrying": 3,
+        "appetite": 132,
+        "unit": "$M",
+        "sentence": "Contingency draw can rise 12$M before the base case crosses the $132M envelope"
+      }
+    },
+    "scenario_library_seeds": [
+      {
+        "id": 1,
+        "name": "Commodity index exposure — PFAS program",
+        "watch": {
+          "forecast": true,
+          "contingency": true,
+          "variance": true,
+          "committed": true
+        },
+        "cfg": {
+          "mat": {
+            "exposed": true,
+            "min": -10,
+            "max": 30
+          },
+          "lab": {
+            "exposed": true,
+            "min": -5,
+            "max": 20
+          },
+          "cont": {
+            "exposed": true,
+            "min": 0,
+            "max": 18
+          }
+        },
+        "count": 2,
+        "cases": [
+          {
+            "name": "Base case",
+            "vals": {
+              "mat": 0,
+              "lab": 0,
+              "cont": 12
+            }
+          },
+          {
+            "name": "Steel spike +18%",
+            "vals": {
+              "mat": 18,
+              "lab": 0,
+              "cont": 12
+            }
+          }
+        ],
+        "pub": {
+          "readers": [
+            "ellis.hargrove@vriodigital.com",
+            "sofia.lindqvist@vriodigital.com"
+          ],
+          "graph": "v4",
+          "fresh": {
+            "preset": "monday",
+            "every": 1,
+            "unit": "week",
+            "days": [
+              "Mon"
+            ],
+            "time": "6:00 AM"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "name": "Contingency draw-down",
+        "watch": {
+          "forecast": true,
+          "contingency": true,
+          "variance": false,
+          "committed": false
+        },
+        "cfg": {
+          "mat": {
+            "exposed": false,
+            "min": -10,
+            "max": 30
+          },
+          "lab": {
+            "exposed": true,
+            "min": -5,
+            "max": 20
+          },
+          "cont": {
+            "exposed": true,
+            "min": 0,
+            "max": 18
+          }
+        },
+        "count": 1,
+        "cases": [
+          {
+            "name": "Full reserve drawn",
+            "vals": {
+              "mat": 0,
+              "lab": 0,
+              "cont": 18
+            }
+          }
+        ],
+        "pub": null
+      }
+    ],
+    "slices": [
+      {
+        "id": "mat",
+        "label": "Index-linked materials",
+        "base_usd_m": 48,
+        "lever": true,
+        "driver": "Commodity index",
+        "unit": "%",
+        "range": {
+          "min": -10,
+          "max": 30,
+          "default": 0
+        },
+        "source_code": "IDX",
+        "source_name": "Platts steel / GAC media index feed",
+        "trace": "48 of the 120 is priced against a published commodity index; moving the index moves this slice by exact proportion."
+      },
+      {
+        "id": "lab",
+        "label": "Field labor",
+        "base_usd_m": 30,
+        "lever": true,
+        "driver": "Labor rate",
+        "unit": "%",
+        "range": {
+          "min": -5,
+          "max": 20,
+          "default": 0
+        },
+        "source_code": "ERP",
+        "source_name": "SAP timesheets + committed rate card",
+        "trace": "30 of the 120 is labor hours × rate from committed timesheets; a rate change scales this slice only."
+      },
+      {
+        "id": "sub",
+        "label": "Fixed-price subcontracts",
+        "base_usd_m": 18,
+        "lever": false,
+        "driver": null,
+        "unit": null,
+        "range": null,
+        "source_code": "CTR",
+        "source_name": "Signed lump-sum subcontracts",
+        "trace": "18 is under signed fixed-price subcontracts — contractually cannot move, so no lever is exposed."
+      },
+      {
+        "id": "cont",
+        "label": "Contingency drawn",
+        "base_usd_m": 12,
+        "lever": true,
+        "driver": "Contingency draw",
+        "unit": "$M",
+        "range": {
+          "min": 0,
+          "max": 18,
+          "default": 12
+        },
+        "source_code": "CTR",
+        "source_name": "Contingency register — $18M authorized",
+        "trace": "12 of the 18M authorized contingency is currently drawn; a scenario can model drawing up to the full 18M."
+      },
+      {
+        "id": "res",
+        "label": "Residual — unattributed",
+        "base_usd_m": 12,
+        "lever": false,
+        "driver": null,
+        "unit": null,
+        "range": null,
+        "source_code": "DEF",
+        "source_name": "Not decomposable from the current graph",
+        "trace": "12 of the 120 cannot be tied to any single driver from what the graph holds today. A scenario must NOT move it — moving an unattributed figure is the exact dishonesty this design refuses."
+      }
+    ],
+    "levers": [
+      "mat",
+      "lab",
+      "cont"
+    ],
+    "locked_slices": [
+      {
+        "id": "sub",
+        "label": "Fixed-price subcontracts",
+        "base_usd_m": 18,
+        "why_locked": "18 is under signed fixed-price subcontracts — contractually cannot move, so no lever is exposed."
+      },
+      {
+        "id": "res",
+        "label": "Residual — unattributed",
+        "base_usd_m": 12,
+        "why_locked": "12 of the 120 cannot be tied to any single driver from what the graph holds today. A scenario must NOT move it — moving an unattributed figure is the exact dishonesty this design refuses."
+      }
+    ],
+    "program": {
+      "name": "PFAS treatment program",
+      "site": "Veolia municipal water · GAC + ion-exchange build",
+      "envelope": 132,
+      "approvedBudget": 126,
+      "baselineMonths": 34
+    },
+    "publishing": {
+      "publish_title": "Publish scenario",
+      "manage_title": "Manage publishing",
+      "call": "The scenario — the frame (watched measures, exposed drivers and their ranges) plus its cases. A case is never published on its own.",
+      "readers": {
+        "label": "Readers",
+        "placeholder": "Name or email…",
+        "empty_error": "Add at least one reader.",
+        "caveat": "This narrows who is told the scenario exists. It is not access control.",
+        "scope_note": "Publishing never widens access. Each reader opens the scenario under their own data-access rules; a masked measure stays masked."
+      },
+      "graph": {
+        "label": "Bind to a graph",
+        "note": "A published scenario points to one published graph version and re-traverses it on every open. When a newer graph is published the author can repoint.",
+        "empty": "Nothing is published, so there is no graph to bind a scenario to.",
+        "options": [
+          {
+            "id": "v4",
+            "label": "Northline Water capital program graph · v4 — current, published Aug 14, 2026"
+          },
+          {
+            "id": "v3",
+            "label": "Northline Water capital program graph · v3 — published Jul 31, 2026"
+          }
+        ],
+        "default": "v4"
+      },
+      "freshness": {
+        "label": "Numbers freshness",
+        "presets": [
+          {
+            "id": "open",
+            "label": "Only when it’s opened",
+            "sentence": "Only when it’s opened"
+          },
+          {
+            "id": "daily",
+            "label": "Every weekday (Mon–Fri) at 6:00 AM",
+            "sentence": "Every weekday (Mon–Fri) at 6:00 AM"
+          },
+          {
+            "id": "monday",
+            "label": "Weekly on Monday at 6:00 AM",
+            "sentence": "Weekly on Monday at 6:00 AM"
+          },
+          {
+            "id": "monthly",
+            "label": "Monthly on the 1st at 6:00 AM",
+            "sentence": "Monthly on the 1st at 6:00 AM"
+          },
+          {
+            "id": "custom",
+            "label": "Custom…",
+            "sentence": "Build your own recurrence."
+          }
+        ],
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ],
+        "times": [
+          "6:00 AM",
+          "7:00 AM",
+          "8:00 AM",
+          "12:00 PM",
+          "6:00 PM"
+        ],
+        "units": [
+          "day",
+          "week",
+          "month"
+        ],
+        "every": {
+          "min": 1,
+          "max": 99
+        },
+        "default": {
+          "preset": "open",
+          "every": 1,
+          "unit": "week",
+          "days": [
+            "Mon"
+          ],
+          "time": "6:00 AM"
+        },
+        "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+      },
+      "done": {
+        "title": "Scenario published",
+        "body": "“{name}” is live for {n}. Each opens it under their own access — same scenario, their scope. It stays in your library — come back any time to change readers or freshness.",
+        "stored": "Lever positions and the frame, never the computed figures. Re-opening recomputes.",
+        "link": {
+          "label": "Copy link",
+          "copied": "Link copied."
+        },
+        "labels": {
+          "cases": "Cases",
+          "readers": "Readers",
+          "graph": "Graph",
+          "numbers": "Numbers",
+          "access": "Access rules"
+        },
+        "graph_note": "current, published {when}",
+        "access_note": "per-reader scope is managed in Audit & Governance.",
+        "audit_link": "Open Audit & Governance →",
+        "buttons": {
+          "again": "+ Start a new scenario",
+          "close": "Done"
+        }
+      },
+      "buttons": {
+        "publish": "Publish scenario",
+        "update": "Update publication",
+        "unpublish": "Unpublish",
+        "manage": "Manage publishing…",
+        "open": "Publish scenario…"
+      },
+      "unpublished_note": "Unpublished — the scenario stays in your library.",
+      "directory": [
+        {
+          "email": "dana.whitfield@vriodigital.com",
+          "name": "Dana Whitfield",
+          "role": "Domain Architect",
+          "access": {
+            "kind": "full",
+            "masked_measures": [],
+            "row_scope": "portfolio-wide",
+            "label": "Unrestricted — all 60 project rows, no field masks"
+          },
+          "preview_against_seed_scenario": {
+            "pill": "full",
+            "headline": "Sees the full scenario",
+            "detail": "Unrestricted — all 60 project rows, no field masks"
+          }
+        },
+        {
+          "email": "ellis.hargrove@vriodigital.com",
+          "name": "Ellis Hargrove",
+          "role": "Business User · Executive",
+          "access": {
+            "kind": "rules",
+            "masked_measures": [],
+            "row_scope": "portfolio-wide",
+            "label": "Portfolio-wide; vendor contacts and unit rates masked — neither is a watched measure here"
+          },
+          "preview_against_seed_scenario": {
+            "pill": "full",
+            "headline": "Sees all 4 measures",
+            "detail": "Portfolio-wide; vendor contacts and unit rates masked — neither is a watched measure here"
+          }
+        },
+        {
+          "email": "sofia.lindqvist@vriodigital.com",
+          "name": "Sofia Lindqvist",
+          "role": "Data Analyst",
+          "access": {
+            "kind": "rules",
+            "masked_measures": [
+              "committed"
+            ],
+            "row_scope": "portfolio-wide",
+            "label": "Portfolio-wide, but contract values and unit rates are masked"
+          },
+          "preview_against_seed_scenario": {
+            "pill": "part",
+            "headline": "Sees 3 of 4 measures",
+            "detail": "Portfolio-wide, but contract values and unit rates are masked — committed cost (signed) stays masked."
+          }
+        },
+        {
+          "email": "rei.nakamura@vriodigital.com",
+          "name": "Rei Nakamura",
+          "role": "Business User · Project Level",
+          "access": {
+            "kind": "rules",
+            "masked_measures": [
+              "forecast",
+              "variance"
+            ],
+            "row_scope": "their own business unit — 8 of the 60 rows",
+            "label": "Scoped to one business unit; forecast, EAC and EAC variance masked"
+          },
+          "preview_against_seed_scenario": {
+            "pill": "part",
+            "headline": "Sees 2 of 4 measures",
+            "detail": "Scoped to one business unit; forecast, EAC and EAC variance masked — remaining forecast to complete and variance to approved budget stay masked, and only within their own business unit — 8 of the 60 rows."
+          }
+        },
+        {
+          "email": "adaeze.okonjo@vriodigital.com",
+          "name": "Adaeze Okonjo",
+          "role": "Platform Admin",
+          "access": {
+            "kind": "zero",
+            "masked_measures": [
+              "forecast",
+              "contingency",
+              "variance",
+              "committed"
+            ],
+            "row_scope": "portfolio-wide",
+            "label": "Metadata only — refused at entitlement, zero rows"
+          },
+          "preview_against_seed_scenario": {
+            "pill": "zero",
+            "headline": "Sees the shell, no figures",
+            "detail": "Metadata only — refused at entitlement, zero rows — refused before the scenario is read."
+          }
+        }
+      ],
+      "link_pattern": "contextweave.northlinewater.com/w/<scenario-name-slugified>",
+      "governance_link": "../10_access_publishing/governance_audit_capex.html"
+    },
+    "document": {
+      "document_id": "W1",
+      "file": "W1_what_if_lens.html",
+      "title": "What-if — Veolia CapEx",
+      "version": "v2",
+      "stage": "draft",
+      "heading": "What-if",
+      "subtitle": "Stress the remaining forecast to complete without pretending to predict it. A what-if moves one attributable driver at a time — index-linked materials, labor, contingency — and recomputes only the slice the graph can tie to that driver. What it can't attribute is shown as a locked residual, not smeared across the answer. Nothing is forecast; every slice opens to its source. Authoring sets the scenario — which measures you watch, which drivers a case may move and how far, and its name. Runtime is where you move the sliders across cases, publish the complete scenario when it is worth sharing, and open any figure to the contract, timesheet or index feed it came from.",
+      "tabs": [
+        {
+          "key": "author",
+          "label": "Authoring"
+        },
+        {
+          "key": "runtime",
+          "label": "Runtime"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,572 @@
+{
+  "audit": {
+    "stats": [
+      {
+        "label": "Access rules in force",
+        "value": "5",
+        "note": "1 of 5 readers carry a restriction"
+      },
+      {
+        "label": "PII columns",
+        "value": "9",
+        "note": "across 64 catalogued tables",
+        "tone": "good"
+      },
+      {
+        "label": "Columns to review",
+        "value": "35",
+        "note": "profiler confidence below the accept floor",
+        "tone": "warn"
+      },
+      {
+        "label": "Cost-cap headroom",
+        "value": "18%",
+        "note": "tightest: Graph builds (tenant) at 82.0%",
+        "tone": "warn"
+      }
+    ],
+    "events": [
+      {
+        "actor": "Rei Nakamura",
+        "action": "Opened Project 360",
+        "resource": "Project 360",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 09:24",
+        "detail": "Their access resolved: Business unit = 690 - Dunmoor East — 8 of 60 projects today.",
+        "category": "open"
+      },
+      {
+        "actor": "Ellis Hargrove",
+        "action": "Opened Variance Report",
+        "resource": "Variance Report",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 09:12",
+        "detail": "His access resolved: all 60 projects, commercial terms masked.",
+        "category": "open"
+      },
+      {
+        "actor": "system",
+        "action": "Scheduled refresh ran on Variance Report",
+        "resource": "ref",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 07:00",
+        "detail": "Ledger blocks only. The line-item explanations and both correspondence blocks are read at open time under the asking session’s own mailbox entitlement, so they are never cached.",
+        "category": "ref"
+      },
+      {
+        "actor": "Sofia Lindqvist",
+        "action": "Published what-if scenario Commodity index exposure — PFAS program",
+        "resource": "what-if scenario Commodity index exposure — PFAS program",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Aug 14 16:40",
+        "detail": "2 readers · 2 cases (Base case, Steel spike +18%) · points to graph v4 · numbers refresh Mondays 6:00 AM.",
+        "category": "pub"
+      },
+      {
+        "actor": "Dana Whitfield",
+        "action": "Changed Rei Nakamura’s access rule",
+        "resource": "Rei Nakamura’s access rule",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Aug 14 15:20",
+        "detail": "Restriction basis: Business unit = 690 - Dunmoor East — resolves to 8 projects today. Applied immediately to everything published to them.",
+        "category": "rule"
+      },
+      {
+        "actor": "system",
+        "action": "Adaeze Okonjo holds no data scope",
+        "resource": "req",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Aug 14 11:05",
+        "detail": "By design, not by omission — a platform admin administers entitlement and does not thereby acquire it. Anything published to her opens empty, and the audit records that it opened.",
+        "category": "req"
+      },
+      {
+        "actor": "Dana Whitfield",
+        "action": "Published Project 360",
+        "resource": "Project 360",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Aug 13 09:40",
+        "detail": "3 readers · refreshes only when it’s opened · no approval step.",
+        "category": "pub"
+      },
+      {
+        "actor": "system",
+        "action": "Dana Whitfield masked commercial terms for Sofia Lindqvist and Ellis Hargrove",
+        "resource": "rule",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Aug 13 09:38",
+        "detail": "Vendor contacts, contract values and unit rates. Both keep all 60 rows — masking removes columns, not rows, and the masked figures never reach the browser.",
+        "category": "rule"
+      },
+      {
+        "actor": "system",
+        "action": "Scheduled refresh ran on Rate-Case Filing Calendar",
+        "resource": "ref",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Aug 12 06:00",
+        "detail": "Monthly, 1st at 06:00 UTC. Two in-service dates moved out of the FY26 filing window.",
+        "category": "ref"
+      },
+      {
+        "actor": "Sofia Lindqvist",
+        "action": "Published Variance Report",
+        "resource": "Variance Report",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Aug 11 14:10",
+        "detail": "3 readers · refreshes daily 07:00 UTC · no approval step.",
+        "category": "pub"
+      }
+    ],
+    "policies": [
+      {
+        "name": "Two gates",
+        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (component 13, audience). Gate 2 decides which ROWS a viewer sees inside it (component 12, data scope). They are independent: a viewer can be correctly entitled and correctly see zero rows.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Counts are computed",
+        "desc": "Every count on this screen — \"sees 8 of 60\" — is derived from the roster at paint time. No count is stored. A stated count stops being true the moment the roster changes and nothing notices.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Rule shape",
+        "desc": "A person is full-scope, or restricted by exactly one BASIS field plus the values of it they may see. A separate boolean mask hides row-level money while leaving totals visible.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Legal basis",
+        "desc": "A field qualifies as a restriction basis only if every one of its values maps to a definite, non-empty set of the roster. Continuous measures — forecast, EAC variance, percent complete — are excluded: a rule on them re-resolves every week, which makes it a filter, not an access rule.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "No approval",
+        "desc": "There is no approval queue. Publishing, granting and revoking are immediate and logged. (Superseded the earlier CAPEX draft, which carried a six-item approval queue.)",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Admin holds none",
+        "desc": "The platform administrator administers entitlement and does not thereby acquire it. Their zero scope is by design, not omission.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Publishing never widens",
+        "desc": "Adding a reader to an artifact grants existence, never rows. The reader opens it under their own rule.",
+        "status": "Enforced",
+        "tone": "good"
+      }
+    ],
+    "event_window": "Last 7 days · 10 events",
+    "policy_total": 7,
+    "categories": [
+      {
+        "id": "all",
+        "label": "All"
+      },
+      {
+        "id": "pub",
+        "label": "Publishing"
+      },
+      {
+        "id": "open",
+        "label": "Opens"
+      },
+      {
+        "id": "rule",
+        "label": "Rule changes"
+      },
+      {
+        "id": "ref",
+        "label": "Refreshes"
+      },
+      {
+        "id": "req",
+        "label": "Requests"
+      }
+    ]
+  },
+  "traces": {
+    "stats": [
+      {
+        "label": "p50 duration",
+        "value": "2.1 s",
+        "note": "across 11 sealed traces"
+      },
+      {
+        "label": "p95 duration",
+        "value": "8.4 s",
+        "note": "longest: What did correspondence say about Elkhart Gr",
+        "tone": "warn"
+      },
+      {
+        "label": "Unaccounted time",
+        "value": "840 ms",
+        "note": "shown as a gap, never folded into a step"
+      },
+      {
+        "label": "Cost this window",
+        "value": "$0.73",
+        "note": "against the $2.00 per-question budget"
+      }
+    ],
+    "items": [
+      {
+        "id": "trace_cw05",
+        "operation": "What did correspondence say about Elkhart Granular Media Retrofit?",
+        "service": "Capital Programme Graph v1",
+        "duration": 8400,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-03-31T14:20:31Z",
+        "actor": "Dana Whitfield",
+        "confidence": 0.81,
+        "cost_usd": 0.21,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw01",
+        "operation": "What is the five-year capital gap, and what is driving it?",
+        "service": "Capital Programme Graph v1",
+        "duration": 2140,
+        "spans": 6,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T11:02:14Z",
+        "actor": "Ellis Hargrove",
+        "confidence": 0.88,
+        "cost_usd": 0.13,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw02",
+        "operation": "How much have we spent?",
+        "service": "Capital Programme Graph v1",
+        "duration": 4100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T10:48:02Z",
+        "actor": "Ellis Hargrove",
+        "confidence": 0.86,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw04",
+        "operation": "What is the estimate at completion for Elkhart Granular Media Retrofit?",
+        "service": "Capital Programme Graph v1",
+        "duration": 2300,
+        "spans": 6,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T09:58:40Z",
+        "actor": "Sofia Lindqvist",
+        "confidence": 0.87,
+        "cost_usd": 0.14,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw08",
+        "operation": "What is the five-year capital gap, and what is driving it?",
+        "service": "Capital Programme Graph v1",
+        "duration": 700,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T09:21:06Z",
+        "actor": "Rei Nakamura",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw09",
+        "operation": "How did FY2024 commitments compare with FY2024 budget?",
+        "service": "Capital Programme Graph v1",
+        "duration": 2280,
+        "spans": 5,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-30T15:14:07Z",
+        "actor": "Sofia Lindqvist",
+        "confidence": 0.89,
+        "cost_usd": 0.08,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw06",
+        "operation": "How did FY2023 commitments compare with FY2023 budget?",
+        "service": "Capital Programme Graph v1",
+        "duration": 2100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-30T15:12:33Z",
+        "actor": "Sofia Lindqvist",
+        "confidence": null,
+        "cost_usd": 0.04,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw07",
+        "operation": "What is our customer churn this quarter?",
+        "service": "Capital Programme Graph v1",
+        "duration": 400,
+        "spans": 2,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-30T11:40:08Z",
+        "actor": "Ellis Hargrove",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      },
+      {
+        "id": "trace_cw03",
+        "operation": "Add up budget, committed and forecast by executive category.",
+        "service": "Capital Programme Graph v1",
+        "duration": 1100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-29T16:31:55Z",
+        "actor": "Sofia Lindqvist",
+        "confidence": null,
+        "cost_usd": 0.02,
+        "sealed": true
+      },
+      {
+        "id": "trace_view_gap_01",
+        "operation": "Report view — Five-Year Capital Gap",
+        "service": "Capital Programme Graph v1",
+        "duration": 790,
+        "spans": 6,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T09:16:44Z",
+        "actor": "Rei Nakamura",
+        "confidence": null,
+        "cost_usd": null,
+        "sealed": true
+      },
+      {
+        "id": "trace_view_360_01",
+        "operation": "Report view — Project 360",
+        "service": "Capital Programme Graph v1",
+        "duration": 1260,
+        "spans": 6,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-03-31T09:24:19Z",
+        "actor": "Rei Nakamura",
+        "confidence": null,
+        "cost_usd": null,
+        "sealed": true
+      }
+    ],
+    "sampling": "Every question is sealed — no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "waterfall": {
+      "trace_id": "trace_cw05",
+      "operation": "What did correspondence say about Elkhart Granular Media Retrofit?",
+      "total_ms": 8400,
+      "unaccounted_ms": 840,
+      "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+      "spans": [
+        {
+          "name": "Understand & plan",
+          "start": 0,
+          "duration": 300,
+          "agent": "supervisor",
+          "detail": "classified: qualitative · runtime source required"
+        },
+        {
+          "name": "Resolve the subject",
+          "start": 300,
+          "duration": 460,
+          "agent": "graph agent",
+          "detail": "C23B293_612 → contractors → contracts"
+        },
+        {
+          "name": "Pull correspondence",
+          "start": 760,
+          "duration": 3900,
+          "agent": "runtime agent",
+          "detail": "src_  · 90-day window · 4 mailboxes in scope · permissions follow the source"
+        },
+        {
+          "name": "Extract & resolve observations",
+          "start": 4660,
+          "duration": 2400,
+          "agent": "runtime agent",
+          "detail": "3 extractions → 2 above the 0.70 floor → resolved against the graph"
+        },
+        {
+          "name": "Assemble & seal",
+          "start": 7060,
+          "duration": 500,
+          "agent": "supervisor",
+          "detail": "observations kept distinguishable from graph facts"
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [
+      {
+        "label": "Suites",
+        "value": "6",
+        "note": "all derived from package artifacts"
+      },
+      {
+        "label": "Hero questions answerable",
+        "value": "3 of 5",
+        "note": "graph sanity checks",
+        "tone": "warn"
+      },
+      {
+        "label": "High-confidence answers",
+        "value": "23 of 40",
+        "note": "14 medium, 3 low",
+        "tone": "warn"
+      },
+      {
+        "label": "Must-review graph items",
+        "value": "7",
+        "note": "0 resolved",
+        "tone": "crit"
+      }
+    ],
+    "runs": [
+      {
+        "suite": "hero-question-answerability",
+        "target": "g_northline_capex · 5 checks",
+        "checks": 5,
+        "pass_rate": 60,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-05-31"
+      },
+      {
+        "suite": "answer-confidence",
+        "target": "query set · 40 questions",
+        "checks": 40,
+        "pass_rate": 57.5,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-05-31"
+      },
+      {
+        "suite": "refusal-correctness",
+        "target": "5 declines",
+        "checks": 5,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-05-31"
+      },
+      {
+        "suite": "edge-method-lanes",
+        "target": "908 edges",
+        "checks": 908,
+        "pass_rate": 55.7,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-05-31"
+      },
+      {
+        "suite": "basis-partition",
+        "target": "5 restriction bases",
+        "checks": 5,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-08-18"
+      },
+      {
+        "suite": "cost-cap-headroom",
+        "target": "6 caps",
+        "checks": 6,
+        "pass_rate": 83.3,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-05-31"
+      }
+    ],
+    "checks": [
+      {
+        "name": "sc1 · Which projects are forecasting above their approved plan, an",
+        "dataset": "g_northline_capex",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - with a declared materiality floor"
+      },
+      {
+        "name": "sc2 · What is our exposure to any single contractor across the por",
+        "dataset": "g_northline_capex",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable for the contract corpus only"
+      },
+      {
+        "name": "sc3 · Which projects hold an authorization but show no activity th",
+        "dataset": "g_northline_capex",
+        "result": "Refused",
+        "tone": "crit",
+        "detail": "Declined as asked - no natural instances"
+      },
+      {
+        "name": "sc4 · How much is committed but not yet spent?",
+        "dataset": "g_northline_capex",
+        "result": "Refused",
+        "tone": "crit",
+        "detail": "Declined - the commitment link has no instances"
+      },
+      {
+        "name": "sc5 · What changed between the 3+9 forecast and the working view, ",
+        "dataset": "g_northline_capex",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - vintage pinned, cause is runtime"
+      },
+      {
+        "name": "rq1 · 'Working Forecast' proposed as a Plan Vintage member - creat",
+        "dataset": "review queue",
+        "result": "Failed",
+        "tone": "crit",
+        "detail": "confidence 0.42, below the vintage membership (semantics-changing) floor"
+      },
+      {
+        "name": "rq2 · Grantham Materials Laboratory, LLC - same firm across 3 proj",
+        "dataset": "review queue",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "confidence 0.86, below the identity merge (schema-changing) floor"
+      },
+      {
+        "name": "rq3 · Change order rider -> contract, matched on a contract number",
+        "dataset": "review queue",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "confidence 0.88, below the unstructured -> structured (schema-changing) floor"
+      }
+    ],
+    "run_trigger": "On graph build and on query-set regeneration",
+    "failure_summary": "3 low-confidence answers · 7 graph items awaiting review"
+  }
+}

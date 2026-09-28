@@ -1,0 +1,150 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "project_code",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.97
+    },
+    {
+      "name": "document_title",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.91
+    },
+    {
+      "name": "document_type",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.88
+    },
+    {
+      "name": "ejcdc_form",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.92
+    },
+    {
+      "name": "contract_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "counterparty_contractor",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.89
+    },
+    {
+      "name": "counterparty_engineer",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.87
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.93
+    },
+    {
+      "name": "notice_to_proceed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.84
+    },
+    {
+      "name": "contract_price_at_award",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.94
+    },
+    {
+      "name": "contract_price_as_adjusted",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.94
+    },
+    {
+      "name": "change_order_count",
+      "type": "int64",
+      "class": "measure_record",
+      "confidence": 0.9
+    },
+    {
+      "name": "project_manager_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.92,
+      "pii": true
+    },
+    {
+      "name": "business_unit_line",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.86
+    },
+    {
+      "name": "page_count",
+      "type": "int64",
+      "class": "measure_record",
+      "confidence": 0.96
+    },
+    {
+      "name": "is_scope_document",
+      "type": "bool",
+      "class": "flag",
+      "confidence": 0.95
+    },
+    {
+      "name": "active_budget_plan_stated",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.79
+    },
+    {
+      "name": "most_recent_budget_plan_stated",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.79
+    },
+    {
+      "name": "value_under_contract_stated",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.81
+    },
+    {
+      "name": "signature_block_names",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.71,
+      "pii": true
+    },
+    {
+      "name": "scope_text",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.6
+    },
+    {
+      "name": "folder_name",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.9
+    },
+    {
+      "name": "extraction_confidence",
+      "type": "numeric",
+      "class": "risk_score",
+      "confidence": 0.86
+    }
+  ]
+}

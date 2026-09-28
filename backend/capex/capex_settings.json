@@ -1,0 +1,238 @@
+{
+  "google_account": {
+    "email": "nishant.srivastav@vriodigital.com",
+    "name": "Nishant Srivastav",
+    "picture": null
+  },
+  "settings": {
+    "users": [
+      {
+        "id": 1,
+        "role_id": "analyst",
+        "name": "Sofia Lindqvist",
+        "email": "sofia.lindqvist@vriodigital.com"
+      },
+      {
+        "id": 2,
+        "role_id": "architect",
+        "name": "Dana Whitfield",
+        "email": "dana.whitfield@vriodigital.com"
+      },
+      {
+        "id": 3,
+        "role_id": "business_user_exec",
+        "name": "Ellis Hargrove",
+        "email": "ellis.hargrove@vriodigital.com"
+      },
+      {
+        "id": 4,
+        "role_id": "business_user_exec",
+        "name": "Rei Nakamura",
+        "email": "rei.nakamura@vriodigital.com"
+      },
+      {
+        "id": 5,
+        "role_id": "admin",
+        "name": "Adaeze Okonjo",
+        "email": "adaeze.okonjo@vriodigital.com"
+      },
+      {
+        "id": 6,
+        "role_id": "architect",
+        "name": "Nishant Srivastav",
+        "email": "nishant.srivastav@vriodigital.com"
+      },
+      {
+        "id": 7,
+        "role_id": "architect",
+        "name": "ContextWeave Group",
+        "email": "contextweave.group@vriodigital.com"
+      }
+    ],
+    "defaults": {
+      "business_user_exec": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "analyst": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "architect": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "admin": {
+        "reports": false,
+        "ask": false,
+        "what-if": false,
+        "new-graph": false,
+        "sources": false,
+        "catalog": false,
+        "graph-studio": false,
+        "audit": false,
+        "settings": true,
+        "ai-submissions": false
+      }
+    },
+    "read_only": {
+      "admin": [
+        "settings"
+      ]
+    },
+    "nav_permissions": {
+      "business_user_exec": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "analyst": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "architect": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": false,
+        "ai-submissions": true
+      },
+      "admin": {
+        "reports": true,
+        "ask": true,
+        "what-if": true,
+        "new-graph": true,
+        "sources": true,
+        "catalog": true,
+        "graph-studio": true,
+        "audit": true,
+        "settings": true,
+        "ai-submissions": true
+      }
+    },
+    "report_permissions": {
+      "business_user_exec": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "analyst": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      }
+    },
+    "report_defaults": {
+      "business_user_exec": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "analyst": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      }
+    }
+  },
+  "auth_roles": [
+    {
+      "role_id": "business_user_exec",
+      "label": "Business User -- Executive",
+      "access_note": "All data, all regions. This is the persona the six-act narrative was written for."
+    },
+    {
+      "role_id": "analyst",
+      "label": "Data Analyst",
+      "access_note": "All projects and all financials. Vendor commercial terms masked."
+    },
+    {
+      "role_id": "architect",
+      "label": "Domain Architect",
+      "access_note": "Everything, at every grain, including vendor commercial terms."
+    },
+    {
+      "role_id": "admin",
+      "label": "Platform Admin",
+      "access_note": "Structure, lineage, cost and access. No financial values -- an admin exception in the presentation layer is how admin backdoors get built."
+    }
+  ],
+  "change_signals": [],
+  "data_model": {
+    "suggestions": [],
+    "entities": []
+  },
+  "_meta": {
+    "package": "capex_demo_data_package_2026-08-18",
+    "tenant": "Northline Water Group",
+    "schema_source": "the development team's db.json for the VLS demo (uploaded 2026-08-18)",
+    "generated_by": "_build/build_db.py",
+    "as_of": "2026-03-31",
+    "note": "Every value is read out of an artifact this package already ships. Never hand-edit this file -- change the generator and rebuild.",
+    "keys_carried_from_vls_schema": 26
+  }
+}

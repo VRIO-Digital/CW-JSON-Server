@@ -669,7 +669,7 @@ export interface JobObject {
   parent_id: string
   object_id: string
   label: string
-  units: number
+  units: number | null
   state: 'pending' | 'profiled' | 'skipped'
 }
 
@@ -2259,7 +2259,7 @@ const JOB = shape({
       parent_id: str,
       object_id: str,
       label: str,
-      units: num,
+      units: nullable(num),
       state: oneOf(['pending', 'profiled', 'skipped']),
     }),
   ),

@@ -126,6 +126,8 @@ import {
   studioUseCases,
   typeLinks,
 } from './studioLanes.js'
+import { loadCapexDocument } from './capex-loader.js'
+import { loadEpaDocument } from './epa-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -186,7 +188,7 @@ async function readJsonDb(ref, label, restore) {
     console.error(
       storeKind(ref) === 's3'
         ? `\n  This server reads S3 (${ref}). Check AWS_REGION and the instance role, then:\n` +
-            `      npm run db:push   (uploads the local ${label})\n`
+        `      npm run db:push   (uploads the local ${label})\n`
         : `\n  Restore it:\n      ${restore}\n`,
     )
     process.exit(1)
@@ -201,9 +203,9 @@ async function readJsonDb(ref, label, restore) {
     console.error(`  · line ${marker + 1}: ${lines[marker].slice(0, 60)}`)
     console.error(
       '\n  This file is generated *and* committed, so a pull or a stash pop over a re-seeded\n' +
-        '  copy conflicts every time. Take one side and rebuild it rather than hand-merging:\n' +
-        `      git checkout --theirs ${label}   (or --ours)\n` +
-        `      ${restore}\n`,
+      '  copy conflicts every time. Take one side and rebuild it rather than hand-merging:\n' +
+      `      git checkout --theirs ${label}   (or --ours)\n` +
+      `      ${restore}\n`,
     )
     process.exit(1)
   }
@@ -246,7 +248,7 @@ async function readJsonDb(ref, label, restore) {
  * `primary` and why no secondary dataset carries a copy: two datasets do not mean eight users.
  */
 const DB_PATHS = Object.fromEntries(
-  DATASETS.map((name) => [name, docRef('db.json', join(here, 'db.json'), name)]),
+  DATASETS.map((name) => [name, join(here, name.toLowerCase()) + '/'])  // Split file folders: /backend/epa/ and /backend/capex/
 )
 const DB_PATH = DB_PATHS[PRIMARY]
 
@@ -271,15 +273,32 @@ const DB_PATH = DB_PATHS[PRIMARY]
  * the document that failed, which is what it was before.
  */
 const loadedDocs = await Promise.all(
-  DATASETS.map((name) =>
-    readJsonDb(
+  DATASETS.map((name) => {
+    /* EPA loads from split files in epa/ folder */
+    if (name === PRIMARY) {
+      return loadEpaDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load EPA split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Rebuild the split files:\n      npm run split:epa\n`)
+        process.exit(1)
+      })
+    }
+    /* CAPEX loads from split files in capex/ folder */
+    if (name === 'CAPEX') {
+      return loadCapexDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load CAPEX split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Rebuild the split files:\n      npm run split:capex\n`)
+        process.exit(1)
+      })
+    }
+    /* Any other datasets load from their db.json files */
+    return readJsonDb(
       DB_PATHS[name],
       `${name}/db.json`,
-      name === PRIMARY
-        ? 'git checkout HEAD -- backend/db.json && npm run seed:governance'
-        : `npm run seed:dataset -- ${name} && npm run db:push -- ${name}`,
-    ),
-  ),
+      `npm run seed:dataset -- ${name} && npm run db:push -- ${name}`,
+    )
+  }),
 )
 
 /**
@@ -475,7 +494,7 @@ function readOnly(value, name, writers) {
         return () => {
           throw new Error(
             `cannot change ${name} while dataset=${BOTH} is selected — it merges every dataset for ` +
-              `reading, so this would be written to a copy and lost. Select ${DATASETS.join(' or ')} first.`,
+            `reading, so this would be written to a copy and lost. Select ${DATASETS.join(' or ')} first.`,
           )
         }
       }
@@ -967,7 +986,7 @@ function sourceRow(source) {
         : source.kind === 'gmail'
           ? `${(source.labels ?? []).length} label(s)`
           : /* A generic source states what its form named, or an em dash where it named nothing. */
-            (source.scope ?? '—'),
+          (source.scope ?? '—'),
     connected_at: source.registered_at,
     profiled_tables: source.profiled_tables ?? 0,
     profiled_columns: source.profiled_columns ?? 0,
@@ -1018,12 +1037,12 @@ function sourceRow(source) {
       : isDrive
         ? driveChunkFigures(source)
         : {
-            documents_chunked: null,
-            chunks_total: null,
-            chunk_chars: null,
-            last_chunk_at: null,
-            last_chunk_count: null,
-          }),
+          documents_chunked: null,
+          chunks_total: null,
+          chunk_chars: null,
+          last_chunk_at: null,
+          last_chunk_count: null,
+        }),
     /*
      * **The "last chunk" window's own start, stated rather than left to be inferred** — the same
      * reasoning `profiled_today_date` is served for: a tile reading "nothing in the last 6
@@ -1734,7 +1753,7 @@ function validateDb(candidate) {
         if (!nodeIds.has(end)) {
           problems.push(
             `graph_studio.canvas has an edge whose ${side} is "${end}", which is not ` +
-              'a node — add the node or remove the edge, or it will be drawn as nothing',
+            'a node — add the node or remove the edge, or it will be drawn as nothing',
           )
         }
       }
@@ -1753,7 +1772,7 @@ function validateDb(candidate) {
         if (!nodeIds.has(id)) {
           problems.push(
             `graph_studio.sanity_checks "${check.check_id}" walks node "${id}", which is ` +
-              'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
+            'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
         }
       }
@@ -1761,7 +1780,7 @@ function validateDb(candidate) {
         if (!edgeIds.has(id)) {
           problems.push(
             `graph_studio.sanity_checks "${check.check_id}" walks edge "${id}", which is ` +
-              'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
+            'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
         }
       }
@@ -1790,7 +1809,7 @@ function validateDb(candidate) {
     if (!structured || !documents || !bridge) {
       problems.push(
         'studio_graph is present but is missing a lane — it must carry structured, documents and ' +
-          'bridge. Re-run "npm run ingest:capex-graph" rather than editing it by hand',
+        'bridge. Re-run "npm run ingest:capex-graph" rather than editing it by hand',
       )
     } else {
       const refs = new Set([
@@ -1808,7 +1827,7 @@ function validateDb(candidate) {
           if (!refs.has(end)) {
             problems.push(
               `studio_graph.structured has a ${edge.edge_type} edge whose ${side} is "${end}", ` +
-                'which is not a node of this export — it would be drawn as nothing',
+              'which is not a node of this export — it would be drawn as nothing',
             )
           }
         }
@@ -1823,7 +1842,7 @@ function validateDb(candidate) {
           if (!entityIds.has(end)) {
             problems.push(
               `studio_graph.documents has a relation whose ${side} is "${end}", which is not an ` +
-                'entity of this snapshot — it would be drawn as nothing',
+              'entity of this snapshot — it would be drawn as nothing',
             )
           }
         }
@@ -1835,19 +1854,19 @@ function validateDb(candidate) {
         if (!conceptRefs.has(link.concept_ref)) {
           problems.push(
             `studio_graph.bridge has a Type Link naming concept "${link.concept_ref}", which the ` +
-              'structured lane does not carry — the Bridge would draw a line from nothing',
+            'structured lane does not carry — the Bridge would draw a line from nothing',
           )
         }
         if (!entityTypes.has(link.entity_type)) {
           problems.push(
             `studio_graph.bridge has a Type Link naming entity type "${link.entity_type}", which ` +
-              'the document lane does not carry',
+            'the document lane does not carry',
           )
         }
         if (!['identity', 'attribute', 'reject'].includes(link.decision)) {
           problems.push(
             `studio_graph.bridge has a Type Link whose decision is "${link.decision}" — the only ` +
-              'verdicts this app draws are identity, attribute and reject',
+            'verdicts this app draws are identity, attribute and reject',
           )
         }
       }
@@ -1870,8 +1889,8 @@ function validateDb(candidate) {
         if (parentId !== null && !own.has(parentId)) {
           problems.push(
             `drive "${drive.drive_id}" folder "${folder.folder_id}" names parent ` +
-              `"${parentId}", which is not a folder of that drive — it would be drawn at the ` +
-              'root instead, which reads as a folder nobody nested',
+            `"${parentId}", which is not a folder of that drive — it would be drawn at the ` +
+            'root instead, which reads as a folder nobody nested',
           )
           continue
         }
@@ -1881,7 +1900,7 @@ function validateDb(candidate) {
           if (seen.has(cursor)) {
             problems.push(
               `drive "${drive.drive_id}" folder "${folder.folder_id}" is its own ancestor — ` +
-                'a cycle in parent_id leaves the folder off the tree entirely',
+              'a cycle in parent_id leaves the folder off the tree entirely',
             )
             break
           }
@@ -1917,16 +1936,16 @@ function validateDb(candidate) {
       if (!tableKeys.has(entity.table_key)) {
         problems.push(
           `data_model entity "${entity.entity_id}" is declared on table "${entity.table_key}", ` +
-            'which no project in this document carries — it would drop out of Data Modeling, ' +
-            'which reads as a table nobody has declared',
+          'which no project in this document carries — it would drop out of Data Modeling, ' +
+          'which reads as a table nobody has declared',
         )
       }
       const already = claimed.get(entity.table_key)
       if (already) {
         problems.push(
           `data_model has two entities on table "${entity.table_key}" ("${already}" and ` +
-            `"${entity.entity_id}") — the tab resolves one per table, so the second is ` +
-            'unreachable and an edit would land on whichever came first',
+          `"${entity.entity_id}") — the tab resolves one per table, so the second is ` +
+          'unreachable and an edit would land on whichever came first',
         )
       } else {
         claimed.set(entity.table_key, entity.entity_id)
@@ -1935,8 +1954,8 @@ function validateDb(candidate) {
         if (!tableKeys.has(rel.target_table_key)) {
           problems.push(
             `data_model entity "${entity.entity_id}" declares "${rel.relationship_type}" onto ` +
-              `"${rel.target_table_key}", which no project in this document carries — the edge ` +
-              'would not be drawn at all',
+            `"${rel.target_table_key}", which no project in this document carries — the edge ` +
+            'would not be drawn at all',
           )
         }
       }
@@ -1964,7 +1983,7 @@ function validateDb(candidate) {
       if (seenSuggestions.has(suggestion.suggestion_id)) {
         problems.push(
           `data_model.suggestions has two entries with the id "${suggestion.suggestion_id}" — ` +
-            'the tab keys a pending row by it, so the second would replace the first on screen',
+          'the tab keys a pending row by it, so the second would replace the first on screen',
         )
       }
       seenSuggestions.add(suggestion.suggestion_id)
@@ -1976,8 +1995,8 @@ function validateDb(candidate) {
         if (!tableKeys.has(key)) {
           problems.push(
             `data_model.suggestions "${suggestion.suggestion_id}" names ${side} table "${key}", ` +
-              'which no project in this document carries — it would never reach a reader, which ' +
-              'reads as a suggester that found nothing',
+            'which no project in this document carries — it would never reach a reader, which ' +
+            'reads as a suggester that found nothing',
           )
           continue
         }
@@ -1985,8 +2004,8 @@ function validateDb(candidate) {
         if (known && !known.has(column)) {
           problems.push(
             `data_model.suggestions "${suggestion.suggestion_id}" joins on ${key}.${column}, ` +
-              'which that table does not carry — the suggestion would be offered and then refused ' +
-              'when somebody pressed Confirm',
+            'which that table does not carry — the suggestion would be offered and then refused ' +
+            'when somebody pressed Confirm',
           )
         }
       }
@@ -2028,13 +2047,13 @@ function validateDb(candidate) {
       if (genFields && !genFields.has(m.field)) {
         problems.push(
           `whatif.watched_measures "${m.key}" reads generator field "${m.field}", which no ` +
-            'generator carries — it would show as no inherited risk rather than as an error',
+          'generator carries — it would show as no inherited risk rather than as an error',
         )
       }
       if (!(m.format in w.formats)) {
         problems.push(
           `whatif.watched_measures "${m.key}" wants format "${m.format}", which whatif.formats ` +
-            'does not define — its figure would print raw',
+          'does not define — its figure would print raw',
         )
       }
     }
@@ -2042,13 +2061,13 @@ function validateDb(candidate) {
       if (p.filter && genFields && !genFields.has(p.filter.field)) {
         problems.push(
           `whatif.candidate_pools "${p.key}" filters on "${p.filter.field}", which no generator ` +
-            'carries — the pool would offer nobody, which reads as "none qualify"',
+          'carries — the pool would offer nobody, which reads as "none qualify"',
         )
       }
       if (!(p.key in w.headroom)) {
         problems.push(
           `whatif.headroom has no entry for pool "${p.key}" — the inverse question would print ` +
-            'an em dash, which reads as "no limit". Re-run "npm run ingest:whatif"',
+          'an em dash, which reads as "no limit". Re-run "npm run ingest:whatif"',
         )
       }
     }
@@ -2056,7 +2075,7 @@ function validateDb(candidate) {
       if (r.resolves_to !== null && !measureKeys.has(r.resolves_to)) {
         problems.push(
           `whatif.resolvable "${r.keywords?.[0]}" resolves to "${r.resolves_to}", which is not a ` +
-            'watched measure — authoring would report success and add nothing',
+          'watched measure — authoring would report success and add nothing',
         )
       }
     }
@@ -2070,21 +2089,21 @@ function validateDb(candidate) {
     if (!pub || !Array.isArray(pub.freshness?.presets) || pub.freshness.presets.length === 0) {
       problems.push(
         'whatif.publishing declares no freshness presets — the publish dialog would offer an ' +
-          'empty schedule control. Re-run "npm run ingest:whatif"',
+        'empty schedule control. Re-run "npm run ingest:whatif"',
       )
     } else {
       for (const p of pub.freshness.presets) {
         if (!p.sentence) {
           problems.push(
             `whatif.publishing freshness preset "${p.id}" states no sentence — picking it would ` +
-              'print a blank recurrence line, which reads as "no schedule"',
+            'print a blank recurrence line, which reads as "no schedule"',
           )
         }
       }
       if (!pub.freshness.presets.some((p) => p.id === pub.freshness.default?.preset)) {
         problems.push(
           `whatif.publishing freshness default names preset "${pub.freshness.default?.preset}", ` +
-            'which is not offered — the dialog would open on nothing',
+          'which is not offered — the dialog would open on nothing',
         )
       }
       /*
@@ -2111,21 +2130,21 @@ function validateDb(candidate) {
       if (doneMissing.length > 0) {
         problems.push(
           `whatif.publishing.done is missing ${doneMissing.join(', ')} — the confirmation shown ` +
-            'after a publish would print blank rows where it reports what was recorded. ' +
-            'Re-run "npm run ingest:whatif"',
+          'after a publish would print blank rows where it reports what was recorded. ' +
+          'Re-run "npm run ingest:whatif"',
         )
       }
       if (done.body && (!done.body.includes('{name}') || !done.body.includes('{n}'))) {
         problems.push(
           'whatif.publishing.done.body interpolates neither {name} nor {n} — the confirmation ' +
-            'would name no scenario and no audience',
+          'would name no scenario and no audience',
         )
       }
       if (!pub.readers?.empty_error || !pub.freshness.no_day_error) {
         problems.push(
           'whatif.publishing is missing a refusal sentence (readers.empty_error / ' +
-            'freshness.no_day_error) — the publish route sends those verbatim, so a refusal ' +
-            'would arrive blank',
+          'freshness.no_day_error) — the publish route sends those verbatim, so a refusal ' +
+          'would arrive blank',
         )
       }
     }
@@ -2149,7 +2168,7 @@ function validateDb(candidate) {
       if (!Array.isArray(rows)) {
         problems.push(
           `reports "${r.report_id}" reads spine "${r.spine}", which reports.data does not have — ` +
-            'its report would render its tiles above an empty table',
+          'its report would render its tiles above an empty table',
         )
         continue
       }
@@ -2166,25 +2185,25 @@ function validateDb(candidate) {
       if (!(r.scope in REPORT_SCOPES)) {
         problems.push(
           `reports "${r.report_id}" is scoped "${r.scope}", which this server has no filter for — ` +
-            `known scopes: ${Object.keys(REPORT_SCOPES).join(', ')}`,
+          `known scopes: ${Object.keys(REPORT_SCOPES).join(', ')}`,
         )
       }
       if (!REPORT_LABEL_KEY[r.spine]) {
         problems.push(
           `reports.data."${r.spine}" has no label column declared in REPORT_LABEL_KEY, so every ` +
-            'chart bar and table row on that spine would be unnamed',
+          'chart bar and table row on that spine would be unnamed',
         )
       } else if (rowKeys && !rowKeys.has(REPORT_LABEL_KEY[r.spine])) {
         problems.push(
           `reports.data."${r.spine}" rows do not carry "${REPORT_LABEL_KEY[r.spine]}", the column ` +
-            'their labels come from',
+          'their labels come from',
         )
       }
       for (const block of r.blocks) {
         if (block.type === 'chart' && rowKeys && !rowKeys.has(block.measure)) {
           problems.push(
             `reports "${r.report_id}" charts "${block.measure}", which its ${r.spine} rows do not ` +
-              'carry — every bar would be zero, which reads as no exposure',
+            'carry — every bar would be zero, which reads as no exposure',
           )
         }
         if (block.type === 'quarterly' && rowKeys && !rowKeys.has(block.metric)) {
@@ -2195,8 +2214,7 @@ function validateDb(candidate) {
         for (const col of block.type === 'table' ? block.cols : []) {
           if (!fieldKeys.has(col) || (rowKeys && !rowKeys.has(col))) {
             problems.push(
-              `reports "${r.report_id}" tabulates "${col}", which ${
-                fieldKeys.has(col) ? `its ${r.spine} rows do not carry` : 'reports.fields does not describe'
+              `reports "${r.report_id}" tabulates "${col}", which ${fieldKeys.has(col) ? `its ${r.spine} rows do not carry` : 'reports.fields does not describe'
               } — the column would render with blank cells`,
             )
           }
@@ -2211,7 +2229,7 @@ function validateDb(candidate) {
         if (!rep.summary_catalog.some((t) => t.key === key)) {
           problems.push(
             `reports "${r.report_id}" summarises "${key}", which reports.summary_catalog ` +
-              'does not define — a re-asked report would show one tile fewer than the written one',
+            'does not define — a re-asked report would show one tile fewer than the written one',
           )
         }
       }
@@ -2225,13 +2243,13 @@ function validateDb(candidate) {
       if (!rep.reports.some((r) => r.report_id === s.report_id)) {
         problems.push(
           `reports.saved "${s.name ?? s.saved_id}" is saved against report "${s.report_id}", ` +
-            'which no longer exists — it would open onto nothing',
+          'which no longer exists — it would open onto nothing',
         )
       }
       if (!(s.scope in REPORT_SCOPES)) {
         problems.push(
           `reports.saved "${s.name ?? s.saved_id}" is scoped "${s.scope}", which this server ` +
-            'has no filter for',
+          'has no filter for',
         )
       }
     }
@@ -2248,7 +2266,7 @@ function validateDb(candidate) {
           if (!candidate[poolKey].some((entry) => entry[idKey] === id)) {
             problems.push(
               `graph_use_case_templates "${template.template_id}" names ${memberKey.slice(0, -1)} ` +
-                `"${id}", which is not in ${poolKey} — add it there or remove it from the template`,
+              `"${id}", which is not in ${poolKey} — add it there or remove it from the template`,
             )
           }
         }
@@ -2297,9 +2315,67 @@ function writeJsonAtomic(ref, text) {
   })
   writeChains.set(
     ref,
-    next.catch(() => {}),
+    next.catch(() => { }),
   )
   return next
+}
+
+/**
+ * Split the merged document into individual split files and write them atomically.
+ * This is called by commitDb to write to the split-file architecture instead of a monolithic file.
+ *
+ * The split files are organized by feature area and loaded in a specific order.
+ * Keys that appear in multiple files are overwritten by the later files in the load order.
+ */
+async function writeSplitFiles(merged, dataset) {
+  const dsLower = dataset.toLowerCase()
+  const dir = join(dirname(fileURLToPath(import.meta.url)), dsLower)
+
+  // Define which keys belong to each split file.
+  // The order matches the loader's load order — later files override earlier ones.
+  // NOTE: settings are NOT included here — they are shared across all datasets and written to backend/settings.json
+  const splitMapping = [
+    { file: `${dsLower}_sources.json`, keys: ['projects', 'credentials', 'column_profiles', 'column_vocabulary', 'drives', 'drive_credentials', 'document_extractions', 'mail_corpus', 'registered'] },
+    { file: `${dsLower}_catalogue.json`, keys: ['document_vocabulary'] },
+    { file: `${dsLower}_new_graph.json`, keys: ['graph_domains', 'graph_personas', 'graph_hero_questions', 'graph_use_cases', 'graph_use_case_templates', 'graph_metrics', 'graph_answer_formats', 'graph_kpis'] },
+    { file: `${dsLower}_graph_studio.json`, keys: ['graph_studio', 'studio_graph'] },
+    { file: `${dsLower}_reports.json`, keys: ['reports', 'reports_prototype', 'report_defaults', 'report_permissions'] },
+    { file: `${dsLower}_ask.json`, keys: ['ask_answers'] },
+    { file: `${dsLower}_whatif.json`, keys: ['whatif'] },
+    { file: `${dsLower}_audit_governance.json`, keys: ['audit', 'traces', 'evals'] },
+  ]
+
+  const writePromises = []
+
+  for (const { file, keys } of splitMapping) {
+    // Collect only the keys that exist in the merged document and belong to this file
+    const fileData = {}
+    for (const key of keys) {
+      if (key in merged) {
+        fileData[key] = merged[key]
+      }
+    }
+
+    // Only write the file if it has content
+    if (Object.keys(fileData).length > 0) {
+      const filePath = join(dir, file)
+      const text = `${JSON.stringify(fileData, null, 2)}\n`
+      writePromises.push(writeJsonAtomic(filePath, text))
+    }
+  }
+
+  // Wait for all writes to complete
+  await Promise.all(writePromises)
+}
+
+/**
+ * Writes shared settings (not dataset-specific) to backend/settings.json
+ * Settings are common across EPA and CAPEX datasets.
+ */
+async function writeSharedSettings(settingsData) {
+  const settingsPath = join(dirname(fileURLToPath(import.meta.url)), 'settings.json')
+  const text = `${JSON.stringify(settingsData, null, 2)}\n`
+  await writeJsonAtomic(settingsPath, text)
 }
 
 /**
@@ -2330,12 +2406,10 @@ async function commitDb(next) {
   const problems = validateDb(next)
   if (problems.length > 0) {
     throw new Error(
-      `refusing to write db.json — ${problems.join('; ')}. If this server has ` +
-        'been running since before that key existed, restart it.',
+      `refusing to write split files — ${problems.join('; ')}. If this server has ` +
+      'been running since before that key existed, restart it.',
     )
   }
-
-  const text = `${JSON.stringify(next, null, 2)}\n`
 
   /*
    * The dataset this request selected — resolved here rather than taken as an argument, so none of
@@ -2347,7 +2421,7 @@ async function commitDb(next) {
   if (selected === BOTH) {
     throw new Error(
       `cannot write while dataset=${BOTH} is selected — it is a merged reading view with no single ` +
-        `document behind it. Select one of ${DATASETS.join(' or ')} and write that.`,
+      `document behind it. Select one of ${DATASETS.join(' or ')} and write that.`,
     )
   }
   const target = docs[selected]
@@ -2360,14 +2434,26 @@ async function commitDb(next) {
   invalidateMerged()
 
   try {
-    await writeJsonAtomic(DB_PATHS[selected], text)
+    // Write shared settings to backend/settings.json (common across all datasets)
+    if (next.settings || next.auth_roles || next.google_account || next.change_signals || next.data_model || next._meta) {
+      const settingsData = {}
+      if ('google_account' in next) settingsData.google_account = next.google_account
+      if ('settings' in next) settingsData.settings = next.settings
+      if ('auth_roles' in next) settingsData.auth_roles = next.auth_roles
+      if ('change_signals' in next) settingsData.change_signals = next.change_signals
+      if ('data_model' in next) settingsData.data_model = next.data_model
+      if ('_meta' in next) settingsData._meta = next._meta
+      await writeSharedSettings(settingsData)
+    }
+    // Write dataset-specific files
+    await writeSplitFiles(next, selected)
   } catch (error) {
     for (const key of Object.keys(target)) delete target[key]
     Object.assign(target, previous)
     invalidateMerged()
     throw new Error(
-      `could not write ${selected}/db.json — ${error.message}. Nothing was changed; the in-memory ` +
-        'document has been put back the way it was.',
+      `could not write ${selected} split files — ${error.message}. Nothing was changed; the in-memory ` +
+      'document has been put back the way it was.',
     )
   }
 }
@@ -2409,7 +2495,7 @@ function validateSettings(candidate, doc = null) {
       if (!roleIds.includes(u.role_id)) {
         problems.push(
           `user "${u.email}" is role "${u.role_id}", which db.auth_roles does not have ` +
-            `(${roleIds.join(', ')})`,
+          `(${roleIds.join(', ')})`,
         )
       }
     }
@@ -2472,8 +2558,8 @@ function validateSettings(candidate, doc = null) {
       if (missing.length > 0 || extra.length > 0) {
         problems.push(
           `"${roleId}" has different navigation keys in defaults and nav_permissions` +
-            (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
-            (extra.length > 0 ? ` (unknown: ${extra.join(', ')})` : ''),
+          (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
+          (extra.length > 0 ? ` (unknown: ${extra.join(', ')})` : ''),
         )
       }
     }
@@ -2504,8 +2590,8 @@ function validateSettings(candidate, doc = null) {
       if (missing.length > 0 || unknown.length > 0) {
         problems.push(
           `"${label}.${roleId}" must carry exactly ${REPORT_ACTIONS.join(', ')}` +
-            (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
-            (unknown.length > 0 ? ` (unknown: ${unknown.join(', ')})` : ''),
+          (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
+          (unknown.length > 0 ? ` (unknown: ${unknown.join(', ')})` : ''),
         )
       }
     }
@@ -2569,7 +2655,7 @@ async function commitSettings(next) {
   if (problems.length > 0) {
     throw new Error(
       `refusing to write the settings — ${problems.join('; ')}. Re-author them with ` +
-        '"npm run seed:settings" if they have drifted.',
+      '"npm run seed:settings" if they have drifted.',
     )
   }
   await commitDb({ ...db, settings: next })
@@ -3486,7 +3572,7 @@ for (const [kind, steps] of Object.entries(PIPELINE_STEPS)) {
   if (steps < PROFILERS[kind].length) {
     throw new Error(
       `PIPELINE_STEPS['${kind}'] is ${steps} but its pipeline narrates ${PROFILERS[kind].length} ` +
-        'stages — the last of them could never run.',
+      'stages — the last of them could never run.',
     )
   }
 }
@@ -4671,12 +4757,12 @@ function normalizeSourcePicks(list) {
       objects:
         mode === 'subset'
           ? [
-              ...new Set(
-                (Array.isArray(entry.objects) ? entry.objects : [])
-                  .map((o) => String(o).trim())
-                  .filter(Boolean),
-              ),
-            ]
+            ...new Set(
+              (Array.isArray(entry.objects) ? entry.objects : [])
+                .map((o) => String(o).trim())
+                .filter(Boolean),
+            ),
+          ]
           : [],
     })
   }
@@ -4719,28 +4805,28 @@ function graphSources() {
      */
     const processed = isMail
       ? new Set(
-          (source.profiled_mail_docs ?? []).map((d) => `${d.label_id}/${d.document_id}`),
-        )
+        (source.profiled_mail_docs ?? []).map((d) => `${d.label_id}/${d.document_id}`),
+      )
       : null
     const objects = isMail
       ? mailDocuments(source)
-          .filter((d) => processed.has(`${d.label_id}/${d.document.document_id}`))
-          .map((d) => ({
-            object_id: `${d.label_id}.${d.document.document_id}`,
-            parent_id: d.label_id,
-            label: d.document.name,
-            /* Chunks, because that is the unit this connector's own tiles count. */
-            units: d.document.chunks ?? null,
-            unit_label: 'chunks',
-            /* What the row states beside the name — the catalogue's, never derived here. A
-               synthesised document has no page count and no snippet, and the row prints neither
-               rather than a plausible figure. */
-            pages: d.document.pages ?? null,
-            size_chars: d.document.size_chars ?? null,
-            snippet: d.document.snippet ?? null,
-          }))
+        .filter((d) => processed.has(`${d.label_id}/${d.document.document_id}`))
+        .map((d) => ({
+          object_id: `${d.label_id}.${d.document.document_id}`,
+          parent_id: d.label_id,
+          label: d.document.name,
+          /* Chunks, because that is the unit this connector's own tiles count. */
+          units: d.document.chunks ?? null,
+          unit_label: 'chunks',
+          /* What the row states beside the name — the catalogue's, never derived here. A
+             synthesised document has no page count and no snippet, and the row prints neither
+             rather than a plausible figure. */
+          pages: d.document.pages ?? null,
+          size_chars: d.document.size_chars ?? null,
+          snippet: d.document.snippet ?? null,
+        }))
       : isDrive
-      ? (source.profiled_docs ?? []).map((p) => {
+        ? (source.profiled_docs ?? []).map((p) => {
           const meta = findDocument(drive, p.folder_id, p.document_id)
           const folder = findFolder(drive, p.folder_id)
           return {
@@ -4751,7 +4837,7 @@ function graphSources() {
             unit_label: 'entities',
           }
         })
-      : (source.profiled ?? []).map((p) => ({
+        : (source.profiled ?? []).map((p) => ({
           object_id: `${p.dataset_id}.${p.table_id}`,
           parent_id: p.dataset_id,
           label: `${p.dataset_id}.${p.table_id}`,
@@ -4772,8 +4858,8 @@ function graphSources() {
       scope_label: isDrive ? 'Folders' : isMail ? 'Labels' : 'Datasets',
       scope: isDrive
         ? (source.folders ?? []).map(
-            (id) => findFolder(drive, id)?.name ?? id,
-          )
+          (id) => findFolder(drive, id)?.name ?? id,
+        )
         : isMail
           ? (source.labels ?? [])
           : (source.datasets ?? []),
@@ -5784,38 +5870,38 @@ function askCitations(a) {
   const authored = Array.isArray(a.citations) ? a.citations : []
   return authored.length > 0
     ? [...authored]
-        /* By the set's own numbering, so the list a reader cites by number is the list
-           the set wrote rather than whatever order the array happened to hold. */
-        .sort((x, y) => (x.n ?? 0) - (y.n ?? 0))
-        .map((c) => ({
-          label: c.label,
-          detail: c.detail,
-          confidence: null,
-          kind: c.kind ?? null,
-          source_id: c.source_id ?? null,
-          runtime: typeof c.runtime === 'boolean' ? c.runtime : null,
-          as_of: c.as_of ?? null,
-          authoritative:
-            typeof c.authoritative === 'boolean' ? c.authoritative : null,
-          /* Why it is not, in the set's words — printed only where it says so, because
-             an empty reason under a "not authoritative" mark is worse than the mark. */
-          why_not_authoritative: c.why_not_authoritative ?? null,
-          n: typeof c.n === 'number' ? c.n : null,
-        }))
+      /* By the set's own numbering, so the list a reader cites by number is the list
+         the set wrote rather than whatever order the array happened to hold. */
+      .sort((x, y) => (x.n ?? 0) - (y.n ?? 0))
+      .map((c) => ({
+        label: c.label,
+        detail: c.detail,
+        confidence: null,
+        kind: c.kind ?? null,
+        source_id: c.source_id ?? null,
+        runtime: typeof c.runtime === 'boolean' ? c.runtime : null,
+        as_of: c.as_of ?? null,
+        authoritative:
+          typeof c.authoritative === 'boolean' ? c.authoritative : null,
+        /* Why it is not, in the set's words — printed only where it says so, because
+           an empty reason under a "not authoritative" mark is worse than the mark. */
+        why_not_authoritative: c.why_not_authoritative ?? null,
+        n: typeof c.n === 'number' ? c.n : null,
+      }))
     : (a.evidence ?? [])
-        .filter((e) => e.source && e.source !== '—')
-        .map((e, i) => ({
-          label: e.source,
-          detail: e.detail,
-          confidence: null,
-          kind: null,
-          source_id: null,
-          runtime: null,
-          as_of: null,
-          authoritative: null,
-          why_not_authoritative: null,
-          n: i + 1,
-        }))
+      .filter((e) => e.source && e.source !== '—')
+      .map((e, i) => ({
+        label: e.source,
+        detail: e.detail,
+        confidence: null,
+        kind: null,
+        source_id: null,
+        runtime: null,
+        as_of: null,
+        authoritative: null,
+        why_not_authoritative: null,
+        n: i + 1,
+      }))
 }
 
 /**
@@ -5844,8 +5930,8 @@ function askRequirements(requested, citations, answered) {
   const formatNote =
     requested.formats.length > 0
       ? ` Requested render: ${requested.formats
-          .map((f) => f.name)
-          .join(', ')} — stated, not applied: an answer renders as the blocks it holds.`
+        .map((f) => f.name)
+        .join(', ')} — stated, not applied: an answer renders as the blocks it holds.`
       : ''
 
   return {
@@ -5921,11 +6007,11 @@ function greetingAnswer(question, as, requested) {
   const scope =
     graphs.length > 0
       ? `How can I help? I can answer questions about ${graphs.map((g) => g.name).join(' or ')}'s ` +
-        'data — its budgets, variances, projects, contracts, and the correspondence read ' +
-        'alongside them. Ask me something about those and I will look.'
+      'data — its budgets, variances, projects, contracts, and the correspondence read ' +
+      'alongside them. Ask me something about those and I will look.'
       : 'How can I help? I can only answer questions about this tenant\'s data, and nothing ' +
-        'is askable yet: publish a graph in Graph Studio, or connect a source such as a ' +
-        'mailbox on Sources, then ask again.'
+      'is askable yet: publish a graph in Graph Studio, or connect a source such as a ' +
+      'mailbox on Sources, then ask again.'
   const reason = `${hello}${scope}`
 
   return {
@@ -6219,9 +6305,9 @@ function suggestFrom(pool, idKey, domainId, businessNeed, limit = 4) {
         why:
           s.hits > 0
             ? `matches your brief on ${(s.entry.keywords ?? [])
-                .filter((k) => need.includes(k))
-                .slice(0, 3)
-                .join(', ')}`
+              .filter((k) => need.includes(k))
+              .slice(0, 3)
+              .join(', ')}`
             : 'typical for this domain',
       }),
     )
@@ -6775,13 +6861,13 @@ function whatifSubgraph(generator) {
         : []),
       ...(hasEnforcement
         ? [
-            {
-              key: 'enforcement',
-              label: 'Enforcement',
-              count: generator.enforcement,
-              risk: null,
-            },
-          ]
+          {
+            key: 'enforcement',
+            label: 'Enforcement',
+            count: generator.enforcement,
+            risk: null,
+          },
+        ]
         : []),
       ...(generator.consent_decree
         ? [{ key: 'document', label: 'Consent decree', count: null, risk: null }]
@@ -7065,7 +7151,7 @@ function reportChart(report, measure, title, form = 'bar') {
     form === 'line'
       ? /* A trend keeps the roster's order: quarters are already chronological, and
            sorting them by size would make a line meaningless. */
-        rows
+      rows
       : [...carrying].sort((a, b) => Number(b[measure]) - Number(a[measure]))
   const dropped = form === 'line' ? 0 : rows.length - carrying.length
 
@@ -7095,9 +7181,9 @@ function reportChart(report, measure, title, form = 'bar') {
         ? /* Named by the spine, not by the tenant's own "inbound generators" — that
              phrase is true of the register and false of the facility scorecard, and
              "4 of 5 inbound generators" would be a wrong sentence about facilities. */
-          `${ordered.length} of ${rows.length} ` +
-          `${report.spine === 'generators' ? db.reports.meta.entity_plural : report.spine} carry ` +
-          `${reportLabel(measure).toLowerCase()} on record; the other ${dropped} are at zero.`
+        `${ordered.length} of ${rows.length} ` +
+        `${report.spine === 'generators' ? db.reports.meta.entity_plural : report.spine} carry ` +
+        `${reportLabel(measure).toLowerCase()} on record; the other ${dropped} are at zero.`
         : null,
   }
 }
@@ -7131,10 +7217,10 @@ function reportBlock(report, block) {
     const share =
       report.scope !== 'all' && report.spine === 'generators'
         ? reportShareChart(
-            block.measure,
-            `Inbound ${reportLabel(block.measure).toLowerCase()} by generator compliance status`,
-            'Share of the whole register, not of this report’s rows — the question a scoped report raises.',
-          )
+          block.measure,
+          `Inbound ${reportLabel(block.measure).toLowerCase()} by generator compliance status`,
+          'Share of the whole register, not of this report’s rows — the question a scoped report raises.',
+        )
         : null
     return share ? { ...main, companion: share } : main
   }
@@ -7298,8 +7384,8 @@ const reportFrameProblem = (frame) => {
       return published.length === 0
         ? `no graph is published — publish one in Graph Studio, then ask it`
         : `"${frame.use_case_id}" is not a published graph — published: ${published
-            .map((g) => g.use_case_id)
-            .join(', ')}`
+          .map((g) => g.use_case_id)
+          .join(', ')}`
     }
   }
   for (const [slot, value] of Object.entries({
@@ -7324,9 +7410,8 @@ const reportFrameProblem = (frame) => {
   for (const filter of frame.filters ?? []) {
     const facet = facets.find((f) => f.key === filter.key)
     if (!facet) {
-      return `"${filter.key}" cannot be filtered on for ${report.spine} — this report slices by ${
-        facets.map((f) => f.key).join(', ') || 'nothing'
-      }`
+      return `"${filter.key}" cannot be filtered on for ${report.spine} — this report slices by ${facets.map((f) => f.key).join(', ') || 'nothing'
+        }`
     }
     if (!facet.values.some((v) => v.value === String(filter.value))) {
       return `"${filter.value}" is not a ${filter.key} in this report — it has ${facet.values
@@ -7439,9 +7524,9 @@ function reportBuild(report, frame) {
     tiles: written
       ? report.tiles
       : reportSummary(
-          report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
-          asked.rows,
-        ),
+        report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
+        asked.rows,
+      ),
     /*
      * A generated report has no authored tiles to show, and on a spine the summary
      * Catalog does not describe (facilities, quarters, traces) it has no summary at
@@ -7458,10 +7543,10 @@ function reportBuild(report, frame) {
          Publication is in memory, so this is the state after every restart. */
       ...(asked.graph && asked.graph.live === false
         ? [
-            `This was saved against ${asked.graph.name}, which is not published right now. ` +
-              'The figures are current — they come from the connected rosters — but nothing ' +
-              'live answered it. Publish that graph again in Graph Studio to restore the link.',
-          ]
+          `This was saved against ${asked.graph.name}, which is not published right now. ` +
+          'The figures are current — they come from the connected rosters — but nothing ' +
+          'live answered it. Publish that graph again in Graph Studio to restore the link.',
+        ]
         : []),
     ],
   }
@@ -7625,7 +7710,7 @@ function reportReading(report) {
           ? report.measure_label
           : /* A frame carries its own horizon; a written report is read under the
                file's default. Either way the sentence and the chips agree. */
-            (report.horizon_label ?? db.reports.assumptions[slot].label),
+          (report.horizon_label ?? db.reports.assumptions[slot].label),
   }))
   const text = used.reduce(
     (sentence, { slot, label }) => sentence.replaceAll(`{${slot}}`, label),
@@ -8052,9 +8137,9 @@ const reportGovernanceView = (asRole) => {
   const scopeRaw = db.reports.governance.data_scope.find((s) => s.role_id === asRole) ?? null
   const scopeRow = scopeRaw
     ? {
-        ...scopeRaw,
-        label: db.auth_roles.find((r) => r.role_id === scopeRaw.role_id)?.label ?? scopeRaw.role_id,
-      }
+      ...scopeRaw,
+      label: db.auth_roles.find((r) => r.role_id === scopeRaw.role_id)?.label ?? scopeRaw.role_id,
+    }
     : null
 
   /*
@@ -8210,7 +8295,7 @@ const reportGovernanceView = (asRole) => {
           at: s.saved_at ? String(s.saved_at).slice(0, 10) : null,
           detail: view.graph
             ? `asked of ${view.graph.name} ${view.graph.version ?? ''}`.trim() +
-              (view.graph.live ? '' : ' - not published now')
+            (view.graph.live ? '' : ' - not published now')
             : 'no graph recorded',
           tone: view.graph?.live ? 'good' : 'warn',
         }
@@ -8240,7 +8325,7 @@ const reportGovernanceView = (asRole) => {
             : r.audience_named === r.entitled_roles.length
               ? `${r.entitled_roles.length} of ${db.auth_roles.length} personas`
               : `names ${r.audience_named}, ${r.entitled_roles.length} resolve - ` +
-                'a persona was renamed or removed under this audience',
+              'a persona was renamed or removed under this audience',
         },
         {
           key: 'floor',
@@ -8751,8 +8836,8 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
         .join(' and ')
       throw new Error(
         `${chosen}.${table.table_id} is new to this project, so the file has to give it ${missing}. ` +
-          'A label is what the Catalog calls it and a grain is what one row of it is ("one row per project and version") — ' +
-          'add a table_label and a grain column, or a "label" and "grain" on the table in JSON.',
+        'A label is what the Catalog calls it and a grain is what one row of it is ("one row per project and version") — ' +
+        'add a table_label and a grain column, or a "label" and "grain" on the table in JSON.',
       )
     }
 
@@ -8761,7 +8846,7 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
       if (stated && !KNOWN_CLASSES.has(stated)) {
         throw new Error(
           `${table.table_id}.${column.column_id} states the class "${column.class}", which this app has no chip for. ` +
-            `Use one of ${[...KNOWN_CLASSES].sort().join(', ')}, or leave the class blank and it is read from the type.`,
+          `Use one of ${[...KNOWN_CLASSES].sort().join(', ')}, or leave the class blank and it is read from the type.`,
         )
       }
       return {
@@ -9484,7 +9569,7 @@ const DGB_STAGES = [
     phase: 'Framing the corpus against the brief',
   },
   { key: 'intake', label: 'Reading documents', phase: 'Reading each document in the corpus' },
-  
+
   {
     key: 'extraction',
     label: 'Extracting entities & relations',
@@ -9578,7 +9663,7 @@ function refuseStudioWriteUnderBoth(act) {
   if (activeDataset() !== BOTH) return
   throw new Error(
     `cannot ${act} while dataset=${BOTH} is selected — it merges every dataset for reading, so this ` +
-      `would be written against whichever dataset happens to own the row. Select ${DATASETS.join(' or ')} first.`,
+    `would be written against whichever dataset happens to own the row. Select ${DATASETS.join(' or ')} first.`,
   )
 }
 
@@ -9753,10 +9838,10 @@ const dgbJobView = (job) => ({
   phase:
     job.status === 'running' && DGB_STAGES[job.cursor]
       ? {
-          stage: DGB_STAGES[job.cursor].key,
-          phase: DGB_STAGES[job.cursor].phase,
-          since: Math.floor(Date.parse(job.stage_started_at ?? job.created_at) / 1000),
-        }
+        stage: DGB_STAGES[job.cursor].key,
+        phase: DGB_STAGES[job.cursor].phase,
+        since: Math.floor(Date.parse(job.stage_started_at ?? job.created_at) / 1000),
+      }
       : null,
   degraded_stages: [],
 })
@@ -10207,7 +10292,7 @@ function versionArtifactsInFlight(useCase, sgb, dgb) {
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0] ?? null
   return Boolean(
     (sgbRun?.auto_bridge && sgbRun.status === 'running') ||
-      (dgbRun?.auto_bridge && dgbRun.status === 'running'),
+    (dgbRun?.auto_bridge && dgbRun.status === 'running'),
   )
 }
 
@@ -10313,10 +10398,10 @@ function versionDetail(useCase, version) {
     version: versionView(version),
     bridge_matches_named_triple: version.bridge_build_id
       ? Boolean(
-          bridge &&
-            bridge.sgb_build_id === version.sgb_build_id &&
-            bridge.dgb_graph_version === version.dgb_graph_version,
-        )
+        bridge &&
+        bridge.sgb_build_id === version.sgb_build_id &&
+        bridge.dgb_graph_version === version.dgb_graph_version,
+      )
       : null,
     bridge_status: bridge?.status ?? null,
     newer_sgb_build_id:
@@ -11568,6 +11653,9 @@ const routes = [
            differently. The date is stated once here rather than per row. */
         profiled_today: rows.reduce((s, r) => s + (r.profiled_today ?? 0), 0),
         profiled_today_date: localDateKey(new Date()),
+        documents_chunked: rows.reduce((s, r) => s + (r.documents_chunked ?? 0), 0),
+        chunks_total: rows.reduce((s, r) => s + (r.chunks_total ?? 0), 0),
+        chunk_chars: rows.reduce((s, r) => s + (r.chunk_chars ?? 0), 0),
       })
     },
   },
@@ -11836,9 +11924,9 @@ const routes = [
       const whole = objects === undefined
       const picked = whole
         ? [...corpus.values()].map((d) => ({
-            label_id: d.label_id,
-            document_id: d.document.document_id,
-          }))
+          label_id: d.label_id,
+          document_id: d.document.document_id,
+        }))
         : objects
 
       const work = []
@@ -11863,7 +11951,8 @@ const routes = [
           object_id: document_id,
           /* The filename — the same choice the Drive browse panel makes with `document.name`. */
           label: found.document.name,
-          units: found.document.entities,
+          /* Mail documents don't have countable units like rows or entities */
+          units: null,
           /* Whole-mailbox runs never skip; a picked subset keeps the ordinary rule. */
           state: !whole && already && !force ? 'skipped' : 'pending',
         })
@@ -12535,8 +12624,8 @@ const routes = [
           ...db.data_model,
           entities: existing
             ? db.data_model.entities.map((e) =>
-                e.entity_id === record.entity_id ? record : e,
-              )
+              e.entity_id === record.entity_id ? record : e,
+            )
             : [...db.data_model.entities, record],
         },
       })
@@ -13136,21 +13225,21 @@ const routes = [
       const suggestions = template
         ? bundleFrom(template, db[pool], idKey, memberKey)
         : suggestFrom(
-            db[pool],
-            idKey,
-            domain_id ?? null,
-            business_need ?? '',
-            /*
-             * A hero question is the graph's contract, so more of them are useful — and a
-             * tenant's own KPI sheet is exactly the case a metrics cap of 4 hid: eight recorded
-             * formulas ranking against a handful of pool defaults left several off the first
-             * page, reachable only by re-running Suggest until jitter surfaced them. 14 is CAPEX's
-             * whole `capital-projects` count today, so nothing in that domain is hidden by the
-             * cap — still a cap, not "everything": a domain that grows past this needs its own
-             * answer, but this is the honest fix for the case reported.
-             */
-            pool === 'graph_hero_questions' ? 5 : pool === 'graph_metrics' ? 14 : 4,
-          )
+          db[pool],
+          idKey,
+          domain_id ?? null,
+          business_need ?? '',
+          /*
+           * A hero question is the graph's contract, so more of them are useful — and a
+           * tenant's own KPI sheet is exactly the case a metrics cap of 4 hid: eight recorded
+           * formulas ranking against a handful of pool defaults left several off the first
+           * page, reachable only by re-running Suggest until jitter surfaced them. 14 is CAPEX's
+           * whole `capital-projects` count today, so nothing in that domain is hidden by the
+           * cap — still a cap, not "everything": a domain that grows past this needs its own
+           * answer, but this is the honest fix for the case reported.
+           */
+          pool === 'graph_hero_questions' ? 5 : pool === 'graph_metrics' ? 14 : 4,
+        )
       /*
        * Held briefly on purpose. There is no model here, so the answer is ready
        * instantly — but a drafting step that returns in 2ms gives the UI nowhere
@@ -14018,11 +14107,11 @@ const routes = [
       send(res, 200, {
         published_bridge: build
           ? {
-              bridge_build_id: build.bridge_build_id,
-              use_case_config_id: id,
-              build_number: build.build_number,
-              status: build.status,
-            }
+            bridge_build_id: build.bridge_build_id,
+            use_case_config_id: id,
+            build_number: build.build_number,
+            status: build.status,
+          }
           : null,
       })
     },
@@ -14404,10 +14493,10 @@ const routes = [
         return send(res, 409, {
           error: running
             ? 'this use case is still building, and a version names every artifact one run produces ' +
-              '— the structured graph, the document graph and the Bridge formed from them. It is ' +
-              'recorded on its own the moment the run lands.'
+            '— the structured graph, the document graph and the Bridge formed from them. It is ' +
+            'recorded on its own the moment the run lands.'
             : 'neither lane of this use case has finished a build, so there are no artifacts to record ' +
-              'as a version. Build it first from the Build tab.',
+            'as a version. Build it first from the Build tab.',
         })
       }
       send(res, 200, { version: versionView(version) })
@@ -14891,8 +14980,8 @@ const routes = [
         ...db,
         graph_use_cases: existing
           ? db.graph_use_cases.map((u) =>
-              u.use_case_id === record.use_case_id ? record : u,
-            )
+            u.use_case_id === record.use_case_id ? record : u,
+          )
           : [record, ...db.graph_use_cases],
       })
 
@@ -15323,27 +15412,27 @@ const routes = [
 
       const answer = !hit
         ? {
-            verdict: 'refused',
-            measure_key: null,
-            tone: copy.refused.tone,
-            title: fill(copy.refused.title),
-            body: fill(copy.refused.body),
-          }
+          verdict: 'refused',
+          measure_key: null,
+          tone: copy.refused.tone,
+          title: fill(copy.refused.title),
+          body: fill(copy.refused.body),
+        }
         : hit.verdict === 'grounds_not_inherited'
           ? {
-              verdict: 'grounds_not_inherited',
-              measure_key: null,
-              tone: copy.grounds_not_inherited.tone,
-              title: fill(copy.grounds_not_inherited.title),
-              body: `${hit.note}.`,
-            }
+            verdict: 'grounds_not_inherited',
+            measure_key: null,
+            tone: copy.grounds_not_inherited.tone,
+            title: fill(copy.grounds_not_inherited.title),
+            body: `${hit.note}.`,
+          }
           : {
-              verdict: 'resolved',
-              measure_key: hit.resolves_to,
-              tone: copy.resolved.tone,
-              title: fill(copy.resolved.title),
-              body: `${hit.note}.`,
-            }
+            verdict: 'resolved',
+            measure_key: hit.resolves_to,
+            tone: copy.resolved.tone,
+            title: fill(copy.resolved.title),
+            body: `${hit.note}.`,
+          }
 
       setTimeout(() => send(res, 200, { text: asked, ...answer }), WHATIF_STEP_MS).unref?.()
     },
@@ -15573,8 +15662,8 @@ const routes = [
             live.length === 0
               ? db.whatif.publishing.graph.empty
               : `no published graph "${graph_use_case_id}" — published now: ${live
-                  .map((g) => `${g.name} (${g.use_case_id})`)
-                  .join(', ')}`,
+                .map((g) => `${g.name} (${g.use_case_id})`)
+                .join(', ')}`,
         })
       }
 
@@ -15757,7 +15846,7 @@ const routes = [
         as,
         `changed the access rule for ${db.auth_roles.find((r) => r.role_id === roleId)?.label ?? roleId}`,
         `${resolved.summary} — resolves to ${resolved.count} of ${resolved.total} generators today. ` +
-          'Recorded, not enforced: no roster here is filtered per persona.',
+        'Recorded, not enforced: no roster here is filtered per persona.',
       )
       send(res, 200, governanceView())
     },
@@ -16523,7 +16612,21 @@ const server = createServer(async (req, res) => {
    * served at the root. `/backend` alone becomes `/`, which no route matches — the API has no index.
    */
   const prefixed = asked === API_PREFIX || asked.startsWith(`${API_PREFIX}/`)
-  const pathname = prefixed ? asked.slice(API_PREFIX.length) || '/' : asked
+  let pathname = prefixed ? asked.slice(API_PREFIX.length) || '/' : asked
+
+  /*
+   * Extract dataset from URL path if present (e.g., /capex/sources → dataset=CAPEX, pathname=/sources)
+   * Format: /:dataset/* where dataset is ONLY epa or capex (must be exact match of a known dataset)
+   */
+  let datasetFromPath = null
+  for (const ds of DATASETS) {
+    const dsPrefix = `/${ds.toLowerCase()}/`
+    if (pathname.startsWith(dsPrefix)) {
+      datasetFromPath = ds
+      pathname = pathname.slice(dsPrefix.length - 1) // Remove dataset prefix but keep the leading /
+      break
+    }
+  }
 
   const route = prefixed
     ? routes.find((r) => r.method === req.method && r.match(pathname))
@@ -16566,11 +16669,16 @@ const server = createServer(async (req, res) => {
    * a typo in `?dataset=` would otherwise serve EPA's figures under CAPEX's name, which is the
    * exact confusion the split exists to prevent.
    */
-  const dataset = selectorFrom(url.searchParams, req.headers)
-  if (!dataset) {
-    const asked = url.searchParams.get('dataset') ?? req.headers['x-dataset']
+  /*
+   * Dataset selection priority: URL path > query/header > primary
+   * E.g., /capex/sources takes precedence over ?dataset=EPA or x-dataset: EPA
+   */
+  const datasetSelection = datasetFromPath ?? url.searchParams.get('dataset') ?? req.headers['x-dataset']
+  const dataset = SELECTORS.find((s) => s.toLowerCase() === (datasetSelection?.toLowerCase() ?? '')) ?? PRIMARY
+
+  if (datasetSelection && !dataset) {
     return send(res, 400, {
-      error: `"${asked}" is not a dataset — this tenant has ${SELECTORS.join(', ')}.`,
+      error: `"${datasetSelection}" is not a dataset — this tenant has ${SELECTORS.join(', ')}.`,
     })
   }
 
@@ -16641,9 +16749,9 @@ for (const name of DATASETS) {
     console.error(
       name === PRIMARY
         ? '\n  Restore the file, then start again:' +
-            '\n      npm run db:pull\n'
+        '\n      npm run db:pull\n'
         : `\n  Re-seed that dataset, then start again:` +
-            `\n      npm run seed:dataset -- ${name} && npm run db:push -- ${name}\n`,
+        `\n      npm run seed:dataset -- ${name} && npm run db:push -- ${name}\n`,
     )
     process.exit(1)
   }
@@ -16663,12 +16771,12 @@ for (const name of DATASETS) {
   if (unplanned.length > 0) {
     console.error(
       `\nmock-server: refusing to start — ${name}/db.json has ${unplanned.length} key(s) that ` +
-        `dataset=${BOTH} would silently drop.`,
+      `dataset=${BOTH} would silently drop.`,
     )
     for (const key of unplanned) console.error(`  · ${key}`)
     console.error(
       '\n  Add each one to MERGE_PLAN in backend/datasets.js, saying whether it is the' +
-        "\n  primary's alone or a collection the datasets union.\n",
+      "\n  primary's alone or a collection the datasets union.\n",
     )
     process.exit(1)
   }
@@ -16713,19 +16821,19 @@ server.listen(PORT, () => {
    */
   console.log(
     `  reading ${storeKind(DB_PATH)} ${DB_PATH}` +
-      (storeKind(DB_PATH) === 's3'
-        ? ` (writes are conditional on ETag)`
-        : ` — set S3_BUCKET to read the bucket instead`),
+    (storeKind(DB_PATH) === 's3'
+      ? ` (writes are conditional on ETag)`
+      : ` — set S3_BUCKET to read the bucket instead`),
   )
   console.log(
     `  ${db.projects.length} GCP projects · ` +
-      `${db.projects.reduce((s, p) => s + p.datasets.length, 0)} datasets · ` +
-      `${db.projects.reduce((s, p) => s + p.datasets.reduce((t, d) => t + d.tables.length, 0), 0)} tables`,
+    `${db.projects.reduce((s, p) => s + p.datasets.length, 0)} datasets · ` +
+    `${db.projects.reduce((s, p) => s + p.datasets.reduce((t, d) => t + d.tables.length, 0), 0)} tables`,
   )
   console.log(
     `  ${db.drives.length} Drives · ` +
-      `${db.drives.reduce((s, d) => s + d.folders.length, 0)} folders · ` +
-      `${db.drives.reduce((s, d) => s + d.folders.reduce((t, f) => t + f.documents.length, 0), 0)} documents`,
+    `${db.drives.reduce((s, d) => s + d.folders.length, 0)} folders · ` +
+    `${db.drives.reduce((s, d) => s + d.folders.reduce((t, f) => t + f.documents.length, 0), 0)} documents`,
   )
   console.log('  credential handles (issued by the Google consent flow):')
   for (const c of db.credentials) {
