@@ -10,7 +10,10 @@ without pulling React, antd and d3 with it.
 
 ```
 backend/     package.json (0 runtime deps) · server.js · store.js · datasets.js
-             reportExport.js · db.json · db.CAPEX.json · .env.local (ignored)
+             reportExport.js · epa-loader.js · capex-loader.js · settings.json (shared)
+             epa/    (epa_*.json — the EPA dataset, split by feature area)
+             capex/  (capex_*.json — the CAPEX dataset, split by feature area)
+             .env.local (ignored)
              scripts/ (the seeds, the ingests, s3-sync, the two verifiers)
              ecosystem.config.js
 frontend/    package.json (react, antd, d3, zustand, router, icons + dev deps)
@@ -49,8 +52,8 @@ the root, once from reading the wrong `argv` slot, whose symptom was identical t
 It derives the package root from `import.meta.url` now, so every call site gets the same answer and there
 is nothing to pass wrongly.
 
-**The one place the split is crossed is `npm run ingest:capex`.** It is a backend script — it writes
-`backend/db.CAPEX.json` — and it reads the CAPEX report documents out of `frontend/src/Capex/Report/`,
+**The one place the split is crossed is `npm run ingest:capex`.** It is a backend script — it authors
+the CAPEX dataset — and it reads the CAPEX report documents out of `frontend/src/Capex/Report/`,
 because those are frontend assets that Vite bundles. A dev-time seed reaching across is the honest
 arrangement; the alternative is a second copy of three 2.5 MB documents.
 
@@ -66,8 +69,9 @@ invisible rather than loud:
   environment.
 - **`GET /backend/health` exists.** EB's default check hits `/`, which the dispatcher 404s with a "this server
   may be stale" message — a load balancer reads that as a failed application. It reports the datasets and
-  **which store it actually read**, so `"file"` after a deploy tells you `S3_BUCKET` never reached the
-  process and the box is serving a copy frozen at bundle time.
+  **which store it read** — since the split, the boot always reads the committed split folders, so the
+  answer is `"file"` and the freshness of a deployed box is the freshness of the bundle it was deployed
+  from.
 - **The environment must be single-instance**, which is the same correctness requirement
   `ecosystem.config.js` records for PM2: the write chain is per process and the live state never reaches
   storage, so a second instance means silently lost writes and a publish that takes effect half the time.
@@ -91,8 +95,10 @@ invisible rather than loud:
   fail quietly — dropping the ignore rule publishes the key, and naming the file in `.ebignore` strips it
   from the bundle and leaves the box booting on the documents frozen in at deploy time, every figure on
   screen plausible and months stale. `GET /health`’s `store` is how you tell (`"s3"` or `"file"`).
-  Locally none of it applies: `S3_BUCKET` is unset, so the server reads `backend/db.json` and
-  `backend/db.CAPEX.json` — one file per dataset, named by `localDocPath`.
+  Locally none of it applies — and since the split, the **boot read is the split folders regardless of
+  `S3_BUCKET`**: the server assembles each dataset from `backend/epa/` and `backend/capex/` plus the
+  shared `backend/settings.json`, so the S3 configuration matters to `db:push`/`db:pull` and the report
+  exports rather than to what the server serves.
 
 **The mixed-content trap is worth knowing before the first demo.** EB hands you `http://` and CloudFront
 serves `https://`, and an https page cannot call an http API — the browser blocks it with no server-side
@@ -108,27 +114,27 @@ npm run build       # tsc -b && vite build
 npm run lint        # oxlint
 npm run audit       # audit gate (fails on any advisory, minus the allowlist)
 npm run check-docs  # asserts this file's factual claims against the code
-npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
-npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
-npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
+npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (EPA dataset)
+npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (EPA dataset)
+npm run ingest:reports # re-seeds reports from 07_reports/ (EPA dataset)
 npm run ingest:queries # re-seeds a dataset's ask_answers + hero questions from a query set
                        # (-- CAPEX [path]; defaults to query_set_v2*.json at the repo root)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors db.settings — users and persona navigation
-npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
-npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
-npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
+npm run seed:dataset -- CAPEX # writes an empty-but-servable document for a secondary dataset
+npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to EPA
+npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (CAPEX dataset)
 npm run seed:capex-extractions # re-derives CAPEX's document_extractions from its own canvas, one hop
                        # from each document's subject (run it AFTER seed:capex-drive)
-npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
+npm run seed:prototype-model # authors the primary's report-authoring row model (EPA dataset)
 npm run seed:data-model # gives a dataset the empty data_model key the Data Modeling tab writes to
-npm run seed:capex-metrics # authors CAPEX's metric pool from the tenant's measure sheet (writes db.CAPEX.json)
-npm run seed:capex-mail # authors CAPEX's mail corpus — pages, chunks, sizes, snippets (writes db.CAPEX.json)
+npm run seed:capex-metrics # authors CAPEX's metric pool from the tenant's measure sheet (CAPEX dataset)
+npm run seed:capex-mail # authors CAPEX's mail corpus — pages, chunks, sizes, snippets (CAPEX dataset)
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
 npm run narrow:capex # lets those reports re-derive over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
-npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
-npm run db:pull     # the other direction — overwrite the local copies from the bucket
+npm run db:push     # sync the retired monolithic db.json with S3 — see the note below
+npm run db:pull     # the other direction — same caveat
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
 npm run verify:export # checks the report HTML/CSV renderers; pure, so no bucket needed
 npm run verify:schema-import # checks the schema/dictionary reader against fixtures; pure, nothing running
@@ -138,6 +144,14 @@ npm run verify:studio-contract # every studio fetcher against a LIVE server, thr
                        # (needs npm run mock, so deliberately NOT in preflight; CONTRACT_DATASET=CAPEX for the other one)
 npm run preflight   # lint + build + audit + verify:sigv4 + verify:export + verify:schema-import + verify:studio-lanes + verify:question-sql + check-docs — run before calling work done
 ```
+
+**The seeds, the ingests, `db:push`/`db:pull` and `check-docs` still target the retired monolithic
+`backend/db.json` / `backend/db.CAPEX.json` paths.** The server no longer reads or writes those files
+— it boots from the split folders (`backend/epa/`, `backend/capex/`) plus the shared
+`backend/settings.json`, and `commitDb` writes back to the same places. Until the scripts are
+re-pointed, a seed or ingest authors a file nothing serves, `db:push`/`db:pull` move a document the
+boot ignores, and `check-docs` refuses to run because the monolith it reads is not in the checkout.
+Re-point a script at the split files before relying on its effect.
 
 **Two processes are required.** `npm run dev` alone renders empty pages: there is no
 static fallback data anywhere in `src/`. Run `npm run mock` in a second terminal.
@@ -198,45 +212,25 @@ built SPA on `:8080` and takes over the two jobs the dev server did for free,
 proxying `/api` (prefix stripped, exactly as `frontend/vite.config.ts` rewrites it) and
 serving `frontend/index.html` for client routes. See `deploy/README.md`.
 
-There is no test runner. Verification is done by building an SSR bundle of a
-throwaway script and running it under node:
-
-```bash
-npx vite build --ssr smoke.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/smoke.js
-```
-
-This is how components get asserted on without a DOM. Stub `globalThis.fetch` to
-test `src/api/client.ts` against fabricated payloads. antd `Modal`/`Drawer` render
-through a portal that `renderToString` will not traverse — extract the body into
-its own component if it needs asserting (that is why `ConnectSourceWizard` is
-separate from `ConnectSourceModal`). Delete the scratch files afterwards.
-
-**Three things `renderToString` will not show you, and all three fail quietly.**
-A zustand-driven component renders the store's **initial** state — zustand v5
-passes `getInitialState` as the server snapshot — so loading the store first is
-not enough; shim `React.useSyncExternalStore` in the scratch file (see
-`docs/REGRESSIONS.md`). Anything expanded by a `useEffect` (the dictionary's
-column and entity tables) is absent, so assert those against the payload. And
-antd's virtualised `Tree` may render no leaves without layout. Each of these
-turns an "absent" assertion into a pass over nothing: **whenever you assert that
-text is missing, assert in the same run that the render had its data.**
-
 ## Architecture
 
 A single-tenant data-governance console. Six feature pages plus a dev-only
-`db.json` editor, all reading from a zero-dependency mock API.
+`/db` document editor, all reading from a zero-dependency mock API.
 
 ```
-backend/db.json ──► backend/server.js ──► /api proxy ──► frontend/src/api/client.ts
-                                                                       │ validate
-                                                                       ▼
-                                                                  frontend/src/store/*
-                                                                       │
-                                                                       ▼
-                                                              frontend/src/pages, frontend/src/components
+backend/epa/ · backend/capex/     (split JSON, merged per dataset at boot)
+        │
+        ▼
+backend/server.js ──► /api proxy ──► frontend/src/api/client.ts
+                                                  │ validate
+                                                  ▼
+                                             frontend/src/store/*
+                                                  │
+                                                  ▼
+                                         frontend/src/pages, frontend/src/components
 ```
 
-**Data flows one way and every layer has one job.** `db.json` is the only source
+**Data flows one way and every layer has one job.** The dataset folders are the only source
 of data; `server.js` shapes it and holds mutable run state; `client.ts` fetches
 and validates; the stores hold state and own all error handling; components read
 the stores and render. Never call `client.ts` straight from a component unless it
@@ -358,21 +352,50 @@ boot.
 
 ### Where the data lives
 
-**The document lives in S3, and the local copy is gone.** `backend/store.js` is the whole
-storage layer: a document is named by a **ref**, and the ref says where it is — an absolute path is
-a file, `s3://bucket/key` is an object.
+**Each dataset is a folder of split JSON files, and the monolithic `db.json` is gone.**
+`backend/epa/` holds EPA and `backend/capex/` holds CAPEX — one file per feature area, named
+`<dataset>_<area>.json`: `sources`, `catalogue`, `new_graph`, `graph_studio`, `reports`, `ask`,
+`whatif`, `audit_governance`. `backend/epa-loader.js` and `backend/capex-loader.js` each read their
+folder's files in a declared order and `Object.assign` them into **one in-memory document per
+dataset**, so everything downstream — `validateDb`, `DB_SHAPE`, `MERGE_PLAN`, the ~280 `db.<key>`
+reads in `server.js` — still sees the single document it always did. Load order matters: a key that
+appears in two files is won by the later one, and a missing or unparseable file stops the boot naming
+the file. Elsewhere in this file, `db.json` is that merged document's **historical name**: a claim
+about "a `db.json` key" is a claim about the merged document, whichever split file the key lands in.
 
-| | ref | how the bytes move |
+| folder | holds | example keys |
 |---|---|---|
-| default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
-| `S3_BUCKET=off` | `backend/db.json` | `readFile`, and temp-file + rename on write |
+| `backend/epa/epa_*.json` | the primary dataset | `projects`, `column_profiles` in `epa_sources.json`; `whatif` in `epa_whatif.json` |
+| `backend/capex/capex_*.json` | the CAPEX dataset | same file layout, `capex_` prefix |
+| `backend/settings.json` | tenant-level keys shared by every dataset | `settings`, `auth_roles`, `google_account`, `change_signals`, `data_model`, `_meta` |
 
-**There is one document per dataset, and there used to be three in total.** `settings.json` held the
-users and each persona's navigation; `reports_prototype.json` held the report prototype's own sample
-data (itself once `src/reports/data/dataset.json`, compiled into the JS bundle, which made it the one
-thing on screen the bucket could not change). **Both were folded into `db.json` on request**, as the
-top-level keys `settings` and `reports_prototype`. `npm run db:pull` fetches the one document; the
-boot read is still a `Promise.all` above `server.listen`, now one entry per dataset.
+**Writes go back out split.** `commitDb` still takes the whole document, validates it against
+`DB_SHAPE`, swaps memory before the first `await` — and then `writeSplitFiles` fans the keys back
+into the dataset's own files, each through `writeJsonAtomic` (temp-file + rename, chained per path),
+while `writeSharedSettings` writes the tenant-level keys to `backend/settings.json`. The key → file
+mapping lives in `writeSplitFiles` in `server.js` and **must agree with the loaders' file lists**: a
+key in neither the mapping nor the shared-settings list is written nowhere, so an edit to it survives
+in memory and silently reverts at the next boot. When a top-level key is added to `DB_SHAPE`, add it
+to the mapping in the same change.
+
+**`backend/settings.json` is shared, deliberately outside both folders.** The tenant-level keys are
+one answer for every dataset — two datasets do not mean eight users — so both loaders read this file
+*after* the dataset's own files (its keys win) and `commitDb` writes it once, not per dataset. It is
+the same fact `MERGE_PLAN` states by marking `settings` `primary`.
+
+**`store.js` is still the byte mover, and S3 is no longer on the boot path.** A document is named by
+a **ref** — an absolute path is a file, `s3://bucket/key` is an object — and the split files are file
+refs, so a write is temp-file + rename exactly as before. The S3 machinery (the SigV4 signer, its
+verifier, the report exports, `db:push`/`db:pull`) remains, but the loaders read the committed local
+folders unconditionally: the checkout *is* the store.
+
+**There is one merged document per dataset, and there used to be three files in total.**
+`settings.json` held the users and each persona's navigation; `reports_prototype.json` held the report
+prototype's own sample data (itself once `src/reports/data/dataset.json`, compiled into the JS
+bundle). Both are still top-level **keys** of the merged document — `DB_SHAPE` requires them and
+`commitDb` validates them before every write — but on disk `settings` lives in the shared
+`backend/settings.json` and `reports_prototype` travels in the dataset's `_reports.json` file. The
+boot read is still a `Promise.all` above `server.listen`, one loader per dataset.
 
 **The separation those two files bought was real, and it moved rather than went away.** Two stores
 with one job each meant a settings write could not touch a report, and an ingest rebuilding
@@ -393,11 +416,13 @@ replaces one key — a script that owns a subtree and rewrites its parent is how
 
 ### Two datasets — EPA and CAPEX
 
-**A dataset is a prefix, and there are two.** `EPA/` is the primary and holds everything described
-below; `CAPEX/` is the second and holds the capital-programme reports. Every dataset in `DATASETS` is
-read at boot, so a name with no document behind it stops the boot — which is why adding one is that
-array plus `npm run seed:dataset -- <NAME>`, in that order, and why the seed refuses a name the array
-does not declare.
+**A dataset is a folder, and there are two.** `backend/epa/` is the primary and holds everything
+described below; `backend/capex/` is the second and holds the capital-programme reports. Every
+dataset in `DATASETS` is read at boot, so a name with no folder of split files behind it stops the
+boot — EPA and CAPEX each load through their own loader, and any further name falls back to
+`readJsonDb` over a `<name>/db.json`, which is why adding one is that array plus
+`npm run seed:dataset -- <NAME>`, in that order, and why the seed refuses a name the array does not
+declare.
 
 **EPA was called EPA.** The rename was the selector only: `DATASETS`, `PRIMARY`, `DEFAULT_PREFIX`,
 `DEFAULT_DATASET`, the URL letter and every claim and sentence about *which dataset a request is
@@ -406,19 +431,18 @@ with its `epa_hazwaste` views, and the seven EPA enforcement PDFs are still that
 what the tenant's data is called rather than what the dataset is. `check-docs` and CLAUDE.md therefore
 still say `EPA` in exactly two places, both of them about the data.
 
-**The bucket prefix moved with the name.** `s3://contextweave.com/EPA/db.json` is where the primary's
-document lives now, so a checkout reading the bucket needs the object moved before `npm run db:pull`
-resolves; a checkout reading local files — the default — is unaffected. And a browser that had `EPA`
-persisted recovers by itself: the server refuses it, and `resetDatasetIfRefused()` discards the value
-and retries on the primary, which is the exact failure that fix was written for.
+**The folder is named after the dataset**, and so is every file inside it (`epa_sources.json`,
+`capex_reports.json`), so a path says which dataset a value belongs to. And a browser that had a
+retired selector persisted recovers by itself: the server refuses it, and `resetDatasetIfRefused()`
+discards the value and retries on the primary, which is the exact failure that fix was written for.
 
-`backend/datasets.js` owns which one a request is reading — `store.js` still owns only how
-bytes move, and `server.js` still owns only what a document means.
+`backend/datasets.js` owns which one a request is reading — the loaders own how a dataset's files
+become one document, and `server.js` still owns only what a document means.
 
 | selector | what it reads | writes |
 |---|---|---|
-| `EPA` (default) | `s3://contextweave.com/EPA/db.json` | yes |
-| `CAPEX` | `s3://contextweave.com/CAPEX/db.json` | yes |
+| `EPA` (default) | `backend/epa/epa_*.json` + shared `settings.json`, merged at boot | yes |
+| `CAPEX` | `backend/capex/capex_*.json` + shared `settings.json`, merged at boot | yes |
 | `both` | every dataset merged, per `MERGE_PLAN` | **refused** |
 
 **`both` now merges two real documents**, which is what the machinery was built for and was
@@ -523,8 +547,8 @@ prefix; that refusal is gone with the documents it was about.
 obvious ways out are both wrong — seeding CAPEX with EPA's rows shows EPA's figures under CAPEX's
 name, and leaving it invalid stops the server booting. The seed writes the third thing, the primary's
 *structure* with the primary's *rows* removed, and it decides which is which by reading `MERGE_PLAN`
-rather than a second list of its own. It writes a file only, like every other seed here, so the flow
-is: seed, check the diff, `npm run db:push -- CAPEX`.
+rather than a second list of its own. It writes files only, like every other seed here, so the flow
+is: seed, check the diff, restart the mock server.
 
 **So `validateDb` permits an empty collection in a secondary dataset, and nowhere else.** Fourteen
 keys are required non-empty and every one of those rules is right for EPA — a document that came back
@@ -644,26 +668,26 @@ be sent *without* one; `ASIA…` is from STS and is meaningless without it. Read
 — which is how this first ran, and S3 answered `400 InvalidToken`, which reads as "the credentials
 are bad" and sends you to rotate a key that was fine.
 
-**The three JSON documents are committed as well as stored in the bucket — a decision, taken on
-2026-08-19.** They were gitignored, on the reasoning that a committed copy beside a served one is two
-answers to what the figures are. They travel in git now because the repo is how they reach a box with no
-bucket credentials. **The bucket is still what the server reads**: nothing fetches the committed copy, so
-the hazard is not a wrong figure but a stale one — and `db.json` being generated *and* committed is
-precisely the shape that has already crash-looped a deployed box on `<<<<<<< Updated upstream` sitting
-inside the JSON. `readJsonDb` checks for conflict markers before parsing for that reason; after a pull that
-touches them, `npm run db:pull` is what makes the checkout agree with the bucket again.
+**The split files are committed, and they are what the server reads.** The documents were first
+committed on 2026-08-19 so they could reach a box with no bucket credentials; the split kept that and
+went further — the loaders read the committed folders unconditionally, so the checkout *is* the
+store. Generated *and* committed is still the shape that has already crash-looped a deployed box on
+`<<<<<<< Updated upstream` sitting inside the JSON, which is why `readJsonDb` checks for conflict
+markers before parsing; the loaders parse each split file directly, so a conflicted one fails as a
+parse error naming the file — resolve the conflict in that file itself.
 
 **The credential files are a different matter and are not a preference.** `backend/.env.local` and its
 `.backup` copy stay ignored, all three rules are asserted by `check-docs` — see below — and they have now
 been committed twice, both times stopped by GitHub push protection rather than by us. A key in a tracked
 file is scraped off GitHub within minutes of a push.
 
-**`npm run db:pull` before `preflight` on a fresh checkout.** `check-docs` reads both documents for
-~40 claims and now **refuses to run** without them, naming the command — it does not fall back to an
-empty object, because roughly forty claims walk `db.projects` and `db.graph_studio.canvas` and the
-first `.every()` would crash mid-file, printing no summary. A checker that cannot reach what it
-checks says so rather than answering. Both files are gitignored, so pulling them cannot commit
-tenant data by accident.
+**`check-docs` has not been re-pointed at the split folders yet.** It still reads `backend/db.json`
+for ~40 claims and refuses to run without it — a refusal that was right while that file was the store
+and now fires on every checkout, since the monolith no longer exists. The refusal itself is the
+correct shape (it does not fall back to an empty object, because roughly forty claims walk
+`db.projects` and `db.graph_studio.canvas` and the first `.every()` would crash mid-file, printing no
+summary); what has to change is where it reads. Re-point it at the merged view of `backend/epa/` and
+`backend/capex/` — never seed the retired monolith back to make it green.
 
 **S3 is signed here rather than with the AWS SDK.** `@aws-sdk/client-s3` is ~40 transitive
 packages through a gate that fails on any advisory at `low`, for two HTTP calls; Node 22 has
@@ -673,19 +697,16 @@ as a bucket-policy problem — you would go and edit the policy, which is not wh
 `npm run verify:sigv4` replays **AWS's own published test vector** and runs in `preflight`, with no
 network and no bucket.
 
-**Both documents are fetched at once, and boot is still dominated by one of them.** They are read
-through a single `Promise.all`, so the two waits overlap and the smaller one costs nothing — but
-`db.json` is 492 KB and takes **~2.9s** to pull from `us-east-1` on a link from India, against
-~1.0s of Node start-up. So a cold boot is ~4s and the fetch is
-most of it. **Parallelising helped by about the smaller fetch and no more**; if boot time matters,
-the fix is a bucket in a closer region (`ap-south-1` measured ~157ms per round trip against
-~957ms for `us-east-1`), not anything in this code.
+**Both datasets are loaded at once, through a single `Promise.all` above `server.listen`** — one
+loader per dataset, nothing served before every file is parsed. The reads are local files now, so a
+cold boot is dominated by Node start-up rather than by a fetch; the old cross-continent S3 timings
+(~2.9s to pull 492 KB from `us-east-1`) apply only where `db:push`/`db:pull` still move data through
+the bucket.
 
-**And a settings toggle is one round trip, so it inherits that number directly.** `PATCH
-/settings/personas/:roleId/nav` writes `db.json` and the store waits for the server to
-confirm before it moves the switch, which is deliberate — an earlier bug had a toggle report
-failure for a write that had saved. On a cross-continent bucket that is ~300ms–1.2s of the switch
-appearing to do nothing. Region is the fix here too; an optimistic toggle would only hide it.
+**And a settings toggle waits for the write to confirm.** `PATCH /settings/personas/:roleId/nav`
+writes `backend/settings.json` and the store waits for the server before it moves the switch, which
+is deliberate — an earlier bug had a toggle report failure for a write that had saved. On local files
+the wait is negligible; an optimistic toggle would only hide a failure either way.
 
 **The boot read is awaited, and that is the same guarantee it always had.** It used to be
 `readFileSync`, and the rule was written down as "the boot read stays synchronous" — but the
@@ -710,16 +731,17 @@ of the process first. `ecosystem.config.js` records this beside the number, and 
 asserts both the number and the note.
 
 **The seeds and ingests write files, and only files.** That is correct — they read a demo package
-off disk and must run without credentials — so the flow when the server reads S3 is: re-seed
-locally, check the diff, `npm run db:push`. A push validates the required top-level keys first,
-reading them from `DB_SHAPE` in `server.js` rather than listing them again, because otherwise the
-boot failure lands on the deployed box instead of in your terminal. `npm run db:pull` is the other
-direction.
+off disk and must run without credentials. **But they have not been re-pointed at the split
+folders**: each still reads and writes the retired monolithic `backend/db.json` /
+`backend/db.CAPEX.json`, so running one today authors a file the boot never reads. Until a seed is
+re-pointed at the dataset's folder (or its output is split into the right `<dataset>_*.json` files),
+its effect never reaches the server — check where a script writes before trusting what it did.
+`db:push`/`db:pull` move the same retired monolith and carry the same caveat.
 
-`db.json` is read once at startup into a `db` object that every route closes
+Each dataset's merged document is read once at startup into a `db` object that every route closes
 over. Two kinds of state live here:
 
-- **From `db.json`** — projects/datasets/tables, drives/folders/documents,
+- **From the split files** — projects/datasets/tables, drives/folders/documents,
   credentials (`credentials` for BigQuery, `drive_credentials` for Drive), the
   audit / traces / evals payloads, change signals, `column_profiles`,
   `document_extractions`, `column_vocabulary`, `document_vocabulary`.
@@ -740,18 +762,19 @@ Consequences worth knowing before debugging:
 - `PUT /db` writes via temp-file + rename, then mutates the in-memory `db` in
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
-- **The writes are async; the boot read is not.** `db.json` is 450 KB, and
+- **The writes are async; the boot read is awaited.** The merged document is ~450 KB, and
   `writeFileSync` stringified and wrote all of it on every commit while every other
-  request waited — so `commitDb` and `commitSettings` are `async` and go through
-  `writeJsonAtomic`. Three things hold that together, and all three are asserted:
+  request waited — so `commitDb` and `commitSettings` are `async` and fan out through
+  `writeSplitFiles` / `writeSharedSettings` into `writeJsonAtomic`. Three things hold
+  that together, and all three are asserted:
   the writes are **chained per path** (two commits share a temp path, and without the
   chain the file that lands is neither document — the serialization the synchronous
   version got for free); the **in-memory swap happens before the first `await`**, so a
   second handler cannot read the pre-edit document and silently drop the first edit;
-  and a failed write **puts memory back**, so the file and the process cannot diverge.
+  and a failed write **puts memory back**, so the files and the process cannot diverge.
   Every call site awaits, or a rejected write becomes an unhandled rejection behind a
-  200. The boot read stays synchronous on purpose: nothing may be served before
-  `db.json` is loaded.
+  200. The boot read sits above `server.listen` on purpose: nothing may be served
+  before every dataset's files are loaded.
 - `validateDb` in `server.js` guards the required top-level keys, so the `/db`
   editor cannot save a document that would crash the app. There are 28 required
   keys, and the newer ones are as required as the originals: removing `drives`
@@ -1012,7 +1035,7 @@ drive or an inbox.
 >
 > **And a dataset can ship its mail — CAPEX's is a real chunking run, ingested.**
 > `npm run seed:capex-mail` reads `backend/data/capex-mail-chunks.json`, the export the chunker
-> produced for that mailbox, and writes `mail_corpus` into `db.CAPEX.json`: per document its id,
+> produced for that mailbox, and writes `mail_corpus` into the CAPEX dataset: per document its id,
 > filename, mime type, page count, chunk count, extracted character count and the opening lines of
 > its text. **Every figure the Catalog and step 2 show comes out of that file** — the seed computes
 > none of them, because they are measurements of a real run and inventing one is the small version
@@ -1023,7 +1046,7 @@ drive or an inbox.
 >
 > **Only the `EM-*` documents, which is a decision about whose mail this is.** The export holds 27;
 > ten are headed *"NORTHLINE WATER GROUP · CAPITAL PROGRAMME MAILBOX EXPORT"* and the rest are
-> EPA's (Denka, PCS Nitrogen, Stericycle). Writing those into `db.CAPEX.json` would put
+> EPA's (Denka, PCS Nitrogen, Stericycle). Writing those into the CAPEX dataset would put
 > hazardous-waste correspondence into a capital programme's mailbox — the dataset bleed this file
 > refuses in both directions. The prefix is the selector because it is what the export uses to mark
 > them, and `check-docs` **re-reads the export and compares every row**: a sample that can be run is
@@ -3027,8 +3050,8 @@ runs the validator against a real response.
 replacement for one.** CAPEX ships the real thing: `docs/samples/capex_usecase_graph.json` is what
 the platform's own services produced for its use case — `StructuredGraphBuilderService.get_graph`,
 `app.dgb.public.get_graph_version_snapshot` and `BridgeBuildService.list_type_links_page`, read
-through and exported together — and `npm run ingest:capex-graph` writes it into `db.CAPEX.json` as
-`studio_graph`. So its canvas draws **5 tables · 91 columns · 12 concepts · 253 edges** on the
+through and exported together — and `npm run ingest:capex-graph` writes it into the CAPEX dataset as
+`studio_graph` (which lives in `backend/capex/capex_graph_studio.json`). So its canvas draws **5 tables · 91 columns · 12 concepts · 253 edges** on the
 structured lane, **843 entities across 13 types · 925 relations** on the document lane, and the
 **156 Type Links** between them: the nodes and edges that build actually landed, rather than the
 shapes `studioLanes.js` composes from `projects` and `document_extractions`.
@@ -4154,7 +4177,7 @@ it wrong, and it looks right on screen.
 
 **The pointer is `whatif.document` and every field of it is read out of the file.** `npm run
 ingest:capex` writes it — the same script that ingests the reports, because both write
-`db.CAPEX.json` and two writers of one document is how a subtree gets dropped. The `<title>` stamp
+the CAPEX dataset and two writers of one document is how a subtree gets dropped. The `<title>` stamp
 carries the name, the stage and the version (*What-if — Veolia CapEx (draft v2)*), the `<h1>` and
 standfirst carry what the page says it is for, and the tab buttons carry its own two tabs; the script
 **refuses to write** rather than storing a row the page could not label. `stage` is deliberately *not*
@@ -4248,7 +4271,7 @@ happens to sit in — and it runs **before paint**, aliased to `useEffect` where
 `renderToString` test does not warn on every render. The stylesheet's `82vh` stays as the no-layout
 fallback, which is what an SSR render and the first paint get.
 
-**The fixture behind the page was already in `db.CAPEX.json` and is untouched.** `whatif.slices`,
+**The fixture behind the page was already in the CAPEX dataset and is untouched.** `whatif.slices`,
 `levers`, `locked_slices` and `program` are a verbatim extract of that file's own `SLICES`/`PROGRAM`
 — all five slice traces match character for character — so the ingest re-derives none of it. The one
 thing it does correct is `copy.tabs`, which was extracted from an earlier three-tab build (Author ·
@@ -4605,7 +4628,7 @@ tenant's *rendered* reports; their layout is now React — crumb, heading and ba
 summary tiles, the facet bar, a card per block, then the footnotes — in `src/components/report/`
 (`PublishedReport`, `ReportBlocks`, and the primitives in `ui.tsx`) over `reportsStore`. **Their figures
 did not come across.** Every number is `reportView`'s, computed per request from `db.reports` in
-`s3://contextweave.com/EPA/db.json`; pasting a rendered figure into a component is the one change that
+the EPA dataset (`backend/epa/epa_reports.json`); pasting a rendered figure into a component is the one change that
 would break the section's premise while looking right on screen, so `check-docs` asserts no component
 here does arithmetic.
 
@@ -4692,8 +4715,8 @@ published — the same precondition Ask and the What-if lens have, stated by the
 `built_count` and `draft_count` alone.
 
 **Everything the prototype shows is its own demo dataset** — now `db.reports_prototype`, inside
-`s3://contextweave.com/EPA/db.json`, served by `GET /reports/prototype` and hydrated into
-`src/reports/data.ts` before the prototype renders. Edit the figures in the bucket; no rebuild. It was
+the EPA dataset (`backend/epa/epa_reports.json`), served by `GET /reports/prototype` and hydrated into
+`src/reports/data.ts` before the prototype renders. Edit the figures in that file; no rebuild. It was
 a document of its own (`reports_prototype.json`) until that was folded in; what the move had to
 preserve is exactly this sentence — it is *served*, so the bucket still decides what the Authoring tab
 shows, which is the whole reason it stopped being a bundled import.
@@ -4956,7 +4979,7 @@ Four things make it safe rather than a find-and-replace over 2.6 MB, and each gu
 is a dollar, which is a different claim about a different thing), and the programme's own five-year
 figures, which stay at $1.13B — **no block in these three reports names them**, which is why the ceiling
 is checked over the figures each report actually prints rather than over the largest number in the file.
-The What-if lens document and `db.CAPEX.json`'s authoring fixture are already denominated in millions and
+The What-if lens document and the CAPEX dataset's authoring fixture are already denominated in millions and
 are untouched.
 
 **And a narrowed report re-derives itself over the rows in view, which it did not**, written by
@@ -5693,7 +5716,7 @@ a second answer to *who sees what* in the document.
 `report_authoring_data.json` have. `governance_audit_capex.html` is the screen; `governance_audit_data.json`
 is the extract the package's own `extract_governance.js` took *from that page*, carrying the roster, the
 directory, the published artifacts, the audit log, the cost caps and the sealed traces in machine-readable
-form. **Neither is transcribed into `db.CAPEX.json`.** `npm run ingest:capex` reads the document for what
+form. **Neither is transcribed into the CAPEX dataset.** `npm run ingest:capex` reads the document for what
 the app has to be able to say about it — its `<title>`, its `<h1>`, its standfirst, its own three tabs —
 and reads the extract for provenance (which package, which screen, when it was generated) and for the one
 number the pointer carries, the roster the page resolves against.
@@ -5818,19 +5841,19 @@ apart from asked ones, because a turn left streaming when the tab closed was sti
 ### Settings (`/settings`)
 
 Four tabs — **Add User**, **Dataset**, **Persona Configuration** and **Report View** — over `SettingsPage`
-→ `settingsStore` → `GET /settings`, served from **`db.settings`** — a key of `db.json`, not a file of its
-own.
+→ `settingsStore` → `GET /settings`, served from **`db.settings`** — a key of the merged document,
+stored on disk in the shared `backend/settings.json` because it is the tenant's rather than a dataset's.
 
 **The Dataset tab is the one that is not about `db.settings`.** It administers which dataset 
 the whole console reads — see *Two datasets* above — and it is here because confirming it signs the 
 reader out, which is a reconfiguration rather than navigation. Nothing on it is written to 
 `db.settings`: the selection is client-held, and the pool comes from `GET /datasets`.
 
-**It has its own small database, separate from `db.json`.** That file is the tenant's data — sources,
-profiles, the graph, the reports; this one holds only what this page administers: the users, each
-persona's navigation access, and the authored defaults those reset to. Two files, two validators, one job
-each, so a settings write cannot touch a report and an ingest that rebuilds `db.reports` cannot drop a
-permission. The second hazard is not hypothetical — the reports ingest silently dropped `governance` for
+**It has its own file, separate from the dataset folders.** Those hold the tenants' data — sources,
+profiles, the graph, the reports; `backend/settings.json` holds only what this page administers (plus
+the other tenant-level keys): the users, each persona's navigation access, and the authored defaults
+those reset to. Separate files with their own validators, one job each, so a settings write cannot
+touch a report and an ingest that rebuilds `db.reports` cannot drop a permission. The second hazard is not hypothetical — the reports ingest silently dropped `governance` for
 exactly that reason. `npm run seed:settings` re-authors it, and the server refuses to boot on a bad one
 naming that command.
 
@@ -6074,7 +6097,7 @@ one column per admitted load — the *load*, never the figures), `reportsStore` 
 section list, plus one report keyed by the id in the URL — it keeps that id beside the
 report so a slow fetch cannot leave one report's tiles under another's heading),
 `telemetryStore` (audit / traces / evals), `settingsStore` (which persona the sidebar is showing and
-what each may see — from db.settings — its own small store over one key of db.json), `dbStore`.
+what each may see — from db.settings — its own small store over one key of the merged document), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -6469,11 +6492,6 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   files check out with CRLF on Windows; a split on `\n  {\n` found zero
   connectors and reported "0 of 0 available" — a green-looking sweep over an
   empty list.
-- **An "is absent" assertion passes over an empty render.** `renderToString` gives
-  a zustand component its *initial* state (zustand v5's `getInitialState` is the
-  server snapshot), skips anything a `useEffect` expands, and may draw a
-  virtualised `Tree` with no leaves. Assert in the same run that the render had
-  its data.
 - **A consent screen renders the scopes the server returned.** Drive asks for two;
   a client-side list described one. Never maintain a copy of what was requested
   beside the request.
