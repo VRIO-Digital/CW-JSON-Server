@@ -1,0 +1,59 @@
+table,column,data_type,semantic_class,description,pii,table_grain
+project,project_code,STRING,identifier,Capital project key (P-VM-021). Needs use N-VM-nnn and live in intervention_need.,no,one project (current version)
+project,project_name,STRING,label,Project title.,no,one project (current version)
+project,category,STRING,classification,"Fleet — bus, Fleet — tram, Depot & workshop, Track & civil, Signalling & systems, Power & charging, Stations & passenger info.",no,one project (current version)
+project,stage,STRING,lifecycle_state,"Need, Option study, Approved, In delivery, Commissioning, Accepted.",no,one project (current version)
+project,contract_id,STRING,identifier,Operating contract the project sits under (DSP-VM-2021).,no,one project (current version)
+project,maitre_ouvrage,STRING,organisation,"Who owns the delivery decision (Valmont Métropole, or Keolis Valmont as delegated).",no,one project (current version)
+project,project_manager,STRING,person,Accountable project manager.,yes,one project (current version)
+project,purpose_sgr_pct,NUMERIC,derived_ratio,"Share of scope that is renewal (state of good repair). Business purpose, not accounting treatment.",no,one project (current version)
+project,purpose_transition_pct,NUMERIC,derived_ratio,Share that is energy transition.,no,one project (current version)
+project,purpose_expansion_pct,NUMERIC,derived_ratio,Share that is capacity growth.,no,one project (current version)
+project,baseline_version,STRING,classification,"Approved schedule baseline in force (BL1, BL2).",no,one project (current version)
+work_package,wp_id,STRING,identifier,Work package key (P-VM-021-WP03).,no,one work package
+work_package,project_code,STRING,identifier,Parent project.,no,one work package
+work_package,wp_name,STRING,label,Work package title.,no,one work package
+work_package,allocation_basis,STRING,classification,"How costs are allocated to it (direct, % of PO line, unallocated).",no,one work package
+project_asset_link,project_code,STRING,identifier,Project.,no,one project x asset x role
+project_asset_link,asset_id,STRING,identifier,Asset. A link says the project touches the asset — it does not attribute the asset's maintenance cost to the project.,no,one project x asset x role
+project_asset_link,role,STRING,classification,"Replaces, Renews, Withdraws for works, Depends on, Affects service of.",no,one project x asset x role
+project_asset_link,withdrawal_from,DATE,date,Start of any withdrawal from service the project causes.,no,one project x asset x role
+project_asset_link,withdrawal_to,DATE,date,End of that withdrawal.,no,one project x asset x role
+schedule_task,task_id,STRING,identifier,Task key.,no,one task (baseline and current dates)
+schedule_task,project_code,STRING,identifier,Project.,no,one task (baseline and current dates)
+schedule_task,task_name,STRING,label,Task.,no,one task (baseline and current dates)
+schedule_task,baseline_finish,DATE,date,Approved baseline finish.,no,one task (baseline and current dates)
+schedule_task,current_finish,DATE,date,"Current forecast finish, as the project office last published it.",no,one task (baseline and current dates)
+schedule_task,predecessor,STRING,identifier,"Predecessor task or external dependency (PO line, access window).",no,one task (baseline and current dates)
+schedule_task,progress_pct,NUMERIC,measure_record,Reported physical progress.,no,one task (baseline and current dates)
+risk_change_register,item_id,STRING,identifier,Register key (RC-008-014).,no,"one risk, issue or change request"
+risk_change_register,project_code,STRING,identifier,Project.,no,"one risk, issue or change request"
+risk_change_register,item_type,STRING,classification,"Risk (possible), Issue (happened), Change request (asks for authorisation).",no,"one risk, issue or change request"
+risk_change_register,status,STRING,lifecycle_state,"Open, Mitigating, Approved, Rejected, Closed.",no,"one risk, issue or change request"
+risk_change_register,cost_impact_eur,NUMERIC,measure_projection,"Requested or estimated cost impact, EUR HT.",no,"one risk, issue or change request"
+risk_change_register,date_impact_days,INT64,measure_projection,Requested or estimated schedule impact.,no,"one risk, issue or change request"
+risk_change_register,owner,STRING,person,Owner.,yes,"one risk, issue or change request"
+approval_decision,decision_id,STRING,identifier,Decision key.,no,one approval decision on one object version
+approval_decision,object_ref,STRING,identifier,"What was approved (project, budget version, change, access request).",no,one approval decision on one object version
+approval_decision,object_version,STRING,classification,Version approved.,no,one approval decision on one object version
+approval_decision,approver_role,STRING,person,Approving body or role.,no,one approval decision on one object version
+approval_decision,decided_on,DATE,date,Decision date.,no,one approval decision on one object version
+approval_decision,decision,STRING,lifecycle_state,"Approved, Approved with conditions, Deferred, Rejected.",no,one approval decision on one object version
+approval_decision,conditions,STRING,text,Conditions attached — an approval with open conditions is not unconditional.,no,one approval decision on one object version
+intervention_need,need_id,STRING,identifier,Need key (N-VM-044). Exists before any project does — this is where the unfunded backlog lives.,no,one need (funded or not)
+intervention_need,asset_scope,STRING,identifier,Asset or asset group.,no,one need (funded or not)
+intervention_need,trigger,STRING,classification,"Defect, Ageing, Obsolescence, Contract renewal date, Regulatory inspection, Authority plan.",no,one need (funded or not)
+intervention_need,estimate_eur,NUMERIC,measure_projection,"Order-of-magnitude estimate, EUR HT.",no,one need (funded or not)
+intervention_need,status,STRING,lifecycle_state,"Unfunded, Option study, Deferred, Combined, Approved, Under review.",no,one need (funded or not)
+intervention_need,mandatory_basis,STRING,text,"Why it cannot be deferred, where it cannot.",no,one need (funded or not)
+option_appraisal,need_id,STRING,identifier,Need.,no,one option x need
+option_appraisal,option,STRING,classification,"Repair, Overhaul, Replace, Defer.",no,one option x need
+option_appraisal,capex_eur,NUMERIC,measure_projection,Capital cost.,no,one option x need
+option_appraisal,life_extension_years,NUMERIC,measure_projection,Life gained.,no,one option x need
+option_appraisal,downtime_days,INT64,measure_projection,Service downtime.,no,one option x need
+acceptance_item,project_code,STRING,identifier,Project.,no,one requirement x asset
+acceptance_item,asset_id,STRING,identifier,Asset accepted.,no,one requirement x asset
+acceptance_item,requirement,STRING,label,"Required test, certificate or deliverable.",no,one requirement x asset
+acceptance_item,result,STRING,lifecycle_state,"Passed, Failed, Missing, Waived.",no,one requirement x asset
+acceptance_item,accepted_by,STRING,person,Accepting party.,no,one requirement x asset
+acceptance_item,restriction,STRING,text,Operating restriction attached to the acceptance.,no,one requirement x asset

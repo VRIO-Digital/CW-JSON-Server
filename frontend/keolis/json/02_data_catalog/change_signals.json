@@ -1,0 +1,52 @@
+[
+  {
+    "signal_id": "sig-kv-01",
+    "kind": "missing_instances",
+    "severity": "serious",
+    "dataset": "g_keolis_valmont_sgr",
+    "table": "No workforce or crew-availability source",
+    "detail": "Readiness checks on skills, certifications and crew hours have nothing to read: workforce planning is not connected. The readiness answer covers scope, funding, design, parts, access and acceptance only.",
+    "action": "Do not infer crew availability from work-order labour hours — booked hours are not capacity.",
+    "detected": "2026-09-22"
+  },
+  {
+    "signal_id": "sig-kv-02",
+    "kind": "missing_instances",
+    "severity": "serious",
+    "dataset": "g_keolis_valmont_sgr",
+    "table": "No GIS or linear-asset geometry",
+    "detail": "Track segments resolve from the EAM register and the PPM text (chainage strings), not from a GIS. Adjacent-asset checks (e.g. SIG-T1-044 inside the revision C limit) come from the drawing revision note, not from geometry.",
+    "action": "Do not compute distances or overlaps between segments; state the drawing as the source.",
+    "detected": "2026-09-22"
+  },
+  {
+    "signal_id": "sig-kv-03",
+    "kind": "sampling_limit",
+    "severity": "warning",
+    "dataset": "g_keolis_valmont_sgr",
+    "table": "4 projects carry no current forecast",
+    "detail": "P-VM-046, P-VM-053, P-VM-061, P-VM-064 have no forecast snapshot since June 2026. Portfolio forecast figures exclude them and say so.",
+    "action": "Never state 'the portfolio is within budget' without the assessed population beside it.",
+    "detected": "2026-09-22"
+  },
+  {
+    "signal_id": "sig-kv-04",
+    "kind": "shallow_chain",
+    "severity": "warning",
+    "dataset": "g_keolis_valmont_sgr",
+    "table": "Unallocated ledger lines — €1.31M",
+    "detail": "412 cost lines worth €1,312,480 carry no project code. They are kept as an UNALLOCATED category and are not spread across projects.",
+    "action": "Do not attribute unallocated spend to a project because its cost centre matches the project's depot.",
+    "detected": "2026-09-22"
+  },
+  {
+    "signal_id": "sig-kv-05",
+    "kind": "missing_instances",
+    "severity": "warning",
+    "dataset": "g_keolis_valmont_sgr",
+    "table": "Telemetry covers buses only",
+    "detail": "battery_soh_daily and alarm_summary cover the battery-electric and hybrid bus fleets. Trams, substations and depot equipment have no telemetry feed; predictive questions about them are declined.",
+    "action": "Do not extend a bus-fleet failure model to trams or equipment.",
+    "detected": "2026-09-22"
+  }
+]

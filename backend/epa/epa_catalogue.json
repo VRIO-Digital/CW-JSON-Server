@@ -226,5 +226,10 @@
       "class": "text",
       "confidence": 0.84
     }
-  ]
+  ],
+  "data_model": {
+    "suggestions": [],
+    "entities": []
+  },
+  "change_signals": []
 }

@@ -146,5 +146,10 @@
       "class": "risk_score",
       "confidence": 0.86
     }
-  ]
+  ],
+  "data_model": {
+    "suggestions": [],
+    "entities": []
+  },
+  "change_signals": []
 }

@@ -7819,3 +7819,23 @@ property of the *output* at scale rather than of the source, which is the same r
 a dozen stitches — spread fine and hid the far pole behind the fact that nobody counts twelve presses
 by hand. *A layout is a claim about every population, not the one in front of you.*
 
+
+## Per-dataset keys written to the shared settings.json clobbered every dataset
+
+**Symptom** — a dataset's own `data_model` entities and `change_signals` never reached the server:
+the loaders overlay the shared `backend/settings.json` *after* the dataset's split files, and
+`commitDb` wrote both keys into that shared file — so one dataset's declarations replaced every
+other's at the next boot. Found when KEOLIS arrived shipping 26 declared data-model entities that
+would have rendered as none.
+
+**Root cause** — the split refactor grouped `data_model` and `change_signals` with the tenant-level
+keys, but both are the dataset's own: an entity is keyed `"<dataset>.<table>"` into that dataset's
+tables, and `MERGE_PLAN` already unions them per dataset.
+
+**Fix** — both keys moved into each dataset's `<ds>_catalogue.json` (values preserved exactly as
+served before); `writeSharedSettings` now carries only `google_account`, `settings` and
+`auth_roles`, and `writeSplitFiles` fans the two keys into the catalogue file.
+
+**Guard** — diagnostic: `ingest-keolis.mjs` refuses a package key that is neither mapped nor
+deliberately dropped, and the boot's `unplannedKeys` still stops on any key `MERGE_PLAN` does not
+place.

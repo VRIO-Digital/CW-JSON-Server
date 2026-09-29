@@ -1,0 +1,303 @@
+[
+  {
+    "name": "wo_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.99
+  },
+  {
+    "name": "ledger_doc",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.99
+  },
+  {
+    "name": "receipt_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.99
+  },
+  {
+    "name": "asset_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "inspection_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "period",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.98
+  },
+  {
+    "name": "day",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.98
+  },
+  {
+    "name": "accrual_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "claim_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "part_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "event_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.98
+  },
+  {
+    "name": "network_code",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.97
+  },
+  {
+    "name": "valid_from",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "valid_to",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "component_serial",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "parent_asset_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "from_ts",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "posting_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "snapshot_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "supplier_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "received_on",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.97
+  },
+  {
+    "name": "supplier_name",
+    "type": "string",
+    "class": "organisation",
+    "confidence": 0.97
+  },
+  {
+    "name": "asset_class",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.96
+  },
+  {
+    "name": "installed_at",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "removed_at",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "failed_at",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "inspected_at",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "to_ts",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "stated_on",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.96
+  },
+  {
+    "name": "commissioned_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.95
+  },
+  {
+    "name": "component_type",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.95
+  },
+  {
+    "name": "wo_type",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.95
+  },
+  {
+    "name": "state",
+    "type": "string",
+    "class": "lifecycle_state",
+    "confidence": 0.95
+  },
+  {
+    "name": "depot_id",
+    "type": "string",
+    "class": "geography",
+    "confidence": 0.95
+  },
+  {
+    "name": "plan_task_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.95
+  },
+  {
+    "name": "cost_category",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.95
+  },
+  {
+    "name": "amount_eur",
+    "type": "numeric",
+    "class": "measure_commitment",
+    "confidence": 0.95
+  },
+  {
+    "name": "approved_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.95
+  },
+  {
+    "name": "actual_through",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.95
+  },
+  {
+    "name": "claimed_eur",
+    "type": "numeric",
+    "class": "measure_record",
+    "confidence": 0.95
+  },
+  {
+    "name": "ordered_eur",
+    "type": "numeric",
+    "class": "measure_commitment",
+    "confidence": 0.95
+  },
+  {
+    "name": "contact_email",
+    "type": "string",
+    "class": "person",
+    "confidence": 0.95,
+    "pii": true
+  },
+  {
+    "name": "location",
+    "type": "string",
+    "class": "geography",
+    "confidence": 0.95
+  },
+  {
+    "name": "on_hand",
+    "type": "numeric",
+    "class": "measure_record",
+    "confidence": 0.95
+  },
+  {
+    "name": "vin_or_serial",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.94
+  },
+  {
+    "name": "scheduled_start",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.94
+  },
+  {
+    "name": "budget_version",
+    "type": "string",
+    "class": "classification",
+    "confidence": 0.94
+  },
+  {
+    "name": "submitted_on",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.94
+  },
+  {
+    "name": "paid_eur",
+    "type": "numeric",
+    "class": "measure_record",
+    "confidence": 0.94
+  },
+  {
+    "name": "received_eur",
+    "type": "numeric",
+    "class": "measure_record",
+    "confidence": 0.94
+  }
+]

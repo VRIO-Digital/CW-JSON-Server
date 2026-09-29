@@ -1,0 +1,3106 @@
+{
+  "reports": {
+    "meta": {
+      "persona_name": "Amélie Roussel",
+      "persona_role": "Contrôleuse de gestion investissements · Keolis Valmont",
+      "persona_initials": "AR",
+      "entity_plural": "renewal projects",
+      "scope_line": "the Keolis Valmont renewal portfolio (DSP-VM-2021)",
+      "source_trace": "Traces to: keolis_valmont_erp.fin, keolis_valmont_erp.proc, keolis_valmont_ppm.ppm, keolis_valmont_eam.eam, as of 2026-09-19."
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Project",
+        "kind": "text",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "cat",
+        "label": "Category",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "depot",
+        "label": "Depot",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "stage",
+        "label": "Stage",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "funding",
+        "label": "Funding",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "budget",
+        "label": "Approved budget",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "forecast",
+        "label": "Forecast total",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "variance",
+        "label": "Variance",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "committed",
+        "label": "Open commitment",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "sched",
+        "label": "Schedule variance (days)",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "all 38 renewal projects"
+      },
+      "measure": {
+        "value": "envelope",
+        "label": "approved budget"
+      },
+      "horizon": {
+        "value": "full",
+        "label": "full project life"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which projects to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "all 38 renewal projects",
+            "d": "Everything in the portfolio"
+          },
+          {
+            "value": "major",
+            "label": "major projects over €2M",
+            "d": "The largest by budget"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Over budget\" measured against?",
+        "options": [
+          {
+            "value": "envelope",
+            "label": "approved budget",
+            "d": "The current approved version"
+          },
+          {
+            "value": "baseline",
+            "label": "original baseline",
+            "d": "The first approved version"
+          },
+          {
+            "value": "ppi",
+            "label": "PPI envelope",
+            "d": "The authority's allocation"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "thisyear",
+            "label": "this financial year",
+            "d": "To 31 December"
+          },
+          {
+            "value": "full",
+            "label": "full project life",
+            "d": "Whole project"
+          },
+          {
+            "value": "contract",
+            "label": "to contract end",
+            "d": "To 31 December 2028"
+          }
+        ]
+      }
+    },
+    "slice_default": [
+      "cat",
+      "depot",
+      "stage",
+      "status"
+    ],
+    "summary_catalog": [
+      {
+        "key": "count",
+        "label": "renewal projects in view",
+        "tone": null,
+        "agg": "rows",
+        "field": null,
+        "format": "int",
+        "def": "Projects the scope admits",
+        "scope_class": "count"
+      },
+      {
+        "key": "budget",
+        "label": "approved budget",
+        "tone": null,
+        "agg": "sum",
+        "field": "budget",
+        "format": "money_m",
+        "def": "Current approved version",
+        "scope_class": "sum"
+      },
+      {
+        "key": "forecast",
+        "label": "forecast total",
+        "tone": "warn",
+        "agg": "sum",
+        "field": "forecast",
+        "format": "money_m",
+        "def": "Actuals + accruals + cost to complete",
+        "scope_class": "sum"
+      },
+      {
+        "key": "variance",
+        "label": "variance",
+        "tone": "crit",
+        "agg": "sum",
+        "field": "variance",
+        "format": "money_m",
+        "def": "Forecast − approved",
+        "scope_class": "sum"
+      },
+      {
+        "key": "committed",
+        "label": "open commitment",
+        "tone": null,
+        "agg": "sum",
+        "field": "committed",
+        "format": "money_m",
+        "def": "Ordered − received − cancelled",
+        "scope_class": "sum"
+      },
+      {
+        "key": "late",
+        "label": "projects late vs baseline",
+        "tone": "warn",
+        "agg": "count_eq",
+        "field": "status",
+        "format": "int",
+        "def": "Schedule variance > 0",
+        "scope_class": "count"
+      }
+    ],
+    "summary_default": [],
+    "data": {
+      "projects": [
+        {
+          "n": "P-VM-014 · Bus fleet renewal — tranche 2 (24 battery-electric 12 m)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Fleet — bus",
+          "bu": "PPI + GRANT",
+          "phase": "In delivery",
+          "comp": "Mandatory"
+        },
+        {
+          "n": "P-VM-021 · Lift replacement — Dépôt Les Aubiers (column lift set C)",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Depot & workshop",
+          "bu": "GER",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-008 · T1 track renewal — Gare Centrale ↔ Pont Neuf (TRK-T1-S07)",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Track & civil",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-031 · Battery replacement campaign — Arvéa eCity 12 (40 packs)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Fleet — bus",
+          "bu": "MIXED",
+          "phase": "Commissioning",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-005 · Tram TV-100 mid-life overhaul (24 trams)",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Fleet — tram",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-017 · Traction substation SST-04 renewal (Pont Neuf)",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Power & charging",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-026 · Depot charging expansion — Saint-Roch (24 depot chargers)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Power & charging",
+          "bu": "GRANT + PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-012 · Operations support system (SAEIV) renewal",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Signalling & systems",
+          "bu": "PPI",
+          "phase": "Option study",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-040 · Bus mid-life overhaul — hybrids HX12 (12 vehicles)",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Fleet — bus",
+          "bu": "GER",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-041 · Tram TV-200 wheel-lathe renewal",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Depot & workshop",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-042 · T2 track renewal — Les Rives curve (TRK-T2-S03)",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Track & civil",
+          "bu": "PPI",
+          "phase": "Need",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-043 · Tram stop accessibility — 6 platforms (PMR)",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Stations & passenger info",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-044 · Passenger information displays — 120 stops",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Stations & passenger info",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-045 · Ticket validators replacement (contactless EMV)",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Signalling & systems",
+          "bu": "PPI",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-046 · Bus washing plant — Les Aubiers",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Depot & workshop",
+          "bu": "GER",
+          "phase": "Commissioning",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-047 · Depot fire-detection upgrade — Saint-Roch (battery hall)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Depot & workshop",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-048 · Traction substation SST-07 protection relays",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Power & charging",
+          "bu": "PPI",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-049 · Overhead contact line renewal — T2 depot fan",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Power & charging",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-050 · Tram signalling interlocking — La Varenne junction",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Signalling & systems",
+          "bu": "PPI",
+          "phase": "Option study",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-051 · CNG compressor station overhaul",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Power & charging",
+          "bu": "GER",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-052 · Tram door-drive retrofit — TV-100",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Fleet — tram",
+          "bu": "GER",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-053 · Bus CCTV renewal — 90 diesel vehicles",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Fleet — bus",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-054 · Depot roof and drainage — CMT La Varenne",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Depot & workshop",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-055 · C1 BHNS platform resurfacing (11 stations)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Stations & passenger info",
+          "bu": "PPI",
+          "phase": "Need",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-056 · Tram track drainage — T1 Technopole",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Track & civil",
+          "bu": "PPI",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-057 · Workshop crane 10 t — CMT La Varenne",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Depot & workshop",
+          "bu": "GER",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-058 · Bus fleet renewal — tranche 3 (20 vehicles, 2027)",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Fleet — bus",
+          "bu": "PPI + GRANT",
+          "phase": "Option study",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-059 · Radio (TETRA) terminals renewal",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Signalling & systems",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-060 · Tram pantograph overhaul — TV-200",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Fleet — tram",
+          "bu": "GER",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-061 · Rail grinding programme 2026",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Track & civil",
+          "bu": "GER",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-062 · Depot access control — all sites",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Depot & workshop",
+          "bu": "PPI",
+          "phase": "Commissioning",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-063 · Hybrid battery module replacement (HX12, 20 packs)",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Fleet — bus",
+          "bu": "GER",
+          "phase": "Need",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-064 · Tram stop shelters and lighting — T2",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Stations & passenger info",
+          "bu": "PPI",
+          "phase": "Approved",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-065 · Traction substation SST-02 transformer",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Power & charging",
+          "bu": "PPI",
+          "phase": "Need",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-066 · Workshop diagnostic benches (e-bus)",
+          "reg": "Dépôt Saint-Roch",
+          "cat": "Depot & workshop",
+          "bu": "GER",
+          "phase": "Accepted",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-067 · Tram TV-100 air-conditioning retrofit",
+          "reg": "Centre de maintenance tram La Varenne",
+          "cat": "Fleet — tram",
+          "bu": "PPI",
+          "phase": "Option study",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-068 · Bus stop accessibility — 40 stops",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Stations & passenger info",
+          "bu": "PPI",
+          "phase": "In delivery",
+          "comp": "No mandatory constraint"
+        },
+        {
+          "n": "P-VM-069 · Depot fuel tank replacement — Les Aubiers",
+          "reg": "Dépôt Les Aubiers",
+          "cat": "Depot & workshop",
+          "bu": "PPI",
+          "phase": "Need",
+          "comp": "Mandatory"
+        }
+      ],
+      "contracts": [
+        {
+          "id": "pkg_po_4500018812",
+          "no": "PO-4500018812",
+          "project": "p_p_vm_021",
+          "projectCode": "P-VM-021",
+          "projectName": "Lift replacement — Dépôt Les Aubiers (co",
+          "title": "Supply and installation of column lift set C",
+          "form": "Purchase order",
+          "role": "Supplier",
+          "contractor": "Levantis Équipements",
+          "contractorId": "org_levantis_equipements",
+          "value": 310000,
+          "effective": "2026-03-20",
+          "doc": "drive://P-VM-021/PO-4500018812_Levantis_Supply_Install_Contract.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, form, value and effective date read from the cover sheet."
+        },
+        {
+          "id": "pkg_vtc_2026_014",
+          "no": "VTC-2026-014",
+          "project": "p_p_vm_008",
+          "projectCode": "P-VM-008",
+          "projectName": "T1 track renewal — Gare Centrale ↔ Pont ",
+          "title": "Rail replacement T1 S07",
+          "form": "Works contract",
+          "role": "Contractor",
+          "contractor": "Voies & Travaux du Centre (VTC)",
+          "contractorId": "org_voies_travaux_du_centre_vtc",
+          "value": 2180000,
+          "effective": "2026-07-01",
+          "doc": "drive://P-VM-008/P-VM-008_Method_Statement_VTC.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, form, value and effective date read from the cover sheet."
+        },
+        {
+          "id": "pkg_trs_2024_ovh_01",
+          "no": "TRS-2024-OVH-01",
+          "project": "p_p_vm_005",
+          "projectCode": "P-VM-005",
+          "projectName": "Tram TV-100 mid-life overhaul (24 trams)",
+          "title": "TV-100 mid-life overhaul",
+          "form": "Authority contract",
+          "role": "Overhaul contractor",
+          "contractor": "Transalp Rail Services",
+          "contractorId": "org_transalp_rail_services",
+          "value": 27600000,
+          "effective": "2024-02-01",
+          "doc": "drive://P-VM-005/TRS-2024-OVH-01_Overhaul_Contract_Transalp.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, form, value and effective date read from the cover sheet."
+        },
+        {
+          "id": "pkg_vm_2025_bus_02",
+          "no": "VM-2025-BUS-02",
+          "project": "p_p_vm_014",
+          "projectCode": "P-VM-014",
+          "projectName": "Bus fleet renewal — tranche 2 (24 batter",
+          "title": "24 battery-electric buses",
+          "form": "Authority contract",
+          "role": "Manufacturer",
+          "contractor": "Arvéa Mobility",
+          "contractorId": "org_arvea_mobility",
+          "value": 12960000,
+          "effective": "2025-04-15",
+          "doc": "drive://P-VM-014/VM-2025-BUS-02_Delivery_Schedule_Rev3_Arvea.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, form, value and effective date read from the cover sheet."
+        },
+        {
+          "id": "pkg_ces_2025_114",
+          "no": "CES-2025-114",
+          "project": "p_p_vm_031",
+          "projectCode": "P-VM-031",
+          "projectName": "Battery replacement campaign — Arvéa eCi",
+          "title": "40 traction battery packs",
+          "form": "Supply contract",
+          "role": "Supplier",
+          "contractor": "Celtia Energy Systems",
+          "contractorId": "org_celtia_energy_systems",
+          "value": 4400000,
+          "effective": "2025-10-02",
+          "doc": "drive://P-VM-031/Celtia_Battery_Warranty_Terms_CES-2025-114.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, form, value and effective date read from the cover sheet."
+        }
+      ],
+      "changeOrders": [
+        {
+          "id": "co_p_vm_005_rc_005_009",
+          "ref": "RC-005-009",
+          "project": "p_p_vm_005",
+          "projectCode": "P-VM-005",
+          "projectName": "Tram TV-100 mid-life overhaul (24 trams)",
+          "package": "TRS-2024-OVH-01",
+          "packageId": "pkg_trs_2024_ovh_01",
+          "value": 2640000,
+          "days": 122,
+          "kind": "Scope",
+          "status": "submitted",
+          "reason": "Bogie frame replacement after NDT findings",
+          "contractor": "Transalp Rail Services",
+          "contractorId": "org_transalp_rail_services",
+          "doc": "drive://P-VM-005/P-VM-005_Change_Request_RC-005-009_Bogie_Frames.pdf",
+          "documentSource": "src_drive",
+          "extractedConf": 0.95,
+          "raised": "2026-06-24",
+          "resolvedTo": "e_change_order",
+          "buildTime": true,
+          "note": "Resolved at BUILD time from the change request. Not approved — the forecast carries a €1.32M allowance, not the request.",
+          "inForecast": false
+        },
+        {
+          "id": "co_p_vm_008_revc",
+          "ref": "REV-C",
+          "project": "p_p_vm_008",
+          "projectCode": "P-VM-008",
+          "projectName": "T1 track renewal — Gare Centrale ↔ Pont ",
+          "package": "VTC-2026-014",
+          "packageId": "pkg_vtc_2026_014",
+          "value": 0,
+          "days": 0,
+          "kind": "Scope",
+          "status": "open",
+          "reason": "Work limit extended to 4+010 (SIG-T1-044)",
+          "contractor": "Voies & Travaux du Centre (VTC)",
+          "contractorId": "org_voies_travaux_du_centre_vtc",
+          "doc": "drive://P-VM-008/VM-T1-VOI-0457_RevC_Drawing_Revision_Note.pdf",
+          "documentSource": "src_drive",
+          "extractedConf": 0.93,
+          "raised": "2026-09-09",
+          "resolvedTo": "e_change_order",
+          "buildTime": true,
+          "note": "Scope change without a priced change order yet.",
+          "inForecast": false
+        }
+      ],
+      "business_units": [
+        "GER",
+        "GRANT + PPI",
+        "MIXED",
+        "PPI",
+        "PPI + GRANT"
+      ],
+      "regions": [
+        "Dépôt Les Aubiers",
+        "Dépôt Saint-Roch",
+        "Centre de maintenance tram La Varenne"
+      ],
+      "categories": [
+        "Depot & workshop",
+        "Fleet — bus",
+        "Fleet — tram",
+        "Power & charging",
+        "Signalling & systems",
+        "Stations & passenger info",
+        "Track & civil"
+      ]
+    },
+    "reports": [
+      {
+        "report_id": "rep_kv_intervention",
+        "report_tag": "intervention-review",
+        "subject": "project × category",
+        "title": "Portfolio Intervention Review",
+        "question": "Show which renewal projects need a decision this week, with each contributing factor visible.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_forecast_total",
+        "measure_label": "Forecast total",
+        "reading": {
+          "template": "Show which renewal projects need a decision this week, with each contributing factor visible. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Portfolio — assessed projects",
+            "grain": "portfolio",
+            "source": "portfolio",
+            "figures": [
+              {
+                "key": "budget",
+                "label": "Approved budget",
+                "measure": "m_budget",
+                "measureLabel": "Approved budget",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "commitment",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "commitment basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 79440000,
+                "display": "€79.4M",
+                "exact": "€79 440 000",
+                "note": null,
+                "prov": "pv_kva21e4"
+              },
+              {
+                "key": "forecast",
+                "label": "Forecast total",
+                "measure": "m_forecast_total",
+                "measureLabel": "Forecast total",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "projection basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 81976000,
+                "display": "€82.0M",
+                "exact": "€81 976 000",
+                "note": null,
+                "prov": "pv_kv956a5"
+              },
+              {
+                "key": "variance",
+                "label": "Variance",
+                "measure": "m_variance",
+                "measureLabel": "Variance",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "projection basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2536000,
+                "display": "€2.5M",
+                "exact": "€2 536 000",
+                "note": null,
+                "prov": "pv_kvc56a9"
+              },
+              {
+                "key": "exposure",
+                "label": "Operator exposure",
+                "measure": "m_operator_exposure",
+                "measureLabel": "Operator exposure",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "projection basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 9456000,
+                "display": "€9.5M",
+                "exact": "€9 456 000",
+                "note": null,
+                "prov": "pv_kv3e7a2"
+              }
+            ],
+            "basesPresent": [
+              "commitment",
+              "projection"
+            ],
+            "basisNote": "Budget is commitment basis; forecast and exposure are projection basis.",
+            "combines": false,
+            "combinesNote": "These 4 figures sit at 2 bases and are not summed.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Variance by anchor project",
+            "grain": "project",
+            "source": "projects",
+            "chartType": "bar",
+            "axis": [
+              "P-VM-008",
+              "P-VM-014",
+              "P-VM-021",
+              "P-VM-005",
+              "P-VM-031",
+              "P-VM-017",
+              "P-VM-026"
+            ],
+            "axisLabel": "EUR · full span",
+            "coord": {
+              "basis": "projection",
+              "period_frame": "full_span"
+            },
+            "coordStated": "projection basis · full span",
+            "series": [
+              {
+                "key": "variance",
+                "label": "Forecast − budget",
+                "measure": "m_variance",
+                "unit": "EUR",
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "projection basis · full span",
+                "values": [
+                  {
+                    "raw": 0,
+                    "display": "€0k",
+                    "unit": "EUR",
+                    "exact": "€0"
+                  },
+                  {
+                    "raw": 30000,
+                    "display": "€30k",
+                    "unit": "EUR",
+                    "exact": "€30 000"
+                  },
+                  {
+                    "raw": -10000,
+                    "display": "−€10k",
+                    "unit": "EUR",
+                    "exact": "−€10 000"
+                  },
+                  {
+                    "raw": 1780000,
+                    "display": "€1 780k",
+                    "unit": "EUR",
+                    "exact": "€1 780 000"
+                  },
+                  {
+                    "raw": -20000,
+                    "display": "−€20k",
+                    "unit": "EUR",
+                    "exact": "−€20 000"
+                  },
+                  {
+                    "raw": 0,
+                    "display": "€0k",
+                    "unit": "EUR",
+                    "exact": "€0"
+                  },
+                  {
+                    "raw": 250000,
+                    "display": "€250k",
+                    "unit": "EUR",
+                    "exact": "€250 000"
+                  }
+                ],
+                "total": {
+                  "raw": 2030000,
+                  "display": "€2.0M",
+                  "unit": "EUR",
+                  "exact": "€2 030 000"
+                },
+                "noTotal": null
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": true,
+            "failure": null,
+            "note": "P-VM-012 has no budget yet and shows zero variance by construction.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "portfolio",
+            "source": "portfolio",
+            "role": "exclusion",
+            "body": "Four projects without a current forecast are excluded. Unallocated spend (€1,312,480) is outside every project. Recovery states are never summed as cash.",
+            "parts": [
+              {
+                "text": "Four projects without a current forecast are excluded. Unallocated spend (€1,312,480) is outside every project. Recovery states are never summed as cash."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this report",
+            "grain": "portfolio",
+            "source": "portfolio",
+            "suggestions": [
+              "Which renewal projects need intervention this week, and why?",
+              "Why has the TV-100 overhaul forecast grown?",
+              "Which costs may fall outside the currently authorised scope?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_keolis_valmont_sgr",
+              "scope": "sc_author_all",
+              "asOf": "2026-09-19T18:00:00Z",
+              "reportId": "rep_kv_intervention"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          }
+        ],
+        "heading": "Portfolio Intervention Review",
+        "subtitle": "Show which renewal projects need a decision this week, with each contributing factor visible.",
+        "badge": "Portfolio",
+        "note": "Show which renewal projects need a decision this week, with each contributing factor visible.",
+        "tiles": [
+          {
+            "label": "Approved (assessed)",
+            "value": "€79.4M",
+            "unit": "commitment basis · full span",
+            "tone": null,
+            "exact": "€79 440 000",
+            "measure": "m_budget"
+          },
+          {
+            "label": "Forecast (assessed)",
+            "value": "€82.0M",
+            "unit": "projection basis · full span",
+            "tone": "warn",
+            "exact": "€81 976 000",
+            "measure": "m_forecast_total"
+          },
+          {
+            "label": "Variance",
+            "value": "€2.5M",
+            "unit": "projection basis · full span",
+            "tone": "crit",
+            "exact": "€2 536 000",
+            "measure": "m_variance"
+          },
+          {
+            "label": "Projects needing a decision",
+            "value": "5",
+            "unit": "this week",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_exceptions"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-09-19, the age of its stalest input (PPM weekly publication, 5 days behind). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_keolis_valmont_sgr v1 · use case Fleet & Infrastructure Renewal"
+          },
+          {
+            "label": "Caveat",
+            "text": "4 projects carry no current forecast and are excluded from forecast figures."
+          },
+          {
+            "label": "Served",
+            "text": "Portfolio Intervention Review · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_kv_intervention",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Domain Architect",
+          "rows_served": 38,
+          "rows_total": 38,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-09-19",
+          "as_of_line": "As of 2026-09-19 — the age of the stalest of 3 contributing datasets (PPM, 5 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Portfolio Intervention Review · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/keolis-report.html?report=rep_kv_intervention"
+      },
+      {
+        "report_id": "rep_kv_proj_360",
+        "report_tag": "project-360",
+        "subject": "project × category",
+        "title": "Project 360",
+        "question": "Give one project's full financial and schedule position with the provenance attached.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_forecast_total",
+        "measure_label": "Forecast total",
+        "reading": {
+          "template": "Give one project's full financial and schedule position with the provenance attached. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "header",
+            "label": "Project 360",
+            "grain": "project",
+            "source": "project",
+            "sub": "Lift replacement — Dépôt Les Aubiers (column lift set C)",
+            "dynamic": true,
+            "subParts": [
+              {
+                "text": "Project 360 — "
+              },
+              {
+                "token": "$PROJECTNAME",
+                "figure": {
+                  "key": "name",
+                  "label": "$PROJECTNAME",
+                  "measure": null,
+                  "measureLabel": null,
+                  "unit": null,
+                  "signed": false,
+                  "coord": null,
+                  "coordStated": "",
+                  "coordProblems": [],
+                  "expr": null,
+                  "exprError": null,
+                  "exprReads": null,
+                  "raw": "Lift replacement — Dépôt Les Aubiers (column lift set C)",
+                  "display": "Lift replacement — Dépôt Les Aubiers (column lift set C)",
+                  "exact": null,
+                  "note": null,
+                  "prov": "pv_kv360a"
+                }
+              },
+              {
+                "token": "$CODE",
+                "figure": {
+                  "key": "code",
+                  "label": "$CODE",
+                  "measure": null,
+                  "measureLabel": null,
+                  "unit": null,
+                  "signed": false,
+                  "coord": null,
+                  "coordStated": "",
+                  "coordProblems": [],
+                  "expr": null,
+                  "exprError": null,
+                  "exprReads": null,
+                  "raw": "P-VM-021",
+                  "display": "P-VM-021",
+                  "exact": null,
+                  "note": null,
+                  "prov": "pv_kv360b"
+                }
+              }
+            ],
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one project"
+            }
+          },
+          {
+            "id": "b2",
+            "type": "figRow",
+            "label": "Forecast total — components",
+            "grain": "project",
+            "source": "project",
+            "figures": [
+              {
+                "key": "actuals",
+                "label": "Posted actuals",
+                "measure": "m_actual",
+                "measureLabel": "Posted actuals",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 160000,
+                "display": "€160 000",
+                "exact": "€160 000",
+                "note": null,
+                "prov": "pv_kv3c80c"
+              },
+              {
+                "key": "accruals",
+                "label": "Valid accruals",
+                "measure": "m_accrual",
+                "measureLabel": "Valid accruals",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 20000,
+                "display": "€20 000",
+                "exact": "€20 000",
+                "note": null,
+                "prov": "pv_kv0e686"
+              },
+              {
+                "key": "committed",
+                "label": "Remaining committed",
+                "measure": "m_ctc_committed",
+                "measureLabel": "Remaining committed",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "commitment",
+                  "period_frame": "single"
+                },
+                "coordStated": "commitment basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 150000,
+                "display": "€150 000",
+                "exact": "€150 000",
+                "note": null,
+                "prov": "pv_kvef057"
+              },
+              {
+                "key": "uncommitted",
+                "label": "Uncommitted",
+                "measure": "m_ctc_uncommitted",
+                "measureLabel": "Uncommitted",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "single"
+                },
+                "coordStated": "projection basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 40000,
+                "display": "€40 000",
+                "exact": "€40 000",
+                "note": null,
+                "prov": "pv_kv136a8"
+              },
+              {
+                "key": "contingency",
+                "label": "Contingency",
+                "measure": "m_contingency",
+                "measureLabel": "Contingency",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "single"
+                },
+                "coordStated": "projection basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 20000,
+                "display": "€20 000",
+                "exact": "€20 000",
+                "note": null,
+                "prov": "pv_kva0b58"
+              },
+              {
+                "key": "forecast",
+                "label": "Forecast total",
+                "measure": "m_forecast_total",
+                "measureLabel": "Forecast total",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "projection",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "projection basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 390000,
+                "display": "€390 000",
+                "exact": "€390 000",
+                "note": null,
+                "prov": "pv_kv956a5"
+              }
+            ],
+            "basesPresent": [
+              "record",
+              "commitment",
+              "projection"
+            ],
+            "basisNote": "Components at three bases foot to the forecast total by the governed rule.",
+            "combines": true,
+            "combinesNote": "Forecast total = actuals + accruals + cost to complete.",
+            "coverage": null,
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one project"
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Schedule conflict",
+            "grain": "project",
+            "source": "project",
+            "role": "caveat",
+            "body": "The supplier's revised date for the HPU-9 control unit (19 October) is in correspondence, not in the ERP or the schedule. Commissioning on 26 October is not achievable; bays 3–4 are needed on 2 November.",
+            "parts": [
+              {
+                "text": "The supplier's revised date for the HPU-9 control unit (19 October) is in correspondence, not in the ERP or the schedule. Commissioning on 26 October is not achievable; bays 3–4 are needed on 2 November."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one project"
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this project",
+            "grain": "project",
+            "source": "project",
+            "suggestions": [
+              "Is the depot lift replacement at Les Aubiers still on budget, and is it on time?",
+              "Break down the lift project forecast.",
+              "If operations spends €25,000 on external maintenance, what does the lift project cost?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_keolis_valmont_sgr",
+              "scope": "sc_author_all",
+              "asOf": "2026-09-22T18:00:00Z",
+              "reportId": "rep_kv_proj_360"
+            },
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one project"
+            }
+          }
+        ],
+        "heading": "Project 360",
+        "subtitle": "Give one project's full financial and schedule position with the provenance attached.",
+        "badge": "Project",
+        "note": "Give one project's full financial and schedule position with the provenance attached.",
+        "tiles": [
+          {
+            "label": "Approved",
+            "value": "€400k",
+            "unit": "commitment basis",
+            "tone": null,
+            "exact": "€400 000",
+            "measure": "m_budget"
+          },
+          {
+            "label": "Forecast",
+            "value": "€390k",
+            "unit": "projection basis",
+            "tone": "good",
+            "exact": "€390 000",
+            "measure": "m_forecast_total"
+          },
+          {
+            "label": "Commissioning",
+            "value": "at risk",
+            "unit": "26 Oct",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_schedule"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-09-19, the age of its stalest input (PPM weekly publication, 5 days behind). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_keolis_valmont_sgr v1 · use case Fleet & Infrastructure Renewal"
+          },
+          {
+            "label": "Caveat",
+            "text": "4 projects carry no current forecast and are excluded from forecast figures."
+          },
+          {
+            "label": "Served",
+            "text": "Project 360 · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_kv_proj_360",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Domain Architect",
+          "rows_served": 38,
+          "rows_total": 38,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-09-19",
+          "as_of_line": "As of 2026-09-19 — the age of the stalest of 3 contributing datasets (PPM, 5 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Project 360 · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/keolis-report.html?report=rep_kv_proj_360"
+      },
+      {
+        "report_id": "rep_kv_ppi_claim",
+        "report_tag": "ppi-claim-pack",
+        "subject": "project × category",
+        "title": "PPI Claim Pack",
+        "question": "Show what can be claimed from the authority this quarter, and what is only potential.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_forecast_total",
+        "measure_label": "Forecast total",
+        "reading": {
+          "template": "Show what can be claimed from the authority this quarter, and what is only potential. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Q3 claim by state",
+            "grain": "portfolio",
+            "source": "claims",
+            "figures": [
+              {
+                "key": "ready",
+                "label": "Ready to claim",
+                "measure": "m_claim_ready",
+                "measureLabel": "Ready to claim",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 4860000,
+                "display": "€4.9M",
+                "exact": "€4 860 000",
+                "note": null,
+                "prov": "pv_kvaae94"
+              },
+              {
+                "key": "submitted",
+                "label": "Submitted, open",
+                "measure": "m_claim_submitted",
+                "measureLabel": "Submitted, open",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 1210000,
+                "display": "€1.2M",
+                "exact": "€1 210 000",
+                "note": null,
+                "prov": "pv_kv8a24a"
+              },
+              {
+                "key": "accepted",
+                "label": "Accepted, unpaid",
+                "measure": "m_claim_accepted",
+                "measureLabel": "Accepted, unpaid",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2960000,
+                "display": "€3.0M",
+                "exact": "€2 960 000",
+                "note": null,
+                "prov": "pv_kv11eb9"
+              },
+              {
+                "key": "disputed",
+                "label": "Disputed",
+                "measure": "m_claim_disputed",
+                "measureLabel": "Disputed",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 212000,
+                "display": "€212 000",
+                "exact": "€212 000",
+                "note": null,
+                "prov": "pv_kve6dc0"
+              },
+              {
+                "key": "potential",
+                "label": "Potential only",
+                "measure": "m_claim_potential",
+                "measureLabel": "Potential only",
+                "unit": "EUR",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 408000,
+                "display": "€408 000",
+                "exact": "€408 000",
+                "note": null,
+                "prov": "pv_kv84808"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Claim states are separate and never summed as cash.",
+            "combines": false,
+            "combinesNote": "Five states, five figures — no total.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "narrative",
+            "label": "What the authority sees",
+            "grain": "portfolio",
+            "source": "claims",
+            "role": "scope",
+            "body": "Approved scope, funding, delivery evidence and the claim lines. Operator margin and the GER provision are restricted.",
+            "parts": [
+              {
+                "text": "Approved scope, funding, delivery evidence and the claim lines. Operator margin and the GER provision are restricted."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 38,
+              "label": "the declared portfolio (38 projects)",
+              "note": "Projects without a current forecast are listed and excluded from forecast figures."
+            }
+          }
+        ],
+        "heading": "PPI Claim Pack",
+        "subtitle": "Show what can be claimed from the authority this quarter, and what is only potential.",
+        "badge": "Authority",
+        "note": "Show what can be claimed from the authority this quarter, and what is only potential.",
+        "tiles": [
+          {
+            "label": "Ready to claim",
+            "value": "€4.9M",
+            "unit": "record basis",
+            "tone": "good",
+            "exact": "€4 860 000",
+            "measure": "m_claim_ready"
+          },
+          {
+            "label": "Disputed",
+            "value": "€212k",
+            "unit": "record basis",
+            "tone": "crit",
+            "exact": "€212 000",
+            "measure": "m_claim_disputed"
+          },
+          {
+            "label": "Potential only",
+            "value": "€408k",
+            "unit": "not claimable",
+            "tone": "warn",
+            "exact": "€408 000",
+            "measure": "m_claim_potential"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-09-19, the age of its stalest input (PPM weekly publication, 5 days behind). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_keolis_valmont_sgr v1 · use case Fleet & Infrastructure Renewal"
+          },
+          {
+            "label": "Caveat",
+            "text": "4 projects carry no current forecast and are excluded from forecast figures."
+          },
+          {
+            "label": "Served",
+            "text": "PPI Claim Pack · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_kv_ppi_claim",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Data Analyst",
+          "rows_served": 38,
+          "rows_total": 38,
+          "rows_note": null,
+          "blocks_served": 2,
+          "blocks_total": 2,
+          "as_of": "2026-09-19",
+          "as_of_line": "As of 2026-09-19 — the age of the stalest of 3 contributing datasets (PPM, 5 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "PPI Claim Pack · 1 · Thomas Garnier (Domain Architect) under Author -- full · 38 of 38 rows · as of 2026-09-19",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/keolis-report.html?report=rep_kv_ppi_claim"
+      }
+    ],
+    "saved": [],
+    "governance": {
+      "statuses": [
+        {
+          "key": "published",
+          "label": "Published",
+          "tone": "good"
+        },
+        {
+          "key": "draft",
+          "label": "Draft",
+          "tone": "neutral"
+        },
+        {
+          "key": "scheduled",
+          "label": "Scheduled",
+          "tone": "neutral"
+        },
+        {
+          "key": "unpublished",
+          "label": "Unpublished",
+          "tone": "warn"
+        }
+      ],
+      "reports": [
+        {
+          "report_id": "rep_kv_intervention",
+          "status": "published",
+          "version": "v1",
+          "author": "Thomas Garnier",
+          "category": "Portfolio",
+          "as_of": "2026-09-24T07:00:00Z",
+          "schedule": "Refreshes daily · 07:00 UTC",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "The schedule covers finance and PPM blocks; correspondence is read at open time.",
+          "link": "contextweave.keolis-valmont.example/r/intervention-review",
+          "readers": [
+            {
+              "email": "claire.moreau@vriodigital.com",
+              "name": "Claire Moreau",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "amelie.roussel@vriodigital.com",
+              "name": "Amélie Roussel",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope, supplier contacts masked"
+              }
+            },
+            {
+              "email": "ines.benali@vriodigital.com",
+              "name": "Inès Benali",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "rules",
+                "projects_admitted": 19,
+                "detail": "Category = infrastructure"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_kv_proj_360",
+          "status": "published",
+          "version": "v1",
+          "author": "Amélie Roussel",
+          "category": "Project",
+          "as_of": "2026-09-23T07:00:00Z",
+          "schedule": "Only when it’s opened",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": null,
+          "link": "contextweave.keolis-valmont.example/r/project-360",
+          "readers": [
+            {
+              "email": "julien.faure@vriodigital.com",
+              "name": "Julien Faure",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope, technician notes masked"
+              }
+            },
+            {
+              "email": "claire.moreau@vriodigital.com",
+              "name": "Claire Moreau",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "ines.benali@vriodigital.com",
+              "name": "Inès Benali",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "rules",
+                "projects_admitted": 19,
+                "detail": "Category = infrastructure — P-VM-021 is outside her scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_kv_ppi_claim",
+          "status": "published",
+          "version": "v1",
+          "author": "Amélie Roussel",
+          "category": "Authority",
+          "as_of": "2026-09-22T07:00:00Z",
+          "schedule": "Monthly on the 1st at 6:00 AM",
+          "approval": "controller sign-off",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "Potential lines export on a separate sheet.",
+          "link": "contextweave.keolis-valmont.example/r/ppi-claim-pack",
+          "readers": [
+            {
+              "email": "claire.moreau@vriodigital.com",
+              "name": "Claire Moreau",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "amelie.roussel@vriodigital.com",
+              "name": "Amélie Roussel",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "thomas.garnier@vriodigital.com",
+              "name": "Thomas Garnier",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 38,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        }
+      ],
+      "data_scope": [
+        {
+          "role_id": "claire_moreau",
+          "scope": "All 38",
+          "predicate": "Full scope",
+          "grain": "project",
+          "masked": "",
+          "may_author": false,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "claire.moreau@vriodigital.com",
+          "name": "Claire Moreau",
+          "projects_admitted": 38,
+          "of_total": 38,
+          "computed_from": "projects[] at paint time"
+        },
+        {
+          "role_id": "amelie_roussel",
+          "scope": "All 38, masked",
+          "predicate": "Supplier contacts masked",
+          "grain": "project",
+          "masked": "supplier contacts",
+          "may_author": true,
+          "full": true,
+          "mask": true,
+          "rule": null,
+          "email": "amelie.roussel@vriodigital.com",
+          "name": "Amélie Roussel",
+          "projects_admitted": 38,
+          "of_total": 38,
+          "computed_from": "projects[] at paint time"
+        },
+        {
+          "role_id": "thomas_garnier",
+          "scope": "All 38",
+          "predicate": "Full scope",
+          "grain": "project",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "thomas.garnier@vriodigital.com",
+          "name": "Thomas Garnier",
+          "projects_admitted": 38,
+          "of_total": 38,
+          "computed_from": "projects[] at paint time"
+        },
+        {
+          "role_id": "julien_faure",
+          "scope": "All 38, masked",
+          "predicate": "Technician narratives masked",
+          "grain": "project",
+          "masked": "technician notes",
+          "may_author": false,
+          "full": true,
+          "mask": true,
+          "rule": null,
+          "email": "julien.faure@vriodigital.com",
+          "name": "Julien Faure",
+          "projects_admitted": 38,
+          "of_total": 38,
+          "computed_from": "projects[] at paint time"
+        },
+        {
+          "role_id": "ines_benali",
+          "scope": "19 of 38",
+          "predicate": "Category = infrastructure",
+          "grain": "project",
+          "masked": "supplier commitments",
+          "may_author": false,
+          "full": false,
+          "mask": true,
+          "rule": {
+            "basis": "cat",
+            "values": [
+              "Track & civil",
+              "Power & charging",
+              "Signalling & systems",
+              "Stations & passenger info"
+            ]
+          },
+          "email": "ines.benali@vriodigital.com",
+          "name": "Inès Benali",
+          "projects_admitted": 19,
+          "of_total": 38,
+          "computed_from": "projects[] at paint time"
+        }
+      ],
+      "gate_notes": {
+        "both": "The two are administered in two separate places: audience at publish time, data scope on the reader's row.",
+        "entitlement": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address.",
+        "data_scope": "Which rows does this viewer's predicate admit? Managed on the reader's row; follows the person everywhere.",
+        "author": "Writing a report definition is a separate permission from reading one.",
+        "cannot_be_front_end": "If the browser receives 38 rows and shows 19, the other rows have leaked. The server filters before it serves."
+      },
+      "publishing": {
+        "title": "Publish this report",
+        "republish_title": "Publish your changes",
+        "lead": "It goes live to the people you pick — nobody else is told it exists.",
+        "name": {
+          "label": "Report name",
+          "help": "Give it a name your audience will recognise.",
+          "placeholder": "e.g. Portfolio Intervention Review — week 39"
+        },
+        "readers": {
+          "label": "Who can open it",
+          "placeholder": "Type a name or email address…",
+          "empty": "Nobody yet — this report stays private until you add a reader.",
+          "note": "Each person sees only what their data access allows.",
+          "caveat": "This narrows who is shown the report. It is not access control.",
+          "local_caveat": "Readers are recorded on the artifact; their data scope is managed in Audit & Governance.",
+          "presets": [
+            "claire.moreau@vriodigital.com",
+            "amelie.roussel@vriodigital.com",
+            "thomas.garnier@vriodigital.com",
+            "julien.faure@vriodigital.com",
+            "ines.benali@vriodigital.com"
+          ],
+          "default": []
+        },
+        "freshness": {
+          "label": "Keep it fresh",
+          "presets": [
+            {
+              "id": "open",
+              "label": "Only when it’s opened",
+              "sentence": "Only when it’s opened"
+            },
+            {
+              "id": "daily",
+              "label": "Every weekday (Mon–Fri) at 7:00 AM",
+              "sentence": "Every weekday at 7:00 AM"
+            },
+            {
+              "id": "monday",
+              "label": "Weekly on Monday at 6:00 AM",
+              "sentence": "Weekly on Monday at 6:00 AM"
+            },
+            {
+              "id": "monthly",
+              "label": "Monthly on the 1st at 6:00 AM",
+              "sentence": "Monthly on the 1st at 6:00 AM"
+            },
+            {
+              "id": "custom",
+              "label": "Custom…",
+              "sentence": "Custom schedule"
+            }
+          ],
+          "days": [
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun"
+          ],
+          "times": [
+            "6:00 AM",
+            "7:00 AM",
+            "8:00 AM",
+            "12:00 PM",
+            "6:00 PM"
+          ],
+          "units": [
+            "day",
+            "week",
+            "month"
+          ],
+          "default": "open",
+          "default_detail": {
+            "preset": "open",
+            "every": 1,
+            "unit": "week",
+            "days": [
+              "Mon"
+            ],
+            "time": "6:00 AM"
+          },
+          "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+        },
+        "foot": "Live immediately after you publish.",
+        "buttons": {
+          "publish": "Publish report",
+          "republish": "Publish changes",
+          "cancel": "Cancel",
+          "unpublish": "Unpublish",
+          "manage": "Manage publishing…"
+        }
+      },
+      "audit": {
+        "copy": {
+          "title": "Audit & Governance",
+          "lead": "One place for who sees what. Authors decide who can open a report or scenario when they publish it; you decide which projects each person can see — and every open is logged.",
+          "not_enforced": "A rule is recorded, not enforced, until the server filters on it. No report on this demo serves a row a reader's rule excludes.",
+          "gates": [
+            {
+              "key": "open",
+              "title": "Who can open",
+              "detail": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address."
+            },
+            {
+              "key": "inside",
+              "title": "What they see inside",
+              "detail": "Data access per person, managed on the reader's row — project, category, depot, contract or funding source."
+            },
+            {
+              "key": "log",
+              "title": "Every open is logged",
+              "detail": "Who opened what, what their access resolved to, and every access change — in the audit trail."
+            }
+          ],
+          "empty_log": "Nothing recorded yet. Change a rule or open a report and it appears here.",
+          "log_note": "Nothing in the log is editable; the trail is append-only.",
+          "basis_note": "A field qualifies as a restriction basis only if every one of its values is known on every row."
+        },
+        "categories": [
+          {
+            "key": "all",
+            "label": "All",
+            "id": "all"
+          },
+          {
+            "key": "pub",
+            "label": "Publishing",
+            "id": "pub"
+          },
+          {
+            "key": "open",
+            "label": "Opens",
+            "id": "open"
+          },
+          {
+            "key": "rule",
+            "label": "Rule changes",
+            "id": "rule"
+          },
+          {
+            "key": "ref",
+            "label": "Refreshes",
+            "id": "ref"
+          },
+          {
+            "key": "export",
+            "label": "Exports",
+            "id": "export"
+          }
+        ],
+        "events": [
+          {
+            "actor": "Inès Benali",
+            "action": "Opened Portfolio Intervention Review",
+            "resource": "Portfolio Intervention Review",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 09:12",
+            "detail": "Her access resolved: category = infrastructure — 19 of 38 projects today.",
+            "category": "open"
+          },
+          {
+            "actor": "Claire Moreau",
+            "action": "Opened Portfolio Intervention Review",
+            "resource": "Portfolio Intervention Review",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:47",
+            "detail": "Her access resolved: all 38 projects, no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "system",
+            "action": "Scheduled refresh ran on Portfolio Intervention Review",
+            "resource": "Portfolio Intervention Review",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 07:00",
+            "detail": "Finance and PPM blocks refreshed. Correspondence blocks are read at open time and are not part of the schedule.",
+            "category": "ref"
+          },
+          {
+            "actor": "Amélie Roussel",
+            "action": "Published what-if scenario Index exposure — TV-100 overhaul",
+            "resource": "what-if scenario Index exposure — TV-100 overhaul",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Sep 23 16:40",
+            "detail": "2 readers · 2 cases (Base case, Index +8%) · points to graph v1",
+            "category": "pub"
+          },
+          {
+            "actor": "Thomas Garnier",
+            "action": "Published graph Keolis Valmont SGR v1",
+            "resource": "graph v1",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Sep 23 15:58",
+            "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+            "category": "pub"
+          },
+          {
+            "actor": "Thomas Garnier",
+            "action": "Changed rule for Inès Benali",
+            "resource": "data access rule",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Sep 23 11:05",
+            "detail": "Restriction basis = category (infrastructure). Supplier commitments masked.",
+            "category": "rule"
+          },
+          {
+            "actor": "Julien Faure",
+            "action": "Opened Project 360 — P-VM-031",
+            "resource": "Project 360",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Sep 22 17:20",
+            "detail": "His access resolved: all projects; technician narratives masked.",
+            "category": "open"
+          },
+          {
+            "actor": "Amélie Roussel",
+            "action": "Exported PPI Claim Pack (XLSX)",
+            "resource": "PPI Claim Pack",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Sep 22 14:02",
+            "detail": "Export carries the watermark and the as-of line; potential lines are exported on a separate sheet.",
+            "category": "export"
+          },
+          {
+            "actor": "system",
+            "action": "Sealed trace for 'Who pays for the BUS-204 engine repair?'",
+            "resource": "trace_kv03",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Sep 22 10:31",
+            "detail": "4 spans · €0.12 · confidence 0.84",
+            "category": "ref"
+          },
+          {
+            "actor": "Marc Delorme",
+            "action": "Changed persona access for Business User — Project Level",
+            "resource": "settings",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Sep 21 09:15",
+            "detail": "Reports hidden from the sidebar for all personas (beta).",
+            "category": "rule"
+          }
+        ],
+        "restriction_bases": [
+          {
+            "id": "proj",
+            "label": "Project",
+            "values": 38
+          },
+          {
+            "id": "cat",
+            "label": "Category",
+            "values": 7
+          },
+          {
+            "id": "depot",
+            "label": "Depot",
+            "values": 3
+          },
+          {
+            "id": "funding",
+            "label": "Funding source",
+            "values": 6
+          },
+          {
+            "id": "stage",
+            "label": "Stage",
+            "values": 6
+          }
+        ],
+        "excluded_bases": {
+          "fields": [
+            "forecast",
+            "variance",
+            "budget",
+            "actuals"
+          ],
+          "reason": "Continuous. A rule written on them re-resolves every time a figure moves, so a reader's scope would change without anyone changing the rule."
+        }
+      },
+      "document": null
+    },
+    "authoring_fixture": {
+      "_note": "The seven-project fixture the authoring screen previews against. Figures in EUR millions, derived from world.py.",
+      "projects": [
+        {
+          "name": "Tram TV-100 mid-life overhaul (24 trams)",
+          "auth": 31.2,
+          "comm": 28.23,
+          "proj": 32.98,
+          "portfolio": "Fleet — tram",
+          "region": "Centre de maintenance tram La Varenne",
+          "phase": "In delivery",
+          "owner": "Pierre-Yves Collin",
+          "funding": "PPI",
+          "partner": "Transalp",
+          "contract": "Authority contract",
+          "reason": "Frame cracking + indexation"
+        },
+        {
+          "name": "Bus fleet renewal — tranche 2 (24 battery-el",
+          "auth": 14.88,
+          "comm": 14.49,
+          "proj": 14.91,
+          "portfolio": "Fleet — bus",
+          "region": "Dépôt Saint-Roch",
+          "phase": "In delivery",
+          "owner": "Hugo Lambert",
+          "funding": "PPI + GRANT",
+          "partner": "Arvéa",
+          "contract": "Authority contract",
+          "reason": "Inverter allocation delay"
+        },
+        {
+          "name": "Depot charging expansion — Saint-Roch (24 de",
+          "auth": 4.3,
+          "comm": 4.25,
+          "proj": 4.55,
+          "portfolio": "Power & charging",
+          "region": "Dépôt Saint-Roch",
+          "phase": "In delivery",
+          "owner": "Hugo Lambert",
+          "funding": "GRANT + PPI",
+          "partner": "Chargéo",
+          "contract": "Design & build",
+          "reason": "DSO reinforcement share"
+        },
+        {
+          "name": "Battery replacement campaign — Arvéa eCity 1",
+          "auth": 5.12,
+          "comm": 5,
+          "proj": 5.1,
+          "portfolio": "Fleet — bus",
+          "region": "Dépôt Saint-Roch",
+          "phase": "Commissioning",
+          "owner": "Julien Faure",
+          "funding": "MIXED",
+          "partner": "Celtia",
+          "contract": "Supply contract",
+          "reason": "Acceptance snags"
+        },
+        {
+          "name": "T1 track renewal — Gare Centrale ↔ Pont Neuf",
+          "auth": 3.26,
+          "comm": 2.59,
+          "proj": 3.26,
+          "portfolio": "Track & civil",
+          "region": "Centre de maintenance tram La Varenne",
+          "phase": "Approved",
+          "owner": "Inès Benali",
+          "funding": "PPI",
+          "partner": "VTC",
+          "contract": "Works contract",
+          "reason": "Access and rev C scope"
+        },
+        {
+          "name": "Traction substation SST-04 renewal (Pont Neu",
+          "auth": 2.45,
+          "comm": 1.5,
+          "proj": 2.45,
+          "portfolio": "Power & charging",
+          "region": "Centre de maintenance tram La Varenne",
+          "phase": "Approved",
+          "owner": "Inès Benali",
+          "funding": "PPI",
+          "partner": "Électro-Réseaux Ouest",
+          "contract": "Design & build",
+          "reason": "Rectifier lead time"
+        },
+        {
+          "name": "Lift replacement — Dépôt Les Aubiers (column",
+          "auth": 0.4,
+          "comm": 0.33,
+          "proj": 0.39,
+          "portfolio": "Depot & workshop",
+          "region": "Dépôt Les Aubiers",
+          "phase": "In delivery",
+          "owner": "Sandrine Pelletier",
+          "funding": "GER",
+          "partner": "Levantis",
+          "contract": "Purchase order",
+          "reason": "Control-unit delay"
+        }
+      ],
+      "derived": {
+        "Tram TV-100 mid-life overhaul (24 trams)": {
+          "status": "Delayed",
+          "varianceDollarsM": 1.78,
+          "variancePct": 5.7,
+          "pctOfEnvelopeSpent": 90.5
+        },
+        "Bus fleet renewal — tranche 2 (24 battery-el": {
+          "status": "Delayed",
+          "varianceDollarsM": 0.03,
+          "variancePct": 0.2,
+          "pctOfEnvelopeSpent": 97.4
+        },
+        "Depot charging expansion — Saint-Roch (24 de": {
+          "status": "Delayed",
+          "varianceDollarsM": 0.25,
+          "variancePct": 5.8,
+          "pctOfEnvelopeSpent": 98.8
+        },
+        "Battery replacement campaign — Arvéa eCity 1": {
+          "status": "At risk",
+          "varianceDollarsM": -0.02,
+          "variancePct": -0.4,
+          "pctOfEnvelopeSpent": 97.7
+        },
+        "T1 track renewal — Gare Centrale ↔ Pont Neuf": {
+          "status": "On track",
+          "varianceDollarsM": 0,
+          "variancePct": 0,
+          "pctOfEnvelopeSpent": 79.4
+        },
+        "Traction substation SST-04 renewal (Pont Neu": {
+          "status": "Delayed",
+          "varianceDollarsM": 0,
+          "variancePct": 0,
+          "pctOfEnvelopeSpent": 61.2
+        },
+        "Lift replacement — Dépôt Les Aubiers (column": {
+          "status": "On track",
+          "varianceDollarsM": -0.01,
+          "variancePct": -2.5,
+          "pctOfEnvelopeSpent": 82.5
+        }
+      },
+      "unit": "EUR millions",
+      "derivationRules": {
+        "varianceDollarsM": "projected - authorized",
+        "variancePct": "(projected - authorized) / authorized * 100",
+        "pctOfEnvelopeSpent": "committed / authorized * 100",
+        "status": "variancePct > 3 or schedule slip > 60 days -> Delayed; > 0 -> At risk; else On track",
+        "forecastAtCompletion": "equals projected in this fixture"
+      }
+    },
+    "register": {
+      "roster": "projects",
+      "identity": "n",
+      "fields": [
+        {
+          "key": "n",
+          "label": "Project",
+          "kind": "text",
+          "filterable": false,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "reg",
+          "label": "Depot",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "cat",
+          "label": "Category",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "bu",
+          "label": "Funding",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "phase",
+          "label": "Stage",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "comp",
+          "label": "Mandatory",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        }
+      ]
+    },
+    "documents": [],
+    "authoring_document": null
+  },
+  "reports_prototype": {
+    "meta": {
+      "persona_name": "Amélie Roussel",
+      "persona_role": "Contrôleuse de gestion investissements · Keolis Valmont",
+      "persona_initials": "AR",
+      "entity_plural": "renewal projects",
+      "scope_line": "the Keolis Valmont renewal portfolio",
+      "source_trace": "Traces to: keolis_valmont_erp.fin, keolis_valmont_ppm.ppm, keolis_valmont_ppm.contract, as of 2026-09-19.",
+      "entity_singular": "renewal project",
+      "ask_placeholder": "e.g. Which renewal projects are furthest over their approved budget?"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Project",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "portfolio",
+        "label": "Category",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "region",
+        "label": "Depot",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "phase",
+        "label": "Stage",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "funding",
+        "label": "Funding",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "partner",
+        "label": "Supplier",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "contract",
+        "label": "Contract form",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "reason",
+        "label": "Variance reason",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "auth",
+        "label": "Approved (€M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "comm",
+        "label": "Committed + spent (€M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "proj",
+        "label": "Forecast (€M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varD",
+        "label": "Variance (€M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varP",
+        "label": "Variance %",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "pct",
+        "label": "% of budget committed",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "the 7 anchor renewal projects"
+      },
+      "measure": {
+        "value": "varD",
+        "label": "approved budget"
+      },
+      "horizon": {
+        "value": "full",
+        "label": "full project life"
+      },
+      "graph": {
+        "value": "kv_sgr",
+        "label": "the Keolis Valmont SGR graph"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which projects to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "the 7 anchor renewal projects",
+            "d": "Everything with a decision pending"
+          },
+          {
+            "value": "major",
+            "label": "major projects over €5M",
+            "d": "The largest by budget"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Over budget\" measured against?",
+        "options": [
+          {
+            "value": "varD",
+            "label": "approved budget",
+            "d": "The current approved version"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "thisyear",
+            "label": "this financial year",
+            "d": "To 31 December"
+          },
+          {
+            "value": "full",
+            "label": "full project life",
+            "d": "Whole project"
+          },
+          {
+            "value": "contract",
+            "label": "to contract end",
+            "d": "To 31 December 2028"
+          }
+        ]
+      },
+      "graph": {
+        "q": "Which published graph should this run against?",
+        "options": [
+          {
+            "value": "kv_sgr",
+            "label": "the Keolis Valmont SGR graph",
+            "short": "Keolis Valmont SGR",
+            "d": "Published · EAM + ERP + PPM + contract corpus · refreshed today"
+          }
+        ]
+      }
+    },
+    "generators": [
+      {
+        "name": "Tram TV-100 mid-life overhaul (24 trams)",
+        "auth": 31.2,
+        "comm": 28.23,
+        "proj": 32.98,
+        "portfolio": "Fleet — tram",
+        "region": "Centre de maintenance tram La Varenne",
+        "phase": "In delivery",
+        "owner": "Pierre-Yves Collin",
+        "funding": "PPI",
+        "partner": "Transalp",
+        "contract": "Authority contract",
+        "reason": "Frame cracking + indexation",
+        "varD": 1.78,
+        "varP": 5.7,
+        "pct": 90.5,
+        "status": "Delayed"
+      },
+      {
+        "name": "Bus fleet renewal — tranche 2 (24 battery-el",
+        "auth": 14.88,
+        "comm": 14.49,
+        "proj": 14.91,
+        "portfolio": "Fleet — bus",
+        "region": "Dépôt Saint-Roch",
+        "phase": "In delivery",
+        "owner": "Hugo Lambert",
+        "funding": "PPI + GRANT",
+        "partner": "Arvéa",
+        "contract": "Authority contract",
+        "reason": "Inverter allocation delay",
+        "varD": 0.03,
+        "varP": 0.2,
+        "pct": 97.4,
+        "status": "Delayed"
+      },
+      {
+        "name": "Depot charging expansion — Saint-Roch (24 de",
+        "auth": 4.3,
+        "comm": 4.25,
+        "proj": 4.55,
+        "portfolio": "Power & charging",
+        "region": "Dépôt Saint-Roch",
+        "phase": "In delivery",
+        "owner": "Hugo Lambert",
+        "funding": "GRANT + PPI",
+        "partner": "Chargéo",
+        "contract": "Design & build",
+        "reason": "DSO reinforcement share",
+        "varD": 0.25,
+        "varP": 5.8,
+        "pct": 98.8,
+        "status": "Delayed"
+      },
+      {
+        "name": "Battery replacement campaign — Arvéa eCity 1",
+        "auth": 5.12,
+        "comm": 5,
+        "proj": 5.1,
+        "portfolio": "Fleet — bus",
+        "region": "Dépôt Saint-Roch",
+        "phase": "Commissioning",
+        "owner": "Julien Faure",
+        "funding": "MIXED",
+        "partner": "Celtia",
+        "contract": "Supply contract",
+        "reason": "Acceptance snags",
+        "varD": -0.02,
+        "varP": -0.4,
+        "pct": 97.7,
+        "status": "At risk"
+      },
+      {
+        "name": "T1 track renewal — Gare Centrale ↔ Pont Neuf",
+        "auth": 3.26,
+        "comm": 2.59,
+        "proj": 3.26,
+        "portfolio": "Track & civil",
+        "region": "Centre de maintenance tram La Varenne",
+        "phase": "Approved",
+        "owner": "Inès Benali",
+        "funding": "PPI",
+        "partner": "VTC",
+        "contract": "Works contract",
+        "reason": "Access and rev C scope",
+        "varD": 0,
+        "varP": 0,
+        "pct": 79.4,
+        "status": "On track"
+      },
+      {
+        "name": "Traction substation SST-04 renewal (Pont Neu",
+        "auth": 2.45,
+        "comm": 1.5,
+        "proj": 2.45,
+        "portfolio": "Power & charging",
+        "region": "Centre de maintenance tram La Varenne",
+        "phase": "Approved",
+        "owner": "Inès Benali",
+        "funding": "PPI",
+        "partner": "Électro-Réseaux Ouest",
+        "contract": "Design & build",
+        "reason": "Rectifier lead time",
+        "varD": 0,
+        "varP": 0,
+        "pct": 61.2,
+        "status": "Delayed"
+      },
+      {
+        "name": "Lift replacement — Dépôt Les Aubiers (column",
+        "auth": 0.4,
+        "comm": 0.33,
+        "proj": 0.39,
+        "portfolio": "Depot & workshop",
+        "region": "Dépôt Les Aubiers",
+        "phase": "In delivery",
+        "owner": "Sandrine Pelletier",
+        "funding": "GER",
+        "partner": "Levantis",
+        "contract": "Purchase order",
+        "reason": "Control-unit delay",
+        "varD": -0.01,
+        "varP": -2.5,
+        "pct": 82.5,
+        "status": "On track"
+      }
+    ],
+    "facilities": [],
+    "quarters": [],
+    "traces": [],
+    "starters": [
+      {
+        "id": "rep_q_intervention",
+        "report_tag": "intervention-review",
+        "label": "Intervention Review",
+        "title": "Intervention Review",
+        "q": "Show which renewal projects need a decision, and refuse to rank them by one hidden score.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varD"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_proj_360",
+        "report_tag": "project-360",
+        "label": "Project 360",
+        "title": "Project 360",
+        "q": "Give one project's full financial position with the provenance attached.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "proj"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_ppi_claim",
+        "report_tag": "ppi-claim-pack",
+        "label": "PPI Claim Pack",
+        "title": "PPI Claim Pack",
+        "q": "Show what can be claimed from the authority this quarter, and keep potential apart from claimed.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varD"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "label": "Summary tiles",
+        "d": "Projects, budget, forecast, variance",
+        "block": {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varD"
+          ]
+        }
+      },
+      {
+        "label": "Variance chart",
+        "d": "Projects ranked by variance to approved budget",
+        "block": {
+          "type": "chart",
+          "title": "Variance to budget by project",
+          "chartType": "bar",
+          "measure": "varD"
+        }
+      },
+      {
+        "label": "Forecast chart",
+        "d": "Forecast total per project",
+        "block": {
+          "type": "chart",
+          "title": "Forecast by project",
+          "chartType": "column",
+          "measure": "proj"
+        }
+      },
+      {
+        "label": "Project detail",
+        "d": "One row per project, with status and the figures behind it",
+        "block": {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "comm",
+            "proj",
+            "varD"
+          ]
+        }
+      }
+    ],
+    "slice_default": [
+      "portfolio",
+      "region",
+      "phase",
+      "status"
+    ],
+    "audiences": [
+      {
+        "key": "business_user_exec",
+        "label": "Business User -- Executive",
+        "d": "All contracts, all projects, all financials. The persona the executive walkthrough is written for."
+      },
+      {
+        "key": "analyst",
+        "label": "Data Analyst",
+        "d": "All projects and financials. Supplier contacts and technician narratives masked (PII)."
+      },
+      {
+        "key": "architect",
+        "label": "Domain Architect",
+        "d": "Everything, at every grain, including supplier commercial terms and the contract register."
+      },
+      {
+        "key": "admin",
+        "label": "Platform Admin",
+        "d": "Structure, lineage, cost and access. No financial values -- an admin configures the platform, not the portfolio."
+      }
+    ],
+    "library": [],
+    "row_model": {
+      "label": "name",
+      "sublabel": "{portfolio} · {phase} · {owner}",
+      "status": "status",
+      "tones": {
+        "Delayed": "over",
+        "At risk": "warn",
+        "On track": "ok"
+      },
+      "scopes": {
+        "active": {},
+        "major": {
+          "field": "auth",
+          "op": "gt",
+          "value": 5
+        }
+      },
+      "measures": [
+        "varD",
+        "varP",
+        "pct",
+        "proj",
+        "auth",
+        "comm"
+      ],
+      "kpis": [
+        {
+          "key": "count",
+          "label": "Projects in scope",
+          "agg": "rows"
+        },
+        {
+          "key": "auth",
+          "label": "Approved budget",
+          "agg": "sum",
+          "field": "auth",
+          "format": "money_m"
+        },
+        {
+          "key": "proj",
+          "label": "Forecast total",
+          "agg": "sum",
+          "field": "proj",
+          "format": "money_m"
+        },
+        {
+          "key": "varD",
+          "label": "Variance to budget",
+          "agg": "sum",
+          "field": "varD",
+          "format": "money_m"
+        },
+        {
+          "key": "delayed",
+          "label": "Delayed",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Delayed",
+          "tone": "bad"
+        },
+        {
+          "key": "atrisk",
+          "label": "At risk",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "At risk",
+          "tone": "warn"
+        }
+      ],
+      "formats": {
+        "auth": "money_m",
+        "comm": "money_m",
+        "proj": "money_m",
+        "varD": "money_m",
+        "varP": "pct",
+        "pct": "pct",
+        "status": "text"
+      },
+      "labels": {},
+      "pills": {},
+      "blocks": [
+        "kpis",
+        "chart",
+        "table"
+      ],
+      "footer": []
+    }
+  }
+}

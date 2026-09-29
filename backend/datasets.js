@@ -25,14 +25,18 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * primary, so it is what `both` resolves a single-valued key to and what a caller naming no
  * dataset gets.
  *
- * **There are two, and every one of them is read at boot.** A name here with no document behind it
- * stops the boot, which is why adding a dataset is this array *and then* `npm run seed:dataset --
- * <NAME>`, in that order — the seed refuses a name this array does not declare.
+ * **There are three, and every one of them is read at boot.** A name here with no document behind it
+ * stops the boot, which is why adding a dataset is this array *and then* the files behind it — a
+ * loader over split files (EPA, CAPEX and KEOLIS each have one) or `npm run seed:dataset -- <NAME>`
+ * for a seeded-empty one; the seed refuses a name this array does not declare.
  *
- * `both` therefore merges two real documents, which is what the merge plan below was written for and
+ * KEOLIS is the Keolis Valmont demo package (`frontend/keolis/`), split into `backend/keolis/` by
+ * `npm run ingest:keolis`. Its URL letter is K, which stays unique among E, C and B.
+ *
+ * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['EPA', 'CAPEX']
+export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS']
 export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 

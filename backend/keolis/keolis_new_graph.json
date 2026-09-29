@@ -1,0 +1,1354 @@
+{
+  "graph_domains": [
+    {
+      "domain_id": "fleet-infrastructure-sgr",
+      "name": "Fleet & Infrastructure Renewal (SGR)",
+      "expected_sources": [
+        "EAM assets & maintenance",
+        "ERP finance & purchasing",
+        "PPM portfolio & approvals",
+        "Contract register",
+        "Capital renewal documents"
+      ],
+      "fit": "strong",
+      "note": "All five expected sources are connected and profiled; the contract, amendments and project evidence are in the Drive corpus.",
+      "unmet_note": "No asset, finance or project source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "contract-recovery",
+      "name": "Contract Responsibility & Recovery",
+      "expected_sources": [
+        "Contract register",
+        "Executed contract and amendments",
+        "ERP funding claims"
+      ],
+      "fit": "partial",
+      "note": "Responsibility assignments, amendments and claim states resolve. Legal liability is out of scope — the graph raises review items, it does not decide them.",
+      "unmet_note": "No contract register or executed contract connected.",
+      "rank": 2
+    },
+    {
+      "domain_id": "service-readiness",
+      "name": "Operational Readiness",
+      "expected_sources": [
+        "Service requirement",
+        "Access windows",
+        "Availability intervals",
+        "Workforce & crew planning"
+      ],
+      "fit": "partial",
+      "note": "Service requirement, access windows and availability are connected; workforce planning is not, so skills and crews are never tested.",
+      "unmet_note": "No service-planning or availability source connected.",
+      "rank": 3
+    },
+    {
+      "domain_id": "predictive-asset",
+      "name": "Predictive Asset Failure",
+      "expected_sources": [
+        "Censored failure history",
+        "Telemetry for every asset class",
+        "Operating context"
+      ],
+      "fit": "none",
+      "note": "Telemetry covers buses only and no failure series is censored for assets that have not failed — prediction would not validate out of time.",
+      "unmet_note": "No telemetry or censored failure history connected.",
+      "rank": 4
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "opco-exec",
+      "name": "Operating Company Executive",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "intervention",
+        "exposure",
+        "readiness",
+        "decision",
+        "this week",
+        "portfolio"
+      ],
+      "focus": "Asks which projects need a decision this week, what the full exposure is, and whether approved work is ready.",
+      "top_questions": [
+        "hq1",
+        "hq2",
+        "hq3",
+        "hq9",
+        "hq14",
+        "hq26"
+      ]
+    },
+    {
+      "persona_id": "investment-controller",
+      "name": "Investment Controller",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "forecast",
+        "budget",
+        "variance",
+        "accrual",
+        "commitment",
+        "cost to complete"
+      ],
+      "focus": "Asks whether forecasts reconcile, what moved and why, and what sits outside the authorised scope.",
+      "top_questions": [
+        "hq4",
+        "hq8",
+        "hq11",
+        "hq15",
+        "hq19",
+        "hq21"
+      ]
+    },
+    {
+      "persona_id": "maintenance-lead",
+      "name": "Rolling Stock Maintenance Lead",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "condition",
+        "failure",
+        "acceptance",
+        "warranty",
+        "renewal",
+        "backlog"
+      ],
+      "focus": "Asks which assets need renewal, what is really accepted, and where failures concentrate.",
+      "top_questions": [
+        "hq7",
+        "hq13",
+        "hq20",
+        "hq30",
+        "hq33",
+        "hq40"
+      ]
+    },
+    {
+      "persona_id": "infra-pm",
+      "name": "Infrastructure Project Manager",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "track",
+        "possession",
+        "access",
+        "schedule",
+        "dependency",
+        "scope"
+      ],
+      "focus": "Asks whether works can start, what they depend on, and what has changed in scope.",
+      "top_questions": [
+        "hq6",
+        "hq18",
+        "hq23",
+        "hq31",
+        "hq36",
+        "hq41"
+      ]
+    },
+    {
+      "persona_id": "commercial-lead",
+      "name": "Commercial & Contract Manager",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "contract",
+        "avenant",
+        "clause",
+        "responsibility",
+        "notice",
+        "recovery"
+      ],
+      "focus": "Asks who pays, which clause applies, which amendment changed it, and whether notice was given.",
+      "top_questions": [
+        "hq5",
+        "hq16",
+        "hq17",
+        "hq27",
+        "hq34",
+        "hq42"
+      ]
+    },
+    {
+      "persona_id": "service-planning",
+      "name": "Service Planning Lead",
+      "domains": [
+        "service-readiness"
+      ],
+      "keywords": [
+        "peak",
+        "reserve",
+        "availability",
+        "replacement bus",
+        "closure",
+        "timetable"
+      ],
+      "focus": "Asks whether service can be held while assets are withdrawn.",
+      "top_questions": [
+        "hq10",
+        "hq22",
+        "hq37"
+      ]
+    },
+    {
+      "persona_id": "authority-liaison",
+      "name": "Authority Liaison (PPI)",
+      "domains": [
+        "contract-recovery",
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "PPI",
+        "claim",
+        "authority",
+        "funding",
+        "evidence",
+        "quarterly review"
+      ],
+      "focus": "Asks what the authority will see, what is claimable and what is only potential.",
+      "top_questions": [
+        "hq12",
+        "hq28",
+        "hq38"
+      ]
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "hq1",
+      "text": "Which renewal projects need intervention this week, and why?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "renewal",
+        "projects",
+        "need",
+        "intervention",
+        "week"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q01",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_erp.proc + keolis_valmont_ppm.ops + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq2",
+      "text": "What is our full financial exposure on the renewal portfolio?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "full",
+        "financial",
+        "exposure",
+        "renewal",
+        "portfolio"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q02",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_erp.proc + keolis_valmont_ppm.contract at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq3",
+      "text": "Is the approved work ready to proceed without undermining service?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "approved",
+        "work",
+        "ready",
+        "proceed",
+        "without",
+        "undermining"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q03",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_erp.proc + keolis_valmont_ppm.ops + keolis_valmont_ppm.ppm at medium confidence (0.82)."
+    },
+    {
+      "question_id": "hq4",
+      "text": "Is the depot lift replacement at Les Aubiers still on budget, and is it on time?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "depot",
+        "lift",
+        "replacement",
+        "aubiers",
+        "budget",
+        "time"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q04",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_erp.proc + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq5",
+      "text": "Who pays for the BUS-204 engine repair?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "pays",
+        "bus-",
+        "engine",
+        "repair"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q05",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_erp.fin + mailbox at question time at medium confidence (0.84)."
+    },
+    {
+      "question_id": "hq6",
+      "text": "Can the T1 track renewal at Gare Centrale start on 17 October?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "track",
+        "renewal",
+        "gare",
+        "centrale",
+        "start",
+        "october"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q06",
+      "rationale": "Resolves across keolis_valmont_ppm.ops + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq7",
+      "text": "Is the battery replacement campaign complete?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "battery",
+        "replacement",
+        "campaign",
+        "complete"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q07",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq8",
+      "text": "Are all renewal projects within budget?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "renewal",
+        "projects",
+        "within",
+        "budget"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q08",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq9",
+      "text": "What changed since last week's project review?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "changed",
+        "since",
+        "last",
+        "week",
+        "project",
+        "review"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q09",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq10",
+      "text": "Do we have enough buses for peak service while tranche 2 is late and the T1 closure runs?",
+      "domains": [
+        "service-readiness"
+      ],
+      "keywords": [
+        "enough",
+        "buses",
+        "peak",
+        "service",
+        "while",
+        "tranche"
+      ],
+      "persona": "Service Planning Lead",
+      "answer_id": "Q10",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ops + keolis_valmont_ppm.ppm + mailbox at question time at medium confidence (0.80)."
+    },
+    {
+      "question_id": "hq11",
+      "text": "Which costs may fall outside the currently authorised scope?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "costs",
+        "fall",
+        "outside",
+        "currently",
+        "authorised",
+        "scope"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q11",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm + mailbox at question time at medium confidence (0.83)."
+    },
+    {
+      "question_id": "hq12",
+      "text": "What will the authority see for the Q3 PPI claim, and what is still only potential?",
+      "domains": [
+        "contract-recovery",
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "will",
+        "authority",
+        "claim",
+        "only",
+        "potential"
+      ],
+      "persona": "Authority Liaison (PPI)",
+      "answer_id": "Q12",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq13",
+      "text": "Which assets must be renewed, and which needs are still unfunded?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "assets",
+        "must",
+        "renewed",
+        "needs",
+        "unfunded"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q13",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ppm at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq14",
+      "text": "Why has the TV-100 overhaul forecast grown?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "overhaul",
+        "forecast",
+        "grown"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q14",
+      "rationale": "Resolves across keolis_valmont_erp.fin + mailbox at question time at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq15",
+      "text": "What is the forecast cost to complete on the TV-100 overhaul, and does it include contingency?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "forecast",
+        "cost",
+        "complete",
+        "overhaul",
+        "include",
+        "contingency"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q15",
+      "rationale": "Resolves across keolis_valmont_erp.fin at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq16",
+      "text": "Which buses are past their contractual replacement date and still in service?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "buses",
+        "past",
+        "contractual",
+        "replacement",
+        "date",
+        "service"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q16",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.contract at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq17",
+      "text": "Did Avenant n°3 change BUS-204's replacement date?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "avenant",
+        "change",
+        "bus-",
+        "replacement",
+        "date"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q17",
+      "rationale": "Resolves across keolis_valmont_ppm.contract + mailbox at question time at high confidence (0.97)."
+    },
+    {
+      "question_id": "hq18",
+      "text": "What did correspondence say about the T1 closure?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "correspondence",
+        "about",
+        "closure"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q18",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq19",
+      "text": "What did suppliers tell us that isn't in the schedule yet?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "suppliers",
+        "tell",
+        "schedule"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q19",
+      "rationale": "Resolves across keolis_valmont_erp.proc + mailbox at question time at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq20",
+      "text": "Which vehicles are released for duty after the battery campaign?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "vehicles",
+        "released",
+        "duty",
+        "after",
+        "battery",
+        "campaign"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q20",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ppm at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq21",
+      "text": "What is the operator exposure on the battery campaign?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "operator",
+        "exposure",
+        "battery",
+        "campaign"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q21",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.contract at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq22",
+      "text": "How many replacement buses can we release for the T1 closure?",
+      "domains": [
+        "service-readiness"
+      ],
+      "keywords": [
+        "many",
+        "replacement",
+        "buses",
+        "release",
+        "closure"
+      ],
+      "persona": "Service Planning Lead",
+      "answer_id": "Q22",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ops + mailbox at question time at medium confidence (0.83)."
+    },
+    {
+      "question_id": "hq23",
+      "text": "Which projects depend on another project or an external approval?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "projects",
+        "depend",
+        "another",
+        "project",
+        "external",
+        "approval"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q23",
+      "rationale": "Resolves across keolis_valmont_ppm.ops + keolis_valmont_ppm.ppm at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq24",
+      "text": "How much spend is not allocated to any project?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "much",
+        "spend",
+        "allocated",
+        "project"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q24",
+      "rationale": "Resolves across keolis_valmont_erp.fin at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq25",
+      "text": "Break down the lift project forecast.",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "break",
+        "down",
+        "lift",
+        "project",
+        "forecast"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q25",
+      "rationale": "Resolves across keolis_valmont_erp.fin at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq26",
+      "text": "If operations spends €25,000 on external maintenance, what does the lift project cost?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "operations",
+        "spends",
+        "external",
+        "maintenance",
+        "lift",
+        "project"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q26",
+      "rationale": "Resolves across keolis_valmont_erp.fin + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq27",
+      "text": "Was the BUS-204 notice sent in time?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "bus-",
+        "notice",
+        "sent",
+        "time"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q27",
+      "rationale": "Resolves across keolis_valmont_eam.eam + mailbox at question time at high confidence (0.96)."
+    },
+    {
+      "question_id": "hq28",
+      "text": "Why is the authority disputing the charging-bank claim?",
+      "domains": [
+        "contract-recovery",
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "authority",
+        "disputing",
+        "charging-bank",
+        "claim"
+      ],
+      "persona": "Authority Liaison (PPI)",
+      "answer_id": "Q28",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq29",
+      "text": "What is the FY2026 capital spend against plan?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "capital",
+        "spend",
+        "against",
+        "plan"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q29",
+      "rationale": "Resolves across keolis_valmont_erp.fin at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq30",
+      "text": "Which assets have the worst condition scores?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "assets",
+        "worst",
+        "condition",
+        "scores"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q30",
+      "rationale": "Resolves across keolis_valmont_eam.eam at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq31",
+      "text": "Which schedule milestones have slipped against baseline?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "schedule",
+        "milestones",
+        "slipped",
+        "against",
+        "baseline"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q31",
+      "rationale": "Resolves across keolis_valmont_ppm.ppm at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq32",
+      "text": "Is tranche 3 funded?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "tranche",
+        "funded"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q32",
+      "rationale": "Resolves across keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq33",
+      "text": "What is the failure frequency of series 201–216 compared with the fleet?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "failure",
+        "frequency",
+        "series",
+        "compared",
+        "fleet"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q33",
+      "rationale": "Resolves across keolis_valmont_eam.eam at medium confidence (0.84)."
+    },
+    {
+      "question_id": "hq34",
+      "text": "Which responsibilities does the DSP assign for tram renewal?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "responsibilities",
+        "assign",
+        "tram",
+        "renewal"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q34",
+      "rationale": "Resolves across keolis_valmont_ppm.contract at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq35",
+      "text": "Which forecasts are out of date?",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "forecasts",
+        "date"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q35",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq36",
+      "text": "What is the status of the SST-04 renewal?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "status",
+        "sst-",
+        "renewal"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q36",
+      "rationale": "Resolves across keolis_valmont_ppm.ppm + mailbox at question time at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq37",
+      "text": "What does the T1 closure do to service?",
+      "domains": [
+        "service-readiness"
+      ],
+      "keywords": [
+        "closure",
+        "service"
+      ],
+      "persona": "Service Planning Lead",
+      "answer_id": "Q37",
+      "rationale": "Resolves across keolis_valmont_eam.eam + keolis_valmont_ppm.ops at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq38",
+      "text": "What was known about the tranche 2 delay when the Q2 review met?",
+      "domains": [
+        "contract-recovery",
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "known",
+        "about",
+        "tranche",
+        "delay",
+        "when",
+        "review"
+      ],
+      "persona": "Authority Liaison (PPI)",
+      "answer_id": "Q38",
+      "rationale": "Resolves across keolis_valmont_erp.proc + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq39",
+      "text": "Show every figure on the portfolio exposure with its source and as-of date.",
+      "domains": [
+        "fleet-infrastructure-sgr"
+      ],
+      "keywords": [
+        "show",
+        "figure",
+        "portfolio",
+        "exposure",
+        "source",
+        "as-of"
+      ],
+      "persona": "Investment Controller",
+      "answer_id": "Q39",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_erp.proc + keolis_valmont_ppm.contract + keolis_valmont_ppm.ppm at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq40",
+      "text": "When does the Celtia warranty start for the new packs?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "when",
+        "celtia",
+        "warranty",
+        "start",
+        "packs"
+      ],
+      "persona": "Rolling Stock Maintenance Lead",
+      "answer_id": "Q40",
+      "rationale": "Resolves across keolis_valmont_ppm.ppm at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq41",
+      "text": "Did the lift project progress report flag any risk?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "service-readiness"
+      ],
+      "keywords": [
+        "lift",
+        "project",
+        "progress",
+        "report",
+        "flag",
+        "risk"
+      ],
+      "persona": "Infrastructure Project Manager",
+      "answer_id": "Q41",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq42",
+      "text": "What recoveries could we claim from the authority this quarter?",
+      "domains": [
+        "contract-recovery"
+      ],
+      "keywords": [
+        "recoveries",
+        "could",
+        "claim",
+        "authority",
+        "quarter"
+      ],
+      "persona": "Commercial & Contract Manager",
+      "answer_id": "Q42",
+      "rationale": "Resolves across keolis_valmont_erp.fin + keolis_valmont_ppm.ppm at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq43",
+      "text": "What evidence supports the decision to approve the T1 works?",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "evidence",
+        "supports",
+        "decision",
+        "approve",
+        "works"
+      ],
+      "persona": "Operating Company Executive",
+      "answer_id": "Q50",
+      "rationale": "Resolves across keolis_valmont_ppm.ppm at high confidence (0.90)."
+    }
+  ],
+  "graph_use_cases": [],
+  "graph_use_case_templates": [
+    {
+      "template_id": "fleet-infrastructure-renewal",
+      "use_case_id": "uc_fleet_infrastructure_renewal",
+      "name": "Fleet & Infrastructure Renewal",
+      "description": "One model over asset condition, project delivery, finance, contract responsibility and evidence, so a renewal question resolves once — with the perspective (operator or authority) stated.",
+      "match_phrases": [
+        "capital renewal",
+        "state of good repair",
+        "fleet renewal",
+        "track renewal",
+        "renewal backlog",
+        "who pays",
+        "operator exposure",
+        "readiness"
+      ],
+      "personas": [
+        "opco-exec",
+        "investment-controller",
+        "maintenance-lead",
+        "infra-pm",
+        "commercial-lead",
+        "service-planning",
+        "authority-liaison"
+      ],
+      "metrics": [
+        "forecast-total-project-cost",
+        "forecast-cost-to-complete",
+        "forecast-budget-variance",
+        "open-commitment",
+        "approved-funding-gap",
+        "operator-exposure",
+        "service-availability-margin",
+        "failure-frequency"
+      ],
+      "hero_questions": [
+        "hq1",
+        "hq2",
+        "hq3",
+        "hq4",
+        "hq5",
+        "hq6",
+        "hq7",
+        "hq8",
+        "hq9",
+        "hq10",
+        "hq11",
+        "hq12",
+        "hq13",
+        "hq14"
+      ]
+    }
+  ],
+  "graph_metrics": [
+    {
+      "metric_id": "forecast-total-project-cost",
+      "name": "Forecast Total Project Cost",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "forecast",
+        "total",
+        "cost",
+        "outturn"
+      ],
+      "definition": "Forecast_Total = [Posted actuals] + [Valid uninvoiced accruals] + [Forecast cost to complete]. Accruals are matched and reversed when invoices arrive; cost to complete excludes work already accrued."
+    },
+    {
+      "metric_id": "forecast-cost-to-complete",
+      "name": "Forecast Cost to Complete",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "cost to complete",
+        "remaining",
+        "ctc"
+      ],
+      "definition": "CTC = [Remaining committed work] + [Expected uncommitted work] + [Contingency held separately]. Never adds the full PO value again."
+    },
+    {
+      "metric_id": "forecast-budget-variance",
+      "name": "Forecast Budget Variance",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "variance",
+        "overrun",
+        "budget"
+      ],
+      "definition": "Variance = [Forecast_Total] − [Current approved budget]. Positive means overrun; the original baseline variance is kept beside it."
+    },
+    {
+      "metric_id": "open-commitment",
+      "name": "Open Commitment",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "commitment",
+        "po",
+        "committed"
+      ],
+      "definition": "Open_Commitment = [Ordered] − [Received] − [Cancelled], at the PO line's valuation basis. Unpaid invoices are not future work."
+    },
+    {
+      "metric_id": "approved-funding-gap",
+      "name": "Approved Funding Gap",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "funding",
+        "gap",
+        "ppi",
+        "grant"
+      ],
+      "definition": "Funding_Gap = [Forecast fundable expenditure] − [Applicable approved funding], applying scope, caps and co-funding; uncovered costs labelled separately."
+    },
+    {
+      "metric_id": "operator-exposure",
+      "name": "Operator Exposure",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "exposure",
+        "operator",
+        "keolis",
+        "ger"
+      ],
+      "definition": "Operator_Exposure = Σ costs borne by Keolis Valmont under validated allocations, with unresolved-exposure scenarios shown separately. Never equal to project cost."
+    },
+    {
+      "metric_id": "service-availability-margin",
+      "name": "Service Availability Margin",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "availability",
+        "peak",
+        "reserve",
+        "margin"
+      ],
+      "definition": "Margin = [Eligible available vehicles] − [Peak requirement] − [Agreed reserve], by class, location and time; each unavailable vehicle subtracted once."
+    },
+    {
+      "metric_id": "failure-frequency",
+      "name": "Failure Frequency",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "failure",
+        "reliability",
+        "per 100,000 km"
+      ],
+      "definition": "Failure_Frequency = [Relevant failures] ÷ [Distance] × 100,000, with a consistent failure taxonomy and peer group."
+    },
+    {
+      "metric_id": "schedule-variance",
+      "name": "Schedule Variance",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "schedule",
+        "slip",
+        "milestone",
+        "baseline"
+      ],
+      "definition": "Schedule_Variance = [Current forecast milestone date] − [Approved baseline milestone date], on the working calendar; approved re-baselining identified."
+    },
+    {
+      "metric_id": "renewal-backlog",
+      "name": "Renewal Backlog",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "backlog",
+        "need",
+        "unfunded",
+        "renewal"
+      ],
+      "definition": "Renewal_Backlog = validated intervention needs not yet completed, by status (unfunded, approved, in progress, deferred), overlapping options de-duplicated."
+    },
+    {
+      "metric_id": "acceptance-completeness",
+      "name": "Documented Acceptance Completeness",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "acceptance",
+        "commissioning",
+        "certificate",
+        "handover"
+      ],
+      "definition": "Completeness = [Verified required acceptance items] ÷ [Applicable required items]. Completeness is not permission to operate."
+    },
+    {
+      "metric_id": "project-cash-position",
+      "name": "Project Cash Position",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "cash",
+        "paid",
+        "received",
+        "claim"
+      ],
+      "definition": "Cash_Position = [Cash paid] − [Project-related cash received] at a stated cutoff; excludes unpaid expense and uncollected approved recovery."
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "ranked-exception",
+      "name": "Ranked exception list",
+      "format": "table ranked by business rules, factors visible, owner per row",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "intervention",
+        "attention",
+        "this week",
+        "exceptions"
+      ]
+    },
+    {
+      "format_id": "exposure-split",
+      "name": "Exposure by perspective",
+      "format": "metric row + authority vs operator split + claim states table",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "exposure",
+        "who pays",
+        "operator",
+        "authority"
+      ]
+    },
+    {
+      "format_id": "readiness-gates",
+      "name": "Readiness gates",
+      "format": "one row per start, one column per gate, untested gates left blank",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "ready",
+        "start",
+        "readiness",
+        "proceed"
+      ]
+    },
+    {
+      "format_id": "established-vs-unresolved",
+      "name": "Established vs unresolved",
+      "format": "two tables: facts with sources, open questions with owners",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "who pays",
+        "responsible",
+        "liable",
+        "recovery"
+      ]
+    },
+    {
+      "format_id": "installed-accepted-eligible",
+      "name": "Installed · accepted · eligible",
+      "format": "three counts side by side + exceptions table",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "complete",
+        "installed",
+        "accepted",
+        "campaign"
+      ]
+    },
+    {
+      "format_id": "variance-explained",
+      "name": "Variance explained",
+      "format": "narrative + metric row + drivers bar with evidence per driver",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "variance",
+        "overrun",
+        "why",
+        "grown"
+      ]
+    },
+    {
+      "format_id": "project-360",
+      "name": "Project 360",
+      "format": "narrative + forecast decomposition + schedule + correspondence",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "project",
+        "status",
+        "on budget",
+        "on time"
+      ]
+    },
+    {
+      "format_id": "what-was-known",
+      "name": "What was known, when",
+      "format": "timeline table by knowledge date",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "known",
+        "when",
+        "history",
+        "at the time"
+      ]
+    },
+    {
+      "format_id": "provenance-table",
+      "name": "Provenance table",
+      "format": "every figure with dataset, basis and as-of",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "source",
+        "provenance",
+        "as-of",
+        "where from"
+      ]
+    },
+    {
+      "format_id": "decline-with-alternative",
+      "name": "Decline with alternative",
+      "format": "reason for declining + what can be answered instead",
+      "domains": [
+        "fleet-infrastructure-sgr",
+        "contract-recovery"
+      ],
+      "keywords": [
+        "predict",
+        "optimise",
+        "roi",
+        "liable"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,628 @@
+{
+  "meta": {
+    "persona_name": "Amélie Roussel",
+    "persona_role": "Contrôleuse de gestion investissements · Keolis Valmont",
+    "persona_initials": "AR",
+    "entity_plural": "renewal projects",
+    "scope_line": "the Keolis Valmont renewal portfolio",
+    "source_trace": "Traces to: keolis_valmont_erp.fin, keolis_valmont_ppm.ppm, keolis_valmont_ppm.contract, as of 2026-09-19.",
+    "entity_singular": "renewal project",
+    "ask_placeholder": "e.g. Which renewal projects are furthest over their approved budget?"
+  },
+  "fields": [
+    {
+      "key": "name",
+      "label": "Project",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "portfolio",
+      "label": "Category",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "region",
+      "label": "Depot",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "phase",
+      "label": "Stage",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "owner",
+      "label": "Owner",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "funding",
+      "label": "Funding",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "partner",
+      "label": "Supplier",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "contract",
+      "label": "Contract form",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "reason",
+      "label": "Variance reason",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "auth",
+      "label": "Approved (€M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "comm",
+      "label": "Committed + spent (€M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "proj",
+      "label": "Forecast (€M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varD",
+      "label": "Variance (€M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varP",
+      "label": "Variance %",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "pct",
+      "label": "% of budget committed",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "status",
+      "label": "Status",
+      "kind": "cat",
+      "filterable": true
+    }
+  ],
+  "assumptions": {
+    "scope": {
+      "value": "active",
+      "label": "the 7 anchor renewal projects"
+    },
+    "measure": {
+      "value": "varD",
+      "label": "approved budget"
+    },
+    "horizon": {
+      "value": "full",
+      "label": "full project life"
+    },
+    "graph": {
+      "value": "kv_sgr",
+      "label": "the Keolis Valmont SGR graph"
+    }
+  },
+  "opts": {
+    "scope": {
+      "q": "Which projects to include?",
+      "options": [
+        {
+          "value": "active",
+          "label": "the 7 anchor renewal projects",
+          "d": "Everything with a decision pending"
+        },
+        {
+          "value": "major",
+          "label": "major projects over €5M",
+          "d": "The largest by budget"
+        }
+      ]
+    },
+    "measure": {
+      "q": "\"Over budget\" measured against?",
+      "options": [
+        {
+          "value": "varD",
+          "label": "approved budget",
+          "d": "The current approved version"
+        }
+      ]
+    },
+    "horizon": {
+      "q": "Over what period?",
+      "options": [
+        {
+          "value": "thisyear",
+          "label": "this financial year",
+          "d": "To 31 December"
+        },
+        {
+          "value": "full",
+          "label": "full project life",
+          "d": "Whole project"
+        },
+        {
+          "value": "contract",
+          "label": "to contract end",
+          "d": "To 31 December 2028"
+        }
+      ]
+    },
+    "graph": {
+      "q": "Which published graph should this run against?",
+      "options": [
+        {
+          "value": "kv_sgr",
+          "label": "the Keolis Valmont SGR graph",
+          "short": "Keolis Valmont SGR",
+          "d": "Published · EAM + ERP + PPM + contract corpus · refreshed today"
+        }
+      ]
+    }
+  },
+  "generators": [
+    {
+      "name": "Tram TV-100 mid-life overhaul (24 trams)",
+      "auth": 31.2,
+      "comm": 28.23,
+      "proj": 32.98,
+      "portfolio": "Fleet — tram",
+      "region": "Centre de maintenance tram La Varenne",
+      "phase": "In delivery",
+      "owner": "Pierre-Yves Collin",
+      "funding": "PPI",
+      "partner": "Transalp",
+      "contract": "Authority contract",
+      "reason": "Frame cracking + indexation",
+      "varD": 1.78,
+      "varP": 5.7,
+      "pct": 90.5,
+      "status": "Delayed"
+    },
+    {
+      "name": "Bus fleet renewal — tranche 2 (24 battery-el",
+      "auth": 14.88,
+      "comm": 14.49,
+      "proj": 14.91,
+      "portfolio": "Fleet — bus",
+      "region": "Dépôt Saint-Roch",
+      "phase": "In delivery",
+      "owner": "Hugo Lambert",
+      "funding": "PPI + GRANT",
+      "partner": "Arvéa",
+      "contract": "Authority contract",
+      "reason": "Inverter allocation delay",
+      "varD": 0.03,
+      "varP": 0.2,
+      "pct": 97.4,
+      "status": "Delayed"
+    },
+    {
+      "name": "Depot charging expansion — Saint-Roch (24 de",
+      "auth": 4.3,
+      "comm": 4.25,
+      "proj": 4.55,
+      "portfolio": "Power & charging",
+      "region": "Dépôt Saint-Roch",
+      "phase": "In delivery",
+      "owner": "Hugo Lambert",
+      "funding": "GRANT + PPI",
+      "partner": "Chargéo",
+      "contract": "Design & build",
+      "reason": "DSO reinforcement share",
+      "varD": 0.25,
+      "varP": 5.8,
+      "pct": 98.8,
+      "status": "Delayed"
+    },
+    {
+      "name": "Battery replacement campaign — Arvéa eCity 1",
+      "auth": 5.12,
+      "comm": 5.0,
+      "proj": 5.1,
+      "portfolio": "Fleet — bus",
+      "region": "Dépôt Saint-Roch",
+      "phase": "Commissioning",
+      "owner": "Julien Faure",
+      "funding": "MIXED",
+      "partner": "Celtia",
+      "contract": "Supply contract",
+      "reason": "Acceptance snags",
+      "varD": -0.02,
+      "varP": -0.4,
+      "pct": 97.7,
+      "status": "At risk"
+    },
+    {
+      "name": "T1 track renewal — Gare Centrale ↔ Pont Neuf",
+      "auth": 3.26,
+      "comm": 2.59,
+      "proj": 3.26,
+      "portfolio": "Track & civil",
+      "region": "Centre de maintenance tram La Varenne",
+      "phase": "Approved",
+      "owner": "Inès Benali",
+      "funding": "PPI",
+      "partner": "VTC",
+      "contract": "Works contract",
+      "reason": "Access and rev C scope",
+      "varD": 0.0,
+      "varP": 0.0,
+      "pct": 79.4,
+      "status": "On track"
+    },
+    {
+      "name": "Traction substation SST-04 renewal (Pont Neu",
+      "auth": 2.45,
+      "comm": 1.5,
+      "proj": 2.45,
+      "portfolio": "Power & charging",
+      "region": "Centre de maintenance tram La Varenne",
+      "phase": "Approved",
+      "owner": "Inès Benali",
+      "funding": "PPI",
+      "partner": "Électro-Réseaux Ouest",
+      "contract": "Design & build",
+      "reason": "Rectifier lead time",
+      "varD": 0.0,
+      "varP": 0.0,
+      "pct": 61.2,
+      "status": "Delayed"
+    },
+    {
+      "name": "Lift replacement — Dépôt Les Aubiers (column",
+      "auth": 0.4,
+      "comm": 0.33,
+      "proj": 0.39,
+      "portfolio": "Depot & workshop",
+      "region": "Dépôt Les Aubiers",
+      "phase": "In delivery",
+      "owner": "Sandrine Pelletier",
+      "funding": "GER",
+      "partner": "Levantis",
+      "contract": "Purchase order",
+      "reason": "Control-unit delay",
+      "varD": -0.01,
+      "varP": -2.5,
+      "pct": 82.5,
+      "status": "On track"
+    }
+  ],
+  "facilities": [],
+  "quarters": [],
+  "traces": [],
+  "starters": [
+    {
+      "id": "rep_q_intervention",
+      "report_tag": "intervention-review",
+      "label": "Intervention Review",
+      "title": "Intervention Review",
+      "q": "Show which renewal projects need a decision, and refuse to rank them by one hidden score.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varD"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varD"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "comm",
+            "proj",
+            "varD"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_proj_360",
+      "report_tag": "project-360",
+      "label": "Project 360",
+      "title": "Project 360",
+      "q": "Give one project's full financial position with the provenance attached.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varD"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "proj"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "comm",
+            "proj",
+            "varD"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_ppi_claim",
+      "report_tag": "ppi-claim-pack",
+      "label": "PPI Claim Pack",
+      "title": "PPI Claim Pack",
+      "q": "Show what can be claimed from the authority this quarter, and keep potential apart from claimed.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varD"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varD"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "comm",
+            "proj",
+            "varD"
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "label": "Summary tiles",
+      "d": "Projects, budget, forecast, variance",
+      "block": {
+        "type": "kpis",
+        "title": "Summary",
+        "kpis": [
+          "count",
+          "auth",
+          "proj",
+          "varD"
+        ]
+      }
+    },
+    {
+      "label": "Variance chart",
+      "d": "Projects ranked by variance to approved budget",
+      "block": {
+        "type": "chart",
+        "title": "Variance to budget by project",
+        "chartType": "bar",
+        "measure": "varD"
+      }
+    },
+    {
+      "label": "Forecast chart",
+      "d": "Forecast total per project",
+      "block": {
+        "type": "chart",
+        "title": "Forecast by project",
+        "chartType": "column",
+        "measure": "proj"
+      }
+    },
+    {
+      "label": "Project detail",
+      "d": "One row per project, with status and the figures behind it",
+      "block": {
+        "type": "table",
+        "title": "Detail",
+        "cols": [
+          "name",
+          "status",
+          "auth",
+          "comm",
+          "proj",
+          "varD"
+        ]
+      }
+    }
+  ],
+  "slice_default": [
+    "portfolio",
+    "region",
+    "phase",
+    "status"
+  ],
+  "audiences": [
+    {
+      "key": "business_user_exec",
+      "label": "Business User -- Executive",
+      "d": "All contracts, all projects, all financials. The persona the executive walkthrough is written for."
+    },
+    {
+      "key": "analyst",
+      "label": "Data Analyst",
+      "d": "All projects and financials. Supplier contacts and technician narratives masked (PII)."
+    },
+    {
+      "key": "architect",
+      "label": "Domain Architect",
+      "d": "Everything, at every grain, including supplier commercial terms and the contract register."
+    },
+    {
+      "key": "admin",
+      "label": "Platform Admin",
+      "d": "Structure, lineage, cost and access. No financial values -- an admin configures the platform, not the portfolio."
+    }
+  ],
+  "library": [],
+  "row_model": {
+    "label": "name",
+    "sublabel": "{portfolio} · {phase} · {owner}",
+    "status": "status",
+    "tones": {
+      "Delayed": "over",
+      "At risk": "warn",
+      "On track": "ok"
+    },
+    "scopes": {
+      "active": {},
+      "major": {
+        "field": "auth",
+        "op": "gt",
+        "value": 5
+      }
+    },
+    "measures": [
+      "varD",
+      "varP",
+      "pct",
+      "proj",
+      "auth",
+      "comm"
+    ],
+    "kpis": [
+      {
+        "key": "count",
+        "label": "Projects in scope",
+        "agg": "rows"
+      },
+      {
+        "key": "auth",
+        "label": "Approved budget",
+        "agg": "sum",
+        "field": "auth",
+        "format": "money_m"
+      },
+      {
+        "key": "proj",
+        "label": "Forecast total",
+        "agg": "sum",
+        "field": "proj",
+        "format": "money_m"
+      },
+      {
+        "key": "varD",
+        "label": "Variance to budget",
+        "agg": "sum",
+        "field": "varD",
+        "format": "money_m"
+      },
+      {
+        "key": "delayed",
+        "label": "Delayed",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "Delayed",
+        "tone": "bad"
+      },
+      {
+        "key": "atrisk",
+        "label": "At risk",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "At risk",
+        "tone": "warn"
+      }
+    ],
+    "formats": {
+      "auth": "money_m",
+      "comm": "money_m",
+      "proj": "money_m",
+      "varD": "money_m",
+      "varP": "pct",
+      "pct": "pct",
+      "status": "text"
+    },
+    "labels": {},
+    "pills": {},
+    "blocks": [
+      "kpis",
+      "chart",
+      "table"
+    ],
+    "footer": []
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "stats": [
+    {
+      "label": "Access rules in force",
+      "value": "6",
+      "note": "1 of 6 readers carries a restriction"
+    },
+    {
+      "label": "PII columns",
+      "value": "6",
+      "note": "across 34 catalogued tables",
+      "tone": "good"
+    },
+    {
+      "label": "Columns to review",
+      "value": "27",
+      "note": "profiler confidence below the accept floor",
+      "tone": "warn"
+    },
+    {
+      "label": "Cost-cap headroom",
+      "value": "21%",
+      "note": "tightest: Ask (tenant) at 79.0%",
+      "tone": "warn"
+    }
+  ],
+  "events": [
+    {
+      "actor": "Inès Benali",
+      "action": "Opened Portfolio Intervention Review",
+      "resource": "Portfolio Intervention Review",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 09:12",
+      "detail": "Her access resolved: category = infrastructure — 19 of 38 projects today.",
+      "category": "open"
+    },
+    {
+      "actor": "Claire Moreau",
+      "action": "Opened Portfolio Intervention Review",
+      "resource": "Portfolio Intervention Review",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 08:47",
+      "detail": "Her access resolved: all 38 projects, no masks.",
+      "category": "open"
+    },
+    {
+      "actor": "system",
+      "action": "Scheduled refresh ran on Portfolio Intervention Review",
+      "resource": "Portfolio Intervention Review",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 07:00",
+      "detail": "Finance and PPM blocks refreshed. Correspondence blocks are read at open time and are not part of the schedule.",
+      "category": "ref"
+    },
+    {
+      "actor": "Amélie Roussel",
+      "action": "Published what-if scenario Index exposure — TV-100 overhaul",
+      "resource": "what-if scenario Index exposure — TV-100 overhaul",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Sep 23 16:40",
+      "detail": "2 readers · 2 cases (Base case, Index +8%) · points to graph v1",
+      "category": "pub"
+    },
+    {
+      "actor": "Thomas Garnier",
+      "action": "Published graph Keolis Valmont SGR v1",
+      "resource": "graph v1",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Sep 23 15:58",
+      "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+      "category": "pub"
+    },
+    {
+      "actor": "Thomas Garnier",
+      "action": "Changed rule for Inès Benali",
+      "resource": "data access rule",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Sep 23 11:05",
+      "detail": "Restriction basis = category (infrastructure). Supplier commitments masked.",
+      "category": "rule"
+    },
+    {
+      "actor": "Julien Faure",
+      "action": "Opened Project 360 — P-VM-031",
+      "resource": "Project 360",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Sep 22 17:20",
+      "detail": "His access resolved: all projects; technician narratives masked.",
+      "category": "open"
+    },
+    {
+      "actor": "Amélie Roussel",
+      "action": "Exported PPI Claim Pack (XLSX)",
+      "resource": "PPI Claim Pack",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Sep 22 14:02",
+      "detail": "Export carries the watermark and the as-of line; potential lines are exported on a separate sheet.",
+      "category": "export"
+    },
+    {
+      "actor": "system",
+      "action": "Sealed trace for 'Who pays for the BUS-204 engine repair?'",
+      "resource": "trace_kv03",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Sep 22 10:31",
+      "detail": "4 spans · €0.12 · confidence 0.84",
+      "category": "ref"
+    },
+    {
+      "actor": "Marc Delorme",
+      "action": "Changed persona access for Business User — Project Level",
+      "resource": "settings",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Sep 21 09:15",
+      "detail": "Reports hidden from the sidebar for all personas (beta).",
+      "category": "rule"
+    }
+  ],
+  "policies": [
+    {
+      "name": "Two gates",
+      "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Counts are computed",
+      "desc": "Every count on this screen — \"sees 19 of 38\" — is derived from the project roster at paint time, never typed.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Rule shape",
+      "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Legal basis",
+      "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (project, category, depot, contract, funding source).",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Authority view",
+      "desc": "An authority reader sees project costs, approved scope and delivery evidence; operator margin and GER provision stay restricted.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Correspondence is runtime",
+      "desc": "Mailbox content is read at question time under the reader's permissions and never becomes a graph fact or a cached figure.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Contract exit",
+      "desc": "Deletion and handback at contract end apply to originals, extracts, indexes, cached answers and derived datasets.",
+      "status": "Enforced",
+      "tone": "good"
+    }
+  ],
+  "event_window": "Last 7 days · 10 events",
+  "policy_total": 7,
+  "categories": [
+    {
+      "id": "all",
+      "label": "All"
+    },
+    {
+      "id": "pub",
+      "label": "Publishing"
+    },
+    {
+      "id": "open",
+      "label": "Opens"
+    },
+    {
+      "id": "rule",
+      "label": "Rule changes"
+    },
+    {
+      "id": "ref",
+      "label": "Refreshes"
+    },
+    {
+      "id": "export",
+      "label": "Exports"
+    }
+  ]
+}

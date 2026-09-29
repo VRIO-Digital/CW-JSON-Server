@@ -128,6 +128,7 @@ import {
 } from './studioLanes.js'
 import { loadCapexDocument } from './capex-loader.js'
 import { loadEpaDocument } from './epa-loader.js'
+import { loadKeolisDocument } from './keolis-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -289,6 +290,15 @@ const loadedDocs = await Promise.all(
         console.error(`\nmock-server: refusing to start — cannot load CAPEX split files.`)
         console.error(`  · ${error.message}`)
         console.error(`\n  Rebuild the split files:\n      npm run split:capex\n`)
+        process.exit(1)
+      })
+    }
+    /* KEOLIS loads from split files in keolis/ folder, written by the ingest */
+    if (name === 'KEOLIS') {
+      return loadKeolisDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load KEOLIS split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Rebuild the split files from the demo package:\n      npm run ingest:keolis\n`)
         process.exit(1)
       })
     }
@@ -2336,7 +2346,14 @@ async function writeSplitFiles(merged, dataset) {
   // NOTE: settings are NOT included here — they are shared across all datasets and written to backend/settings.json
   const splitMapping = [
     { file: `${dsLower}_sources.json`, keys: ['projects', 'credentials', 'column_profiles', 'column_vocabulary', 'drives', 'drive_credentials', 'document_extractions', 'mail_corpus', 'registered'] },
-    { file: `${dsLower}_catalogue.json`, keys: ['document_vocabulary'] },
+    /*
+     * `data_model` and `change_signals` are the dataset's own, not the tenant's: a data-model
+     * entity is keyed `"<dataset>.<table>"` into *this* dataset's tables, and a signal describes
+     * this dataset's sources. They lived in the shared settings write for a while, which meant one
+     * dataset's declarations clobbered every other's at the next boot — moved here when KEOLIS
+     * arrived shipping 26 declared entities of its own.
+     */
+    { file: `${dsLower}_catalogue.json`, keys: ['document_vocabulary', 'data_model', 'change_signals'] },
     { file: `${dsLower}_new_graph.json`, keys: ['graph_domains', 'graph_personas', 'graph_hero_questions', 'graph_use_cases', 'graph_use_case_templates', 'graph_metrics', 'graph_answer_formats', 'graph_kpis'] },
     { file: `${dsLower}_graph_studio.json`, keys: ['graph_studio', 'studio_graph'] },
     { file: `${dsLower}_reports.json`, keys: ['reports', 'reports_prototype', 'report_defaults', 'report_permissions'] },
@@ -2434,15 +2451,15 @@ async function commitDb(next) {
   invalidateMerged()
 
   try {
-    // Write shared settings to backend/settings.json (common across all datasets)
-    if (next.settings || next.auth_roles || next.google_account || next.change_signals || next.data_model || next._meta) {
+    // Write shared settings to backend/settings.json (common across all datasets).
+    // Only the tenant-level keys travel here: `change_signals` and `data_model` are the
+    // dataset's own and go out through writeSplitFiles — a per-dataset value written to the
+    // shared file would be claimed by every dataset at the next boot.
+    if (next.settings || next.auth_roles || next.google_account) {
       const settingsData = {}
       if ('google_account' in next) settingsData.google_account = next.google_account
       if ('settings' in next) settingsData.settings = next.settings
       if ('auth_roles' in next) settingsData.auth_roles = next.auth_roles
-      if ('change_signals' in next) settingsData.change_signals = next.change_signals
-      if ('data_model' in next) settingsData.data_model = next.data_model
-      if ('_meta' in next) settingsData._meta = next._meta
       await writeSharedSettings(settingsData)
     }
     // Write dataset-specific files

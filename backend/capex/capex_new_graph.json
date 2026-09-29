@@ -857,75 +857,7 @@
       "rationale": "Resolves across Change Order Log exhibits, 5 conformed agreements + Email — Kelso Ridge Constructors, 2026-03-08 + Email — Delmar Sinclair Construction Co., 2026-01-24 + Email — Delmar Sinclair Construction Co., 2026-06-12 + CO:* ← references ← observation at high confidence (0.87)."
     }
   ],
-  "graph_use_cases": [
-    {
-      "use_case_id": "uc-testdata-mulbacdo8",
-      "name": "testdata",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "test1",
-      "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai",
-          "origin": null
-        }
-      ],
-      "metrics": [
-        {
-          "name": "Contract Escalation Exposure",
-          "description": "The value of this period's work booked under contract lines carrying an escalation clause, as a share of contracted spend.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        },
-        {
-          "name": "Work Order Backlog Age",
-          "description": "Median age in days of work orders that are open and past their scheduled start.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        },
-        {
-          "name": "Cost per Work Order by Vendor",
-          "description": "Mean cost of a completed work order, grouped by the vendor that carried it out and normalised by work-order class.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "gdrive:capital-delivery-docs",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "gmail:nishant.srivastav@vriodigital.com",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "If spend continues at the current rate, where does the year land?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT `ITD Actuals`, `FY23 Actuals`, `FY24 Actuals`, `FY25 Actuals`, `FY26 Actuals`, `Rate Impact`\nFROM `plan`.`vw_project_plan_capex`\nLIMIT 1000"
-        }
-      ],
-      "gap_decisions": [],
-      "golden_query_files": [],
-      "step": 5,
-      "updated_at": "2026-09-28T13:57:47.989Z"
-    }
-  ],
+  "graph_use_cases": [],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",

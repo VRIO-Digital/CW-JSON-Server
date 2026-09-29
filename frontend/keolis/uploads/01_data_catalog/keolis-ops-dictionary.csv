@@ -1,0 +1,12 @@
+table,column,data_type,semantic_class,description,pii,table_grain
+service_requirement,timetable_version,STRING,classification,Timetable in force (HIV-2026 from 2026-09-01).,no,one vehicle class x day type x timetable version
+service_requirement,vehicle_class,STRING,classification,"Bus 12 m, Bus 18 m, Tram.",no,one vehicle class x day type x timetable version
+service_requirement,day_type,STRING,classification,"Weekday, Saturday, Sunday, School holiday.",no,one vehicle class x day type x timetable version
+service_requirement,peak_required,INT64,measure,Vehicles required at peak.,no,one vehicle class x day type x timetable version
+service_requirement,reserve_required,INT64,measure,Agreed operating reserve.,no,one vehicle class x day type x timetable version
+access_window,access_ref,STRING,identifier,Request key (ACC-T1-2026-031).,no,one access request
+access_window,segment_id,STRING,identifier,Track segment (TRK-T1-S07).,no,one access request
+access_window,window_start,TIMESTAMP,date,Requested start.,no,one access request
+access_window,window_end,TIMESTAMP,date,Requested end.,no,one access request
+access_window,status,STRING,lifecycle_state,"Requested, Provisional, Approved, Refused. Only Approved is access.",no,one access request
+access_window,substitution_buses,INT64,measure,Replacement buses planned for the closure.,no,one access request

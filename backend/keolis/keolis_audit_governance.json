@@ -1,0 +1,571 @@
+{
+  "audit": {
+    "stats": [
+      {
+        "label": "Access rules in force",
+        "value": "6",
+        "note": "1 of 6 readers carries a restriction"
+      },
+      {
+        "label": "PII columns",
+        "value": "6",
+        "note": "across 34 catalogued tables",
+        "tone": "good"
+      },
+      {
+        "label": "Columns to review",
+        "value": "27",
+        "note": "profiler confidence below the accept floor",
+        "tone": "warn"
+      },
+      {
+        "label": "Cost-cap headroom",
+        "value": "21%",
+        "note": "tightest: Ask (tenant) at 79.0%",
+        "tone": "warn"
+      }
+    ],
+    "events": [
+      {
+        "actor": "Inès Benali",
+        "action": "Opened Portfolio Intervention Review",
+        "resource": "Portfolio Intervention Review",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 09:12",
+        "detail": "Her access resolved: category = infrastructure — 19 of 38 projects today.",
+        "category": "open"
+      },
+      {
+        "actor": "Claire Moreau",
+        "action": "Opened Portfolio Intervention Review",
+        "resource": "Portfolio Intervention Review",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 08:47",
+        "detail": "Her access resolved: all 38 projects, no masks.",
+        "category": "open"
+      },
+      {
+        "actor": "system",
+        "action": "Scheduled refresh ran on Portfolio Intervention Review",
+        "resource": "Portfolio Intervention Review",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 07:00",
+        "detail": "Finance and PPM blocks refreshed. Correspondence blocks are read at open time and are not part of the schedule.",
+        "category": "ref"
+      },
+      {
+        "actor": "Amélie Roussel",
+        "action": "Published what-if scenario Index exposure — TV-100 overhaul",
+        "resource": "what-if scenario Index exposure — TV-100 overhaul",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Sep 23 16:40",
+        "detail": "2 readers · 2 cases (Base case, Index +8%) · points to graph v1",
+        "category": "pub"
+      },
+      {
+        "actor": "Thomas Garnier",
+        "action": "Published graph Keolis Valmont SGR v1",
+        "resource": "graph v1",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Sep 23 15:58",
+        "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+        "category": "pub"
+      },
+      {
+        "actor": "Thomas Garnier",
+        "action": "Changed rule for Inès Benali",
+        "resource": "data access rule",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Sep 23 11:05",
+        "detail": "Restriction basis = category (infrastructure). Supplier commitments masked.",
+        "category": "rule"
+      },
+      {
+        "actor": "Julien Faure",
+        "action": "Opened Project 360 — P-VM-031",
+        "resource": "Project 360",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Sep 22 17:20",
+        "detail": "His access resolved: all projects; technician narratives masked.",
+        "category": "open"
+      },
+      {
+        "actor": "Amélie Roussel",
+        "action": "Exported PPI Claim Pack (XLSX)",
+        "resource": "PPI Claim Pack",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Sep 22 14:02",
+        "detail": "Export carries the watermark and the as-of line; potential lines are exported on a separate sheet.",
+        "category": "export"
+      },
+      {
+        "actor": "system",
+        "action": "Sealed trace for 'Who pays for the BUS-204 engine repair?'",
+        "resource": "trace_kv03",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Sep 22 10:31",
+        "detail": "4 spans · €0.12 · confidence 0.84",
+        "category": "ref"
+      },
+      {
+        "actor": "Marc Delorme",
+        "action": "Changed persona access for Business User — Project Level",
+        "resource": "settings",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Sep 21 09:15",
+        "detail": "Reports hidden from the sidebar for all personas (beta).",
+        "category": "rule"
+      }
+    ],
+    "policies": [
+      {
+        "name": "Two gates",
+        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Counts are computed",
+        "desc": "Every count on this screen — \"sees 19 of 38\" — is derived from the project roster at paint time, never typed.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Rule shape",
+        "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Legal basis",
+        "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (project, category, depot, contract, funding source).",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Authority view",
+        "desc": "An authority reader sees project costs, approved scope and delivery evidence; operator margin and GER provision stay restricted.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Correspondence is runtime",
+        "desc": "Mailbox content is read at question time under the reader's permissions and never becomes a graph fact or a cached figure.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Contract exit",
+        "desc": "Deletion and handback at contract end apply to originals, extracts, indexes, cached answers and derived datasets.",
+        "status": "Enforced",
+        "tone": "good"
+      }
+    ],
+    "event_window": "Last 7 days · 10 events",
+    "policy_total": 7,
+    "categories": [
+      {
+        "id": "all",
+        "label": "All"
+      },
+      {
+        "id": "pub",
+        "label": "Publishing"
+      },
+      {
+        "id": "open",
+        "label": "Opens"
+      },
+      {
+        "id": "rule",
+        "label": "Rule changes"
+      },
+      {
+        "id": "ref",
+        "label": "Refreshes"
+      },
+      {
+        "id": "export",
+        "label": "Exports"
+      }
+    ]
+  },
+  "traces": {
+    "stats": [
+      {
+        "label": "p50 duration",
+        "value": "3.3 s",
+        "note": "across 11 sealed traces"
+      },
+      {
+        "label": "p95 duration",
+        "value": "7.9 s",
+        "note": "longest: Can the T1 track renewal at Gare Centrale st",
+        "tone": "warn"
+      },
+      {
+        "label": "Unaccounted time",
+        "value": "790 ms",
+        "note": "shown as a gap, never folded into a step"
+      },
+      {
+        "label": "Cost this window",
+        "value": "$1.01",
+        "note": "against the $2.00 per-question budget"
+      }
+    ],
+    "items": [
+      {
+        "id": "trace_kv01",
+        "operation": "Can the T1 track renewal at Gare Centrale start on 17 October?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 7900,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-09-23T15:00:00Z",
+        "actor": "Inès Benali",
+        "confidence": 0.89,
+        "cost_usd": 0.18,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv02",
+        "operation": "Which renewal projects need intervention this week, and why?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 6200,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-09-23T14:13:29Z",
+        "actor": "Claire Moreau",
+        "confidence": 0.88,
+        "cost_usd": 0.14,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv03",
+        "operation": "Who pays for the BUS-204 engine repair?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 4100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-23T13:26:58Z",
+        "actor": "Claire Moreau",
+        "confidence": 0.84,
+        "cost_usd": 0.1,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv04",
+        "operation": "What is our full financial exposure on the renewal portfolio?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 3300,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-23T12:39:27Z",
+        "actor": "Amélie Roussel",
+        "confidence": 0.86,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv05",
+        "operation": "Is the depot lift replacement at Les Aubiers still on budget, and is it on time?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 3900,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-23T11:52:56Z",
+        "actor": "Amélie Roussel",
+        "confidence": 0.87,
+        "cost_usd": 0.1,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv06",
+        "operation": "Is the battery replacement campaign complete?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 1800,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-23T10:05:25Z",
+        "actor": "Julien Faure",
+        "confidence": 0.93,
+        "cost_usd": 0.06,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv07",
+        "operation": "Do we have enough buses for peak service while tranche 2 is late and the T1 closure runs?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 2600,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-22T09:18:54Z",
+        "actor": "Nishant Srivastav",
+        "confidence": 0.8,
+        "cost_usd": 0.07,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv08",
+        "operation": "Why has the TV-100 overhaul forecast grown?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 2900,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-22T08:31:23Z",
+        "actor": "Claire Moreau",
+        "confidence": 0.87,
+        "cost_usd": 0.08,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv09",
+        "operation": "What did suppliers tell us that isn't in the schedule yet?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 5200,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-09-22T07:44:52Z",
+        "actor": "Amélie Roussel",
+        "confidence": 0.86,
+        "cost_usd": 0.12,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv10",
+        "operation": "Predict which trams will fail in the next quarter.",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 700,
+        "spans": 2,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-22T06:57:21Z",
+        "actor": "Julien Faure",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      },
+      {
+        "id": "trace_kv11",
+        "operation": "Is tranche 3 funded?",
+        "service": "Keolis Valmont SGR graph v1",
+        "duration": 2100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-09-22T05:10:50Z",
+        "actor": "Claire Moreau",
+        "confidence": 0.92,
+        "cost_usd": 0.06,
+        "sealed": true
+      }
+    ],
+    "sampling": "Every question is sealed — no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "waterfall": {
+      "trace_id": "trace_kv01",
+      "operation": "Can the T1 track renewal at Gare Centrale start on 17 October?",
+      "total_ms": 7900,
+      "unaccounted_ms": 790,
+      "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+      "spans": [
+        {
+          "name": "Understand & plan",
+          "start": 0,
+          "duration": 320,
+          "agent": "supervisor",
+          "detail": "classified: readiness · runtime source required"
+        },
+        {
+          "name": "Resolve the subject",
+          "start": 320,
+          "duration": 540,
+          "agent": "graph agent",
+          "detail": "P-VM-008 → TRK-T1-S07 → ACC-T1-2026-031 → drawing rev C"
+        },
+        {
+          "name": "Read governed facts",
+          "start": 860,
+          "duration": 1450,
+          "agent": "graph agent",
+          "detail": "ppm.schedule_task · ops.access_window · approval_decision (as of 2026-09-19)"
+        },
+        {
+          "name": "Pull correspondence",
+          "start": 2310,
+          "duration": 3100,
+          "agent": "runtime agent",
+          "detail": "src_gmail · 30-day window · 1 mailbox in scope · permissions follow the reader"
+        },
+        {
+          "name": "Extract & resolve observations",
+          "start": 5410,
+          "duration": 1700,
+          "agent": "runtime agent",
+          "detail": "4 extractions → 4 above the 0.70 floor → resolved against P-VM-008"
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [
+      {
+        "label": "Suites",
+        "value": "6",
+        "note": "all derived from package artifacts"
+      },
+      {
+        "label": "Hero questions answerable",
+        "value": "4 of 5",
+        "note": "graph sanity checks",
+        "tone": "warn"
+      },
+      {
+        "label": "High-confidence answers",
+        "value": "44 of 50",
+        "note": "6 medium, 0 low"
+      },
+      {
+        "label": "Must-review graph items",
+        "value": "8",
+        "note": "0 resolved · 1 pivot",
+        "tone": "crit"
+      }
+    ],
+    "runs": [
+      {
+        "suite": "hero-question-answerability",
+        "target": "g_keolis_valmont_sgr · 5 checks",
+        "checks": 5,
+        "pass_rate": 80,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-09-23"
+      },
+      {
+        "suite": "answer-confidence",
+        "target": "query set · 50 questions",
+        "checks": 50,
+        "pass_rate": 88,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-09-23"
+      },
+      {
+        "suite": "refusal-correctness",
+        "target": "7 declines",
+        "checks": 7,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-09-23"
+      },
+      {
+        "suite": "authorisation-not-promoted",
+        "target": "expectations, drafts, conditional approvals",
+        "checks": 6,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-09-23"
+      },
+      {
+        "suite": "citation-validity",
+        "target": "159 citations",
+        "checks": 159,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-09-23"
+      },
+      {
+        "suite": "financial-reconciliation",
+        "target": "portfolio control totals vs fin close M08",
+        "checks": 12,
+        "pass_rate": 91.7,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-09-23"
+      }
+    ],
+    "checks": [
+      {
+        "name": "sc1 · Which renewal projects need intervention this week, and why?",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - factors kept visible"
+      },
+      {
+        "name": "sc2 · Who pays for the BUS-204 engine repair?",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - established vs unresolved"
+      },
+      {
+        "name": "sc3 · Is the battery replacement campaign complete?",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "Depends on pivot rq1 staying 'keep distinct'"
+      },
+      {
+        "name": "sc4 · Enough buses for peak while tranche 2 is late?",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "Vehicles only — crews not connected"
+      },
+      {
+        "name": "sc5 · Predict which trams will fail next quarter",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Refused",
+        "tone": "crit",
+        "detail": "Declined - required inputs have no instances"
+      },
+      {
+        "name": "No expectation promoted to approval (tranche 3)",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq5 held as reported expectation"
+      },
+      {
+        "name": "Reused fleet number not merged (BUS-104)",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq4 kept distinct pending review"
+      },
+      {
+        "name": "Unallocated spend kept visible",
+        "dataset": "g_keolis_valmont_sgr",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "€1,312,480 · 412 lines · not spread"
+      }
+    ],
+    "run_trigger": "On graph build and on query-set regeneration",
+    "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (accrual timing, €18,400) open with finance"
+  }
+}

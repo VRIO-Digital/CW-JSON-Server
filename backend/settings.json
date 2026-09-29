@@ -138,7 +138,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
-        "ai-submissions": false,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -213,10 +213,5 @@
       "label": "Platform Admin",
       "access_note": "No business figures. Structure, lineage, cost and access only."
     }
-  ],
-  "change_signals": [],
-  "data_model": {
-    "suggestions": [],
-    "entities": []
-  }
+  ]
 }

@@ -1,0 +1,114 @@
+{
+  "documents": [
+    {
+      "document_id": "5d4f5223-268c-5927-8443-89fcdf61deb6",
+      "label_id": "INBOX",
+      "name": "EM-01_P-VM-021_lift-HPU-delivery-slip.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 1122,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · LIFT REPLACEMENT — DEPOT LES AUBIERS\nPO-4500018812 line 30 — HPU-9 control unit — revised delivery\nLevantis Équipements — service planning\n2026-09-16T08:12:00Z\nOur hydraulic valve block supplier has moved its d",
+      "entities": 6
+    },
+    {
+      "document_id": "009b6230-9430-5a8d-96ff-7154dd786e7a",
+      "label_id": "INBOX",
+      "name": "EM-02_P-VM-008_T1-closure-access-and-scope.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 869,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · T1 TRACK RENEWAL\nACC-T1-2026-031 — T1 weekend closure 17–19 October\nOlivier Mercier\n2026-09-10T10:22:00Z\nWe cannot approve the closure until we have the final replacement-bus plan and the communication plan for",
+      "entities": 6
+    },
+    {
+      "document_id": "18b31764-1965-5781-85af-af5bc5c3c232",
+      "label_id": "INBOX",
+      "name": "EM-03_P-VM-031_battery-acceptance-snags.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 573,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · BATTERY REPLACEMENT CAMPAIGN\nP-VM-031 — BUS-417 and BUS-431 — corrective actions\nCeltia Energy Systems — field service\n2026-09-17T11:10:00Z\nBUS-417: we will replace the BMS master board on 29 September. BUS-431",
+      "entities": 4
+    },
+    {
+      "document_id": "c268f841-41f1-52d0-a8ab-7390e74236ef",
+      "label_id": "INBOX",
+      "name": "EM-04_N-VM-044_BUS-204-article-34-4-notice.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 765,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · CONTRACT & COMMERCIAL\nKV-DIR-2026-0412 — Notification under Article 34.4 — BUS-204\nValérie Chauvin\n2026-07-29T09:02:00Z\nIn accordance with Article 34.4.2 we notify the failure of the engine of BUS-204 on 12 Jul",
+      "entities": 4
+    },
+    {
+      "document_id": "3ba0aa2d-dbd7-5904-bee5-9b09d3b146e1",
+      "label_id": "INBOX",
+      "name": "EM-05_P-VM-014_tranche2-batch3-delivery.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 559,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · FLEET RENEWAL TRANCHE 2\nVM-2025-BUS-02 batch 3 — inverter allocation\nArvéa Mobility — customer programme\n2026-09-08T08:30:00Z\nWe now expect batch 3 inverters in week 41. Vehicle delivery 30 September is at risk",
+      "entities": 4
+    },
+    {
+      "document_id": "ecbb3b59-67e0-5138-981a-9d890e54dd0f",
+      "label_id": "INBOX",
+      "name": "EM-06_P-VM-026_claim-dispute-and-tranche3-funding.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 516,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · FUNDING & CLAIMS\nCLM-2026-Q2-02 — grid connection works\nNathalie Brun\n2026-07-10T17:40:00Z\nWe are not in a position to accept €212,000 of the Saint-Roch reinforcement works under the PPI convention, which cover",
+      "entities": 4
+    },
+    {
+      "document_id": "dad092da-1240-57ec-bc6c-46b647168699",
+      "label_id": "INBOX",
+      "name": "EM-07_P-VM-005_TV-100-frame-change-request.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 640,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · TRAM TV-100 OVERHAUL\nRC-005-009 — frame replacement — cost and programme\nTransalp Rail Services — project director\n2026-06-24T10:00:00Z\nOur change request RC-005-009 prices frame replacement at €2,640,000 for a",
+      "entities": 4
+    },
+    {
+      "document_id": "7b54f230-2302-54aa-96e1-bc1b34d60001",
+      "label_id": "INBOX",
+      "name": "EM-08_P-VM-017_P-VM-008_supplier-and-resource-constraints.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 494,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · SUBSTATION & SERVICE PLANNING\nSST-04 — rectifier lead time\nÉlectro-Réseaux Ouest\n2026-08-21T11:50:00Z\nThe replacement rectifier group now has a 38-week lead time (previously 30). Delivery moves from February to",
+      "entities": 4
+    },
+    {
+      "document_id": "ff6496ee-d69d-595f-b3ac-9bf36ad4d63f",
+      "label_id": "INBOX",
+      "name": "EM-09_DSP-VM-2021_avenant-3-transmission.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 299,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · CONTRACT & COMMERCIAL\nAvenant n°3 — executed copy\nOlivier Mercier\n2026-04-18T09:30:00Z\nPlease find the executed Avenant n°3, signed on 27 March and effective from 1 April 2026. It moves the replacement date of ",
+      "entities": 1
+    },
+    {
+      "document_id": "91cc2c90-81c6-5f2c-b342-53405373a1a3",
+      "label_id": "INBOX",
+      "name": "EM-10_portfolio-forecast-completeness.pdf",
+      "mime_type": "application/pdf",
+      "pages": 1,
+      "size_chars": 305,
+      "chunks": 1,
+      "snippet": "KEOLIS VALMONT · CAPITAL RENEWAL MAILBOX EXPORT · PORTFOLIO CONTROLLING\nPortfolio — forecasts missing\nAmélie Roussel\n2026-09-21T18:05:00Z\nFour projects have no forecast snapshot since June (P-VM-046, P-VM-053, P-VM-061, P-VM-064). I would not say the portfolio",
+      "entities": 0
+    }
+  ]
+}

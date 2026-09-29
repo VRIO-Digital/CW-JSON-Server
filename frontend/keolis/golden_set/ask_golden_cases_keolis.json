@@ -1,0 +1,1250 @@
+{
+  "_about": "Ask golden set for the validation harness — one case per recorded answer. route / expected outcome / labelled answer / must_retrieve, as the harness takes them.",
+  "cases": [
+    {
+      "case_id": "kv-q01",
+      "question": "Which renewal projects need intervention this week, and why?",
+      "persona": "Operating Company Executive",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Five projects need a decision this week. T1 track renewal is blocked by a provisional closure and an open scope change; tranche 2 buses and the Les Aubiers lift both have supplier slips the schedule does not show yet.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_erp.proc",
+        "keolis_valmont_ppm.ops",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_001",
+        "msg_011"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-008",
+        "PRJ:P-VM-014",
+        "PRJ:P-VM-021",
+        "PRJ:P-VM-005",
+        "PRJ:P-VM-031"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q02",
+      "question": "What is our full financial exposure on the renewal portfolio?",
+      "persona": "Operating Company Executive",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Forecast total €82.0M against €79.4M approved on the 25 projects that carry a current forecast — €2.5M over. Keolis Valmont's own exposure is €9.5M; the rest is the authority's PPI.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_erp.proc",
+        "keolis_valmont_ppm.contract"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:forecast_total",
+        "MEAS:operator_exposure",
+        "MEAS:funding_gap",
+        "CONCEPT:FundingClaim"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q03",
+      "question": "Is the approved work ready to proceed without undermining service?",
+      "persona": "Operating Company Executive",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Two of five near-term starts are ready. T1 track renewal is not — access is provisional and design has an open interface review; the lift and batch 3 are held by parts.",
+      "must_retrieve": [
+        "VM-T1-VOI-0457_RevC_Drawing_Revision_Note.pdf",
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_erp.proc",
+        "keolis_valmont_ppm.ops",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-008",
+        "ACC:ACC-T1-2026-031",
+        "PRJ:P-VM-021",
+        "PRJ:P-VM-014",
+        "PRJ:P-VM-040"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q04",
+      "question": "Is the depot lift replacement at Les Aubiers still on budget, and is it on time?",
+      "persona": "Investment Controller",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "On budget, not on time. Forecast €390,000 against €400,000 approved — but the supplier says the control unit arrives 19 October, so commissioning on 26 October cannot happen and the schedule does not show it yet.",
+      "must_retrieve": [
+        "P-VM-021_Progress_Report_2026-09.pdf",
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_erp.proc",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_001",
+        "msg_002"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-021",
+        "POL:4500018812-30",
+        "TSK:P-VM-021-T05",
+        "PRJ:P-VM-040"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q05",
+      "question": "Who pays for the BUS-204 engine repair?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Not settled. The contract would put it on Valmont Métropole — BUS-204 failed after its 30 June replacement date and notice went in time — but an overdue oil analysis may trigger the maintenance-default exclusion. It is a recovery to review, not a receivable.",
+      "must_retrieve": [
+        "DSP-VM-2021-AV2_Avenant_2_GER_Art34-4.pdf",
+        "DSP-VM-2021-AV3_Avenant_3_Annexe7_BUS209-216.pdf",
+        "DSP-VM-2021_Contrat_extraits_Art12_Art34_Annexe7.pdf",
+        "Q-26-1187_Moteurs_Service_Ouest_Engine_Rebuild_Quote.pdf",
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [
+        "msg_009",
+        "msg_010"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "AST:BUS-204",
+        "FAIL:bus-204_2026-07-12",
+        "CLS:dsp_34_4",
+        "COND:34_4_exclusion",
+        "RSP:bus-201-208_replacement",
+        "NEED:N-VM-044"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q06",
+      "question": "Can the T1 track renewal at Gare Centrale start on 17 October?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Not yet. The closure is still provisional, drawing revision C moved the work limit onto signal SIG-T1-044 without an interface review, and the contractor's method statement still shows revision B. The contractor's readiness does not substitute for approved access.",
+      "must_retrieve": [
+        "P-VM-008_Method_Statement_VTC.pdf",
+        "VM-T1-VOI-0457_RevC_Drawing_Revision_Note.pdf",
+        "keolis_valmont_ppm.ops",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_004",
+        "msg_005",
+        "msg_018"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-008",
+        "AST:TRK-T1-S07",
+        "AST:SIG-T1-044",
+        "ACC:ACC-T1-2026-031",
+        "CHG:p-vm-008_revc",
+        "STM:vtc_rev_b"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q07",
+      "question": "Is the battery replacement campaign complete?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Installed yes, complete no. 40 packs are installed, 37 are accepted and 37 vehicles are released for duty. Two defects and one missing certificate are open.",
+      "must_retrieve": [
+        "P-VM-031_Commissioning_Pack_Acceptance_Register.pdf",
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_007",
+        "msg_008"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-031",
+        "MEAS:acceptance_completeness",
+        "ACP:bus-417",
+        "ACP:bus-422",
+        "ACP:bus-431"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q08",
+      "question": "Are all renewal projects within budget?",
+      "persona": "Investment Controller",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "No — and the question can only be answered for 25 of 29 funded projects. Of those, 13 forecast above budget by €2.7M in total; the four without a current forecast (€3.7M) are unassessed.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_020"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:budget_variance",
+        "MEAS:forecast_total",
+        "PRJ:P-VM-005",
+        "PRJ:P-VM-026"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q09",
+      "question": "What changed since last week's project review?",
+      "persona": "Operating Company Executive",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Four material changes: two supplier dates moved (lift control unit, tranche 2 batch 3), T1 scope grew with drawing revision C, and the second TV-100 inspection batch doubled the cracked-frame count. One improvement: Celtia committed dates for both battery defects.",
+      "must_retrieve": [
+        "VM-T1-VOI-0457_RevC_Drawing_Revision_Note.pdf",
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_001",
+        "msg_007",
+        "msg_011",
+        "msg_016"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-021",
+        "PRJ:P-VM-014",
+        "PRJ:P-VM-008",
+        "PRJ:P-VM-005",
+        "PRJ:P-VM-031"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q10",
+      "question": "Do we have enough buses for peak service while tranche 2 is late and the T1 closure runs?",
+      "persona": "Service Planning Lead",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Weekdays yes, with a margin of 6. On the closure Saturday no: the Technopole event service leaves 11 buses for a shuttle that needs 14, unless tranche 2 batch 3 arrives first.",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ops",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_011",
+        "msg_018"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:availability_margin",
+        "SRQ:bus_12m",
+        "PRJ:P-VM-014",
+        "ACC:ACC-T1-2026-031"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q11",
+      "question": "Which costs may fall outside the currently authorised scope?",
+      "persona": "Investment Controller",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Three items for finance and commercial review, €1.56M in total: the TV-100 frame allowance already carried in the forecast (€1.32M), the disputed grid reinforcement (€212k) and a proposed €25k external workshop. None is labelled anyone's liability.",
+      "must_retrieve": [
+        "P-VM-005_Change_Request_RC-005-009_Bogie_Frames.pdf",
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_003",
+        "msg_013"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CHG:rc-005-009",
+        "CLM:CLM-2026-Q2-02",
+        "PRJ:P-VM-021",
+        "MEAS:funding_gap"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q12",
+      "question": "What will the authority see for the Q3 PPI claim, and what is still only potential?",
+      "persona": "Authority Liaison (PPI)",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "The Q3 claim can carry €4.86M of evidenced milestones. The T1 works (€380k) and the BUS-204 recovery (€28k) are potential only and should not appear as claimed.",
+      "must_retrieve": [
+        "PPI_claims_tracker_Q3_working.xlsx",
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CONCEPT:FundingClaim",
+        "CLM:CLM-2026-Q3-01",
+        "CLM:CLM-2026-Q3-02"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q13",
+      "question": "Which assets must be renewed, and which needs are still unfunded?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Eight validated needs are open, €14.7M by estimate. One is mandatory and unfunded — the Les Aubiers fuel tank failed its leak test.",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:renewal_backlog",
+        "NEED:N-VM-046",
+        "NEED:N-VM-041",
+        "NEED:N-VM-042",
+        "NEED:N-VM-039"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q14",
+      "question": "Why has the TV-100 overhaul forecast grown?",
+      "persona": "Operating Company Executive",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "It is €1.8M over the €31.2M budget. Most of it (€1.32M) is an allowance for frame replacement the forecast now carries although the change is not approved; the rest is indexation and four extra months of depot support.",
+      "must_retrieve": [
+        "P-VM-005_Change_Request_RC-005-009_Bogie_Frames.pdf",
+        "P-VM-005_Option_Study_Repair_Overhaul_Replace.pdf",
+        "TRS-2024-OVH-01_Overhaul_Contract_Transalp.pdf",
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [
+        "msg_016"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-005",
+        "CHG:rc-005-009",
+        "STM:p-vm-005_assumption",
+        "MEAS:budget_variance"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q15",
+      "question": "What is the forecast cost to complete on the TV-100 overhaul, and does it include contingency?",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€19.6M to complete, including €1.3M of contingency held separately.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-005",
+        "MEAS:forecast_ctc"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q16",
+      "question": "Which buses are past their contractual replacement date and still in service?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Eight: BUS-201 to BUS-208, past 30 June 2026. BUS-209 to BUS-216 are not — Avenant n°3 moved their date to 31 December.",
+      "must_retrieve": [
+        "DSP-VM-2021-AV3_Avenant_3_Annexe7_BUS209-216.pdf",
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.contract"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "RSP:bus-201-208_replacement",
+        "RSP:bus-209-216_replacement",
+        "CON:DSP-VM-2021-AV3",
+        "AST:BUS-204"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q17",
+      "question": "Did Avenant n°3 change BUS-204's replacement date?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "No. Avenant n°3 moves only BUS-209 to BUS-216. BUS-204 stays at 30 June 2026.",
+      "must_retrieve": [
+        "DSP-VM-2021-AV3_Avenant_3_Annexe7_BUS209-216.pdf",
+        "keolis_valmont_ppm.contract"
+      ],
+      "must_cite_runtime": [
+        "msg_019"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CON:DSP-VM-2021-AV3",
+        "RSP:bus-201-208_replacement",
+        "AST:BUS-204"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q18",
+      "question": "What did correspondence say about the T1 closure?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Four messages: the authority will decide on 1 October and treats the window as provisional; the contractor says it is ready; engineering flags the revision C interface; service planning is 3 buses short.",
+      "must_retrieve": [],
+      "must_cite_runtime": [
+        "msg_004",
+        "msg_005",
+        "msg_006",
+        "msg_018"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-008",
+        "ACC:ACC-T1-2026-031"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q19",
+      "question": "What did suppliers tell us that isn't in the schedule yet?",
+      "persona": "Investment Controller",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Three delivery promises moved in correspondence before the ERP or the schedule: Levantis (+14 days), Arvéa (+21 days, 'realistic') and Électro-Réseaux Ouest (+2 months).",
+      "must_retrieve": [
+        "keolis_valmont_erp.proc"
+      ],
+      "must_cite_runtime": [
+        "msg_001",
+        "msg_011",
+        "msg_017"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "POL:4500018812-30",
+        "POL:vm-2025-bus-02-b3",
+        "POL:ero-sst04-rg"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q20",
+      "question": "Which vehicles are released for duty after the battery campaign?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "37 of the 40 campaign vehicles. BUS-417, BUS-422 and BUS-431 are not released.",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-031",
+        "AST:BUS-417",
+        "AST:BUS-422",
+        "AST:BUS-431"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q21",
+      "question": "What is the operator exposure on the battery campaign?",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€3.1M — Keolis Valmont's 60% of the €5.1M forecast. The authority's 40% (€2.0M) is claimed but not accepted; until it is, Keolis carries it as a disputed-risk scenario, not as cash.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.contract"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-031",
+        "MEAS:operator_exposure",
+        "CLM:CLM-2026-Q2-03"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q22",
+      "question": "How many replacement buses can we release for the T1 closure?",
+      "persona": "Service Planning Lead",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "11 without tranche 2 batch 3, 14 with it. The plan needs 14.",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ops"
+      ],
+      "must_cite_runtime": [
+        "msg_018"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "ACC:ACC-T1-2026-031",
+        "PRJ:P-VM-014"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q23",
+      "question": "Which projects depend on another project or an external approval?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Six dependencies, two of them on outside parties (the DSO and the authority's service committee).",
+      "must_retrieve": [
+        "keolis_valmont_ppm.ops",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-014",
+        "PRJ:P-VM-026",
+        "PRJ:P-VM-040",
+        "PRJ:P-VM-021",
+        "PRJ:P-VM-008"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q24",
+      "question": "How much spend is not allocated to any project?",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€1,312,480 across 412 ledger lines. It stays in an unallocated category — it is not spread over projects.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:forecast_total"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q25",
+      "question": "Break down the lift project forecast.",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€390,000: €160k posted, €20k accrued, €150k committed remaining, €40k uncommitted and €20k contingency held separately.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-021",
+        "MEAS:forecast_total"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q26",
+      "question": "If operations spends €25,000 on external maintenance, what does the lift project cost?",
+      "persona": "Operating Company Executive",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "The project forecast stays €390,000. If finance books the €25,000 in the maintenance operating budget, combined project and associated operating spend is €415,000. It is a proposal until authorised.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [
+        "msg_003"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-021"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q27",
+      "question": "Was the BUS-204 notice sent in time?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Yes — 17 days after the failure, inside the 30-day limit.",
+      "must_retrieve": [
+        "DSP-VM-2021-AV2_Avenant_2_GER_Art34-4.pdf",
+        "keolis_valmont_eam.eam"
+      ],
+      "must_cite_runtime": [
+        "msg_009"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "NEED:N-VM-044",
+        "COND:34_4_notice"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q28",
+      "question": "Why is the authority disputing the charging-bank claim?",
+      "persona": "Authority Liaison (PPI)",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "€212,000 of the €1.48M claim is DSO grid reinforcement, which the authority reads as public-network work outside the PPI convention.",
+      "must_retrieve": [
+        "P-VM-026_Grid_Connection_Letter_DSO.pdf",
+        "PPI_2024-2028_Quarterly_Review_Q2-2026_Minutes.pdf"
+      ],
+      "must_cite_runtime": [
+        "msg_013"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CLM:CLM-2026-Q2-02",
+        "PRJ:P-VM-026"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q29",
+      "question": "What is the FY2026 capital spend against plan?",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€23.8M spent to August against €26.9M planned; the working forecast lands the year at €40.8M against a €44.5M plan.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:forecast_total"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q30",
+      "question": "Which assets have the worst condition scores?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "By scale, since scales cannot be averaged together: T1 S07 rail (wear index 94/100), SST-04 (2 on 1–5), LIFT-AUB-03 (restricted).",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "INSP:ir-t1-2026-07",
+        "INSP:sst-04_2026",
+        "INSP:lift-aub-03_2025"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q31",
+      "question": "Which schedule milestones have slipped against baseline?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "11 projects forecast a finish later than their approved baseline; the largest slips are the TV-100 overhaul (+122 days) and tranche 2 (+107 days).",
+      "must_retrieve": [
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:schedule_variance",
+        "PRJ:P-VM-005",
+        "PRJ:P-VM-014"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q32",
+      "question": "Is tranche 3 funded?",
+      "persona": "Operating Company Executive",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "No. There is no approved budget. The authority has said it expects to fund it in October — that is a reported expectation, not an approval.",
+      "must_retrieve": [
+        "PPI_2024-2028_Quarterly_Review_Q2-2026_Minutes.pdf",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_014"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-058",
+        "STM:tranche3_funding_expected"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q33",
+      "question": "What is the failure frequency of series 201–216 compared with the fleet?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "2.3 heavy-component failures per 100,000 km in 2026 to date, against 0.8 for the rest of the 12 m diesel fleet.",
+      "must_retrieve": [
+        "P-VM-014_Business_Case_Tranche2.pdf",
+        "keolis_valmont_eam.eam"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:failure_frequency",
+        "AST:BUS-204"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q34",
+      "question": "Which responsibilities does the DSP assign for tram renewal?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Valmont Métropole owns the trams and decides and funds renewal; Keolis Valmont maintains them and releases and accepts trams around the overhaul; Transalp performs the overhaul under the authority's own contract.",
+      "must_retrieve": [
+        "DSP-VM-2021_Contrat_extraits_Art12_Art34_Annexe7.pdf",
+        "TRS-2024-OVH-01_Overhaul_Contract_Transalp.pdf",
+        "keolis_valmont_ppm.contract"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CLS:dsp_12",
+        "CLS:dsp_34_3",
+        "ORG:transalp",
+        "RSP:renewal_obligor"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q35",
+      "question": "Which forecasts are out of date?",
+      "persona": "Investment Controller",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Four projects have no forecast since 15 June: P-VM-046, P-VM-053, P-VM-061 and P-VM-064. The PPM itself is five days old, which sets the as-of floor for schedule answers.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_020"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:forecast_total"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q36",
+      "question": "What is the status of the SST-04 renewal?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "Approved and on budget (€2.45M), two months late: the rectifier lead time grew to 38 weeks, so energisation moves to June 2027. Two trips this year already cost T1 service.",
+      "must_retrieve": [
+        "SST-04_Condition_Assessment_2026.pdf",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [
+        "msg_017"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-017",
+        "AST:SST-04",
+        "INSP:sst-04_2026"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q37",
+      "question": "What does the T1 closure do to service?",
+      "persona": "Service Planning Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "From Saturday 04:30 to Monday 04:30, T1 runs Pont Neuf–Technopole only; Gare Centrale–Pont Neuf is served by a shuttle every 6 minutes needing 14 buses and 9 drivers.",
+      "must_retrieve": [
+        "ACC-T1-2026-031_Access_Request_Weekend_Closure.pdf",
+        "keolis_valmont_eam.eam",
+        "keolis_valmont_ppm.ops"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "ACC:ACC-T1-2026-031",
+        "LINE:T1"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q38",
+      "question": "What was known about the tranche 2 delay when the Q2 review met?",
+      "persona": "Authority Liaison (PPI)",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "On 7 July the known position was revision 3: batch 3 on 30 September. The later slip to 21 October was first stated on 8 September and is still not in the ERP.",
+      "must_retrieve": [
+        "PPI_2024-2028_Quarterly_Review_Q2-2026_Minutes.pdf",
+        "VM-2025-BUS-02_Delivery_Schedule_Rev3_Arvea.pdf",
+        "keolis_valmont_erp.proc"
+      ],
+      "must_cite_runtime": [
+        "msg_011"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "POL:vm-2025-bus-02-b3",
+        "SCM:vm-2025-bus-02_batch3",
+        "PRJ:P-VM-014"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q39",
+      "question": "Show every figure on the portfolio exposure with its source and as-of date.",
+      "persona": "Investment Controller",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "Each figure in the exposure answer, with its dataset, date basis and as-of. The answer as a whole is as of 19 September — the oldest input it depends on.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_erp.proc",
+        "keolis_valmont_ppm.contract",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "MEAS:forecast_total",
+        "MEAS:operator_exposure",
+        "MEAS:open_commitment"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q40",
+      "question": "When does the Celtia warranty start for the new packs?",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "At operational acceptance of each pack — so for 37 packs it has started, and for BUS-417, BUS-422 and BUS-431 it has not.",
+      "must_retrieve": [
+        "Celtia_Battery_Warranty_Terms_CES-2025-114.pdf",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-031",
+        "ACP:bus-417",
+        "ACP:bus-422",
+        "ACP:bus-431"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q41",
+      "question": "Did the lift project progress report flag any risk?",
+      "persona": "Infrastructure Project Manager",
+      "route": "graph+runtime",
+      "expected_outcome": "answer",
+      "labelled_answer": "No — the 11 September report says on schedule with no supplier issues. The supplier's delay arrived five days later, so the report and the correspondence now disagree.",
+      "must_retrieve": [
+        "P-VM-021_Progress_Report_2026-09.pdf"
+      ],
+      "must_cite_runtime": [
+        "msg_001"
+      ],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-021",
+        "STM:p-vm-021_on_schedule"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q42",
+      "question": "What recoveries could we claim from the authority this quarter?",
+      "persona": "Commercial & Contract Manager",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "€4.86M is ready to claim on evidenced milestones. €408k is potential only, and €212k from Q2 is disputed.",
+      "must_retrieve": [
+        "keolis_valmont_erp.fin",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "CONCEPT:FundingClaim",
+        "MEAS:funding_gap"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q43",
+      "question": "Predict which trams will fail in the next quarter.",
+      "persona": "Rolling Stock Maintenance Lead",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined. There is not enough data to predict tram failures honestly — no tram telemetry, and no failure-history model validated out of time.",
+      "must_retrieve": [
+        "keolis_valmont_eam.eam"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "CONCEPT:FailureEvent"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q44",
+      "question": "Is Valmont Métropole legally liable for the BUS-204 repair?",
+      "persona": "Commercial & Contract Manager",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined. I do not label a party legally liable. I can show the contract conditions, which are met and which are unresolved, and open a review item for the commercial team.",
+      "must_retrieve": [
+        "DSP-VM-2021-AV2_Avenant_2_GER_Art34-4.pdf"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "CLS:dsp_34_4",
+        "NEED:N-VM-044"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q45",
+      "question": "What is the ROI of the e-bus programme?",
+      "persona": "Operating Company Executive",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined. There is no agreed baseline to measure a return against, so any ROI figure would be invented.",
+      "must_retrieve": [],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-014"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q46",
+      "question": "Which drivers are available for the replacement-bus shuttle?",
+      "persona": "Service Planning Lead",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined — no workforce or rostering source is connected, and individual driver availability would also be personal data this graph does not hold.",
+      "must_retrieve": [],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "ACC:ACC-T1-2026-031"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q47",
+      "question": "How does our renewal backlog compare with other Keolis networks?",
+      "persona": "Operating Company Executive",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined. Only this operating contract is connected, and group-level comparison would need each network's data under its own sharing rights.",
+      "must_retrieve": [],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "MEAS:renewal_backlog"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q48",
+      "question": "What will the TV-100 overhaul finally cost?",
+      "persona": "Investment Controller",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "I can't predict the final cost. Today's forecast is €33.0M; if RC-005-009 is approved as requested for all 24 trams, the forecast would carry €2.64M instead of the €1.32M allowance.",
+      "must_retrieve": [
+        "P-VM-005_Change_Request_RC-005-009_Bogie_Frames.pdf",
+        "keolis_valmont_erp.fin"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-005",
+        "CHG:rc-005-009"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q49",
+      "question": "Optimise the 2027 renewal plan to minimise service disruption.",
+      "persona": "Infrastructure Project Manager",
+      "route": "decline",
+      "expected_outcome": "decline",
+      "labelled_answer": "Declined. Optimisation needs resource calendars, compatibility constraints, dependencies and an agreed objective; only the dependencies are connected.",
+      "must_retrieve": [],
+      "must_cite_runtime": [],
+      "must_not": [
+        "produce a prediction or a figure the data cannot support"
+      ],
+      "graph_refs": [
+        "CONCEPT:ScheduleTask"
+      ],
+      "confidence_floor": 0.7
+    },
+    {
+      "case_id": "kv-q50",
+      "question": "What evidence supports the decision to approve the T1 works?",
+      "persona": "Operating Company Executive",
+      "route": "graph",
+      "expected_outcome": "answer",
+      "labelled_answer": "The Bureau métropolitain approved P-VM-008 on 12 May 2026 with two conditions — an approved closure and an isolation plan. The trigger was the July rail-wear inspection confirming the threshold; neither condition is met yet.",
+      "must_retrieve": [
+        "ACC-T1-2026-031_Access_Request_Weekend_Closure.pdf",
+        "IR-T1-2026-07_Rail_Wear_Inspection_T1-S07.pdf",
+        "keolis_valmont_ppm.ppm"
+      ],
+      "must_cite_runtime": [],
+      "must_not": [
+        "assign legal liability",
+        "sum recovery states as cash",
+        "promote an expectation to an approval"
+      ],
+      "graph_refs": [
+        "PRJ:P-VM-008",
+        "INSP:ir-t1-2026-07",
+        "ACC:ACC-T1-2026-031"
+      ],
+      "confidence_floor": 0.7
+    }
+  ]
+}

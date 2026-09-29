@@ -1,0 +1,1058 @@
+{
+  "copy": {
+    "page_title": "What-if",
+    "banner": "Tram TV-100 mid-life overhaul · Keolis Valmont / Valmont Métropole · 24 trams · base forecast €33.0M against a €34.5M PPI envelope",
+    "subtitle": "Move only what the graph can attribute. The locked and residual slices never move.",
+    "overlay_pill": "◈ read-only overlay · never writes back",
+    "tabs": [
+      {
+        "key": "author",
+        "label": "Authoring"
+      },
+      {
+        "key": "runtime",
+        "label": "Runtime"
+      }
+    ],
+    "data_note": "Generated from the Keolis Valmont demo package (_build/build_whatif_gov.py). Figures are hypothetical and decompose P-VM-005's forecast total."
+  },
+  "state_defaults": {
+    "tab": "author",
+    "step": 1,
+    "count": 2,
+    "watch": {
+      "forecast": true,
+      "contingency": true,
+      "variance": false,
+      "committed": false
+    },
+    "pool": "all"
+  },
+  "facility": {
+    "id": "PRJ:P-VM-005",
+    "name": "Tram TV-100 mid-life overhaul",
+    "role": "Valmont Métropole PPI · Transalp Rail Services overhaul · Keolis Valmont release & acceptance",
+    "baseline": {
+      "forecast": 33.0,
+      "contingency": 1.3,
+      "months": 50
+    },
+    "appetite": {
+      "forecast": 34.5,
+      "approved": 31.2
+    }
+  },
+  "transporters": [],
+  "generators": [],
+  "candidate_pools": [],
+  "_not_applicable": {
+    "transporters": "The renewal lens has no carrier dimension; the lever axis is the cost decomposition.",
+    "generators": "The overhaul exposes continuous levers, not a pool of swappable candidates.",
+    "candidate_pools": "Same reason. The equivalents are `slices` and `levers` below."
+  },
+  "watched_measures": [
+    {
+      "key": "forecast",
+      "label": "Forecast total project cost",
+      "source": "ERP",
+      "field": "forecast",
+      "format": "currency_m",
+      "unit": "€M",
+      "inherited": true,
+      "baseline_field": "at_base",
+      "appetite_field": "limit_usd_m",
+      "breach": 34.5,
+      "grounds": "Σ attributable slices, judged vs the PPI envelope",
+      "at_base": 33.0,
+      "judgement_at_base": "€1.5M under the €34.5M envelope",
+      "watched_by_default": true
+    },
+    {
+      "key": "contingency",
+      "label": "Contingency drawn",
+      "source": "CTR",
+      "field": "contingency",
+      "format": "currency_m",
+      "unit": "€M",
+      "inherited": true,
+      "baseline_field": "at_base",
+      "appetite_field": "limit_usd_m",
+      "breach": 2.0,
+      "grounds": "Contingency register — €2.0M authorized",
+      "at_base": 1.3,
+      "judgement_at_base": "€0.7M of the €2.0M reserve still undrawn",
+      "watched_by_default": true
+    },
+    {
+      "key": "variance",
+      "label": "Variance to approved budget",
+      "source": "ERP",
+      "field": "variance",
+      "format": "currency_m",
+      "unit": "€M",
+      "inherited": true,
+      "baseline_field": "at_base",
+      "appetite_field": "limit_usd_m",
+      "breach": null,
+      "grounds": "Forecast − approved €31.2M",
+      "at_base": 1.8,
+      "judgement_at_base": "€1.8M over the €31.2M approved budget",
+      "watched_by_default": false
+    },
+    {
+      "key": "committed",
+      "label": "Committed cost (signed)",
+      "source": "CTR",
+      "field": "committed",
+      "format": "currency_m",
+      "unit": "€M",
+      "inherited": true,
+      "baseline_field": "at_base",
+      "appetite_field": "limit_usd_m",
+      "breach": null,
+      "grounds": "Open PO value on TRS-2024-OVH-01 and committed labour",
+      "at_base": 14.9,
+      "judgement_at_base": "€14.9M contractually committed of the €34.5M envelope",
+      "watched_by_default": false
+    }
+  ],
+  "formats": {
+    "integer": {
+      "template": "{v}",
+      "desc": "whole number, printed as-is"
+    },
+    "currency_k": {
+      "template": "€{v/1000}k",
+      "desc": "EUR divided by 1000, suffixed k"
+    },
+    "currency_m": {
+      "template": "€{v}M",
+      "desc": "EUR millions, one decimal"
+    },
+    "percent": {
+      "template": "{v}%",
+      "desc": "percent change against the base case"
+    },
+    "boolean_yesno": {
+      "template": "{v?yes:no}",
+      "desc": "1/true -> 'yes', 0/false -> 'no'"
+    }
+  },
+  "resolvable": [
+    {
+      "keywords": [
+        "forecast",
+        "outturn",
+        "total",
+        "cost",
+        "etc",
+        "eac"
+      ],
+      "resolves_to": "forecast",
+      "note": "grounds to the summed slice decomposition",
+      "verdict": "resolved"
+    },
+    {
+      "keywords": [
+        "contingency",
+        "reserve",
+        "drawdown"
+      ],
+      "resolves_to": "contingency",
+      "note": "grounds to the contingency register (CTR)",
+      "verdict": "resolved"
+    },
+    {
+      "keywords": [
+        "variance",
+        "over budget",
+        "approved"
+      ],
+      "resolves_to": "variance",
+      "note": "grounds to forecast − approved budget",
+      "verdict": "resolved"
+    },
+    {
+      "keywords": [
+        "committed",
+        "signed",
+        "po"
+      ],
+      "resolves_to": "committed",
+      "note": "grounds to signed lots + committed labour",
+      "verdict": "resolved"
+    },
+    {
+      "keywords": [
+        "return to service",
+        "in-service date",
+        "handback date",
+        "completion date"
+      ],
+      "resolves_to": null,
+      "note": "a predicted date needs a schedule model this graph does not have",
+      "verdict": "refused"
+    },
+    {
+      "keywords": [
+        "failure",
+        "reliability",
+        "mdbf"
+      ],
+      "resolves_to": null,
+      "note": "no validated failure model for trams",
+      "verdict": "refused"
+    }
+  ],
+  "resolve_copy": {
+    "resolved": {
+      "tone": "ok",
+      "title": "Resolved — \"{label}\" added.",
+      "body": "It grounds in a measure the graph already holds."
+    },
+    "grounds_not_inherited": {
+      "tone": "warn",
+      "title": "Grounds, but not as an inherited-risk measure.",
+      "body": "It resolves, and the answer says so on its face."
+    },
+    "refused": {
+      "tone": "bad",
+      "title": "Doesn't ground.",
+      "body": "A predicted return-to-service date or failure rate is refused, not guessed. See resolvable_measures."
+    }
+  },
+  "authoring": {
+    "steps": [
+      {
+        "n": 1,
+        "key": "setup",
+        "title": "Set up",
+        "heading": "Set up",
+        "help": "Choose the measures this frame watches and how many cases you want side by side.",
+        "note": null,
+        "add_measure": {
+          "label": "Add a measure the graph can support",
+          "placeholder": "e.g. index exposure, contingency drawdown…",
+          "button": "Resolve against graph",
+          "help": "A predicted return-to-service date or failure rate is refused, not guessed. See resolvable_measures."
+        }
+      },
+      {
+        "n": 2,
+        "key": "levers",
+        "title": "Set your levers",
+        "heading": "Set your levers",
+        "help": "Only the slices the graph can attribute expose a lever. The rest are shown and locked, with the reason.",
+        "note": null,
+        "preview_rows": 5,
+        "graph_link": "◈ Show the graph this frame references"
+      },
+      {
+        "n": 3,
+        "key": "review",
+        "title": "Review",
+        "heading": "Review",
+        "help": "The frame and each case's lever positions are what gets saved — never the computed figures.",
+        "note": null
+      }
+    ],
+    "scenario_count": {
+      "heading": "How many cases do you want side by side?",
+      "help": "Each case is one set of lever positions against the same frame.",
+      "options": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "default": 2
+    },
+    "lever_config": {
+      "mat": {
+        "exposed": true,
+        "min": -5,
+        "max": 15
+      },
+      "lab": {
+        "exposed": true,
+        "min": -5,
+        "max": 20
+      },
+      "cont": {
+        "exposed": true,
+        "min": 0,
+        "max": 2.0
+      }
+    },
+    "cases": [
+      {
+        "name": "Base case",
+        "vals": {
+          "mat": 0,
+          "lab": 0,
+          "cont": 1.3
+        }
+      },
+      {
+        "name": "Index +8%",
+        "vals": {
+          "mat": 8,
+          "lab": 0,
+          "cont": 1.3
+        }
+      }
+    ],
+    "cta_step1": "Continue — set your levers →",
+    "cta_step2": "Continue — review →",
+    "cta_step3": "Save frame & run →"
+  },
+  "runtime": {
+    "compare": {
+      "min": 1,
+      "max": 4,
+      "default": 2,
+      "help": "“Add to compare” opens a saved case as a new column beside this one."
+    },
+    "scenario_card": {
+      "load_label": "Lever positions — the levers",
+      "name_placeholder": "Name this case (e.g. Index +8%)",
+      "trace_link": "▸ Trace every figure to its source slice",
+      "trace_header": "These figures come from the attributed cost decomposition: three source systems, one slice each.",
+      "residual_note": "Cost the graph cannot attribute to a slice does not move with any lever and is stated separately.",
+      "clean_note": "No lever on this case crosses the PPI envelope.",
+      "graph_link": "◈ Show the graph this references"
+    },
+    "headroom": {
+      "label": "Headroom — the inverse question",
+      "formula": "floor((envelope - base_forecast) / slice_base) as a percent of the slice",
+      "measure": "forecast",
+      "against": "appetite.forecast",
+      "sentence": "{room}{unit} more on {driver} before the base case crosses the envelope.",
+      "help": "Goal-Seek-style and exact — the inverse of the decomposition, not a forecast.",
+      "worked_example": {
+        "question": "How far can the overhaul price index rise before the base case crosses the PPI envelope?",
+        "answer_pct": 10,
+        "solved_from": "envelope 34.5M − base forecast 33.0M = 1.5M of headroom ÷ the 14.4M index-linked slice",
+        "note": "Goal-Seek-style and exact — the inverse of the decomposition, not a forecast."
+      }
+    },
+    "saved_library": {
+      "title": "Saved scenario library",
+      "stores": "Lever positions and the frame, never the computed figures. Re-opening recomputes.",
+      "empty": "None yet. Save a case above to keep it here.",
+      "full_help": "Compare strip is full (4). Remove a column to add another.",
+      "save_btn": "＋ Save this scenario",
+      "update_btn": "↻ Update saved scenario",
+      "saved_flag": "✓ Saved to library",
+      "add_btn": "Add to compare",
+      "default_name_template": "{driver} {sign}{value}{unit}"
+    },
+    "closing_note": "A lever moves only the slice the graph can attribute to that driver. Locked slices and the unattributed residual never move — smearing an unattributed amount across drivers would invent a sensitivity the data does not have.",
+    "sources": [
+      {
+        "key": "CTR",
+        "label": "Fixed-price overhaul lots",
+        "color": "#047857",
+        "line": "solid"
+      },
+      {
+        "key": "DEF",
+        "label": "Not decomposable from the current graph",
+        "color": "#475569",
+        "line": "solid"
+      },
+      {
+        "key": "ERP",
+        "label": "Keolis timesheets + internal rate card",
+        "color": "#1d4ed8",
+        "line": "solid"
+      },
+      {
+        "key": "IDX",
+        "label": "Transalp clause 9 price index",
+        "color": "#b45309",
+        "line": "solid"
+      }
+    ],
+    "worked_examples": [
+      {
+        "case": "Base case",
+        "vals": {
+          "mat": 0,
+          "lab": 0,
+          "cont": 1.3
+        },
+        "forecast_usd_m": 33.0,
+        "vs_envelope_usd_m": -1.5,
+        "crosses_envelope": false,
+        "slice_breakdown": {
+          "mat": 14.4,
+          "lab": 4.2,
+          "sub": 11.1,
+          "cont": 1.3,
+          "res": 2.0
+        }
+      },
+      {
+        "case": "Index +8%",
+        "vals": {
+          "mat": 8,
+          "lab": 0,
+          "cont": 1.3
+        },
+        "forecast_usd_m": 34.1,
+        "vs_envelope_usd_m": -0.4,
+        "crosses_envelope": false,
+        "slice_breakdown": {
+          "mat": 15.6,
+          "lab": 4.2,
+          "sub": 11.1,
+          "cont": 1.3,
+          "res": 2.0
+        }
+      },
+      {
+        "case": "Full reserve drawn",
+        "vals": {
+          "mat": 0,
+          "lab": 0,
+          "cont": 2.0
+        },
+        "forecast_usd_m": 33.7,
+        "vs_envelope_usd_m": -0.8,
+        "crosses_envelope": false,
+        "slice_breakdown": {
+          "mat": 14.4,
+          "lab": 4.2,
+          "sub": 11.1,
+          "cont": 2.0,
+          "res": 2.0
+        }
+      },
+      {
+        "case": "Index +15% and labour +20% — the authored ceiling",
+        "vals": {
+          "mat": 15,
+          "lab": 20,
+          "cont": 1.3
+        },
+        "forecast_usd_m": 36.0,
+        "vs_envelope_usd_m": 1.5,
+        "crosses_envelope": true,
+        "slice_breakdown": {
+          "mat": 16.6,
+          "lab": 5.0,
+          "sub": 11.1,
+          "cont": 1.3,
+          "res": 2.0
+        }
+      }
+    ]
+  },
+  "graph_reference": {
+    "node_types": [
+      {
+        "key": "Asset",
+        "label": "Asset",
+        "color": "#475569"
+      },
+      {
+        "key": "Component",
+        "label": "Component",
+        "color": "#475569"
+      },
+      {
+        "key": "Contract",
+        "label": "Contract",
+        "color": "#475569"
+      },
+      {
+        "key": "Amendment",
+        "label": "Amendment",
+        "color": "#475569"
+      },
+      {
+        "key": "Clause",
+        "label": "Clause",
+        "color": "#475569"
+      },
+      {
+        "key": "ResponsibilityAssignment",
+        "label": "ResponsibilityAssignment",
+        "color": "#475569"
+      },
+      {
+        "key": "Organisation",
+        "label": "Organisation",
+        "color": "#475569"
+      },
+      {
+        "key": "Supplier",
+        "label": "Supplier",
+        "color": "#475569"
+      },
+      {
+        "key": "Project",
+        "label": "Project",
+        "color": "#475569",
+        "risk_colors": {
+          "high": "red",
+          "med": "amber",
+          "low": "green"
+        }
+      },
+      {
+        "key": "Need",
+        "label": "Need",
+        "color": "#475569"
+      },
+      {
+        "key": "PurchaseOrderLine",
+        "label": "PurchaseOrderLine",
+        "color": "#475569"
+      },
+      {
+        "key": "FundingClaim",
+        "label": "FundingClaim",
+        "color": "#475569"
+      },
+      {
+        "key": "ScheduleTask",
+        "label": "ScheduleTask",
+        "color": "#475569"
+      },
+      {
+        "key": "AccessWindow",
+        "label": "AccessWindow",
+        "color": "#475569"
+      },
+      {
+        "key": "AcceptanceItem",
+        "label": "AcceptanceItem",
+        "color": "#475569"
+      },
+      {
+        "key": "Measure",
+        "label": "Measure",
+        "color": "#475569"
+      },
+      {
+        "key": "Statement",
+        "label": "Statement",
+        "color": "#475569"
+      }
+    ],
+    "relationships": [
+      "AFFECTS_ASSET",
+      "AMENDS",
+      "ASSIGNS",
+      "ASSIGNED_TO",
+      "ATTRIBUTED_TO",
+      "CLAIMS_FOR",
+      "COMMITS",
+      "CONTAINS_CLAUSE",
+      "CONTRADICTS",
+      "DEPENDS_ON",
+      "GOVERNED_BY",
+      "HAS_CONDITION",
+      "HAS_MEASURE",
+      "HAS_REPLACEMENT_DATE",
+      "HAS_TASK",
+      "HOSTS_COMPONENT",
+      "LEADS_TO_NEED",
+      "LOCATED_AT",
+      "RENEWS",
+      "REPLACES",
+      "REQUIRES_ACCEPTANCE",
+      "REQUIRES_ACCESS",
+      "SUPPLIED_BY"
+    ],
+    "frame": {
+      "description": "The frame — the project node, its attributed cost slices and the source feed behind each one.",
+      "center_node": "facility",
+      "edge": "ATTRIBUTED_TO",
+      "max_drawn": 5
+    },
+    "scenario_subgraph": {
+      "description": "What one case traverses: each moved slice back to the feed that prices it, and forward to the watched measure.",
+      "nodes": [
+        "mat",
+        "lab",
+        "sub",
+        "cont",
+        "res"
+      ]
+    }
+  },
+  "headroom": {
+    "mat": {
+      "room": 10,
+      "avg": 14.4,
+      "carrying": 3,
+      "appetite": 34.5,
+      "unit": "%",
+      "sentence": "The overhaul price index can rise 10% before the base case crosses the €34.5M envelope"
+    },
+    "lab": {
+      "room": 35,
+      "avg": 4.2,
+      "carrying": 3,
+      "appetite": 34.5,
+      "unit": "%",
+      "sentence": "Keolis labour rate can rise 35% before the base case crosses the €34.5M envelope"
+    },
+    "cont": {
+      "room": 0.7,
+      "avg": 1.3,
+      "carrying": 3,
+      "appetite": 34.5,
+      "unit": "€M",
+      "sentence": "Contingency can be drawn to its €2.0M reserve (+€0.7M) without the base case crossing the €34.5M envelope"
+    }
+  },
+  "scenario_library_seeds": [
+    {
+      "id": 1,
+      "name": "Index exposure — TV-100 overhaul",
+      "watch": {
+        "forecast": true,
+        "contingency": true,
+        "variance": true,
+        "committed": true
+      },
+      "cfg": {
+        "mat": {
+          "exposed": true,
+          "min": -5,
+          "max": 15
+        },
+        "lab": {
+          "exposed": true,
+          "min": -5,
+          "max": 20
+        },
+        "cont": {
+          "exposed": true,
+          "min": 0,
+          "max": 2.0
+        }
+      },
+      "count": 2,
+      "cases": [
+        {
+          "name": "Base case",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 1.3
+          }
+        },
+        {
+          "name": "Index +8%",
+          "vals": {
+            "mat": 8,
+            "lab": 0,
+            "cont": 1.3
+          }
+        }
+      ],
+      "pub": {
+        "readers": [
+          "claire.moreau@vriodigital.com",
+          "amelie.roussel@vriodigital.com"
+        ],
+        "graph": "v1",
+        "fresh": {
+          "preset": "monday",
+          "every": 1,
+          "unit": "week",
+          "days": [
+            "Mon"
+          ],
+          "time": "6:00 AM"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Contingency draw-down",
+      "watch": {
+        "forecast": true,
+        "contingency": true,
+        "variance": false,
+        "committed": false
+      },
+      "cfg": {
+        "mat": {
+          "exposed": false,
+          "min": -5,
+          "max": 15
+        },
+        "lab": {
+          "exposed": true,
+          "min": -5,
+          "max": 20
+        },
+        "cont": {
+          "exposed": true,
+          "min": 0,
+          "max": 2.0
+        }
+      },
+      "count": 1,
+      "cases": [
+        {
+          "name": "Full reserve drawn",
+          "vals": {
+            "mat": 0,
+            "lab": 0,
+            "cont": 2.0
+          }
+        }
+      ],
+      "pub": null
+    }
+  ],
+  "slices": [
+    {
+      "id": "mat",
+      "label": "Index-linked overhaul price",
+      "base_usd_m": 14.4,
+      "lever": true,
+      "driver": "Overhaul price index",
+      "unit": "%",
+      "range": {
+        "min": -5,
+        "max": 15,
+        "default": 0
+      },
+      "source_code": "IDX",
+      "source_name": "Transalp clause 9 price index (steel and labour sub-indices)",
+      "trace": "14.4 of the 33.0 is priced per tram against the clause 9 index; moving the index moves this slice by exact proportion."
+    },
+    {
+      "id": "lab",
+      "label": "Keolis release, acceptance and depot support labour",
+      "base_usd_m": 4.2,
+      "lever": true,
+      "driver": "Labour rate",
+      "unit": "%",
+      "range": {
+        "min": -5,
+        "max": 20,
+        "default": 0
+      },
+      "source_code": "ERP",
+      "source_name": "Keolis timesheets + internal rate card",
+      "trace": "4.2 of the 33.0 is hours × rate from timesheets and the planned release programme."
+    },
+    {
+      "id": "sub",
+      "label": "Fixed-price overhaul lots",
+      "base_usd_m": 11.1,
+      "lever": false,
+      "driver": null,
+      "unit": null,
+      "range": null,
+      "source_code": "CTR",
+      "source_name": "Fixed-price lots, TRS-2024-OVH-01",
+      "trace": "11.1 is under fixed-price lots already ordered or delivered — it cannot move, so no lever is exposed."
+    },
+    {
+      "id": "cont",
+      "label": "Contingency drawn",
+      "base_usd_m": 1.3,
+      "lever": true,
+      "driver": "Contingency draw",
+      "unit": "€M",
+      "range": {
+        "min": 0,
+        "max": 2.0,
+        "default": 1.3
+      },
+      "source_code": "DEF",
+      "source_name": "Contingency register — €2.0M authorized",
+      "trace": "1.3 of the €2.0M authorized contingency is drawn; a case can draw up to the reserve."
+    },
+    {
+      "id": "res",
+      "label": "Residual — unattributed",
+      "base_usd_m": 2.0,
+      "lever": false,
+      "driver": null,
+      "unit": null,
+      "range": null,
+      "source_code": "DEF",
+      "source_name": "Not decomposable from the current graph",
+      "trace": "2.0 of the 33.0 cannot be tied to a single driver — including the frame allowance whose change request is not approved."
+    }
+  ],
+  "levers": [
+    "mat",
+    "lab",
+    "cont"
+  ],
+  "locked_slices": [
+    {
+      "id": "sub",
+      "label": "Fixed-price overhaul lots",
+      "base_usd_m": 11.1,
+      "why_locked": "11.1 is under fixed-price lots already ordered or delivered — it cannot move, so no lever is exposed."
+    },
+    {
+      "id": "res",
+      "label": "Residual — unattributed",
+      "base_usd_m": 2.0,
+      "why_locked": "2.0 of the 33.0 cannot be tied to a single driver — including the frame allowance whose change request is not approved."
+    }
+  ],
+  "program": {
+    "name": "Tram TV-100 mid-life overhaul",
+    "site": "Centre de maintenance tram La Varenne · 24 trams",
+    "envelope": 34.5,
+    "approvedBudget": 31.2,
+    "baselineMonths": 50
+  },
+  "publishing": {
+    "publish_title": "Publish scenario",
+    "manage_title": "Manage publishing",
+    "call": "The scenario — the frame (watched measures, exposed drivers and their ranges) plus its cases. A case is never published on its own.",
+    "readers": {
+      "label": "Readers",
+      "placeholder": "Name or email…",
+      "empty_error": "Add at least one reader.",
+      "caveat": "This narrows who is told the scenario exists. It is not access control.",
+      "scope_note": "Publishing never widens access. Each reader opens the scenario under their own data-access rules; a masked measure stays masked."
+    },
+    "graph": {
+      "label": "Bind to a graph",
+      "note": "A published scenario points to one published graph version and re-traverses it on every open. When a newer graph is published the author can re-bind.",
+      "empty": "Nothing is published, so there is no graph to bind a scenario to.",
+      "options": [
+        {
+          "id": "v1",
+          "label": "Keolis Valmont SGR graph · v1 — current, published Sep 23, 2026"
+        }
+      ],
+      "default": "v1"
+    },
+    "freshness": {
+      "label": "Numbers freshness",
+      "presets": [
+        {
+          "id": "open",
+          "label": "Only when it’s opened",
+          "sentence": "Only when it’s opened"
+        },
+        {
+          "id": "daily",
+          "label": "Every weekday (Mon–Fri) at 6:00 AM",
+          "sentence": "Every weekday (Mon–Fri) at 6:00 AM"
+        },
+        {
+          "id": "monday",
+          "label": "Weekly on Monday at 6:00 AM",
+          "sentence": "Weekly on Monday at 6:00 AM"
+        },
+        {
+          "id": "monthly",
+          "label": "Monthly on the 1st at 6:00 AM",
+          "sentence": "Monthly on the 1st at 6:00 AM"
+        },
+        {
+          "id": "custom",
+          "label": "Custom…",
+          "sentence": "Custom schedule"
+        }
+      ],
+      "days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "times": [
+        "6:00 AM",
+        "7:00 AM",
+        "8:00 AM",
+        "12:00 PM",
+        "6:00 PM"
+      ],
+      "units": [
+        "day",
+        "week",
+        "month"
+      ],
+      "every": {
+        "min": 1,
+        "max": 99
+      },
+      "default": {
+        "preset": "open",
+        "every": 1,
+        "unit": "week",
+        "days": [
+          "Mon"
+        ],
+        "time": "6:00 AM"
+      },
+      "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+    },
+    "done": {
+      "title": "Scenario published",
+      "body": "“{name}” is live for {n}. Each opens it under their own access — same scenario, their scope. It stays in your library — come back any time to change it.",
+      "stored": "Lever positions and the frame, never the computed figures. Re-opening recomputes.",
+      "link": {
+        "label": "Copy link",
+        "copied": "Link copied."
+      },
+      "labels": {
+        "cases": "Cases",
+        "readers": "Readers",
+        "graph": "Graph",
+        "numbers": "Numbers",
+        "access": "Access rules"
+      },
+      "graph_note": "current, published {when}",
+      "access_note": "per-reader scope is managed in Audit & Governance.",
+      "audit_link": "Open Audit & Governance →",
+      "buttons": {
+        "again": "+ Start a new scenario",
+        "close": "Done"
+      }
+    },
+    "buttons": {
+      "publish": "Publish scenario",
+      "update": "Update publication",
+      "unpublish": "Unpublish",
+      "manage": "Manage publishing…",
+      "open": "Publish scenario…"
+    },
+    "unpublished_note": "Unpublished — the scenario stays in your library.",
+    "directory": [
+      {
+        "email": "nishant.srivastav@vriodigital.com",
+        "name": "Nishant Srivastav",
+        "role": "Business User · Executive",
+        "access": {
+          "kind": "full",
+          "masked_measures": [],
+          "row_scope": "portfolio-wide",
+          "label": "Unrestricted — all 38 project rows, no field masks"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "full",
+          "headline": "Sees the full scenario",
+          "detail": "Unrestricted — all 38 project rows, no field masks"
+        }
+      },
+      {
+        "email": "claire.moreau@vriodigital.com",
+        "name": "Claire Moreau",
+        "role": "Business User · Executive",
+        "access": {
+          "kind": "full",
+          "masked_measures": [],
+          "row_scope": "portfolio-wide",
+          "label": "Unrestricted — all 38 project rows, no field masks"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "full",
+          "headline": "Sees the full scenario",
+          "detail": "Unrestricted — all 38 project rows, no field masks"
+        }
+      },
+      {
+        "email": "amelie.roussel@vriodigital.com",
+        "name": "Amélie Roussel",
+        "role": "Data Analyst",
+        "access": {
+          "kind": "rules",
+          "masked_measures": [],
+          "row_scope": "portfolio-wide",
+          "label": "Portfolio-wide; supplier contacts and technician notes masked — neither is a watched measure"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "full",
+          "headline": "Sees all 4 measures",
+          "detail": "Portfolio-wide; supplier contacts and technician notes masked — neither is a watched measure"
+        }
+      },
+      {
+        "email": "thomas.garnier@vriodigital.com",
+        "name": "Thomas Garnier",
+        "role": "Domain Architect",
+        "access": {
+          "kind": "full",
+          "masked_measures": [],
+          "row_scope": "portfolio-wide",
+          "label": "Unrestricted — all 38 project rows, no field masks"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "full",
+          "headline": "Sees the full scenario",
+          "detail": "Unrestricted — all 38 project rows, no field masks"
+        }
+      },
+      {
+        "email": "julien.faure@vriodigital.com",
+        "name": "Julien Faure",
+        "role": "Data Analyst",
+        "access": {
+          "kind": "rules",
+          "masked_measures": [],
+          "row_scope": "portfolio-wide",
+          "label": "Portfolio-wide; supplier contacts and technician notes masked — neither is a watched measure"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "full",
+          "headline": "Sees all 4 measures",
+          "detail": "Portfolio-wide; supplier contacts and technician notes masked — neither is a watched measure"
+        }
+      },
+      {
+        "email": "ines.benali@vriodigital.com",
+        "name": "Inès Benali",
+        "role": "Business User · Project Level",
+        "access": {
+          "kind": "rules",
+          "masked_measures": [
+            "committed",
+            "variance"
+          ],
+          "row_scope": "infrastructure projects only — 11 of the 38 rows",
+          "label": "Scoped to infrastructure; supplier commitments and variance masked"
+        },
+        "preview_against_seed_scenario": {
+          "pill": "zero",
+          "headline": "Does not see this scenario's rows",
+          "detail": "The TV-100 overhaul is a fleet project, outside the infrastructure scope — the scenario opens empty for this reader."
+        }
+      }
+    ],
+    "link_pattern": "contextweave.keolis-valmont.example/w/<scenario-name-slugified>",
+    "governance_link": "../08_audit_governance/governance_audit_keolis.html"
+  },
+  "document": {
+    "document_id": "W1",
+    "file": "W1_what_if_lens.html",
+    "title": "What-if — Keolis Valmont renewal",
+    "version": "v1",
+    "stage": "draft",
+    "heading": "What-if",
+    "subtitle": "Stress the TV-100 overhaul forecast without pretending to predict it. A what-if moves one attributable driver at a time — the index-linked overhaul price, Keolis labour, contingency — and holds the fixed-price lots and the residual.",
+    "tabs": [
+      {
+        "key": "author",
+        "label": "Authoring"
+      },
+      {
+        "key": "runtime",
+        "label": "Runtime"
+      }
+    ]
+  }
+}
