@@ -26,6 +26,7 @@
     "ingest:capex": "node scripts/ingest-capex-reports.js",
     "ingest:capex-graph": "node scripts/ingest-capex-graph.js",
     "ingest:keolis": "node scripts/ingest-keolis.mjs",
+    "build:keolis-ai": "node scripts/build-keolis-ai-submissions.mjs",
     "ingest:queries": "node scripts/ingest-queries.js",
     "scale:capex": "node scripts/scale-capex-reports.js",
     "narrow:capex": "node scripts/narrow-capex-reports.js",
