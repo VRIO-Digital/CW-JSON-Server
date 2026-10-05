@@ -1,9 +1,0 @@
-{
-  "package": "keolis_demo_data_package_2026-09-24",
-  "tenant": "Keolis Valmont (hypothetical — Keolis operating company on the fictional Réseau Valmo)",
-  "schema_source": "the development team's db.CAPEX.json key set and field shapes, read from the demo environment on 2026-09-24",
-  "generated_by": "_build/build_all.py",
-  "as_of": "2026-09-22",
-  "note": "Every value is generated from _build/world.py, tables.py and corpus.py. Never hand-edit this file — change the generator and rebuild.",
-  "keys_carried_from_capex_schema": 32
-}
