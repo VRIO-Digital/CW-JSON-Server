@@ -21,27 +21,36 @@
  *   back to the shared `backend/settings.json`, and `_meta` used to be on that list — a dataset's
  *   provenance landing in the shared file would be claimed by every dataset at the next boot.
  *
- * What is rewritten, and why — **the rendered-document pointers are stripped for now**:
+ * What is rewritten, and why — **the report pointers are stripped; the What-if pointer is read
+ * from the shipped lens**:
  *
  * - `reports.documents` -> `[]`, `reports.authoring_document` -> null,
- *   `reports.governance.document` -> null, `whatif.document` removed.
+ *   `reports.governance.document` -> null.
  *
- *   The package names five HTML exports (`R1_intervention_review.html`, `R2_project_360.html`,
- *   `W1_what_if_lens.html`, …) that it does not ship — there is no .html anywhere in it. Serving
- *   the pointers anyway is worse than serving none: the client resolves a document by **basename**
- *   across every dataset folder, and two of these names collide with CAPEX's shipped files
- *   (`R2_project_360.html`, `W1_what_if_lens.html`) — so a Keolis row would frame **CAPEX's**
- *   report, which is the dataset bleed this repo refuses everywhere. With the pointers stripped,
- *   Audit & Governance falls back to the computed page over `reports.register`, and the report /
- *   What-if surfaces stay honestly gated until Keolis documents exist. When they do, restore the
+ *   The package names HTML exports (`R1_intervention_review.html`, `R2_project_360.html`, …) that
+ *   it does not ship — there is no .html anywhere in it. Serving the pointers anyway is worse than
+ *   serving none: the client resolves a document by **basename** across every dataset folder, and
+ *   `R2_project_360.html` collides with CAPEX's shipped file — so a Keolis row would frame
+ *   **CAPEX's** report, which is the dataset bleed this repo refuses everywhere. With the pointers
+ *   stripped, Audit & Governance falls back to the computed page over `reports.register`, and the
+ *   report surfaces stay honestly gated until Keolis documents exist. When they do, restore the
  *   pointers here (with basenames unique to a `frontend/src/Keolis/` folder) in the same change
  *   that adds the files.
+ *
+ * - `whatif.document` is **rebuilt from the shipped lens** in `frontend/src/Keolis/what-if-lens/`
+ *   — the arrangement `ingest-capex-reports.js` has for CAPEX's: every field the page states is
+ *   read out of the file itself (title, heading, standfirst, tabs), so the pointer cannot disagree
+ *   with what the frame shows, and the basename is the shipped one (`keolis_what_if_lens.html`,
+ *   unique across datasets) rather than the colliding `W1_what_if_lens.html` the package names.
+ *   The page stamps no `(stage vN)` into its <title>, so `version` and `stage` come from the
+ *   package's own pointer — the generator's account of the same export — rather than being typed
+ *   here. With no shipped lens the pointer is stripped, which was the prior behaviour throughout.
  *
  * Run it with `npm run ingest:keolis` (from the repo root or `backend/`), then restart the mock
  * server — the loaders read the split files at boot only.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -133,8 +142,97 @@ if (reports.governance?.document) {
   strippedPointers.push(reports.governance.document.file)
   reports.governance.document = null
 }
-if (source.whatif?.document) {
-  strippedPointers.push(source.whatif.document.file)
+/* ------------- the What-if lens pointer, rebuilt from the shipped document — see the header ------------- */
+
+const lensDir = join(backendDir, '..', 'frontend', 'src', 'Keolis', 'what-if-lens')
+let lensFiles = []
+try {
+  lensFiles = readdirSync(lensDir)
+    .filter((f) => f.toLowerCase().endsWith('.html'))
+    .sort()
+} catch {
+  /* No folder means no shipped lens — the pointer is stripped below, the prior behaviour. */
+}
+if (lensFiles.length > 1) {
+  /* One lens per dataset: the What-if page frames one document, so a second would be unreachable. */
+  fail(
+    `${lensDir} holds ${lensFiles.length} lens documents (${lensFiles.join(', ')}) — ` +
+      'the What-if page frames one, so a second would be unreachable. Remove one.',
+  )
+}
+
+/* Tags out, entities decoded, whitespace collapsed — the standfirst is authored as markup. */
+const text = (html) =>
+  html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const packagedLens = source.whatif?.document ?? null
+const restoredPointers = []
+if (lensFiles.length === 1) {
+  const file = lensFiles[0]
+  const html = readFileSync(join(lensDir, file), 'utf8')
+  const grab = (re) => {
+    const m = re.exec(html)
+    return m ? text(m[1]) : null
+  }
+
+  /* `What-if — … (draft v2)` splits into title / stage / version where the page stamps one. This
+     page stamps none, so the two fields fall back to the package's own pointer — the generator's
+     account of the same export — and the refusal below still fires if neither side states them. */
+  const titleTag = grab(/<title>([\s\S]*?)<\/title>/)
+  const stamped = /^(.*?)\s*\(\s*(?:([A-Za-z]+)\s+)?v(\d+)\s*\)\s*$/.exec(titleTag ?? '')
+
+  const lensDocument = {
+    /* The package's id for this export — nothing in the page states one, and the filename's stem
+       would be the whole basename, which is not an id. */
+    document_id: packagedLens?.document_id ?? null,
+    file,
+    title: stamped ? stamped[1] : titleTag,
+    version: stamped ? `v${stamped[3]}` : (packagedLens?.version ?? null),
+    stage: stamped && stamped[2] ? stamped[2].toLowerCase() : (packagedLens?.stage ?? null),
+    /* The page's own heading and standfirst, read so the pointer cannot disagree with the frame. */
+    heading: grab(/<h1>([\s\S]*?)<\/h1>/),
+    subtitle: grab(/<div class="sub">([\s\S]*?)<\/div>/),
+    /* Re-read from the page's own buttons — the key from the `showTab(...)` call each one makes,
+       the label from what it says — the rule CAPEX's ingest states for the same list. */
+    tabs: [
+      ...html.matchAll(
+        /<button class="tab[^"]*"[^>]*onclick="showTab\('([^']+)'\)"[^>]*>([^<]*)<\/button>/g,
+      ),
+    ].map((m) => ({ key: m[1], label: text(m[2]) })),
+  }
+
+  for (const [key, value] of Object.entries(lensDocument)) {
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      fail(
+        `${file} states no "${key}" (and the package pointer supplies none) — ` +
+          'the What-if page would frame a document it cannot label',
+      )
+    }
+  }
+
+  /* The stored default has to name a tab the page actually has, or the lens opens on one that is
+     not there. */
+  const defaultTab = source.whatif?.state_defaults?.tab
+  if (defaultTab && !lensDocument.tabs.some((t) => t.key === defaultTab)) {
+    fail(
+      `whatif.state_defaults.tab is "${defaultTab}", which ${file} does not declare ` +
+        `(${lensDocument.tabs.map((t) => t.key).join(', ')})`,
+    )
+  }
+
+  source.whatif.document = lensDocument
+  restoredPointers.push(`${file} (${lensDocument.stage} ${lensDocument.version} — ${lensDocument.title})`)
+} else if (packagedLens) {
+  strippedPointers.push(packagedLens.file)
   delete source.whatif.document
 }
 
@@ -163,6 +261,9 @@ if (strippedPointers.length > 0) {
     `  stripped ${strippedPointers.length} rendered-document pointer(s) the package names but does ` +
       `not ship: ${strippedPointers.join(', ')}`,
   )
+}
+if (restoredPointers.length > 0) {
+  console.log(`  what-if lens pointer read from the shipped document: ${restoredPointers.join(', ')}`)
 }
 console.log('  dropped (tenant-level, served from backend/settings.json): ' + DROPPED.join(', '))
 console.log('\nRestart the mock server for the split files to be read.')

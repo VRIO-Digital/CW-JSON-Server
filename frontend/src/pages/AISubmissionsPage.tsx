@@ -1,5 +1,10 @@
+import { Spin } from 'antd'
+import { useEffect } from 'react'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
+import { useReportsStore } from '../store/reportsStore'
 
 /**
  * AI Submissions — a standalone showcase page, framed rather than built.
@@ -17,12 +22,17 @@ import DocumentViewer from '../components/report/DocumentViewer'
  * the frame to exactly what is left of the viewport below this header, so the frame fits the screen
  * without a second scrollbar — the same fit-to-viewport machinery the lens and the CAPEX reports use.
  *
- * **Gated on nothing.** Every other framed document here waits on a precondition — a published graph,
- * a connected source — because its figures are attributed to content that has to exist first. This
- * page asks nothing of the graph and reads nothing from a source: it is a fixed demo asset, so there
- * is no state for a gate to be about. `src/pages/X.tsx → route → nav.ts entry`, the recipe SKILLS.md
- * states for a new page, ends there for exactly this reason — "gate it on `connected_sources` … if
- * its data derives from a source" does not apply, because none of it does.
+ * **Behind the publish gate, on request — the same reversal the What-if lens and the CAPEX reports
+ * took.** This page asks nothing of the graph — its figures are the document's own — so it rode
+ * ungated for a while on exactly that reasoning, and the reasoning produced a *section* where what
+ * is wanted is a *sequence*: the graph is released first, and the surfaces that read the tenant's
+ * data open after it. So the gate is publication, tested on the same counts `ReportsPage` reads
+ * (`GET /reports` through `reportsStore` — one store, one path into the counts, rather than a second
+ * fetch invented for this page), and `NoPublishedGraph` is the one screen for the closed branch,
+ * forking its action on `builtCount` like every other gated page. A connected source is deliberately
+ * not a second gate, for the reason the Reports section states: publishing is already downstream of
+ * having something to build from. Publication lives in the mock server's memory, so a restart closes
+ * this page again along with the other four.
  *
  * **The document itself was hand-edited, which the CAPEX and What-if documents never are.** Those
  * carry a generator and a `_meta` forbidding it, so this app reaches them only by injecting CSS at the
@@ -46,13 +56,37 @@ import DocumentViewer from '../components/report/DocumentViewer'
 const FILE = 'ai_submissions_demo_final.html'
 
 export default function AISubmissionsPage() {
+  const index = useReportsStore((s) => s.index)
+  const loading = useReportsStore((s) => s.loading)
+  const error = useReportsStore((s) => s.error)
+  const load = useReportsStore((s) => s.load)
+
+  /* No role: the counts are the same whatever role asks, and this page reads nothing else. */
+  useEffect(() => {
+    void load()
+  }, [load])
+
   return (
     <>
       <PageHeader
         title="AI Submissions"
         subtitle="Reports you are accountable for — regulatory, internal and lender filings, drafted with evidence and confirmed by you before anything is sent."
       />
-      <DocumentViewer document={{ file: FILE, title: 'AI Submissions' }} seamless />
+      {loading && !index ? (
+        <Spin />
+      ) : error && !index ? (
+        <ApiErrorAlert error={error} onRetry={() => void load()} />
+      ) : !index ? null : index.publishedCount === 0 ? (
+        /* The one precondition, read as `=== 0` on a loaded index — never as falsy, which would
+           flash the gate over a tenant that has published. */
+        <NoPublishedGraph
+          detail="A submission is drafted with evidence from the published graph — the streams, their obligations and the drafting workspace open once one is live."
+          builtCount={index.builtCount}
+          draftCount={index.draftCount}
+        />
+      ) : (
+        <DocumentViewer document={{ file: FILE, title: 'AI Submissions' }} seamless />
+      )}
     </>
   )
 }

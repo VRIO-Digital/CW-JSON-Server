@@ -1036,6 +1036,25 @@
       ],
       "link_pattern": "contextweave.keolis-valmont.example/w/<scenario-name-slugified>",
       "governance_link": "../08_audit_governance/governance_audit_keolis.html"
+    },
+    "document": {
+      "document_id": "W1",
+      "file": "keolis_what_if_lens.html",
+      "title": "What-if — Keolis Valmont · TV-100 overhaul",
+      "version": "v1",
+      "stage": "draft",
+      "heading": "What-if",
+      "subtitle": "Stress the TV-100 overhaul forecast without pretending to predict it. A case moves one attributable driver — the index-linked price, the number of trams that get new bogie frames under RC-005-009, Keolis labour, contingency — and recomputes only the slice the graph ties to it. The fixed-price lots and the residual stay locked. Every slice opens to its source.",
+      "tabs": [
+        {
+          "key": "author",
+          "label": "Authoring"
+        },
+        {
+          "key": "runtime",
+          "label": "Runtime"
+        }
+      ]
     }
   }
 }

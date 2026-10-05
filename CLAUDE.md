@@ -6214,14 +6214,16 @@ once the step is taken, the one action that takes it, and the numbered path from
 here to a filled screen. `NoSourceConnected` is the source-specific wrapper;
 Graph Studio's is the second. Give a new one copy, not a new look.
 
-**One precondition, one screen.** Four pages need a published graph — Ask, Reports, the
-What-if lens and Audit & Governance — and every one renders **`NoPublishedGraph`**, whose
-single action is **Open Graph Studio**, because that is where the publish button is. Only
+**One precondition, one screen.** Five pages need a published graph — Ask, Reports, the
+What-if lens, Audit & Governance and AI Submissions (gated on request, the same reversal
+the rendered lens and the CAPEX reports took: the graph is released first, and the surfaces
+that read the tenant's data open after it) — and every one renders **`NoPublishedGraph`**,
+whose single action is **Open Graph Studio**, because that is where the publish button is. Only
 the `detail` sentence and an optional `footnote` are per-page; the title, the action and
 the numbered path are not, or the same gate comes to be called two things. Ask kept a
 private copy of it for a long while — "No graph is live yet" against "No graph has been
 published", its own steps, its own button — which reads as two different problems and
-sends a reader looking for a second fix. `check-docs` asserts all four use the component
+sends a reader looking for a second fix. `check-docs` asserts all five use the component
 *and* that none of them hand-rolls an `EmptyState` on that branch. **The action forks on
 the counts**, and must: `builtCount > 0` means publish what you have (Graph Studio),
 nothing built means build one first (New Graph), and offering one for both sends half the

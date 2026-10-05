@@ -10746,9 +10746,10 @@ expect(
 /*
  * ---------------- one precondition, one screen ----------------
  *
- * Four pages need a published graph — Ask, Reports, the What-if lens and Audit & Governance — and
- * every one of them renders `NoPublishedGraph`, whose single action is **Open Graph Studio**, which
- * is where the publish button actually is.
+ * Five pages need a published graph — Ask, Reports, the What-if lens, Audit & Governance and
+ * AI Submissions (gated on request, the same reversal the rendered lens and the CAPEX reports took) —
+ * and every one of them renders `NoPublishedGraph`, whose single action is **Open Graph Studio**,
+ * which is where the publish button actually is.
  *
  * Ask did not, for a long time: it kept a private `EmptyState` with the same precondition under a
  * different title ("No graph is live yet" against "No graph has been published"), its own three
@@ -10762,6 +10763,7 @@ const PUBLISH_GATED_PAGES = [
   'frontend/src/pages/ReportsPage.tsx',
   'frontend/src/pages/WhatIfPage.tsx',
   'frontend/src/pages/AuditPage.tsx',
+  'frontend/src/pages/AISubmissionsPage.tsx',
 ]
 expect(
   'every page gated on publication renders the one empty state',
