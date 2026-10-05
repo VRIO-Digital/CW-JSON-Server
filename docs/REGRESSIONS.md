@@ -7839,3 +7839,24 @@ served before); `writeSharedSettings` now carries only `google_account`, `settin
 **Guard** — diagnostic: `ingest-keolis.mjs` refuses a package key that is neither mapped nor
 deliberately dropped, and the boot's `unplannedKeys` still stops on any key `MERGE_PLAN` does not
 place.
+
+
+## The framed document's downloads were sandbox-blocked, silently, in the frame and in every tab it opened
+
+**Symptom** — the AI Submissions template preview's "Open in Excel / PowerPoint" buttons did
+nothing: no download, no error on screen. Reported twice from use — the first fix rewrote the
+buttons from a bare `<a download href="data:...">` to a preview-local Blob + object-URL anchor
+(worth keeping anyway), and the downloads still did not land.
+
+**Root cause** — `DocumentViewer`'s iframe sandbox had no `allow-downloads`. Chrome blocks every
+download initiated by a sandboxed frame without that flag, logging only a console line nobody is
+watching — and a tab the document opens with `window.open` **inherits the opener's sandbox**, so
+the preview tab's own buttons were blocked by a sandbox attribute two documents away. The same block
+covered every download inside the framed page itself (a draft's PDF+CSV, the zip).
+
+**Fix** — `allow-downloads` added to the sandbox list in `DocumentViewer.tsx`, with the comment
+stating why it is load-bearing.
+
+**Lesson** — *a sandbox flag is inherited by the popups a frame opens, and a blocked download is
+silent at every layer the user can see.* When a control inside a framed or popup document "does
+nothing", read the sandbox attribute of the frame that opened it before rewriting the control.

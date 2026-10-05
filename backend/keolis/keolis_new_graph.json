@@ -969,6 +969,98 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-testdata-muv8dnwa2",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "fleet-infrastructure-sgr",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Authority Liaison (PPI)",
+          "description": "Asks what the authority will see, what is claimable and what is only potential.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Open Commitment",
+          "description": "Open_Commitment = [Ordered] − [Received] − [Cancelled], at the PO line's valuation basis. Unpaid invoices are not future work.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:keolis_valmont_eam",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which assets have the worst condition scores?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT score, asset_id, score_scale, next_inspection_due\nFROM `eam`.`condition_assessment`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-05T12:33:49.341Z"
+    },
+    {
+      "use_case_id": "uc-testdata-muv80zgo2",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "fleet-infrastructure-sgr",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Authority Liaison (PPI)",
+          "description": "Asks what the authority will see, what is claimable and what is only potential.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Open Commitment",
+          "description": "Open_Commitment = [Ordered] − [Received] − [Cancelled], at the PO line's valuation basis. Unpaid invoices are not future work.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:keolis_valmont_eam",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which assets have the worst condition scores?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT score, asset_id, score_scale, next_inspection_due\nFROM `eam`.`condition_assessment`\nLIMIT 1000"
+        },
+        {
+          "text": "Which forecasts are out of date?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT commissioned_date\nFROM `eam`.`asset_register`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-05T12:24:03.789Z"
+    },
+    {
       "use_case_id": "uc-testdata-muuypecw2",
       "name": "testdata",
       "status": "committed",

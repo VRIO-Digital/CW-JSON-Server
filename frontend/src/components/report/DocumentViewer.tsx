@@ -323,9 +323,14 @@ export default function DocumentViewer({
             /*
              * `same-origin` so the document's own scripts run and so `contentWindow.print()` is reachable;
              * these files are part of this build rather than third-party content. `allow-modals` because
-             * the print dialog is one.
+             * the print dialog is one. `allow-downloads` because a framed document hands the reader files —
+             * the AI Submissions page downloads its template .xlsx/.pptx and a draft's PDF+CSV — and a
+             * sandbox without it blocks every one of those **silently**: no error on screen, a console
+             * line nobody is watching, and the block is inherited by any tab the document opens
+             * (`window.open`'s popup carries the opener's sandbox), which is where the template preview's
+             * own download buttons live. Reported from use as buttons that did nothing.
              */
-            sandbox="allow-same-origin allow-scripts allow-modals allow-popups"
+            sandbox="allow-same-origin allow-scripts allow-modals allow-popups allow-downloads"
             /*
              * **The document's own mock-API pill is hidden, and hidden rather than deleted.**
              *
