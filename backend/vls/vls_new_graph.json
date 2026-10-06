@@ -1,0 +1,1426 @@
+{
+  "graph_domains": [
+    {
+      "domain_id": "waste-acceptance-governance",
+      "name": "Waste Acceptance & Profile Governance",
+      "expected_sources": [
+        "Profiles and approvals",
+        "Facility permits and exemptions",
+        "Receiving, manifests and lab",
+        "Billing and customer systems",
+        "Permits, profiles and lab reports (documents)"
+      ],
+      "fit": "strong",
+      "note": "All five expected sources are connected; the approvals, facility and billing datasets are declared by dictionaries, and permits, modifications, profiles and lab reports are in the Drive corpus.",
+      "unmet_note": "No profile, approval or permit source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "permit-inspection-readiness",
+      "name": "Permit & Inspection Readiness",
+      "expected_sources": [
+        "Permit versions and units",
+        "Waste analysis plans",
+        "Discrepancy and rejection records",
+        "Inspection history"
+      ],
+      "fit": "partial",
+      "note": "Permit versions, waste analysis plans and discrepancy clocks resolve. No inspection history or agency correspondence is connected, so readiness for an inspection visit is never scored.",
+      "unmet_note": "No permit register or discrepancy source connected.",
+      "rank": 2
+    },
+    {
+      "domain_id": "facility-capacity-throughput",
+      "name": "Facility Capacity & Throughput",
+      "expected_sources": [
+        "Receipts by facility",
+        "Injection logs and tank inventory",
+        "Blend batches and fuel shipments",
+        "Transport schedules"
+      ],
+      "fit": "partial",
+      "note": "Receipts, injection logs, tank inventory and fuel shipments are connected; transport schedules are not, so gate congestion and routing are never tested.",
+      "unmet_note": "No receiving or operations source connected.",
+      "rank": 3
+    },
+    {
+      "domain_id": "predictive-profile-risk",
+      "name": "Predictive Profile Risk",
+      "expected_sources": [
+        "Long fingerprint history per stream",
+        "Recorded generator process changes",
+        "Out-of-time validation set"
+      ],
+      "fit": "none",
+      "note": "Eighteen months of fingerprints, and process changes that arrive by email rather than as records, cannot support a model validated out of time.",
+      "unmet_note": "No long fingerprint history or recorded process changes connected.",
+      "rank": 4
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "dir-tech-services",
+      "name": "Director of Technical Services & Compliance",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "decision",
+        "permit fit",
+        "clock",
+        "certificate",
+        "this week",
+        "review"
+      ],
+      "focus": "Asks what needs a decision this week, whether approvals fit the permits, and what goes to the Regional VP.",
+      "top_questions": [
+        "hq1",
+        "hq2",
+        "hq6",
+        "hq11",
+        "hq14",
+        "hq18"
+      ]
+    },
+    {
+      "persona_id": "approvals-chemist",
+      "name": "Senior Approvals Chemist",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "profile",
+        "approval",
+        "re-certification",
+        "tolerance",
+        "process change",
+        "basis"
+      ],
+      "focus": "Asks whether a profile still describes what arrives, which approvals are current and which basis each value rests on.",
+      "top_questions": [
+        "hq3",
+        "hq8",
+        "hq15",
+        "hq16",
+        "hq19",
+        "hq26"
+      ]
+    },
+    {
+      "persona_id": "facility-compliance",
+      "name": "Facility Compliance Manager",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "discrepancy",
+        "20-day",
+        "e-Manifest",
+        "rejection",
+        "injection report",
+        "receipt summary"
+      ],
+      "focus": "Asks which clocks are running, whether a discrepancy is really reconciled and what the monthly reports say.",
+      "top_questions": [
+        "hq4",
+        "hq7",
+        "hq10",
+        "hq17",
+        "hq22",
+        "hq23"
+      ]
+    },
+    {
+      "persona_id": "lab-supervisor",
+      "name": "Laboratory Supervisor",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "fingerprint",
+        "halogens",
+        "PCB",
+        "PFAS",
+        "conformance",
+        "retest"
+      ],
+      "focus": "Asks which loads fell outside tolerance, what was held and what the fingerprints can and cannot test.",
+      "top_questions": [
+        "hq12",
+        "hq20",
+        "hq24",
+        "hq42"
+      ]
+    },
+    {
+      "persona_id": "account-manager",
+      "name": "Account Manager",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "customer",
+        "account",
+        "Coastline",
+        "duplicate",
+        "generator",
+        "invoices"
+      ],
+      "focus": "Asks who a customer is across the systems, what it ships and what it has been told.",
+      "top_questions": [
+        "hq5",
+        "hq28",
+        "hq29",
+        "hq31",
+        "hq33"
+      ]
+    },
+    {
+      "persona_id": "billing-analyst",
+      "name": "Billing & Pricing Analyst",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "price",
+        "invoice",
+        "surcharge",
+        "revenue",
+        "support",
+        "clause"
+      ],
+      "focus": "Asks what was billed, on which basis, and which surcharges lack their support. Never sees profile composition.",
+      "top_questions": [
+        "hq13",
+        "hq32"
+      ]
+    },
+    {
+      "persona_id": "regional-vp",
+      "name": "Regional Vice President",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "region",
+        "review",
+        "revenue",
+        "volume",
+        "measures",
+        "risk"
+      ],
+      "focus": "Asks what the monthly review must show and how the region performs on the governed measures.",
+      "top_questions": [
+        "hq9",
+        "hq38"
+      ]
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "hq1",
+      "text": "Which situations need a decision from me this week, and why?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "situations",
+        "need",
+        "decision",
+        "week"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q01",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.facility + vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq2",
+      "text": "Are all active approvals still valid against the current permits at their facilities?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "active",
+        "approvals",
+        "valid",
+        "against",
+        "current",
+        "permits"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q02",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.facility + vls_gulfcoast_core.receiving at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq3",
+      "text": "Has Halvorsen's WP-20417 stream changed since it was certified?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "halvorsen",
+        "stream",
+        "changed",
+        "certified"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q03",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq4",
+      "text": "Is the Kestrel Bayou discrepancy on manifest 024121904GBF reconciled?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "kestrel",
+        "bayou",
+        "discrepancy",
+        "manifest",
+        "reconciled"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q04",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq5",
+      "text": "Who is Brazos Bend Chemical across our systems, and what do they ship to us?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "brazos",
+        "bend",
+        "chemical",
+        "across",
+        "systems",
+        "ship"
+      ],
+      "persona": "Account Manager",
+      "answer_id": "Q05",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.approvals + vls_gulfcoast_core.billing + vls_sabine_billing.sabine_billing + mailbox at question time at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq6",
+      "text": "Can we issue Marsh Point certificates of disposal for all 38 PFAS loads?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "issue",
+        "marsh",
+        "point",
+        "certificates",
+        "disposal",
+        "pfas"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q06",
+      "rationale": "Resolves across vls_gulfcoast_core.ops + vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq7",
+      "text": "Which open discrepancies are closest to their 20-day date?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "open",
+        "discrepancies",
+        "closest",
+        "date"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q07",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq8",
+      "text": "Are all our active approvals current?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "active",
+        "approvals",
+        "current"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q08",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.receiving at medium confidence (0.84)."
+    },
+    {
+      "question_id": "hq9",
+      "text": "What should be on the first slide of the October compliance review?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "should",
+        "first",
+        "slide",
+        "october",
+        "compliance",
+        "review"
+      ],
+      "persona": "Regional Vice President",
+      "answer_id": "Q09",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq10",
+      "text": "Draft the September 2026 injection report figures for Bayou Ridge.",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "draft",
+        "september",
+        "injection",
+        "report",
+        "figures",
+        "bayou"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q10",
+      "rationale": "Resolves across vls_gulfcoast_core.ops + vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq11",
+      "text": "What was the total volume received in the Gulf Coast region over the last 12 months?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "total",
+        "volume",
+        "received",
+        "gulf",
+        "coast",
+        "region"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q11",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq12",
+      "text": "What is our load conformance rate, and which approval drives the recent non-conforming loads?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "load",
+        "conformance",
+        "rate",
+        "approval",
+        "drives",
+        "recent"
+      ],
+      "persona": "Laboratory Supervisor",
+      "answer_id": "Q12",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.receiving at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq13",
+      "text": "Which surcharges are not supported by a fingerprint result and a contract clause?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "surcharges",
+        "supported",
+        "fingerprint",
+        "result",
+        "contract",
+        "clause"
+      ],
+      "persona": "Billing & Pricing Analyst",
+      "answer_id": "Q13",
+      "rationale": "Resolves across vls_gulfcoast_core.billing at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq14",
+      "text": "What is the revenue at risk from the Sabine Fuels permit change, and where could those streams go?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "revenue",
+        "risk",
+        "sabine",
+        "fuels",
+        "permit",
+        "change"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q14",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_sabine_billing.sabine_billing at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq15",
+      "text": "What may Tank Farm B at Sabine Fuels accept today?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "tank",
+        "farm",
+        "sabine",
+        "fuels",
+        "accept",
+        "today"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q15",
+      "rationale": "Resolves across vls_gulfcoast_core.facility at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq16",
+      "text": "Which version of modification 4 is in force: the draft or the final?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "version",
+        "modification",
+        "force",
+        "draft",
+        "final"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q16",
+      "rationale": "Resolves across the document corpus at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq17",
+      "text": "Which loads did Sabine Fuels receive under F024 approvals after 1 July?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "loads",
+        "sabine",
+        "fuels",
+        "receive",
+        "under",
+        "approvals"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q17",
+      "rationale": "Resolves across vls_gulfcoast_core.ops + vls_gulfcoast_core.receiving at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq18",
+      "text": "Were the customers affected by modification 4 told?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "were",
+        "customers",
+        "affected",
+        "modification",
+        "told"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q18",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + mailbox at question time at medium confidence (0.84)."
+    },
+    {
+      "question_id": "hq19",
+      "text": "Can Bayou Ridge take the F024 streams instead?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "bayou",
+        "ridge",
+        "take",
+        "streams",
+        "instead"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q19",
+      "rationale": "Resolves across the document corpus at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq20",
+      "text": "What PFAS testing do our fingerprints do?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "pfas",
+        "testing",
+        "fingerprints"
+      ],
+      "persona": "Laboratory Supervisor",
+      "answer_id": "Q20",
+      "rationale": "Resolves across the document corpus at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq21",
+      "text": "How many PFAS-bearing profiles do we hold, and which generators asked for certificates?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "many",
+        "pfas-bearing",
+        "profiles",
+        "hold",
+        "generators",
+        "asked"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q21",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.ops at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq22",
+      "text": "Why does the receiving system show DSC-BR-2026-0231 as resolved?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "receiving",
+        "system",
+        "show",
+        "dsc-br-",
+        "resolved"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q22",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq23",
+      "text": "Is any discrepancy past its 20-day window?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "discrepancy",
+        "past",
+        "window"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q23",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq24",
+      "text": "What happened to the Graywater Metals load that screened positive for PCBs?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "happened",
+        "graywater",
+        "metals",
+        "load",
+        "screened",
+        "positive"
+      ],
+      "persona": "Laboratory Supervisor",
+      "answer_id": "Q24",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq25",
+      "text": "Which rejected loads are still inside their 60-day window?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "rejected",
+        "loads",
+        "inside",
+        "window"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q25",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq26",
+      "text": "Which active approvals have no re-certification date?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "active",
+        "approvals",
+        "re-certification",
+        "date"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q26",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq27",
+      "text": "Which approvals are due for re-certification in November and December?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "approvals",
+        "re-certification",
+        "november",
+        "december"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q27",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq28",
+      "text": "Which Coastline customers have not been migrated, and why?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "coastline",
+        "customers",
+        "been",
+        "migrated"
+      ],
+      "persona": "Account Manager",
+      "answer_id": "Q28",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + mailbox at question time at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq29",
+      "text": "Are Gulfport Polymers LLC and Gulfport Polymer Services the same customer?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "gulfport",
+        "polymers",
+        "gulfport",
+        "polymer",
+        "services",
+        "same"
+      ],
+      "persona": "Account Manager",
+      "answer_id": "Q29",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_sabine_billing.sabine_billing at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq30",
+      "text": "What is profile WP-20233?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "profile"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q30",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.approvals at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq31",
+      "text": "Does Saltgrass Resins have history with us before February 2026?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "saltgrass",
+        "resins",
+        "history",
+        "before",
+        "february"
+      ],
+      "persona": "Account Manager",
+      "answer_id": "Q31",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals + vls_gulfcoast_core.receiving at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq32",
+      "text": "What did Brazos Bend pay us over the last 12 months, by account?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "brazos",
+        "bend",
+        "over",
+        "last",
+        "months",
+        "account"
+      ],
+      "persona": "Billing & Pricing Analyst",
+      "answer_id": "Q32",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.billing + vls_sabine_billing.sabine_billing at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq33",
+      "text": "How many customers do we have in the Gulf Coast region?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "many",
+        "customers",
+        "gulf",
+        "coast",
+        "region"
+      ],
+      "persona": "Account Manager",
+      "answer_id": "Q33",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.approvals + vls_sabine_billing.sabine_billing at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq34",
+      "text": "Which Harbor Transfer consolidations have no onward manifest?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "harbor",
+        "transfer",
+        "consolidations",
+        "onward",
+        "manifest"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q34",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.receiving at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq35",
+      "text": "Does Harbor Transfer report receipts in the Biennial Hazardous Waste Report?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "harbor",
+        "transfer",
+        "report",
+        "receipts",
+        "biennial",
+        "hazardous"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q35",
+      "rationale": "Resolves across vls_gulfcoast_core.facility at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq36",
+      "text": "What is our approval cycle time?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "approval",
+        "cycle",
+        "time"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q36",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq37",
+      "text": "What is our rejection rate?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "rejection",
+        "rate"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q37",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq38",
+      "text": "What is the regional disposal revenue over the last 12 months?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "regional",
+        "disposal",
+        "revenue",
+        "over",
+        "last",
+        "months"
+      ],
+      "persona": "Regional Vice President",
+      "answer_id": "Q38",
+      "rationale": "Resolves across vls_coastline_legacy.coastline + vls_gulfcoast_core.billing + vls_sabine_billing.sabine_billing at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq39",
+      "text": "How many approvals rest on generator knowledge alone?",
+      "domains": [
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "many",
+        "approvals",
+        "rest",
+        "generator",
+        "knowledge",
+        "alone"
+      ],
+      "persona": "Senior Approvals Chemist",
+      "answer_id": "Q39",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq40",
+      "text": "When is the September waste receipt summary due, and when will it be filed?",
+      "domains": [
+        "permit-inspection-readiness",
+        "waste-acceptance-governance"
+      ],
+      "keywords": [
+        "when",
+        "september",
+        "waste",
+        "receipt",
+        "summary",
+        "when"
+      ],
+      "persona": "Facility Compliance Manager",
+      "answer_id": "Q40",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq41",
+      "text": "Is the export consent for Cementos Sierra Norte still valid?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "export",
+        "consent",
+        "cementos",
+        "sierra",
+        "norte",
+        "valid"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q41",
+      "rationale": "Resolves across vls_gulfcoast_core.ops at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq42",
+      "text": "What were Halvorsen's measured halogens in September?",
+      "domains": [
+        "waste-acceptance-governance",
+        "facility-capacity-throughput"
+      ],
+      "keywords": [
+        "were",
+        "halvorsen",
+        "measured",
+        "halogens",
+        "september"
+      ],
+      "persona": "Laboratory Supervisor",
+      "answer_id": "Q42",
+      "rationale": "Resolves across vls_gulfcoast_core.receiving + mailbox at question time at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq43",
+      "text": "Did the September compliance review report any permit-fit exceptions?",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "september",
+        "compliance",
+        "review",
+        "report",
+        "permit-fit",
+        "exceptions"
+      ],
+      "persona": "Director of Technical Services & Compliance",
+      "answer_id": "Q43",
+      "rationale": "Resolves across vls_gulfcoast_core.approvals at high confidence (0.90)."
+    }
+  ],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-muwi4mq26",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "waste-acceptance-governance",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Billing & Pricing Analyst",
+          "description": "Asks what was billed, on which basis, and which surcharges lack their support. Never sees profile composition.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Account Manager",
+          "description": "Asks who a customer is across the systems, what it ships and what it has been told.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Surcharge support rate",
+          "description": "Surcharges with a linked fingerprint result and contract clause divided by all surcharges. A clause without a result, or a result without a clause, is unsupported. Owner: Tasha Greene.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        },
+        {
+          "name": "Permit-fit exception",
+          "description": "Active approval listing a waste code not authorized for its facility and unit in the permit version effective on the as-of date. The permit document is the authority; show the modification that caused it. Owner: Jordan Ellis.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:vls_gulfcoast_core",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gdrive:my-drive-priya-raman",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Why does the receiving system show DSC-BR-2026-0231 as resolved?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT discrepancy_id, status\nFROM `receiving`.`discrepancy`\nLIMIT 1000"
+        },
+        {
+          "text": "What is profile WP-20233?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT profile_id, account_id, facility_id, pfas_flag\nFROM `approvals`.`profile`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-06T09:54:41.652Z"
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "waste-acceptance-governance",
+      "use_case_id": "uc_waste_acceptance_governance",
+      "name": "Waste Acceptance & Profile Governance",
+      "description": "One model over profiles, approvals, permits, receipts, lab results and customer systems, so an acceptance question resolves once, with the permit version and the regulatory clock stated.",
+      "match_phrases": [
+        "waste acceptance",
+        "profile governance",
+        "permit fit",
+        "re-certification",
+        "manifest discrepancy",
+        "certificate of disposal",
+        "PFAS",
+        "customer identity"
+      ],
+      "personas": [
+        "dir-tech-services",
+        "approvals-chemist",
+        "facility-compliance",
+        "lab-supervisor",
+        "account-manager",
+        "billing-analyst",
+        "regional-vp"
+      ],
+      "metrics": [
+        "active-approval",
+        "recert-overdue",
+        "approval-cycle-time",
+        "permit-fit-exception",
+        "significant-discrepancy",
+        "discrepancy-age",
+        "load-conformance-rate",
+        "rejection-rate",
+        "volume-received",
+        "surcharge-support-rate",
+        "unresolved-identities",
+        "certificate-coverage"
+      ],
+      "hero_questions": [
+        "hq1",
+        "hq2",
+        "hq3",
+        "hq4",
+        "hq5",
+        "hq6",
+        "hq7",
+        "hq8",
+        "hq9",
+        "hq10",
+        "hq11",
+        "hq12",
+        "hq13",
+        "hq14"
+      ]
+    }
+  ],
+  "graph_metrics": [
+    {
+      "metric_id": "active-approval",
+      "name": "Active approval",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "active",
+        "approval"
+      ],
+      "definition": "Approval with status Active, not expired, resting on the latest certified profile version. State the facility and as-of date; a suspended approval is not active. Owner: Priya Raman."
+    },
+    {
+      "metric_id": "recert-overdue",
+      "name": "Re-certification overdue",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "re-certification",
+        "overdue"
+      ],
+      "definition": "Active approval whose profile re-certification date is before the as-of date. Report loads received since the due date separately; approvals without a date are named, not assumed current. Owner: Priya Raman."
+    },
+    {
+      "metric_id": "approval-cycle-time",
+      "name": "Approval cycle time",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "approval",
+        "cycle",
+        "time"
+      ],
+      "definition": "Days from complete profile submission to approval decision. Define complete; report time waiting on the generator separately. Owner: Priya Raman."
+    },
+    {
+      "metric_id": "permit-fit-exception",
+      "name": "Permit-fit exception",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "permit-fit",
+        "exception"
+      ],
+      "definition": "Active approval listing a waste code not authorized for its facility and unit in the permit version effective on the as-of date. The permit document is the authority; show the modification that caused it. Owner: Jordan Ellis."
+    },
+    {
+      "metric_id": "significant-discrepancy",
+      "name": "Significant quantity discrepancy",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "significant",
+        "quantity",
+        "discrepancy"
+      ],
+      "definition": "Bulk: received differs from manifested by more than 10 percent by weight. Batch: any difference in piece count. 40 CFR 264.72 definition; convert units with the declared density before comparing. Owner: Luis Ortega."
+    },
+    {
+      "metric_id": "discrepancy-age",
+      "name": "Discrepancy age",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "discrepancy"
+      ],
+      "definition": "Days from receipt to reconciliation, or to the as-of date if open. Compare with the 20-day window; a system status alone is not reconciliation. Owner: Luis Ortega."
+    },
+    {
+      "metric_id": "load-conformance-rate",
+      "name": "Load conformance rate",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "load",
+        "conformance",
+        "rate"
+      ],
+      "definition": "Loads whose fingerprint results fall within approved tolerances divided by loads tested. State the parameters and the population tested; untested loads are not conforming. Owner: Ahmed Siddiqui."
+    },
+    {
+      "metric_id": "rejection-rate",
+      "name": "Rejection rate",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "rejection",
+        "rate"
+      ],
+      "definition": "Rejected loads divided by loads received, by facility, customer or profile. Separate full and partial rejections. Owner: Luis Ortega."
+    },
+    {
+      "metric_id": "volume-received",
+      "name": "Volume received",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "volume",
+        "received"
+      ],
+      "definition": "Sum of measured net quantity at the gate, in one declared unit. Exclude onward shipments within the network to avoid double counting. Owner: Jordan Ellis."
+    },
+    {
+      "metric_id": "surcharge-support-rate",
+      "name": "Surcharge support rate",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "surcharge",
+        "support",
+        "rate"
+      ],
+      "definition": "Surcharges with a linked fingerprint result and contract clause divided by all surcharges. A clause without a result, or a result without a clause, is unsupported. Owner: Tasha Greene."
+    },
+    {
+      "metric_id": "unresolved-identities",
+      "name": "Unresolved generator identities",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "unresolved",
+        "generator",
+        "identities"
+      ],
+      "definition": "Customer accounts with a proposed but unreviewed generator match. Show the volume and revenue they carry. Owner: Ray Delacroix."
+    },
+    {
+      "metric_id": "certificate-coverage",
+      "name": "Certificate coverage",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "certificate",
+        "coverage"
+      ],
+      "definition": "Loads with an unbroken chain from receipt to disposal, including onward shipments, divided by loads requested. A consolidation without an onward link breaks the chain; name the load and the owner. Owner: Jordan Ellis."
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "ranked-exception",
+      "name": "Ranked exception list",
+      "format": "table ranked by business rules, factors visible, owner per row",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "decision",
+        "this week",
+        "exceptions",
+        "attention"
+      ]
+    },
+    {
+      "format_id": "permit-fit",
+      "name": "Approved vs permitted",
+      "format": "metric row + exception table with the permit page as evidence",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "permit",
+        "valid",
+        "fit",
+        "codes"
+      ]
+    },
+    {
+      "format_id": "clock-table",
+      "name": "Regulatory clocks",
+      "format": "one row per clock with days left and owner; system status beside the evidence",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "discrepancy",
+        "20-day",
+        "due",
+        "window"
+      ]
+    },
+    {
+      "format_id": "conversion-basis",
+      "name": "Conversion basis",
+      "format": "metric row + step table from weight to volume",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "gallons",
+        "weight",
+        "specific gravity",
+        "manifest"
+      ]
+    },
+    {
+      "format_id": "identity-proposal",
+      "name": "Proposed identity",
+      "format": "accounts table with match basis; unreviewed accounts shown separately",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "customer",
+        "account",
+        "same",
+        "duplicate"
+      ]
+    },
+    {
+      "format_id": "chain-of-custody",
+      "name": "Chain of custody",
+      "format": "per-load chain with the broken link named",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "certificate",
+        "chain",
+        "onward",
+        "PFAS"
+      ]
+    },
+    {
+      "format_id": "report-draft",
+      "name": "Report draft",
+      "format": "metric row + reconciliation table + measured characteristics",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "report",
+        "injection",
+        "summary",
+        "monthly"
+      ]
+    },
+    {
+      "format_id": "what-was-known",
+      "name": "What was known, when",
+      "format": "timeline table by knowledge date",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "known",
+        "when",
+        "reported",
+        "at the time"
+      ]
+    },
+    {
+      "format_id": "partial-answer",
+      "name": "Partial answer",
+      "format": "answer for the population that can be assessed; the rest named",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "all",
+        "current",
+        "total",
+        "every"
+      ]
+    },
+    {
+      "format_id": "decline-with-alternative",
+      "name": "Decline with alternative",
+      "format": "reason for declining + what can be answered instead",
+      "domains": [
+        "waste-acceptance-governance",
+        "permit-inspection-readiness"
+      ],
+      "keywords": [
+        "predict",
+        "violation",
+        "liable",
+        "guarantee"
+      ]
+    }
+  ]
+}

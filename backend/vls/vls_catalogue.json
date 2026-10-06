@@ -1,0 +1,991 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "facility_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.97
+    },
+    {
+      "name": "permit_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "document_title",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.93
+    },
+    {
+      "name": "document_type",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.91
+    },
+    {
+      "name": "version",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.88
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "approved_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "filed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.86
+    },
+    {
+      "name": "issuing_agency",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.9
+    },
+    {
+      "name": "generator_name",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.92
+    },
+    {
+      "name": "generator_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "profile_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "approval_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "waste_code",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.96
+    },
+    {
+      "name": "permit_unit",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.88
+    },
+    {
+      "name": "concentration_limit",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.84
+    },
+    {
+      "name": "specific_gravity",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.87
+    },
+    {
+      "name": "manifest_tracking_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.93
+    },
+    {
+      "name": "quantity_gal",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.86
+    },
+    {
+      "name": "price_usd",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.85
+    },
+    {
+      "name": "analyte_result",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.84
+    },
+    {
+      "name": "status_stated",
+      "type": "string",
+      "class": "lifecycle_state",
+      "confidence": 0.82
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "author_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.88,
+      "pii": true
+    },
+    {
+      "name": "statement_kind",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.79
+    }
+  ],
+  "data_model": {
+    "suggestions": [
+      {
+        "suggestion_id": "sg_vls_sf_generator",
+        "from_table_key": "sabine_billing.sf_customer",
+        "from_column": "epa_id",
+        "to_table_key": "approvals.generator",
+        "to_column": "epa_id",
+        "relationship_type": "IDENTIFIES_GENERATOR",
+        "relationship_type_alternatives": [
+          "SAME_GENERATOR_AS"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "sf_customer.epa_id is blank on 5 of 12 accounts, including SF-0457 ('Brazos Bend Chem. Co.') and the broker. An equality join resolves only 7; the rest need a reviewed name-and-address match.",
+        "confidence": 0.63
+      },
+      {
+        "suggestion_id": "sg_vls_ce_generator",
+        "from_table_key": "coastline.ce_customer",
+        "from_column": "epa_id",
+        "to_table_key": "approvals.generator",
+        "to_column": "epa_id",
+        "relationship_type": "IDENTIFIES_GENERATOR",
+        "relationship_type_alternatives": [
+          "SAME_GENERATOR_AS"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "Deterministic on EPA ID for 9 of the 10 Coastline customers. CE-2244's stored EPA ID does not match the generator's (digits transposed), which is why it was held at cut-over. Three customers also hold VLS core accounts (CE-2291/C-10458, CE-2305/C-10301, CE-2268/C-10355).",
+        "confidence": 0.84
+      },
+      {
+        "suggestion_id": "sg_vls_profile_ref",
+        "from_table_key": "receiving.manifest_line",
+        "from_column": "profile_ref",
+        "to_table_key": "approvals.profile",
+        "to_column": "profile_id",
+        "relationship_type": "DECLARES_PROFILE",
+        "relationship_type_alternatives": [
+          "REFERENCES"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "profile_ref is free text written on the manifest: 3.1% blank, and Coastline-era manifests carry Coastline profile numbers — WP-20233 means a different stream in each system.",
+        "confidence": 0.58
+      },
+      {
+        "suggestion_id": "sg_vls_permit_fit",
+        "from_table_key": "approvals.profile_version",
+        "from_column": "waste_codes",
+        "to_table_key": "facility.permit_unit_code",
+        "to_column": "waste_code",
+        "relationship_type": "MUST_BE_ACCEPTED_BY",
+        "relationship_type_alternatives": [
+          "FITS_PERMIT"
+        ],
+        "cardinality_hint": "N:N",
+        "rationale": "waste_codes is a comma-separated list; each code must be checked against the permit version effective on the as-of date for the approval's unit, not the version at approval.",
+        "confidence": 0.71
+      },
+      {
+        "suggestion_id": "sg_vls_ce_onward",
+        "from_table_key": "coastline.ce_shipment",
+        "from_column": "out_manifest",
+        "to_table_key": "receiving.manifest",
+        "to_column": "manifest_tracking_no",
+        "relationship_type": "SHIPPED_ONWARD_AS",
+        "relationship_type_alternatives": [
+          "CONSOLIDATED_INTO"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "Links Harbor's pre-cut-over loads to the manifests Bayou Ridge and Sabine Fuels received; null on 3.6% of rows.",
+        "confidence": 0.77
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "ent-approvals-generator-vl570b6",
+        "confirmed_by": null,
+        "table_key": "approvals.generator",
+        "entity_name": "generator",
+        "description": "Entity for generator, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "approvals.customer_account",
+            "from_columns": [
+              "generator_id"
+            ],
+            "to_columns": [
+              "generator_id"
+            ],
+            "relationship_type": "SHIPS_THROUGH_ACCOUNT",
+            "cardinality_hint": "1:N",
+            "rationale": "An account ships for one generator; a broker account carries no generator_id and ships for several.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "approvals.profile",
+            "from_columns": [
+              "generator_id"
+            ],
+            "to_columns": [
+              "generator_id"
+            ],
+            "relationship_type": "GENERATES_STREAM",
+            "cardinality_hint": "1:N",
+            "rationale": "Each profile describes one stream from one generator site.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T10:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-approvals-customer-account-vl0543c",
+        "confirmed_by": null,
+        "table_key": "approvals.customer_account",
+        "entity_name": "customer_account",
+        "description": "Entity for customer_account, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "billing.price_schedule",
+            "from_columns": [
+              "account_id"
+            ],
+            "to_columns": [
+              "account_id"
+            ],
+            "relationship_type": "PRICED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Approved price schedules per account.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T10:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-approvals-profile-vl0f7be",
+        "confirmed_by": null,
+        "table_key": "approvals.profile",
+        "entity_name": "profile",
+        "description": "Entity for profile, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "approvals.profile_version",
+            "from_columns": [
+              "profile_id"
+            ],
+            "to_columns": [
+              "profile_id"
+            ],
+            "relationship_type": "HAS_VERSION",
+            "cardinality_hint": "1:N",
+            "rationale": "Versions are kept; a newer draft does not supersede a certified version.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "approvals.approval",
+            "from_columns": [
+              "profile_id"
+            ],
+            "to_columns": [
+              "profile_id"
+            ],
+            "relationship_type": "APPROVED_AS",
+            "cardinality_hint": "1:N",
+            "rationale": "A profile can hold approvals at more than one facility and superseded approvals over time.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T11:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-approvals-profile-version-vla0198",
+        "confirmed_by": null,
+        "table_key": "approvals.profile_version",
+        "entity_name": "profile_version",
+        "description": "Entity for profile_version, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T12:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-approvals-approval-vl96c77",
+        "confirmed_by": null,
+        "table_key": "approvals.approval",
+        "entity_name": "approval",
+        "description": "Entity for approval, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "approvals.approval_tolerance",
+            "from_columns": [
+              "approval_id"
+            ],
+            "to_columns": [
+              "approval_id"
+            ],
+            "relationship_type": "SETS_TOLERANCE",
+            "cardinality_hint": "1:N",
+            "rationale": "Each approval sets its fingerprint parameters and bounds.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "receiving.receipt",
+            "from_columns": [
+              "approval_id"
+            ],
+            "to_columns": [
+              "approval_id"
+            ],
+            "relationship_type": "ACCEPTED_UNDER",
+            "cardinality_hint": "1:N",
+            "rationale": "Loads are accepted under an approval; null on Harbor loads received before the cut-over.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T13:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-approvals-approval-tolerance-vl160e4",
+        "confirmed_by": null,
+        "table_key": "approvals.approval_tolerance",
+        "entity_name": "approval_tolerance",
+        "description": "Entity for approval_tolerance, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T14:04:12.000Z"
+      },
+      {
+        "entity_id": "ent-facility-facility-vlbd3ef",
+        "confirmed_by": null,
+        "table_key": "facility.facility",
+        "entity_name": "facility",
+        "description": "Entity for facility, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "approvals.approval",
+            "from_columns": [
+              "facility_id"
+            ],
+            "to_columns": [
+              "facility_id"
+            ],
+            "relationship_type": "APPROVES_FOR",
+            "cardinality_hint": "1:N",
+            "rationale": "An approval is valid only at its facility.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "facility.well",
+            "from_columns": [
+              "facility_id"
+            ],
+            "to_columns": [
+              "facility_id"
+            ],
+            "relationship_type": "OPERATES_WELL",
+            "cardinality_hint": "1:N",
+            "rationale": "Bayou Ridge operates three wells.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T15:05:12.000Z"
+      },
+      {
+        "entity_id": "ent-facility-well-vld075e",
+        "confirmed_by": null,
+        "table_key": "facility.well",
+        "entity_name": "well",
+        "description": "Entity for well, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T16:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-facility-permit-version-vlad1de",
+        "confirmed_by": null,
+        "table_key": "facility.permit_version",
+        "entity_name": "permit_version",
+        "description": "Entity for permit_version, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "facility.permit_unit_code",
+            "from_columns": [
+              "permit_id"
+            ],
+            "to_columns": [
+              "permit_id"
+            ],
+            "relationship_type": "LISTS_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Accepted codes are listed per permit version and unit; the effective version on the as-of date governs.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T17:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-facility-permit-unit-code-vl3761f",
+        "confirmed_by": null,
+        "table_key": "facility.permit_unit_code",
+        "entity_name": "permit_unit_code",
+        "description": "Entity for permit_unit_code, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T17:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-manifest-vl9f82f",
+        "confirmed_by": null,
+        "table_key": "receiving.manifest",
+        "entity_name": "manifest",
+        "description": "Entity for manifest, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "receiving.manifest_line",
+            "from_columns": [
+              "manifest_tracking_no"
+            ],
+            "to_columns": [
+              "manifest_tracking_no"
+            ],
+            "relationship_type": "HAS_LINE",
+            "cardinality_hint": "1:N",
+            "rationale": "Manifest lines carry the quantity, unit and codes.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "receiving.receipt",
+            "from_columns": [
+              "manifest_tracking_no"
+            ],
+            "to_columns": [
+              "manifest_tracking_no"
+            ],
+            "relationship_type": "RECEIVED_AS",
+            "cardinality_hint": "1:1",
+            "rationale": "One load received per manifest at a gate.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "receiving.onward_shipment",
+            "from_columns": [
+              "manifest_tracking_no"
+            ],
+            "to_columns": [
+              "inbound_manifest"
+            ],
+            "relationship_type": "CONSOLIDATED_INTO",
+            "cardinality_hint": "1:N",
+            "rationale": "Harbor Transfer consolidations after the cut-over; the onward manifest starts a new chain.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T18:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-manifest-line-vl15c66",
+        "confirmed_by": null,
+        "table_key": "receiving.manifest_line",
+        "entity_name": "manifest_line",
+        "description": "Entity for manifest_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T18:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-receipt-vld7556",
+        "confirmed_by": null,
+        "table_key": "receiving.receipt",
+        "entity_name": "receipt",
+        "description": "Entity for receipt, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "receiving.fingerprint_result",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "TESTED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "About five fingerprint parameters per tested load.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "receiving.discrepancy",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "HAS_DISCREPANCY",
+            "cardinality_hint": "1:N",
+            "rationale": "Quantity, piece-count and type discrepancies per load.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "receiving.rejection",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "REJECTED_AS",
+            "cardinality_hint": "1:1",
+            "rationale": "Full or partial rejection of a load.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "ops.certificate_of_disposal",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "CERTIFIED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Certificate lines per load.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "billing.invoice_line",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "INVOICED_AS",
+            "cardinality_hint": "1:N",
+            "rationale": "Core invoice lines per load.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "billing.surcharge",
+            "from_columns": [
+              "receipt_id"
+            ],
+            "to_columns": [
+              "receipt_id"
+            ],
+            "relationship_type": "SURCHARGED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Surcharges per load, region-wide.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T19:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-fingerprint-result-vl5b20c",
+        "confirmed_by": null,
+        "table_key": "receiving.fingerprint_result",
+        "entity_name": "fingerprint_result",
+        "description": "Entity for fingerprint_result, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T11:05:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-discrepancy-vl016c1",
+        "confirmed_by": null,
+        "table_key": "receiving.discrepancy",
+        "entity_name": "discrepancy",
+        "description": "Entity for discrepancy, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T12:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-rejection-vl8f060",
+        "confirmed_by": null,
+        "table_key": "receiving.rejection",
+        "entity_name": "rejection",
+        "description": "Entity for rejection, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T13:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-receiving-onward-shipment-vl2ca9a",
+        "confirmed_by": null,
+        "table_key": "receiving.onward_shipment",
+        "entity_name": "onward_shipment",
+        "description": "Entity for onward_shipment, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T14:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-certificate-of-disposal-vlfecab",
+        "confirmed_by": null,
+        "table_key": "ops.certificate_of_disposal",
+        "entity_name": "certificate_of_disposal",
+        "description": "Entity for certificate_of_disposal, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T15:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-billing-invoice-line-vl9f08f",
+        "confirmed_by": null,
+        "table_key": "billing.invoice_line",
+        "entity_name": "invoice_line",
+        "description": "Entity for invoice_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T16:04:12.000Z"
+      },
+      {
+        "entity_id": "ent-billing-surcharge-vl86599",
+        "confirmed_by": null,
+        "table_key": "billing.surcharge",
+        "entity_name": "surcharge",
+        "description": "Entity for surcharge, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T17:05:12.000Z"
+      },
+      {
+        "entity_id": "ent-billing-price-schedule-vl7f16a",
+        "confirmed_by": null,
+        "table_key": "billing.price_schedule",
+        "entity_name": "price_schedule",
+        "description": "Entity for price_schedule, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T18:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-blend-batch-vl572d9",
+        "confirmed_by": null,
+        "table_key": "ops.blend_batch",
+        "entity_name": "blend_batch",
+        "description": "Entity for blend_batch, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.fuel_shipment",
+            "from_columns": [
+              "batch_id"
+            ],
+            "to_columns": [
+              "batch_id"
+            ],
+            "relationship_type": "SHIPPED_AS",
+            "cardinality_hint": "1:N",
+            "rationale": "Sabine Fuels blend batches shipped to kilns.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T19:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-fuel-shipment-vlf75de",
+        "confirmed_by": null,
+        "table_key": "ops.fuel_shipment",
+        "entity_name": "fuel_shipment",
+        "description": "Entity for fuel_shipment, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T19:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-coastline-ce-customer-vl85d4e",
+        "confirmed_by": null,
+        "table_key": "coastline.ce_customer",
+        "entity_name": "ce_customer",
+        "description": "Entity for ce_customer, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "coastline.ce_shipment",
+            "from_columns": [
+              "ce_account"
+            ],
+            "to_columns": [
+              "ce_account"
+            ],
+            "relationship_type": "SHIPPED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Frozen Harbor Transfer history before the cut-over.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          },
+          {
+            "target_table_key": "coastline.ce_profile",
+            "from_columns": [
+              "ce_account"
+            ],
+            "to_columns": [
+              "ce_account"
+            ],
+            "relationship_type": "HOLDS_PROFILE",
+            "cardinality_hint": "1:N",
+            "rationale": "Coastline profiles; profile numbers are scoped to Coastline.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T10:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-coastline-ce-shipment-vlcb395",
+        "confirmed_by": null,
+        "table_key": "coastline.ce_shipment",
+        "entity_name": "ce_shipment",
+        "description": "Entity for ce_shipment, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T10:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-coastline-ce-profile-vl4ac5d",
+        "confirmed_by": null,
+        "table_key": "coastline.ce_profile",
+        "entity_name": "ce_profile",
+        "description": "Entity for ce_profile, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-14T11:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-coastline-ce-migration-map-vl58f15",
+        "confirmed_by": null,
+        "table_key": "coastline.ce_migration_map",
+        "entity_name": "ce_migration_map",
+        "description": "Entity for ce_migration_map, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "approvals.customer_account",
+            "from_columns": [
+              "core_key"
+            ],
+            "to_columns": [
+              "account_id"
+            ],
+            "relationship_type": "MIGRATED_TO",
+            "cardinality_hint": "N:1",
+            "rationale": "Migrated Coastline keys map to VLS core; account numbers were kept.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T12:04:12.000Z"
+      },
+      {
+        "entity_id": "ent-sabine-billing-sf-customer-vlfb7f5",
+        "confirmed_by": null,
+        "table_key": "sabine_billing.sf_customer",
+        "entity_name": "sf_customer",
+        "description": "Entity for sf_customer, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "sabine_billing.sf_invoice_line",
+            "from_columns": [
+              "sf_account"
+            ],
+            "to_columns": [
+              "sf_account"
+            ],
+            "relationship_type": "INVOICED_TO",
+            "cardinality_hint": "1:N",
+            "rationale": "Sabine Fuels invoices from its own system.",
+            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T13:05:12.000Z"
+      },
+      {
+        "entity_id": "ent-sabine-billing-sf-invoice-line-vl6f4c3",
+        "confirmed_by": null,
+        "table_key": "sabine_billing.sf_invoice_line",
+        "entity_name": "sf_invoice_line",
+        "description": "Entity for sf_invoice_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-16T13:05:12.000Z"
+      }
+    ]
+  },
+  "change_signals": [
+    {
+      "signal_id": "sig-vls-01",
+      "kind": "missing_instances",
+      "severity": "serious",
+      "dataset": "g_vls_waste_acceptance",
+      "table": "No PFAS measurement in fingerprints",
+      "detail": "Fingerprints test pH, specific gravity, halogens, flash point, metals and PCBs; none tests PFAS. PFAS content comes only from profiles and the generators' EPA Method 1633 lab reports in the Drive.",
+      "action": "Do not state a load's PFAS content as measured at receipt; cite the profile and lab report.",
+      "detected": "2026-10-19"
+    },
+    {
+      "signal_id": "sig-vls-02",
+      "kind": "sampling_limit",
+      "severity": "serious",
+      "dataset": "g_vls_waste_acceptance",
+      "table": "9 active approvals carry no re-certification date",
+      "detail": "Coastline profiles migrated on 30 June 2026 were loaded without a re-certification date. 'Are all approvals current?' can be answered for 109 of 118 active approvals only.",
+      "action": "Never state that all approvals are current without naming the 9 that cannot be assessed.",
+      "detected": "2026-10-19"
+    },
+    {
+      "signal_id": "sig-vls-03",
+      "kind": "shallow_chain",
+      "severity": "warning",
+      "dataset": "g_vls_waste_acceptance",
+      "table": "Coastline legacy frozen at 30 June 2026",
+      "detail": "Harbor Transfer history before the cut-over, 3 unmigrated customers and 14 unmigrated profiles exist only in the frozen copy. Onward manifests are blank on 3.6% of Coastline shipment rows.",
+      "action": "Say the source is frozen when an answer relies on it; do not treat a blank onward manifest as a completed chain.",
+      "detected": "2026-10-19"
+    },
+    {
+      "signal_id": "sig-vls-04",
+      "kind": "missing_instances",
+      "severity": "warning",
+      "dataset": "g_vls_waste_acceptance",
+      "table": "No e-Manifest connection",
+      "detail": "Discrepancy reports filed in e-Manifest are known only when receiving records the report reference. A null reference means no report on record here.",
+      "action": "Do not state that a report was not filed; state that no report is on record in the connected data.",
+      "detected": "2026-10-19"
+    },
+    {
+      "signal_id": "sig-vls-05",
+      "kind": "missing_instances",
+      "severity": "warning",
+      "dataset": "g_vls_waste_acceptance",
+      "table": "Fingerprint history too short for prediction",
+      "detail": "Eighteen months of fingerprints, with process changes that are reported by email rather than recorded, cannot support an out-of-time validated model of which generator will fail next.",
+      "action": "Decline predictive questions; offer the drift and tolerance history instead.",
+      "detected": "2026-10-19"
+    }
+  ]
+}

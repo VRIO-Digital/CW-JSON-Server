@@ -33,10 +33,14 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * KEOLIS is the Keolis Valmont demo package (`frontend/keolis/`), split into `backend/keolis/` by
  * `npm run ingest:keolis`. Its URL letter is K, which stays unique among E, C and B.
  *
+ * VLS is the VLS Gulf Coast demo package, split into `backend/vls/` from the package's merged
+ * document (its `db.V.json` — the V is VLS; the reference copy was removed once split). Its URL
+ * letter is V, which stays unique among E, C, K and B.
+ *
  * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS']
+export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS', 'VLS']
 export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 

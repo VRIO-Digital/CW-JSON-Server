@@ -1,5 +1,6 @@
 import { Spin } from 'antd'
 import { useEffect } from 'react'
+import { currentDataset } from '../api/dataset'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
@@ -44,16 +45,21 @@ import { useReportsStore } from '../store/reportsStore'
  * (Streams, a stream's obligations, a new submission).
  */
 /**
- * One file for every dataset, and the per-dataset map is retired.
+ * Which page frames, keyed by the client-held dataset selection — the map this comment block used
+ * to say was retired, back for the reason it predicted: a dataset arrived shipping an AI
+ * Submissions page of its own.
  *
- * `ai_submissions_demo_final.html` *is* the Keolis Valmont page now — the demo asset was replaced
- * wholesale with the Keolis build, so the KEOLIS override that used to point at the generated
- * `keolis_ai_submissions.html` would only frame a superseded copy of the same tenant's page. The
- * generated file and `backend/scripts/build-keolis-ai-submissions.mjs` are untouched — the usual
- * waiting-for-a-caller state — so re-introducing a per-dataset page is a map keyed by the
- * client-held dataset selection, which is what stood here before.
+ * `ai_submissions_demo_final.html` *is* the Keolis Valmont page — the demo asset was replaced
+ * wholesale with the Keolis build, so it stays the default rather than a KEOLIS entry framing the
+ * superseded `keolis_ai_submissions.html`. VLS ships its own (`src/Vls/ai-submissions/`, resolved
+ * through `datasetAiSubmissionsModules`' per-dataset glob in `reportDocuments.ts`). A dataset with
+ * no entry gets the default, which is also what `both` resolves to — this page is not dataset-keyed
+ * on the server, so the primary's answer is the honest one there.
  */
-const FILE = 'ai_submissions_demo_final.html'
+const DATASET_FILES: Record<string, string> = {
+  VLS: 'ai_submissions_vls_demo.html',
+}
+const DEFAULT_FILE = 'ai_submissions_demo_final.html'
 
 export default function AISubmissionsPage() {
   const index = useReportsStore((s) => s.index)
@@ -85,7 +91,13 @@ export default function AISubmissionsPage() {
           draftCount={index.draftCount}
         />
       ) : (
-        <DocumentViewer document={{ file: FILE, title: 'AI Submissions' }} seamless />
+        <DocumentViewer
+          document={{
+            file: DATASET_FILES[currentDataset()] ?? DEFAULT_FILE,
+            title: 'AI Submissions',
+          }}
+          seamless
+        />
       )}
     </>
   )

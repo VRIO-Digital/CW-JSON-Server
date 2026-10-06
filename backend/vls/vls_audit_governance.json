@@ -1,0 +1,571 @@
+{
+  "audit": {
+    "stats": [
+      {
+        "label": "Access rules in force",
+        "value": "5",
+        "note": "1 of 5 readers carries a restriction"
+      },
+      {
+        "label": "PII columns",
+        "value": "7",
+        "note": "across 33 catalogued tables",
+        "tone": "good"
+      },
+      {
+        "label": "Columns to review",
+        "value": "24",
+        "note": "profiler confidence below the accept floor",
+        "tone": "warn"
+      },
+      {
+        "label": "Cost-cap headroom",
+        "value": "24%",
+        "note": "tightest: Ask (tenant) at 76.0%",
+        "tone": "warn"
+      }
+    ],
+    "events": [
+      {
+        "actor": "Tasha Greene",
+        "action": "Opened Customer 360",
+        "resource": "Customer 360",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 09:12",
+        "detail": "Her access resolved: prices, invoices and surcharges on all accounts; profile composition masked.",
+        "category": "open"
+      },
+      {
+        "actor": "Jordan Ellis",
+        "action": "Opened Acceptance Exceptions Review",
+        "resource": "Acceptance Exceptions Review",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 08:47",
+        "detail": "His access resolved: all 118 active approvals, no masks.",
+        "category": "open"
+      },
+      {
+        "actor": "system",
+        "action": "Scheduled refresh ran on Acceptance Exceptions Review",
+        "resource": "Acceptance Exceptions Review",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 07:00",
+        "detail": "Approvals, receiving and facility blocks refreshed. Correspondence blocks are read at open time and are not part of the schedule.",
+        "category": "ref"
+      },
+      {
+        "actor": "Jordan Ellis",
+        "action": "Published what-if scenario F024 re-routing — Gulfstar share",
+        "resource": "what-if scenario F024 re-routing — Gulfstar share",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 19 16:40",
+        "detail": "2 readers · 2 cases (No permitted route, All three streams to Gulfstar) · points to graph v1",
+        "category": "pub"
+      },
+      {
+        "actor": "Owen Castellanos",
+        "action": "Published graph VLS Gulf Coast waste acceptance v1",
+        "resource": "graph v1",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 19 15:58",
+        "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+        "category": "pub"
+      },
+      {
+        "actor": "Owen Castellanos",
+        "action": "Changed rule for Tasha Greene",
+        "resource": "data access rule",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 19 11:05",
+        "detail": "Field-class rule: prices, invoices and surcharges. Profile composition and process descriptions masked (terms clause 14.1).",
+        "category": "rule"
+      },
+      {
+        "actor": "Priya Raman",
+        "action": "Opened PFAS Certificate Pack",
+        "resource": "PFAS Certificate Pack",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 18 17:20",
+        "detail": "Her access resolved: all approvals and certificates, no masks.",
+        "category": "open"
+      },
+      {
+        "actor": "Jordan Ellis",
+        "action": "Exported PFAS Certificate Pack (PDF)",
+        "resource": "PFAS Certificate Pack",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 18 14:02",
+        "detail": "Export carries the watermark and the as-of line; the load with a broken chain is listed on a separate page.",
+        "category": "export"
+      },
+      {
+        "actor": "system",
+        "action": "Sealed trace for 'Is the Kestrel Bayou discrepancy on manifest 024121904GBF reconciled?'",
+        "resource": "trace_vl03",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 18 10:31",
+        "detail": "4 spans · $0.12 · confidence 0.93",
+        "category": "ref"
+      },
+      {
+        "actor": "Hannah Voss",
+        "action": "Changed navigation permissions for all personas",
+        "resource": "settings",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 17 09:15",
+        "detail": "Reports hidden from the sidebar for all personas (beta).",
+        "category": "rule"
+      }
+    ],
+    "policies": [
+      {
+        "name": "Two gates",
+        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS and fields a viewer sees inside it (data scope). They are administered separately.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Counts are computed",
+        "desc": "Every count on this screen — \"sees 118 of 118\" — is derived from the approvals roster at paint time, never typed.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Rule shape",
+        "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Legal basis",
+        "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (facility, customer system, approval status, field class).",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Customer confidential information",
+        "desc": "Profile composition and process descriptions are customer confidential business information (terms clause 14.1). A billing reader sees prices, invoices and surcharges, never composition.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Correspondence is runtime",
+        "desc": "Mailbox content is read at question time under the reader's permissions and never becomes a graph fact or a cached figure.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Retention",
+        "desc": "Receipts, manifests and lab results are kept for the retention period the permits and 40 CFR 264.74 require; deletion requests apply to derived datasets and cached answers only.",
+        "status": "Enforced",
+        "tone": "good"
+      }
+    ],
+    "event_window": "Last 7 days · 10 events",
+    "policy_total": 7,
+    "categories": [
+      {
+        "id": "all",
+        "label": "All"
+      },
+      {
+        "id": "pub",
+        "label": "Publishing"
+      },
+      {
+        "id": "open",
+        "label": "Opens"
+      },
+      {
+        "id": "rule",
+        "label": "Rule changes"
+      },
+      {
+        "id": "ref",
+        "label": "Refreshes"
+      },
+      {
+        "id": "export",
+        "label": "Exports"
+      }
+    ]
+  },
+  "traces": {
+    "stats": [
+      {
+        "label": "p50 duration",
+        "value": "3.6 s",
+        "note": "across 11 sealed traces"
+      },
+      {
+        "label": "p95 duration",
+        "value": "7.6 s",
+        "note": "longest: Which situations need a decision from me thi",
+        "tone": "warn"
+      },
+      {
+        "label": "Unaccounted time",
+        "value": "760 ms",
+        "note": "shown as a gap, never folded into a step"
+      },
+      {
+        "label": "Cost this window",
+        "value": "$1.01",
+        "note": "against the $2.00 per-question budget"
+      }
+    ],
+    "items": [
+      {
+        "id": "trace_vl01",
+        "operation": "Which situations need a decision from me this week, and why?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 7600,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-19T15:00:00Z",
+        "actor": "Jordan Ellis",
+        "confidence": 0.88,
+        "cost_usd": 0.17,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl02",
+        "operation": "Are all active approvals still valid against the current permits at their facilities?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 5400,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-19T14:13:29Z",
+        "actor": "Jordan Ellis",
+        "confidence": 0.92,
+        "cost_usd": 0.13,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl03",
+        "operation": "Is the Kestrel Bayou discrepancy on manifest 024121904GBF reconciled?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 3900,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-19T13:26:58Z",
+        "actor": "Luis Ortega",
+        "confidence": 0.93,
+        "cost_usd": 0.1,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl04",
+        "operation": "Can we issue Marsh Point certificates of disposal for all 38 PFAS loads?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 4800,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-19T12:39:27Z",
+        "actor": "Jordan Ellis",
+        "confidence": 0.9,
+        "cost_usd": 0.12,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl05",
+        "operation": "Who is Brazos Bend Chemical across our systems, and what do they ship to us?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 4200,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-19T11:52:56Z",
+        "actor": "Ray Delacroix",
+        "confidence": 0.87,
+        "cost_usd": 0.1,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl06",
+        "operation": "Draft the September 2026 injection report figures for Bayou Ridge.",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 3300,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-19T10:05:25Z",
+        "actor": "Luis Ortega",
+        "confidence": 0.91,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl07",
+        "operation": "What was the total volume received in the Gulf Coast region over the last 12 months?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 2400,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-18T09:18:54Z",
+        "actor": "Carla Mendez",
+        "confidence": 0.86,
+        "cost_usd": 0.07,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl08",
+        "operation": "Has Halvorsen's WP-20417 stream changed since it was certified?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 3600,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-18T08:31:23Z",
+        "actor": "Priya Raman",
+        "confidence": 0.9,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl09",
+        "operation": "Which loads did Sabine Fuels receive under F024 approvals after 1 July?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 2200,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-18T07:44:52Z",
+        "actor": "Luis Ortega",
+        "confidence": 0.92,
+        "cost_usd": 0.06,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl10",
+        "operation": "Which generator will fail its next fingerprint?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 600,
+        "spans": 2,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-18T06:57:21Z",
+        "actor": "Ahmed Siddiqui",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      },
+      {
+        "id": "trace_vl11",
+        "operation": "How many customers do we have in the Gulf Coast region?",
+        "service": "VLS Gulf Coast waste acceptance graph v1",
+        "duration": 2600,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-18T05:10:50Z",
+        "actor": "Ray Delacroix",
+        "confidence": 0.87,
+        "cost_usd": 0.07,
+        "sealed": true
+      }
+    ],
+    "sampling": "Every question is sealed — no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "waterfall": {
+      "trace_id": "trace_vl01",
+      "operation": "Which situations need a decision from me this week, and why?",
+      "total_ms": 7600,
+      "unaccounted_ms": 760,
+      "unaccounted_why": "Orchestration and transport the trace does not itemize. Shown as a gap at the end of the timeline rather than folded into the last step.",
+      "spans": [
+        {
+          "name": "Understand & plan",
+          "start": 0,
+          "duration": 310,
+          "agent": "supervisor",
+          "detail": "classified: exceptions this week · runtime source required"
+        },
+        {
+          "name": "Resolve the subjects",
+          "start": 310,
+          "duration": 520,
+          "agent": "graph agent",
+          "detail": "open discrepancies · active approvals × permit version in force · open obligations"
+        },
+        {
+          "name": "Read governed facts",
+          "start": 830,
+          "duration": 1480,
+          "agent": "graph agent",
+          "detail": "receiving.discrepancy · approvals.approval · facility.permit_unit_code (as of 2026-10-19)"
+        },
+        {
+          "name": "Pull correspondence",
+          "start": 2310,
+          "duration": 2950,
+          "agent": "runtime agent",
+          "detail": "src_gmail · 180-day window · 3 mailboxes in scope · permissions follow the reader"
+        },
+        {
+          "name": "Extract & resolve observations",
+          "start": 5260,
+          "duration": 1580,
+          "agent": "runtime agent",
+          "detail": "6 extractions → 6 above the 0.70 floor → resolved against DSC, APR and OBL nodes"
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [
+      {
+        "label": "Suites",
+        "value": "6",
+        "note": "all derived from package artifacts"
+      },
+      {
+        "label": "Hero questions answerable",
+        "value": "5 of 6",
+        "note": "graph sanity checks",
+        "tone": "warn"
+      },
+      {
+        "label": "High-confidence answers",
+        "value": "48 of 50",
+        "note": "2 medium, 0 low"
+      },
+      {
+        "label": "Must-review graph items",
+        "value": "8",
+        "note": "0 resolved · 1 pivot",
+        "tone": "crit"
+      }
+    ],
+    "runs": [
+      {
+        "suite": "hero-question-answerability",
+        "target": "g_vls_waste_acceptance · 6 checks",
+        "checks": 6,
+        "pass_rate": 83.3,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-19"
+      },
+      {
+        "suite": "answer-confidence",
+        "target": "query set · 50 questions",
+        "checks": 50,
+        "pass_rate": 96,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-19"
+      },
+      {
+        "suite": "refusal-correctness",
+        "target": "7 declines",
+        "checks": 7,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-19"
+      },
+      {
+        "suite": "status-not-promoted",
+        "target": "system statuses, drafts, inferred links, name matches",
+        "checks": 6,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-19"
+      },
+      {
+        "suite": "citation-validity",
+        "target": "154 citations",
+        "checks": 154,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-19"
+      },
+      {
+        "suite": "volume-reconciliation",
+        "target": "September injected + tank change vs received; regional volume net of onward shipments",
+        "checks": 12,
+        "pass_rate": 91.7,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-19"
+      }
+    ],
+    "checks": [
+      {
+        "name": "sc1 · Are all active approvals still valid against the current permits?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "Depends on pivot rq1 staying 'keep distinct'"
+      },
+      {
+        "name": "sc2 · Is the Kestrel Bayou discrepancy reconciled?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - open, with the conversion basis"
+      },
+      {
+        "name": "sc3 · Who is Brazos Bend Chemical across our systems?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - as a proposed identity"
+      },
+      {
+        "name": "sc4 · Marsh Point certificates for all 38 loads?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - 37 of 38, the broken link named"
+      },
+      {
+        "name": "sc5 · Total volume received in the region?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Onward shipments not double counted"
+      },
+      {
+        "name": "sc6 · Which generator will fail its next fingerprint?",
+        "dataset": "g_vls_waste_acceptance",
+        "result": "Refused",
+        "tone": "crit",
+        "detail": "Declined - required inputs have no instances"
+      },
+      {
+        "name": "System status not promoted to reconciliation (DSC-BR-2026-0231)",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq5 held open"
+      },
+      {
+        "name": "Inferred onward link not accepted (CON-HT-2026-0810)",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq7 kept unlinked pending Harbor's record"
+      }
+    ],
+    "run_trigger": "On graph build and on query-set regeneration",
+    "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (August tank reading, 4,200 gal) open with operations"
+  }
+}

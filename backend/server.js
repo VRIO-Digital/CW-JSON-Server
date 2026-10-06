@@ -129,6 +129,7 @@ import {
 import { loadCapexDocument } from './capex-loader.js'
 import { loadEpaDocument } from './epa-loader.js'
 import { loadKeolisDocument } from './keolis-loader.js'
+import { loadVlsDocument } from './vls-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -299,6 +300,15 @@ const loadedDocs = await Promise.all(
         console.error(`\nmock-server: refusing to start — cannot load KEOLIS split files.`)
         console.error(`  · ${error.message}`)
         console.error(`\n  Rebuild the split files from the demo package:\n      npm run ingest:keolis\n`)
+        process.exit(1)
+      })
+    }
+    /* VLS loads from split files in vls/ folder, split from the package's merged db.V.json */
+    if (name === 'VLS') {
+      return loadVlsDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load VLS split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Restore backend/vls/ from the repository:\n      git checkout -- backend/vls\n`)
         process.exit(1)
       })
     }

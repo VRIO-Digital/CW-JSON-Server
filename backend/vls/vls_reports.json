@@ -1,0 +1,3687 @@
+{
+  "reports": {
+    "meta": {
+      "persona_name": "Jordan Ellis",
+      "persona_role": "Director of Technical Services & Compliance · VLS Gulf Coast",
+      "persona_initials": "JE",
+      "entity_plural": "active approvals",
+      "scope_line": "the Gulf Coast region's active approvals (Bayou Ridge and Sabine Fuels)",
+      "source_trace": "Traces to: vls_gulfcoast_core.approvals, vls_gulfcoast_core.facility, vls_gulfcoast_core.receiving, as of 2026-10-19."
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Approval",
+        "kind": "text",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "fac",
+        "label": "Facility",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "gen",
+        "label": "Generator",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "basis",
+        "label": "Basis",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "system",
+        "label": "Customer system",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "recert",
+        "label": "Re-certification",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "fit",
+        "label": "Permit fit",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "loads_after",
+        "label": "Loads after due",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "revenue",
+        "label": "Revenue, 12 months",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "pfas",
+        "label": "PFAS flag",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "all 118 active approvals"
+      },
+      "measure": {
+        "value": "fit",
+        "label": "permit version in force"
+      },
+      "horizon": {
+        "value": "full",
+        "label": "as of 20 October"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which approvals to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "all 118 active approvals",
+            "d": "Both receiving facilities"
+          },
+          {
+            "value": "br",
+            "label": "Bayou Ridge only (72)",
+            "d": "Deep-well approvals"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Valid\" measured against?",
+        "options": [
+          {
+            "value": "fit",
+            "label": "permit version in force",
+            "d": "On the as-of date"
+          },
+          {
+            "value": "approval",
+            "label": "permit version at approval",
+            "d": "What the letter was written against"
+          },
+          {
+            "value": "profile",
+            "label": "current profile version",
+            "d": "Re-certification state"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "As of when?",
+        "options": [
+          {
+            "value": "today",
+            "label": "today",
+            "d": "20 October 2026"
+          },
+          {
+            "value": "full",
+            "label": "as of 20 October",
+            "d": "Last complete load day 19 October"
+          },
+          {
+            "value": "month",
+            "label": "end of September",
+            "d": "Last closed month"
+          }
+        ]
+      }
+    },
+    "slice_default": [
+      "fac",
+      "status",
+      "recert",
+      "fit"
+    ],
+    "summary_catalog": [
+      {
+        "key": "count",
+        "label": "active approvals in view",
+        "tone": null,
+        "agg": "rows",
+        "field": null,
+        "format": "int",
+        "def": "Approvals the scope admits",
+        "scope_class": "count"
+      },
+      {
+        "key": "fit",
+        "label": "permit-fit exceptions",
+        "tone": "crit",
+        "agg": "count_eq",
+        "field": "fit",
+        "format": "int",
+        "def": "Codes not accepted by the permit version in force",
+        "scope_class": "count"
+      },
+      {
+        "key": "overdue",
+        "label": "re-certification overdue",
+        "tone": "warn",
+        "agg": "count_eq",
+        "field": "recert",
+        "format": "int",
+        "def": "Due date before the as-of date",
+        "scope_class": "count"
+      },
+      {
+        "key": "nodate",
+        "label": "without a re-certification date",
+        "tone": "warn",
+        "agg": "count_eq",
+        "field": "recert",
+        "format": "int",
+        "def": "Migrated without a date",
+        "scope_class": "count"
+      },
+      {
+        "key": "loads_after",
+        "label": "loads received after due",
+        "tone": "warn",
+        "agg": "sum",
+        "field": "loads_after",
+        "format": "int",
+        "def": "Loads under overdue approvals",
+        "scope_class": "sum"
+      },
+      {
+        "key": "pfas",
+        "label": "PFAS-flagged",
+        "tone": null,
+        "agg": "count_eq",
+        "field": "pfas",
+        "format": "int",
+        "def": "Profiles flagged PFAS-bearing",
+        "scope_class": "count"
+      }
+    ],
+    "summary_default": [],
+    "data": {
+      "projects": [
+        {
+          "n": "APR-BR-0101 · WP-20233 · Anselm Pharma Gulf",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0263 · WP-20263 · Kestrel Bayou Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0301 · WP-20301 · Marsh Point Regional Airport",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0104 · WP-20302 · Marsh Point Regional Airport",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0105 · WP-20303 · Marsh Point Regional Airport",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0106 · WP-20322 · Coppervale Electronics",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0107 · WP-20327 · Redline Fire Equipment Services",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0108 · WP-20328 · Redline Fire Equipment Services",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0109 · WP-20336 · Tallgrass Leachate Hauling",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0110 · WP-20337 · Tallgrass Leachate Hauling",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0111 · WP-20344 · Castellan Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0112 · WP-20355 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0113 · WP-20362 · Seagrass Petrochemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0114 · WP-20371 · Sandpiper Adhesives",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0115 · WP-20381 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0116 · WP-20382 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis (EPA Method 1633 for PFAS)",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0417 · WP-20417 · Halvorsen Coatings",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0118 · WP-20458 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0119 · WP-20461 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0120 · WP-20466 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0121 · WP-20470 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0311 · WP-30112 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Permit-fit exception"
+        },
+        {
+          "n": "APR-SF-0327 · WP-30127 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Permit-fit exception"
+        },
+        {
+          "n": "APR-SF-0348 · WP-30148 · Anchorline Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Permit-fit exception"
+        },
+        {
+          "n": "APR-SF-0354 · WP-30457 · Brazos Bend Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0122 · WP-20111 · Marsh Point Regional Airport",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0123 · WP-20125 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0124 · WP-20133 · Sandpiper Adhesives",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0125 · WP-20143 · Driftwood Laboratories",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0126 · WP-20165 · Pirogue Solvents",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0127 · WP-20181 · Mudbug Marine Services",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0128 · WP-20197 · Anchorline Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0129 · WP-20209 · Marsh Point Regional Airport",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0130 · WP-20217 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core (migrated from Coastline)",
+          "phase": "no date",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0131 · WP-20239 · Gulfport Polymers LLC",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0132 · WP-20257 · Seagrass Petrochemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0133 · WP-20265 · Kestrel Bayou Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0134 · WP-20283 · Vireo Specialty Chemicals",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0135 · WP-20316 · Kestrel Bayou Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0136 · WP-20326 · Gulfport Polymers LLC",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0137 · WP-20343 · Vireo Specialty Chemicals",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0138 · WP-20365 · Ninefold Plastics",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0139 · WP-20377 · Graywater Metals",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0140 · WP-20387 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0141 · WP-20397 · Cordgrass Industrial Coatings",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0142 · WP-20420 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0143 · WP-20434 · Bluewing Chemical Distribution",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0144 · WP-20450 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0145 · WP-20464 · Calder Bay Chemicals",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0146 · WP-20480 · Bluewing Chemical Distribution",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0147 · WP-20501 · Trinity Delta Plating",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0148 · WP-20511 · Ninefold Plastics",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0149 · WP-20523 · Coppervale Electronics",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0150 · WP-20533 · Cordgrass Industrial Coatings",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0151 · WP-20550 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0152 · WP-20558 · Anselm Pharma Gulf",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0153 · WP-20569 · Vireo Specialty Chemicals",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0154 · WP-20575 · Bluewing Chemical Distribution",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0155 · WP-20597 · Ninefold Plastics",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0156 · WP-20607 · Halvorsen Coatings",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0157 · WP-20632 · Kestrel Bayou Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0158 · WP-20642 · Kestrel Bayou Refining",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0159 · WP-20656 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0160 · WP-20668 · Cordgrass Industrial Coatings",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0161 · WP-20682 · Wharfside Finishing",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0162 · WP-20690 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0163 · WP-20711 · Egret Isle Polymers",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0164 · WP-20725 · Wharfside Finishing",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0165 · WP-20735 · Seagrass Petrochemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0166 · WP-20745 · Fairlead Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0167 · WP-20755 · Wharfside Finishing",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "generator knowledge + lab report",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0168 · WP-20780 · Brazos Bend Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0169 · WP-20805 · Saltgrass Resins",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0170 · WP-20826 · Palmetto Etch Systems",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0171 · WP-20837 · Anselm Pharma Gulf",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-BR-0172 · WP-20840 · Fairlead Chemical",
+          "reg": "Bayou Ridge Disposal",
+          "cat": "lab analysis",
+          "bu": "VLS core",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0355 · WP-30122 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0356 · WP-30130 · Gulfport Polymer Services",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0357 · WP-30138 · Brazos Bend Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0358 · WP-30159 · Calder Bay Chemicals",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0359 · WP-30176 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0360 · WP-30192 · Pirogue Solvents",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0361 · WP-30202 · Pirogue Solvents",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0362 · WP-30214 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0363 · WP-30228 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0364 · WP-30250 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0365 · WP-30260 · Talon Point Refining",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0366 · WP-30272 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0367 · WP-30294 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0368 · WP-30321 · Gulfport Polymer Services",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0369 · WP-30333 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0370 · WP-30354 · Marais Coatings",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0371 · WP-30372 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0372 · WP-30382 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0373 · WP-30390 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0374 · WP-30402 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0375 · WP-30431 · Gulfport Polymer Services",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0376 · WP-30439 · Pirogue Solvents",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0377 · WP-30453 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0378 · WP-30469 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0379 · WP-30487 · Brazos Bend Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0380 · WP-30506 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0381 · WP-30516 · Calder Bay Chemicals",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0382 · WP-30530 · Canebrake Petrochemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0383 · WP-30544 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0384 · WP-30553 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0385 · WP-30563 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0386 · WP-30572 · Levee Line Coatings",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0387 · WP-30586 · Marais Coatings",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0388 · WP-30600 · Marais Coatings",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0389 · WP-30618 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0390 · WP-30639 · Brazos Bend Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0391 · WP-30653 · Lakeshore Vinyls",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "overdue",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0392 · WP-30661 · Talon Point Refining",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0393 · WP-30679 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0394 · WP-30687 · Marais Coatings",
+          "reg": "Sabine Fuels",
+          "cat": "lab analysis",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0395 · WP-30701 · St. Aurel Chemical",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        },
+        {
+          "n": "APR-SF-0396 · WP-30722 · Redfish Chlorinated Products",
+          "reg": "Sabine Fuels",
+          "cat": "generator knowledge + lab report",
+          "bu": "Sabine Fuels billing",
+          "phase": "current",
+          "comp": "Fits permit in force"
+        }
+      ],
+      "contracts": [
+        {
+          "id": "pkg_ce_k_2291_2024",
+          "no": "CE-K-2291-2024",
+          "project": "p_ce_2291",
+          "projectCode": "CE-2291",
+          "projectName": "Brazos Bend Chemical (Coastline)",
+          "title": "Service agreement — aqueous streams through Harbor Transfer",
+          "form": "Service agreement",
+          "role": "Customer",
+          "contractor": "Brazos Bend Chemical",
+          "contractorId": "org_brazos_bend_chemical",
+          "value": 140600,
+          "effective": "2024-08-01",
+          "doc": "drive://06_Customers and terms/CE-K-2291-2024_Coastline_Contract_Brazos_Bend.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Party, form, value and effective date read from the first page."
+        },
+        {
+          "id": "pkg_ps_2026_c10458",
+          "no": "PS-2026-C10458",
+          "project": "p_c_10458",
+          "projectCode": "C-10458",
+          "projectName": "Brazos Bend Chemical (core)",
+          "title": "Price schedule 2026",
+          "form": "Price schedule",
+          "role": "Customer",
+          "contractor": "Brazos Bend Chemical",
+          "contractorId": "org_brazos_bend_chemical",
+          "value": 326700,
+          "effective": "2026-01-01",
+          "doc": "drive://06_Customers and terms/PS-2026-C10458_Price_Schedule_Brazos_Bend.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Party, form, value and effective date read from the first page."
+        },
+        {
+          "id": "pkg_terms_gc_2026",
+          "no": "TERMS-GC-2026",
+          "project": "p_fac_br",
+          "projectCode": "FAC-BR",
+          "projectName": "Bayou Ridge and Harbor Transfer",
+          "title": "Standard terms and conditions for waste acceptance",
+          "form": "Standard terms",
+          "role": "All customers",
+          "contractor": "VLS Environmental Solutions",
+          "contractorId": "org_vls_environmental_solutions",
+          "value": 0,
+          "effective": "2026-01-01",
+          "doc": "drive://06_Customers and terms/VLS_Gulf_Coast_Standard_Terms_2026.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Party, form, value and effective date read from the first page."
+        },
+        {
+          "id": "pkg_twsc_hw_50417",
+          "no": "TWSC-HW-50417",
+          "project": "p_fac_br",
+          "projectCode": "FAC-BR",
+          "projectName": "Bayou Ridge Disposal",
+          "title": "Hazardous waste permit",
+          "form": "Permit",
+          "role": "Permittee",
+          "contractor": "Texas Waste Stewardship Commission",
+          "contractorId": "org_texas_waste_stewardship_commission",
+          "value": 0,
+          "effective": "2021-02-15",
+          "doc": "drive://01_Bayou Ridge permits and WAP/TWSC-HW-50417_Permit_Extract_Bayou_Ridge.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Party, form, value and effective date read from the first page."
+        },
+        {
+          "id": "pkg_lwpb_hw_7720",
+          "no": "LWPB-HW-7720",
+          "project": "p_fac_sf",
+          "projectCode": "FAC-SF",
+          "projectName": "Sabine Fuels",
+          "title": "Hazardous waste permit (as modified)",
+          "form": "Permit",
+          "role": "Permittee",
+          "contractor": "Louisiana Waste Permits Board",
+          "contractorId": "org_louisiana_waste_permits_board",
+          "value": 0,
+          "effective": "2018-04-12",
+          "doc": "drive://02_Sabine Fuels permits/LWPB-HW-7720_Permit_Extract_Sabine_Fuels.pdf",
+          "documentSource": "src_drive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Party, form, value and effective date read from the first page."
+        }
+      ],
+      "changeOrders": [
+        {
+          "id": "co_lwpb_hw_7720_m4",
+          "ref": "LWPB-HW-7720-M4",
+          "project": "p_fac_sf",
+          "projectCode": "FAC-SF",
+          "projectName": "Sabine Fuels",
+          "package": "LWPB-HW-7720",
+          "packageId": "pkg_lwpb_hw_7720",
+          "value": 410000,
+          "days": 0,
+          "kind": "Permit",
+          "status": "approved",
+          "reason": "F024 removed from Tank Farm B from 1 July 2026",
+          "contractor": "Louisiana Waste Permits Board",
+          "contractorId": "org_louisiana_waste_permits_board",
+          "doc": "drive://02_Sabine Fuels permits/LWPB-HW-7720-M4_Modification_4_Final.pdf",
+          "documentSource": "src_drive",
+          "extractedConf": 0.98,
+          "raised": "2026-06-12",
+          "resolvedTo": "e_change_order",
+          "buildTime": true,
+          "note": "Resolved at BUILD time from the final modification. The value is the annual revenue on the three approvals it made unfit, not a cost.",
+          "inForecast": false
+        },
+        {
+          "id": "co_lwpb_hw_7720_m4_draft",
+          "ref": "LWPB-HW-7720-M4 (draft)",
+          "project": "p_fac_sf",
+          "projectCode": "FAC-SF",
+          "projectName": "Sabine Fuels",
+          "package": "LWPB-HW-7720",
+          "packageId": "pkg_lwpb_hw_7720",
+          "value": 0,
+          "days": 14,
+          "kind": "Permit",
+          "status": "superseded",
+          "reason": "Draft for comment: proposed 15 July with a 30-day transition",
+          "contractor": "Louisiana Waste Permits Board",
+          "contractorId": "org_louisiana_waste_permits_board",
+          "doc": "drive://02_Sabine Fuels permits/LWPB-HW-7720-M4_Modification_4_DRAFT_2026-05-06.pdf",
+          "documentSource": "src_drive",
+          "extractedConf": 0.9,
+          "raised": "2026-05-06",
+          "resolvedTo": "e_change_order",
+          "buildTime": true,
+          "note": "A draft is a statement, not a permit version. The final governs.",
+          "inForecast": false
+        }
+      ],
+      "business_units": [
+        "Sabine Fuels billing",
+        "VLS core",
+        "VLS core (migrated from Coastline)"
+      ],
+      "regions": [
+        "Bayou Ridge Disposal",
+        "Sabine Fuels"
+      ],
+      "categories": [
+        "generator knowledge",
+        "generator knowledge + lab report",
+        "lab analysis",
+        "lab analysis (EPA Method 1633 for PFAS)"
+      ]
+    },
+    "reports": [
+      {
+        "report_id": "rep_vl_exceptions",
+        "report_tag": "acceptance-exceptions-review",
+        "subject": "approval × facility",
+        "title": "Acceptance Exceptions Review",
+        "question": "Show which approvals, discrepancies and certificates need a decision, with each factor and owner visible.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_permit_fit",
+        "measure_label": "Permit-fit exceptions",
+        "reading": {
+          "template": "Show which approvals, discrepancies and certificates need a decision, with each factor and owner visible. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Region — acceptance exceptions",
+            "grain": "region",
+            "source": "approvals",
+            "figures": [
+              {
+                "key": "active",
+                "label": "Active approvals",
+                "measure": "m_active",
+                "measureLabel": "Active approvals",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 118,
+                "display": "118",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vl329bd"
+              },
+              {
+                "key": "permitfit",
+                "label": "Permit-fit exceptions",
+                "measure": "m_permit_fit",
+                "measureLabel": "Permit-fit exceptions",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 3,
+                "display": "3",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vl6526f"
+              },
+              {
+                "key": "overdue",
+                "label": "Re-certification overdue",
+                "measure": "m_recert_overdue",
+                "measureLabel": "Re-certification overdue",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 17,
+                "display": "17",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vl8f4ed"
+              },
+              {
+                "key": "open",
+                "label": "Open significant discrepancies",
+                "measure": "m_discrepancy",
+                "measureLabel": "Open significant discrepancies",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 7,
+                "display": "7",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vle7d7f"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "All four are counts of records on 20 October.",
+            "combines": false,
+            "combinesNote": "Four counts of different things — not summed.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Open discrepancies — days left to the 20-day date",
+            "grain": "discrepancy",
+            "source": "discrepancies",
+            "chartType": "bar",
+            "axis": [
+              "DSC-BR-2026-0214",
+              "DSC-BR-2026-0228",
+              "DSC-BR-2026-0231",
+              "DSC-SF-2026-0085",
+              "DSC-BR-2026-0236",
+              "DSC-BR-2026-0239",
+              "DSC-SF-2026-0088"
+            ],
+            "axisLabel": "days left",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "days_left",
+                "label": "Days left",
+                "measure": "m_discrepancy_age",
+                "unit": "DAYS",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": -16,
+                    "display": "-16 d",
+                    "unit": "DAYS",
+                    "exact": "-16"
+                  },
+                  {
+                    "raw": 1,
+                    "display": "+1 d",
+                    "unit": "DAYS",
+                    "exact": "1"
+                  },
+                  {
+                    "raw": 4,
+                    "display": "+4 d",
+                    "unit": "DAYS",
+                    "exact": "4"
+                  },
+                  {
+                    "raw": 7,
+                    "display": "+7 d",
+                    "unit": "DAYS",
+                    "exact": "7"
+                  },
+                  {
+                    "raw": 9,
+                    "display": "+9 d",
+                    "unit": "DAYS",
+                    "exact": "9"
+                  },
+                  {
+                    "raw": 13,
+                    "display": "+13 d",
+                    "unit": "DAYS",
+                    "exact": "13"
+                  },
+                  {
+                    "raw": 15,
+                    "display": "+15 d",
+                    "unit": "DAYS",
+                    "exact": "15"
+                  }
+                ],
+                "total": {
+                  "raw": 0,
+                  "display": "—",
+                  "unit": "DAYS",
+                  "exact": "not summed"
+                },
+                "noTotal": true
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": false,
+            "failure": null,
+            "note": "DSC-BR-2026-0214 is past its date with no e-Manifest report on record.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "region",
+            "source": "approvals",
+            "role": "exclusion",
+            "body": "Nine migrated approvals without a re-certification date are excluded from the overdue count and listed. A system status of 'Resolved' does not close a discrepancy. Approved is not permitted.",
+            "parts": [
+              {
+                "text": "Nine migrated approvals without a re-certification date are excluded from the overdue count and listed. A system status of 'Resolved' does not close a discrepancy. Approved is not permitted."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this report",
+            "grain": "region",
+            "source": "approvals",
+            "suggestions": [
+              "Which situations need a decision from me this week, and why?",
+              "Are all active approvals still valid against the current permits at their facilities?",
+              "Which open discrepancies are closest to their 20-day date?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_vls_waste_acceptance",
+              "scope": "sc_author_all",
+              "asOf": "2026-10-19T18:00:00Z",
+              "reportId": "rep_vl_exceptions"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          }
+        ],
+        "heading": "Acceptance Exceptions Review",
+        "subtitle": "Show which approvals, discrepancies and certificates need a decision, with each factor and owner visible.",
+        "badge": "Region",
+        "note": "Show which approvals, discrepancies and certificates need a decision, with each factor and owner visible.",
+        "tiles": [
+          {
+            "label": "Active approvals",
+            "value": "118",
+            "unit": "record basis",
+            "tone": null,
+            "exact": null,
+            "measure": "m_active"
+          },
+          {
+            "label": "Permit-fit exceptions",
+            "value": "3",
+            "unit": "Sabine Fuels · F024",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_permit_fit"
+          },
+          {
+            "label": "Re-certification overdue",
+            "value": "17",
+            "unit": "9 with loads after due",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_recert_overdue"
+          },
+          {
+            "label": "Open discrepancies",
+            "value": "7",
+            "unit": "1 past 20 days",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_discrepancy"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-01, the age of its stalest input (facility permits, reloaded monthly). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_vls_waste_acceptance v1 · use case Waste Acceptance & Profile Governance"
+          },
+          {
+            "label": "Caveat",
+            "text": "9 active approvals carry no re-certification date and are excluded from the overdue count."
+          },
+          {
+            "label": "Served",
+            "text": "Acceptance Exceptions Review · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_vl_exceptions",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Domain Architect",
+          "rows_served": 118,
+          "rows_total": 118,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-10-01",
+          "as_of_line": "As of 2026-10-01 — the age of the stalest of 3 contributing datasets (facility, 19 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Acceptance Exceptions Review · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/vls-report.html?report=rep_vl_exceptions"
+      },
+      {
+        "report_id": "rep_vl_customer_360",
+        "report_tag": "customer-360",
+        "subject": "approval × facility",
+        "title": "Customer 360",
+        "question": "Give one customer's accounts, prices, volumes and profile health across the three systems, with the match basis attached.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_permit_fit",
+        "measure_label": "Permit-fit exceptions",
+        "reading": {
+          "template": "Give one customer's accounts, prices, volumes and profile health across the three systems, with the match basis attached. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "header",
+            "label": "Customer 360",
+            "grain": "customer",
+            "source": "customer",
+            "sub": "Brazos Bend Chemical",
+            "dynamic": true,
+            "subParts": [
+              {
+                "text": "Customer 360 — "
+              },
+              {
+                "token": "$CUSTOMERNAME",
+                "figure": {
+                  "key": "name",
+                  "label": "$CUSTOMERNAME",
+                  "measure": null,
+                  "measureLabel": null,
+                  "unit": null,
+                  "signed": false,
+                  "coord": null,
+                  "coordStated": "",
+                  "coordProblems": [],
+                  "expr": null,
+                  "exprError": null,
+                  "exprReads": null,
+                  "raw": "Brazos Bend Chemical",
+                  "display": "Brazos Bend Chemical",
+                  "exact": null,
+                  "note": null,
+                  "prov": "pv_vl360a"
+                }
+              },
+              {
+                "token": "$EPAID",
+                "figure": {
+                  "key": "code",
+                  "label": "$EPAID",
+                  "measure": null,
+                  "measureLabel": null,
+                  "unit": null,
+                  "signed": false,
+                  "coord": null,
+                  "coordStated": "",
+                  "coordProblems": [],
+                  "expr": null,
+                  "exprError": null,
+                  "exprReads": null,
+                  "raw": "TXX910000131",
+                  "display": "TXX910000131",
+                  "exact": null,
+                  "note": null,
+                  "prov": "pv_vl360b"
+                }
+              }
+            ],
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one customer"
+            }
+          },
+          {
+            "id": "b2",
+            "type": "figRow",
+            "label": "Revenue, last 12 months — by account",
+            "grain": "customer",
+            "source": "customer",
+            "figures": [
+              {
+                "key": "c10458",
+                "label": "C-10458 (VLS core)",
+                "measure": "m_revenue",
+                "measureLabel": "C-10458 (VLS core)",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 326700,
+                "display": "$326,700",
+                "exact": "$326,700",
+                "note": null,
+                "prov": "pv_vl2977a"
+              },
+              {
+                "key": "ce2291",
+                "label": "CE-2291 (Coastline)",
+                "measure": "m_revenue",
+                "measureLabel": "CE-2291 (Coastline)",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 140600,
+                "display": "$140,600",
+                "exact": "$140,600",
+                "note": null,
+                "prov": "pv_vl774be"
+              },
+              {
+                "key": "sf0457",
+                "label": "SF-0457 (Sabine, proposed match)",
+                "measure": "m_revenue",
+                "measureLabel": "SF-0457 (Sabine, proposed match)",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 57350,
+                "display": "$57,350",
+                "exact": "$57,350",
+                "note": null,
+                "prov": "pv_vl9e20a"
+              },
+              {
+                "key": "total",
+                "label": "Total",
+                "measure": "m_revenue",
+                "measureLabel": "Total",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "full_span"
+                },
+                "coordStated": "record basis · full span",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 524650,
+                "display": "$524,650",
+                "exact": "$524,650",
+                "note": null,
+                "prov": "pv_vl2edc8"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Invoiced amounts from three billing systems, Oct 2025 – Sep 2026; CE-2291 to the 30 June freeze.",
+            "combines": true,
+            "combinesNote": "Total = the three accounts, with SF-0457 flagged as a proposed match.",
+            "coverage": null,
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one customer"
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Identity",
+            "grain": "customer",
+            "source": "customer",
+            "role": "caveat",
+            "body": "C-10458 and CE-2291 share the EPA ID. SF-0457 matches on name and address only and is shown as a proposed match until reviewed. CE-2291's billing stops at the Coastline freeze on 30 June. Two of five profiles are overdue for re-certification.",
+            "parts": [
+              {
+                "text": "C-10458 and CE-2291 share the EPA ID. SF-0457 matches on name and address only and is shown as a proposed match until reviewed. CE-2291's billing stops at the Coastline freeze on 30 June. Two of five profiles are overdue for re-certification."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one customer"
+            }
+          },
+          {
+            "id": "b3b",
+            "type": "narrative",
+            "label": "Profiles — composition",
+            "grain": "customer",
+            "source": "customer",
+            "role": "scope",
+            "body": "Five profiles: WP-20458, WP-20461, WP-20466, WP-20470 and WP-30457, with their re-certification state. Composition and process descriptions are customer confidential business information and are masked for billing readers (terms clause 14.1).",
+            "parts": [
+              {
+                "text": "Five profiles: WP-20458, WP-20461, WP-20466, WP-20470 and WP-30457, with their re-certification state. Composition and process descriptions are customer confidential business information and are masked for billing readers (terms clause 14.1)."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one customer"
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this customer",
+            "grain": "customer",
+            "source": "customer",
+            "suggestions": [
+              "Who is Brazos Bend Chemical across our systems, and what do they ship to us?",
+              "What did Brazos Bend pay us over the last 12 months, by account?",
+              "Which of Brazos Bend's profiles are overdue?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_vls_waste_acceptance",
+              "scope": "sc_author_all",
+              "asOf": "2026-10-18T18:00:00Z",
+              "reportId": "rep_vl_customer_360"
+            },
+            "population": {
+              "kind": "row",
+              "n": 1,
+              "label": "one customer"
+            }
+          }
+        ],
+        "heading": "Customer 360",
+        "subtitle": "Give one customer's accounts, prices, volumes and profile health across the three systems, with the match basis attached.",
+        "badge": "Customer",
+        "note": "Give one customer's accounts, prices, volumes and profile health across the three systems, with the match basis attached.",
+        "tiles": [
+          {
+            "label": "Accounts",
+            "value": "3",
+            "unit": "1 proposed match",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_accounts"
+          },
+          {
+            "label": "Revenue, 12 months",
+            "value": "$525k",
+            "unit": "record basis",
+            "tone": null,
+            "exact": "$524,650",
+            "measure": "m_revenue"
+          },
+          {
+            "label": "Profiles overdue",
+            "value": "2 of 5",
+            "unit": "1 with loads after due",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_recert_overdue"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-01, the age of its stalest input (facility permits, reloaded monthly). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_vls_waste_acceptance v1 · use case Waste Acceptance & Profile Governance"
+          },
+          {
+            "label": "Caveat",
+            "text": "9 active approvals carry no re-certification date and are excluded from the overdue count."
+          },
+          {
+            "label": "Served",
+            "text": "Customer 360 · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_vl_customer_360",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Business User · Billing",
+          "rows_served": 118,
+          "rows_total": 118,
+          "rows_note": null,
+          "blocks_served": 5,
+          "blocks_total": 5,
+          "as_of": "2026-10-01",
+          "as_of_line": "As of 2026-10-01 — the age of the stalest of 3 contributing datasets (facility, 19 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Customer 360 · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/vls-report.html?report=rep_vl_customer_360"
+      },
+      {
+        "report_id": "rep_vl_certificates",
+        "report_tag": "pfas-certificate-pack",
+        "subject": "approval × facility",
+        "title": "PFAS Certificate Pack",
+        "question": "Show which loads a certificate of disposal can cover, and list the rest with the missing link.",
+        "spine": "projects",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_permit_fit",
+        "measure_label": "Permit-fit exceptions",
+        "reading": {
+          "template": "Show which loads a certificate of disposal can cover, and list the rest with the missing link. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Certificate requests — coverage",
+            "grain": "region",
+            "source": "certificates",
+            "figures": [
+              {
+                "key": "requested",
+                "label": "Loads requested (Marsh Point)",
+                "measure": "m_cert_requested",
+                "measureLabel": "Loads requested (Marsh Point)",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 38,
+                "display": "38",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vl13afa"
+              },
+              {
+                "key": "coverable",
+                "label": "Coverable",
+                "measure": "m_cert_coverable",
+                "measureLabel": "Coverable",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 37,
+                "display": "37",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vla98e6"
+              },
+              {
+                "key": "coverage",
+                "label": "Certificate coverage",
+                "measure": "m_certificate_coverage",
+                "measureLabel": "Certificate coverage",
+                "unit": "PCT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 97.4,
+                "display": "97.4%",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vlb2308"
+              },
+              {
+                "key": "issued",
+                "label": "Requests issued this year",
+                "measure": "m_cert_issued",
+                "measureLabel": "Requests issued this year",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 4,
+                "display": "4",
+                "exact": null,
+                "note": null,
+                "prov": "pv_vlb2acd"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Coverage counts loads with an unbroken chain from receipt to disposal.",
+            "combines": false,
+            "combinesNote": "Counts and a rate — not summed.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "narrative",
+            "label": "What the customer sees",
+            "grain": "region",
+            "source": "certificates",
+            "role": "scope",
+            "body": "Each certified load with its manifests, receipt, onward manifest where it passed through Harbor Transfer, and disposal method. The 11 August load is listed separately with the missing link named.",
+            "parts": [
+              {
+                "text": "Each certified load with its manifests, receipt, onward manifest where it passed through Harbor Transfer, and disposal method. The 11 August load is listed separately with the missing link named."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 118,
+              "label": "the active approvals (118)",
+              "note": "Approvals without a re-certification date are listed and excluded from the overdue count."
+            }
+          }
+        ],
+        "heading": "PFAS Certificate Pack",
+        "subtitle": "Show which loads a certificate of disposal can cover, and list the rest with the missing link.",
+        "badge": "Customer",
+        "note": "Show which loads a certificate of disposal can cover, and list the rest with the missing link.",
+        "tiles": [
+          {
+            "label": "Coverable",
+            "value": "37 of 38",
+            "unit": "Marsh Point",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_certificate_coverage"
+          },
+          {
+            "label": "Broken chains",
+            "value": "1",
+            "unit": "CON-HT-2026-0810",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_cert_broken"
+          },
+          {
+            "label": "PFAS profiles",
+            "value": "14",
+            "unit": "9 generators",
+            "tone": null,
+            "exact": null,
+            "measure": "m_pfas_profiles"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-01, the age of its stalest input (facility permits, reloaded monthly). Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_vls_waste_acceptance v1 · use case Waste Acceptance & Profile Governance"
+          },
+          {
+            "label": "Caveat",
+            "text": "9 active approvals carry no re-certification date and are excluded from the overdue count."
+          },
+          {
+            "label": "Served",
+            "text": "PFAS Certificate Pack · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_vl_certificates",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Data Analyst",
+          "rows_served": 118,
+          "rows_total": 118,
+          "rows_note": null,
+          "blocks_served": 2,
+          "blocks_total": 2,
+          "as_of": "2026-10-01",
+          "as_of_line": "As of 2026-10-01 — the age of the stalest of 3 contributing datasets (facility, 19 days old). Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "PFAS Certificate Pack · 1 · Owen Castellanos (Domain Architect) under Author -- full · 118 of 118 rows · as of 2026-10-01",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/vls-report.html?report=rep_vl_certificates"
+      }
+    ],
+    "saved": [],
+    "governance": {
+      "statuses": [
+        {
+          "key": "published",
+          "label": "Published",
+          "tone": "good"
+        },
+        {
+          "key": "draft",
+          "label": "Draft",
+          "tone": "neutral"
+        },
+        {
+          "key": "scheduled",
+          "label": "Scheduled",
+          "tone": "neutral"
+        },
+        {
+          "key": "unpublished",
+          "label": "Unpublished",
+          "tone": "warn"
+        }
+      ],
+      "reports": [
+        {
+          "report_id": "rep_vl_exceptions",
+          "status": "published",
+          "version": "v1",
+          "author": "Owen Castellanos",
+          "category": "Region",
+          "as_of": "2026-10-20T07:00:00Z",
+          "schedule": "Refreshes daily · 07:00 UTC",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "The schedule covers approvals, receiving and facility blocks; correspondence is read at open time.",
+          "link": "contextweave.vls-gulfcoast.example/r/acceptance-exceptions-review",
+          "readers": [
+            {
+              "email": "jordan.ellis-vls@vriodigital.com",
+              "name": "Jordan Ellis",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "priya.raman-vls@vriodigital.com",
+              "name": "Priya Raman",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "luis.ortega-vls@vriodigital.com",
+              "name": "Luis Ortega",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_vl_customer_360",
+          "status": "published",
+          "version": "v1",
+          "author": "Jordan Ellis",
+          "category": "Customer",
+          "as_of": "2026-10-19T07:00:00Z",
+          "schedule": "Only when it’s opened",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "A billing reader sees prices, invoices and surcharges; profile composition is masked.",
+          "link": "contextweave.vls-gulfcoast.example/r/customer-360",
+          "readers": [
+            {
+              "email": "jordan.ellis-vls@vriodigital.com",
+              "name": "Jordan Ellis",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "tasha.greene-vls@vriodigital.com",
+              "name": "Tasha Greene",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "rules",
+                "projects_admitted": 118,
+                "detail": "Field class = prices, invoices, surcharges · profile composition masked"
+              }
+            },
+            {
+              "email": "priya.raman-vls@vriodigital.com",
+              "name": "Priya Raman",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_vl_certificates",
+          "status": "published",
+          "version": "v1",
+          "author": "Jordan Ellis",
+          "category": "Customer",
+          "as_of": "2026-10-18T07:00:00Z",
+          "schedule": "Monthly on the 1st at 6:00 AM",
+          "approval": "Director sign-off",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "Loads with a broken chain export on a separate page.",
+          "link": "contextweave.vls-gulfcoast.example/r/pfas-certificate-pack",
+          "readers": [
+            {
+              "email": "jordan.ellis-vls@vriodigital.com",
+              "name": "Jordan Ellis",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "priya.raman-vls@vriodigital.com",
+              "name": "Priya Raman",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "owen.castellanos-vls@vriodigital.com",
+              "name": "Owen Castellanos",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 118,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        }
+      ],
+      "data_scope": [
+        {
+          "role_id": "jordan_ellis",
+          "scope": "All 118",
+          "predicate": "Full scope",
+          "grain": "approval",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "jordan.ellis-vls@vriodigital.com",
+          "name": "Jordan Ellis",
+          "projects_admitted": 118,
+          "of_total": 118,
+          "computed_from": "approvals[] at paint time"
+        },
+        {
+          "role_id": "priya_raman",
+          "scope": "All 118",
+          "predicate": "Full scope",
+          "grain": "approval",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "priya.raman-vls@vriodigital.com",
+          "name": "Priya Raman",
+          "projects_admitted": 118,
+          "of_total": 118,
+          "computed_from": "approvals[] at paint time"
+        },
+        {
+          "role_id": "luis_ortega",
+          "scope": "All 118",
+          "predicate": "Full scope",
+          "grain": "approval",
+          "masked": "",
+          "may_author": false,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "luis.ortega-vls@vriodigital.com",
+          "name": "Luis Ortega",
+          "projects_admitted": 118,
+          "of_total": 118,
+          "computed_from": "approvals[] at paint time"
+        },
+        {
+          "role_id": "owen_castellanos",
+          "scope": "All 118",
+          "predicate": "Full scope",
+          "grain": "approval",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "owen.castellanos-vls@vriodigital.com",
+          "name": "Owen Castellanos",
+          "projects_admitted": 118,
+          "of_total": 118,
+          "computed_from": "approvals[] at paint time"
+        },
+        {
+          "role_id": "tasha_greene",
+          "scope": "All 118, composition masked",
+          "predicate": "Field class = prices, invoices, surcharges",
+          "grain": "approval",
+          "masked": "profile composition, process descriptions",
+          "may_author": false,
+          "full": false,
+          "mask": true,
+          "rule": {
+            "basis": "field_class",
+            "values": [
+              "prices",
+              "invoices",
+              "surcharges"
+            ]
+          },
+          "email": "tasha.greene-vls@vriodigital.com",
+          "name": "Tasha Greene",
+          "projects_admitted": 118,
+          "of_total": 118,
+          "computed_from": "approvals[] at paint time"
+        }
+      ],
+      "gate_notes": {
+        "both": "The two are administered in two separate places: audience at publish time, data scope on the reader's row.",
+        "entitlement": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address.",
+        "data_scope": "Which rows and fields does this viewer's rule admit? Managed on the reader's row; follows the person everywhere.",
+        "author": "Writing a report definition is a separate permission from reading one.",
+        "cannot_be_front_end": "If the browser receives profile composition and hides it, the composition has leaked. The server masks before it serves."
+      },
+      "publishing": {
+        "title": "Publish this report",
+        "republish_title": "Publish your changes",
+        "lead": "It goes live to the people you pick — nobody else is told it exists.",
+        "name": {
+          "label": "Report name",
+          "help": "Give it a name your audience will recognize.",
+          "placeholder": "e.g. Acceptance Exceptions Review — week 43"
+        },
+        "readers": {
+          "label": "Who can open it",
+          "placeholder": "Type a name or email address…",
+          "empty": "Nobody yet — this report stays private until you add a reader.",
+          "note": "Each person sees only what their data access allows.",
+          "caveat": "This narrows who is shown the report. It is not access control.",
+          "local_caveat": "Readers are recorded on the artifact; their data scope is managed in Audit & Governance.",
+          "presets": [
+            "jordan.ellis-vls@vriodigital.com",
+            "priya.raman-vls@vriodigital.com",
+            "luis.ortega-vls@vriodigital.com",
+            "owen.castellanos-vls@vriodigital.com",
+            "tasha.greene-vls@vriodigital.com"
+          ],
+          "default": []
+        },
+        "freshness": {
+          "label": "Keep it fresh",
+          "presets": [
+            {
+              "id": "open",
+              "label": "Only when it’s opened",
+              "sentence": "Only when it’s opened"
+            },
+            {
+              "id": "daily",
+              "label": "Every weekday (Mon–Fri) at 7:00 AM",
+              "sentence": "Every weekday at 7:00 AM"
+            },
+            {
+              "id": "monday",
+              "label": "Weekly on Monday at 6:00 AM",
+              "sentence": "Weekly on Monday at 6:00 AM"
+            },
+            {
+              "id": "monthly",
+              "label": "Monthly on the 1st at 6:00 AM",
+              "sentence": "Monthly on the 1st at 6:00 AM"
+            },
+            {
+              "id": "custom",
+              "label": "Custom…",
+              "sentence": "Custom schedule"
+            }
+          ],
+          "days": [
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun"
+          ],
+          "times": [
+            "6:00 AM",
+            "7:00 AM",
+            "8:00 AM",
+            "12:00 PM",
+            "6:00 PM"
+          ],
+          "units": [
+            "day",
+            "week",
+            "month"
+          ],
+          "default": "open",
+          "default_detail": {
+            "preset": "open",
+            "every": 1,
+            "unit": "week",
+            "days": [
+              "Mon"
+            ],
+            "time": "6:00 AM"
+          },
+          "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+        },
+        "foot": "Live immediately after you publish.",
+        "buttons": {
+          "publish": "Publish report",
+          "republish": "Publish changes",
+          "cancel": "Cancel",
+          "unpublish": "Unpublish",
+          "manage": "Manage publishing…"
+        }
+      },
+      "audit": {
+        "copy": {
+          "title": "Audit & Governance",
+          "lead": "One place for who sees what. Authors decide who can open a report or scenario when they publish it; you decide which rows and fields each person can see — and every open is logged.",
+          "not_enforced": "A rule is recorded, not enforced, until the server filters on it. No report on this demo serves a field a reader's rule masks.",
+          "gates": [
+            {
+              "key": "open",
+              "title": "Who can open",
+              "detail": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address."
+            },
+            {
+              "key": "inside",
+              "title": "What they see inside",
+              "detail": "Data access per person, managed on the reader's row — facility, customer system, approval status or field class."
+            },
+            {
+              "key": "log",
+              "title": "Every open is logged",
+              "detail": "Who opened what, what their access resolved to, and every access change — in the audit trail."
+            }
+          ],
+          "empty_log": "Nothing recorded yet. Change a rule or open a report and it appears here.",
+          "log_note": "Nothing in the log is editable; the trail is append-only.",
+          "basis_note": "A field qualifies as a restriction basis only if every one of its values is known on every row."
+        },
+        "categories": [
+          {
+            "key": "all",
+            "label": "All",
+            "id": "all"
+          },
+          {
+            "key": "pub",
+            "label": "Publishing",
+            "id": "pub"
+          },
+          {
+            "key": "open",
+            "label": "Opens",
+            "id": "open"
+          },
+          {
+            "key": "rule",
+            "label": "Rule changes",
+            "id": "rule"
+          },
+          {
+            "key": "ref",
+            "label": "Refreshes",
+            "id": "ref"
+          },
+          {
+            "key": "export",
+            "label": "Exports",
+            "id": "export"
+          }
+        ],
+        "events": [
+          {
+            "actor": "Tasha Greene",
+            "action": "Opened Customer 360",
+            "resource": "Customer 360",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 09:12",
+            "detail": "Her access resolved: prices, invoices and surcharges on all accounts; profile composition masked.",
+            "category": "open"
+          },
+          {
+            "actor": "Jordan Ellis",
+            "action": "Opened Acceptance Exceptions Review",
+            "resource": "Acceptance Exceptions Review",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:47",
+            "detail": "His access resolved: all 118 active approvals, no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "system",
+            "action": "Scheduled refresh ran on Acceptance Exceptions Review",
+            "resource": "Acceptance Exceptions Review",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 07:00",
+            "detail": "Approvals, receiving and facility blocks refreshed. Correspondence blocks are read at open time and are not part of the schedule.",
+            "category": "ref"
+          },
+          {
+            "actor": "Jordan Ellis",
+            "action": "Published what-if scenario F024 re-routing — Gulfstar share",
+            "resource": "what-if scenario F024 re-routing — Gulfstar share",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 19 16:40",
+            "detail": "2 readers · 2 cases (No permitted route, All three streams to Gulfstar) · points to graph v1",
+            "category": "pub"
+          },
+          {
+            "actor": "Owen Castellanos",
+            "action": "Published graph VLS Gulf Coast waste acceptance v1",
+            "resource": "graph v1",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 19 15:58",
+            "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+            "category": "pub"
+          },
+          {
+            "actor": "Owen Castellanos",
+            "action": "Changed rule for Tasha Greene",
+            "resource": "data access rule",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 19 11:05",
+            "detail": "Field-class rule: prices, invoices and surcharges. Profile composition and process descriptions masked (terms clause 14.1).",
+            "category": "rule"
+          },
+          {
+            "actor": "Priya Raman",
+            "action": "Opened PFAS Certificate Pack",
+            "resource": "PFAS Certificate Pack",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 18 17:20",
+            "detail": "Her access resolved: all approvals and certificates, no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "Jordan Ellis",
+            "action": "Exported PFAS Certificate Pack (PDF)",
+            "resource": "PFAS Certificate Pack",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 18 14:02",
+            "detail": "Export carries the watermark and the as-of line; the load with a broken chain is listed on a separate page.",
+            "category": "export"
+          },
+          {
+            "actor": "system",
+            "action": "Sealed trace for 'Is the Kestrel Bayou discrepancy on manifest 024121904GBF reconciled?'",
+            "resource": "trace_vl03",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 18 10:31",
+            "detail": "4 spans · $0.12 · confidence 0.93",
+            "category": "ref"
+          },
+          {
+            "actor": "Hannah Voss",
+            "action": "Changed navigation permissions for all personas",
+            "resource": "settings",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 17 09:15",
+            "detail": "Reports hidden from the sidebar for all personas (beta).",
+            "category": "rule"
+          }
+        ],
+        "restriction_bases": [
+          {
+            "id": "fac",
+            "label": "Facility",
+            "values": 3
+          },
+          {
+            "id": "system",
+            "label": "Customer system",
+            "values": 3
+          },
+          {
+            "id": "status",
+            "label": "Approval status",
+            "values": 5
+          },
+          {
+            "id": "field_class",
+            "label": "Field class",
+            "values": 6
+          },
+          {
+            "id": "basis",
+            "label": "Profile basis",
+            "values": 3
+          }
+        ],
+        "excluded_bases": {
+          "fields": [
+            "revenue",
+            "volume",
+            "price",
+            "days_left"
+          ],
+          "reason": "Continuous. A rule written on them re-resolves every time a figure moves, so a reader's scope would change without anyone changing the rule."
+        }
+      },
+      "document": {
+        "document_id": "GOVERNANCE_AUDIT_VLS",
+        "file": "governance_audit_vls.html",
+        "title": "Context Weave — Audit & Governance · VLS Gulf Coast",
+        "heading": "⛨ Audit & Governance",
+        "subtitle": "One place for who sees what. Authors decide who can open a report or scenario when they publish it; you decide which rows and fields each reader may see.",
+        "tabs": [
+          {
+            "key": "0",
+            "label": "Reports"
+          },
+          {
+            "key": "1",
+            "label": "What-ifs"
+          },
+          {
+            "key": "2",
+            "label": "Audit log"
+          }
+        ],
+        "package": "vls_acceptance_demo_data_package_2026-09-29",
+        "screen": "08 — Audit & Governance",
+        "generated": "2026-10-20",
+        "roster_total": 118
+      }
+    },
+    "authoring_fixture": {
+      "_note": "The fixture the authoring screen previews against: the five open bulk quantity discrepancies, in US gallons, derived from world.py.",
+      "projects": [
+        {
+          "name": "DSC-BR-2026-0214 · Harrow Specialty Solvents",
+          "auth": 5200,
+          "comm": 5795,
+          "proj": 36,
+          "portfolio": "Quantity (bulk, >10%)",
+          "region": "Bayou Ridge Disposal",
+          "phase": "Open",
+          "owner": "Luis Ortega",
+          "funding": "Harrow Specialty Solvents",
+          "partner": "—",
+          "contract": "2026-09-14",
+          "reason": "11.4% over manifest; past its 20 days"
+        },
+        {
+          "name": "DSC-BR-2026-0231 · Kestrel Bayou Refining",
+          "auth": 5000,
+          "comm": 5650,
+          "proj": 16,
+          "portfolio": "Quantity (bulk, >10%)",
+          "region": "Bayou Ridge Disposal",
+          "phase": "Resolved (marked 16 Oct, day 12)",
+          "owner": "Luis Ortega",
+          "funding": "Kestrel Bayou Refining",
+          "partner": "—",
+          "contract": "2026-10-04",
+          "reason": "13.0% over manifest (example C)"
+        },
+        {
+          "name": "DSC-BR-2026-0236 · Fairlead Chemical",
+          "auth": 6000,
+          "comm": 5210,
+          "proj": 11,
+          "portfolio": "Quantity (bulk, >10%)",
+          "region": "Bayou Ridge Disposal",
+          "phase": "Open",
+          "owner": "Luis Ortega",
+          "funding": "Fairlead Chemical",
+          "partner": "—",
+          "contract": "2026-10-09",
+          "reason": "13.2% under manifest"
+        },
+        {
+          "name": "DSC-BR-2026-0239 · Seagrass Petrochemical",
+          "auth": 5500,
+          "comm": 6140,
+          "proj": 7,
+          "portfolio": "Quantity (bulk, >10%)",
+          "region": "Bayou Ridge Disposal",
+          "phase": "Open",
+          "owner": "Luis Ortega",
+          "funding": "Seagrass Petrochemical",
+          "partner": "—",
+          "contract": "2026-10-13",
+          "reason": "11.6% over manifest"
+        },
+        {
+          "name": "DSC-SF-2026-0088 · Talon Point Refining",
+          "auth": 4400,
+          "comm": 3890,
+          "proj": 5,
+          "portfolio": "Quantity (bulk, >10%)",
+          "region": "Sabine Fuels",
+          "phase": "Open",
+          "owner": "Renee Thibodeaux",
+          "funding": "Talon Point Refining",
+          "partner": "—",
+          "contract": "2026-10-15",
+          "reason": "11.6% under manifest"
+        }
+      ],
+      "derived": {
+        "DSC-BR-2026-0214 · Harrow Specialty Solvents": {
+          "status": "Past window",
+          "varianceDollarsM": 595,
+          "variancePct": 11.4,
+          "pctOfEnvelopeSpent": 180
+        },
+        "DSC-BR-2026-0231 · Kestrel Bayou Refining": {
+          "status": "Due within 7 days",
+          "varianceDollarsM": 650,
+          "variancePct": 13,
+          "pctOfEnvelopeSpent": 80
+        },
+        "DSC-BR-2026-0236 · Fairlead Chemical": {
+          "status": "Open",
+          "varianceDollarsM": -790,
+          "variancePct": -13.2,
+          "pctOfEnvelopeSpent": 55
+        },
+        "DSC-BR-2026-0239 · Seagrass Petrochemical": {
+          "status": "Open",
+          "varianceDollarsM": 640,
+          "variancePct": 11.6,
+          "pctOfEnvelopeSpent": 35
+        },
+        "DSC-SF-2026-0088 · Talon Point Refining": {
+          "status": "Open",
+          "varianceDollarsM": -510,
+          "variancePct": -11.6,
+          "pctOfEnvelopeSpent": 25
+        }
+      },
+      "unit": "US gallons (proj in days)",
+      "derivationRules": {
+        "varianceDollarsM": "received (converted) - manifested, in gallons (key name kept for shape)",
+        "variancePct": "(received - manifested) / manifested * 100",
+        "pctOfEnvelopeSpent": "days since receipt / 20 * 100 — share of the 20-day window used",
+        "status": "past the 20-day date -> Past window; 7 days or fewer left -> Due within 7 days; else Open",
+        "forecastAtCompletion": "not applicable in this fixture"
+      }
+    },
+    "register": {
+      "roster": "projects",
+      "identity": "n",
+      "fields": [
+        {
+          "key": "n",
+          "label": "Approval",
+          "kind": "text",
+          "filterable": false,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "reg",
+          "label": "Facility",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "cat",
+          "label": "Basis",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "bu",
+          "label": "Customer system",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "phase",
+          "label": "Re-certification",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "comp",
+          "label": "Permit fit",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        }
+      ]
+    },
+    "documents": [
+      {
+        "document_id": "R1",
+        "report_id": "rep_vl_exceptions",
+        "file": "R1_acceptance_exceptions_review.html",
+        "title": "Acceptance Exceptions Review",
+        "subtitle": "Show which approvals, discrepancies and certificates need a decision, with each factor and owner visible.",
+        "category": "Region",
+        "status": "published",
+        "version": "v1",
+        "slug": "acceptance-exceptions-review",
+        "author": "pp_castellanos",
+        "refresh": "Daily 07:00 UTC",
+        "updated_at": "2026-10-18T16:10:00Z",
+        "spec_file": "Acceptance_Exceptions_Review_Specification.html"
+      },
+      {
+        "document_id": "R2",
+        "report_id": "rep_vl_customer_360",
+        "file": "R2_customer_360.html",
+        "title": "Customer 360",
+        "subtitle": "Give one customer's accounts, prices, volumes and profile health across the three systems, with the match basis attached.",
+        "category": "Customer",
+        "status": "published",
+        "version": "v1",
+        "slug": "customer-360",
+        "author": "pp_ellis",
+        "refresh": "On open",
+        "updated_at": "2026-10-19T16:11:00Z",
+        "spec_file": "Customer_360_Specification.html"
+      },
+      {
+        "document_id": "R3",
+        "report_id": "rep_vl_certificates",
+        "file": "R3_pfas_certificate_pack.html",
+        "title": "PFAS Certificate Pack",
+        "subtitle": "Show which loads a certificate of disposal can cover, and list the rest with the missing link.",
+        "category": "Customer",
+        "status": "published",
+        "version": "v1",
+        "slug": "pfas-certificate-pack",
+        "author": "pp_ellis",
+        "refresh": "Monthly 1st 06:00",
+        "updated_at": "2026-10-18T16:12:00Z",
+        "spec_file": "PFAS_Certificate_Pack_Specification.html"
+      }
+    ],
+    "authoring_document": "report_authoring_simplified_v3.html"
+  },
+  "reports_prototype": {
+    "meta": {
+      "persona_name": "Luis Ortega",
+      "persona_role": "Facility Compliance Manager · Bayou Ridge Disposal",
+      "persona_initials": "LO",
+      "entity_plural": "open discrepancies",
+      "scope_line": "the Gulf Coast region's open significant discrepancies",
+      "source_trace": "Traces to: vls_gulfcoast_core.receiving, vls_gulfcoast_core.approvals, as of 2026-10-19.",
+      "entity_singular": "open discrepancy",
+      "ask_placeholder": "e.g. Which open discrepancies are closest to their 20-day date?"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Discrepancy",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "portfolio",
+        "label": "Kind",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "region",
+        "label": "Facility",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "phase",
+        "label": "System status",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "funding",
+        "label": "Generator",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "partner",
+        "label": "Transporter",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "contract",
+        "label": "Received",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "reason",
+        "label": "Detail",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "auth",
+        "label": "Manifested (gal)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "comm",
+        "label": "Received, converted (gal)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "proj",
+        "label": "Days since receipt",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varD",
+        "label": "Difference (gal)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varP",
+        "label": "Difference %",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "pct",
+        "label": "% of 20-day window used",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "the 5 open bulk quantity discrepancies"
+      },
+      "measure": {
+        "value": "varP",
+        "label": "manifested quantity"
+      },
+      "horizon": {
+        "value": "full",
+        "label": "as of 20 October"
+      },
+      "graph": {
+        "value": "vls_wa",
+        "label": "the VLS Gulf Coast waste acceptance graph"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which discrepancies to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "the 5 open bulk quantity discrepancies",
+            "d": "Weight-compared bulk loads"
+          },
+          {
+            "value": "major",
+            "label": "more than 12% off manifest",
+            "d": "The largest differences"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Off\" measured against?",
+        "options": [
+          {
+            "value": "varP",
+            "label": "manifested quantity",
+            "d": "As written on the manifest"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "As of when?",
+        "options": [
+          {
+            "value": "today",
+            "label": "today",
+            "d": "20 October 2026"
+          },
+          {
+            "value": "full",
+            "label": "as of 20 October",
+            "d": "Last complete load day 19 October"
+          },
+          {
+            "value": "month",
+            "label": "end of September",
+            "d": "Last closed month"
+          }
+        ]
+      },
+      "graph": {
+        "q": "Which published graph should this run against?",
+        "options": [
+          {
+            "value": "vls_wa",
+            "label": "the VLS Gulf Coast waste acceptance graph",
+            "short": "VLS waste acceptance",
+            "d": "Published · core + Sabine billing + Coastline legacy + Drive corpus · refreshed today"
+          }
+        ]
+      }
+    },
+    "generators": [
+      {
+        "name": "DSC-BR-2026-0214 · Harrow Specialty Solvents",
+        "auth": 5200,
+        "comm": 5795,
+        "proj": 36,
+        "portfolio": "Quantity (bulk, >10%)",
+        "region": "Bayou Ridge Disposal",
+        "phase": "Open",
+        "owner": "Luis Ortega",
+        "funding": "Harrow Specialty Solvents",
+        "partner": "—",
+        "contract": "2026-09-14",
+        "reason": "11.4% over manifest; past its 20 days",
+        "varD": 595,
+        "varP": 11.4,
+        "pct": 180,
+        "status": "Past window"
+      },
+      {
+        "name": "DSC-BR-2026-0231 · Kestrel Bayou Refining",
+        "auth": 5000,
+        "comm": 5650,
+        "proj": 16,
+        "portfolio": "Quantity (bulk, >10%)",
+        "region": "Bayou Ridge Disposal",
+        "phase": "Resolved (marked 16 Oct, day 12)",
+        "owner": "Luis Ortega",
+        "funding": "Kestrel Bayou Refining",
+        "partner": "—",
+        "contract": "2026-10-04",
+        "reason": "13.0% over manifest (example C)",
+        "varD": 650,
+        "varP": 13,
+        "pct": 80,
+        "status": "Due within 7 days"
+      },
+      {
+        "name": "DSC-BR-2026-0236 · Fairlead Chemical",
+        "auth": 6000,
+        "comm": 5210,
+        "proj": 11,
+        "portfolio": "Quantity (bulk, >10%)",
+        "region": "Bayou Ridge Disposal",
+        "phase": "Open",
+        "owner": "Luis Ortega",
+        "funding": "Fairlead Chemical",
+        "partner": "—",
+        "contract": "2026-10-09",
+        "reason": "13.2% under manifest",
+        "varD": -790,
+        "varP": -13.2,
+        "pct": 55,
+        "status": "Open"
+      },
+      {
+        "name": "DSC-BR-2026-0239 · Seagrass Petrochemical",
+        "auth": 5500,
+        "comm": 6140,
+        "proj": 7,
+        "portfolio": "Quantity (bulk, >10%)",
+        "region": "Bayou Ridge Disposal",
+        "phase": "Open",
+        "owner": "Luis Ortega",
+        "funding": "Seagrass Petrochemical",
+        "partner": "—",
+        "contract": "2026-10-13",
+        "reason": "11.6% over manifest",
+        "varD": 640,
+        "varP": 11.6,
+        "pct": 35,
+        "status": "Open"
+      },
+      {
+        "name": "DSC-SF-2026-0088 · Talon Point Refining",
+        "auth": 4400,
+        "comm": 3890,
+        "proj": 5,
+        "portfolio": "Quantity (bulk, >10%)",
+        "region": "Sabine Fuels",
+        "phase": "Open",
+        "owner": "Renee Thibodeaux",
+        "funding": "Talon Point Refining",
+        "partner": "—",
+        "contract": "2026-10-15",
+        "reason": "11.6% under manifest",
+        "varD": -510,
+        "varP": -11.6,
+        "pct": 25,
+        "status": "Open"
+      }
+    ],
+    "facilities": [],
+    "quarters": [],
+    "traces": [],
+    "starters": [
+      {
+        "id": "rep_q_exceptions",
+        "report_tag": "acceptance-exceptions-review",
+        "label": "Acceptance Exceptions Review",
+        "title": "Acceptance Exceptions Review",
+        "q": "Show which discrepancies need a decision, and refuse to rank them by one hidden score.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varP"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_customer_360",
+        "report_tag": "customer-360",
+        "label": "Customer 360",
+        "title": "Customer 360",
+        "q": "Give one customer's accounts and volumes across the systems with the match basis attached.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "proj"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_certificates",
+        "report_tag": "pfas-certificate-pack",
+        "label": "PFAS Certificate Pack",
+        "title": "PFAS Certificate Pack",
+        "q": "Show which loads a certificate can cover, and keep broken chains apart.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "auth",
+              "proj",
+              "varD"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varD"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "comm",
+              "proj",
+              "varD"
+            ]
+          }
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "label": "Summary tiles",
+        "d": "Discrepancies, manifested, received, difference",
+        "block": {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varD"
+          ]
+        }
+      },
+      {
+        "label": "Difference chart",
+        "d": "Discrepancies ranked by % off manifest",
+        "block": {
+          "type": "chart",
+          "title": "Difference to manifest by discrepancy",
+          "chartType": "bar",
+          "measure": "varP"
+        }
+      },
+      {
+        "label": "Clock chart",
+        "d": "Share of the 20-day window used",
+        "block": {
+          "type": "chart",
+          "title": "20-day window used",
+          "chartType": "column",
+          "measure": "pct"
+        }
+      },
+      {
+        "label": "Discrepancy detail",
+        "d": "One row per discrepancy, with status and the figures behind it",
+        "block": {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "comm",
+            "proj",
+            "varD"
+          ]
+        }
+      }
+    ],
+    "slice_default": [
+      "portfolio",
+      "region",
+      "phase",
+      "status"
+    ],
+    "audiences": [
+      {
+        "key": "business_user_exec",
+        "label": "Business User -- Executive",
+        "d": "All facilities, approvals and receipts. Profile composition (customer confidential business information) and prices follow each reader's data scope: billing readers see prices and invoices, not profile content. The persona the walkthrough is written for is the Director of Technical Services & Compliance."
+      },
+      {
+        "key": "analyst",
+        "label": "Data Analyst",
+        "d": "All facilities, approvals, receipts and lab results. Account-manager and approver names masked (PII)."
+      },
+      {
+        "key": "architect",
+        "label": "Domain Architect",
+        "d": "Everything, at every grain, including prices, profile composition and the Coastline legacy copy."
+      },
+      {
+        "key": "admin",
+        "label": "Platform Admin",
+        "d": "Structure, lineage, cost and access. No profile content, prices or customer figures -- an admin configures the platform, not the business."
+      }
+    ],
+    "library": [],
+    "row_model": {
+      "label": "name",
+      "sublabel": "{portfolio} · {phase} · {owner}",
+      "status": "status",
+      "tones": {
+        "Past window": "over",
+        "Due within 7 days": "warn",
+        "Open": "ok"
+      },
+      "scopes": {
+        "active": {},
+        "major": {
+          "field": "varP",
+          "op": "gt",
+          "value": 12
+        }
+      },
+      "measures": [
+        "varD",
+        "varP",
+        "pct",
+        "proj",
+        "auth",
+        "comm"
+      ],
+      "kpis": [
+        {
+          "key": "count",
+          "label": "Discrepancies in scope",
+          "agg": "rows"
+        },
+        {
+          "key": "auth",
+          "label": "Manifested (gal)",
+          "agg": "sum",
+          "field": "auth",
+          "format": "money_m"
+        },
+        {
+          "key": "proj",
+          "label": "Days since receipt",
+          "agg": "sum",
+          "field": "proj",
+          "format": "money_m"
+        },
+        {
+          "key": "varD",
+          "label": "Difference (gal)",
+          "agg": "sum",
+          "field": "varD",
+          "format": "money_m"
+        },
+        {
+          "key": "delayed",
+          "label": "Past window",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Past window",
+          "tone": "bad"
+        },
+        {
+          "key": "atrisk",
+          "label": "Due within 7 days",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Due within 7 days",
+          "tone": "warn"
+        }
+      ],
+      "formats": {
+        "auth": "money_m",
+        "comm": "money_m",
+        "proj": "money_m",
+        "varD": "money_m",
+        "varP": "pct",
+        "pct": "pct",
+        "status": "text"
+      },
+      "labels": {},
+      "pills": {},
+      "blocks": [
+        "kpis",
+        "chart",
+        "table"
+      ],
+      "footer": []
+    }
+  }
+}
