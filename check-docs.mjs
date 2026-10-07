@@ -6785,11 +6785,13 @@ expect(
  * exactly as Canvas does — failed this claim for doing the right thing, while the shape that
  * matters went unchecked in both directions. A fifth output tab added *without* the flag is the
  * failure worth catching, and a hard number cannot tell that from a fifth tab added with it. So the
- * rule is stated as the thing it means: every tab but Build and Playground is locked, and those two
- * are named because each has its own reason not to be.
+ * rule is stated as the thing it means: every tab but Build is locked. Build is named because
+ * locking the one tab that unlocks the others is a dead end; the Playground was unlocked once — it
+ * reads the brief, which exists before any build — and was locked on request so the strip moves as
+ * one while a run supersedes what stands beside it.
  */
 const studioTabKeys = [...studioPageCode.matchAll(/key: '([a-z0-9]+)',\s*label: '/g)].map((m) => m[1])
-const unlockedTabs = ['build', 'playground']
+const unlockedTabs = ['build']
 const lockedTabs = studioTabKeys.filter((key) => !unlockedTabs.includes(key))
 expect(
   'every tab that reads a build output is locked until one lands, and while one runs',
@@ -7041,10 +7043,11 @@ expect(
   /key: 'metrics'/.test(playgroundTab) &&
     /key: 'golden-queries'/.test(playgroundTab) &&
     /label: 'Playground'/.test(studioPageCode) &&
-    /* Not locked on `outputReadable` like the three tabs that read a build's output: the brief
-       exists the moment the use case does, and locking it would hide a ready list behind a build
-       that has not run. */
-    !/key: 'playground',\s*label: 'Playground',\s*disabled:/.test(studioPageCode),
+    /* Locked on `outputReadable` like the tabs that read a build's output — a reversal on request:
+       it was deliberately open (the brief exists before any build), and the request weighs the
+       strip moving as one more heavily. The flag must be the shared one, never a second expression
+       of the gate. */
+    /key: 'playground',\s*label: 'Playground',\s*disabled: !outputReadable,/.test(studioPageCode),
   'Metrics and Golden Queries, over the brief rather than over a build',
 )
 

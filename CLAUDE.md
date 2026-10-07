@@ -3388,10 +3388,12 @@ really accepted — so the panel says that in words rather than leaving a reader
 are never coming. Who uploaded it is **told, never guessed** (`?as=`), the rule `saved_by` and the
 publish route both keep.
 
-**The tab is not locked on `outputReadable`, unlike the three below it.** Those read a *build's*
-output, and what they would show before one exists is the previous build's with nothing saying so.
-The Playground reads the **brief**, which exists the moment a use case does — locking it would hide a
-list that is ready behind a build that has not run.
+**The tab is locked on `outputReadable` with the three below it — a reversal on request.** It was
+deliberately open: the Playground reads the **brief**, which exists the moment a use case does, so a
+lock hid a list that was ready behind a build that had not run. That is still true of the data; what
+the request weighs heavier is the strip moving as one — a single tab left open while a run supersedes
+everything beside it reads as a tab the lock forgot. The flag is the same `selectOutputReadable` the
+other tabs read, never a second expression of the gate.
 
 **Its rules and its copy are in `src/data/playground.ts`**, and the two list bodies are exported apart
 from the components that open the dialogs: an Add or Edit surface is a `Modal`, which portals out of
@@ -3678,13 +3680,15 @@ store for itself is a second answer to what is published.
 
 #### What is locked, and why
 
-**The Bridge, the Canvas and Versions all read a build's output, so they are locked until one exists
-— and locked again while a rebuild runs.** What they would otherwise show is the *previous* build's
-output with nothing saying so, and settling a correspondence against a canvas that is being
-superseded is a decision made on stale evidence. `selectOutputReadable` is the one flag driving all
-three, so they cannot disagree; **Build itself is never locked**, because locking the one tab that
-unlocks the others is a dead end. The lock says why, and says something different while a run is in
-flight — "start one" is the wrong instruction for somebody already watching one.
+**Every tab but Build is locked until a build's output exists — and locked again while a rebuild
+runs.** The Bridge, the Canvas and Versions read a build's output, and what they would otherwise show
+is the *previous* build's output with nothing saying so; settling a correspondence against a canvas
+that is being superseded is a decision made on stale evidence. The Playground joined the lock on
+request — it reads the brief rather than a build, and the lock is about the strip moving as one (see
+its own section above). `selectOutputReadable` is the one flag driving all of them, so they cannot
+disagree; **Build itself is never locked**, because locking the one tab that unlocks the others is a
+dead end. The lock says why, and says something different while a run is in flight — "start one" is
+the wrong instruction for somebody already watching one.
 
 #### The in-memory runtime, and `both`
 

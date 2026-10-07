@@ -352,14 +352,18 @@ export default function GraphStudioPage() {
                 },
                 {
                   /*
-                   * **Not locked on `outputReadable`, unlike the three below it.** Those read a
-                   * *build's* output, and what they would show before one exists is the previous
-                   * build's with nothing saying so. The Playground reads the **brief** — the metrics
-                   * and hero questions the wizard accepted — which exist the moment a use case does.
-                   * Locking it would hide a list that is ready behind a build that has not run.
+                   * **Locked with the three below it, on request — a reversal on record.** It was
+                   * deliberately unlocked, because it reads the *brief* (the metrics and hero
+                   * questions the wizard accepted), which exists the moment a use case does, and a
+                   * lock hid a ready list behind a build that had not run. That reasoning is still
+                   * true of the data; what the request weighs heavier is the strip moving as one —
+                   * a single tab left open while a run supersedes everything beside it reads as a
+                   * tab the lock forgot. The flag is the same `outputReadable` the other three
+                   * read, never a second expression of the gate.
                    */
                   key: 'playground',
                   label: 'Playground',
+                  disabled: !outputReadable,
                   children: (
                     <StudioPlaygroundTab
                       playground={playground}
