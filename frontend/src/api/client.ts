@@ -10328,8 +10328,8 @@ export interface Playground {
   goldenQueries: GoldenQuery[]
   files: PlaygroundFile[]
   /** The server's caps, served rather than restated here: a cap the page held its own copy of would
-   *  let Add offer a row the save then refuses. */
-  metricCap: number
+   *  let Add offer a row the save then refuses. Metrics have none — that limit was removed on
+   *  request, so the payload serves no number for them. */
   queryCap: number
   fileCap: number
 }
@@ -10712,7 +10712,6 @@ const PLAYGROUND = shape({
      schema over one list is how the two screens come to disagree about what a question carries. */
   golden_queries: arrayOf(HERO_QUESTION),
   files: arrayOf(shape({ name: str, uploaded_at: str, uploaded_by: nullable(str) })),
-  metric_cap: num,
   query_cap: num,
   file_cap: num,
 })
@@ -11277,7 +11276,6 @@ const toPlayground = (raw: Record<string, unknown>): Playground => ({
     uploadedAt: f.uploaded_at as string,
     uploadedBy: (f.uploaded_by as string | null) ?? null,
   })),
-  metricCap: raw.metric_cap as number,
   queryCap: raw.query_cap as number,
   fileCap: raw.file_cap as number,
 })

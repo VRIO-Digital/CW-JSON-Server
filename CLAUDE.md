@@ -3369,12 +3369,18 @@ where a figure came from, which is `evidence_kind`'s lesson in miniature — and
 row's provenance**, because rewriting a drafted metric's wording does not make it something the
 reader drafted.
 
-**The caps refuse rather than truncate.** `normalizeDrafted` and `normalizeQuestions` stop at
-`DRAFTED_MAX` (12) and `QUESTION_MAX` (20), which is right for a document being read and wrong for a
-list somebody just pressed Add on: a row that vanished on save is the silent cut this repo refuses
-everywhere. So the route refuses a longer list **naming the number**, the caps are **served** rather
-than restated in the page — a page holding its own copy would let Add offer a row the save then turns
-down — and Add is withheld at the cap rather than refusing after the reader has typed.
+**The query cap refuses rather than truncates, and metrics have no cap at all.** The metric limit
+(`DRAFTED_MAX`, 12) was **removed on request** — at every layer at once, because half a removal is
+the shape that fails silently: the constant is gone, `normalizeDrafted` no longer truncates (which
+is also what lets CAPEX's 23-metric brief serve whole — the old cap was quietly cutting it to 12),
+the route's metric row keeps its blank-name check with `null` where the cap sat, no `metric_cap` is
+served, and the panel's Add is withheld only while a save is in flight. Golden queries keep theirs:
+`normalizeQuestions` stops at `QUESTION_MAX` (20), which is right for a document being read and
+wrong for a list somebody just pressed Add on — a row that vanished on save is the silent cut this
+repo refuses everywhere — so the route refuses a longer list **naming the number**, the cap is
+**served** rather than restated in the page (a page holding its own copy would let Add offer a row
+the save then turns down), and Add is withheld at the cap rather than refusing after the reader has
+typed.
 
 **A file can be attached, and only its name travels.** No parser reads it and no question is added
 from it, because questions invented out of a file would be indistinguishable from the ones the brief

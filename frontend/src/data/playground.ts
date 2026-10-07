@@ -112,15 +112,14 @@ export const uploadedByLabel = (file: PlaygroundFile): string =>
 /**
  * Why this metric cannot be added, or `null`.
  *
- * **Three refusals, and the cap is one of them.** The server truncates at its cap when it reads a
- * document and *refuses* a list longer than it here, so the page must refuse before it offers — a
- * row that vanished on save is the silent cut this repo refuses everywhere. `existing` is the name
- * being edited, so a metric never collides with itself.
+ * **Two refusals, and deliberately no count.** A metric needs a name and a name may not collide —
+ * the limit on how many a use case keeps was removed on request, so there is no cap here and no
+ * number for a refusal to state. `existing` is the name being edited, so a metric never collides
+ * with itself.
  */
 export function metricProblem(
   name: string,
   metrics: PlaygroundMetric[],
-  cap: number,
   existing: string | null,
 ): string | null {
   const trimmed = name.trim()
@@ -129,13 +128,11 @@ export function metricProblem(
     (m) => m.name.toLowerCase() === trimmed.toLowerCase() && m.name !== existing,
   )
   if (clash) return `This use case already has a metric called “${trimmed}”.`
-  if (existing === null && metrics.length >= cap) {
-    return `A use case keeps at most ${cap} metrics. Remove one before adding another.`
-  }
   return null
 }
 
-/** The same three, for a golden query. Compared on the text, which is what a question is. */
+/** Blank, clash and the cap, for a golden query — queries keep their cap, unlike metrics.
+ *  Compared on the text, which is what a question is. */
 export function queryProblem(
   text: string,
   queries: GoldenQuery[],

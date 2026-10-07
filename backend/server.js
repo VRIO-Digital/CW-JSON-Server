@@ -4190,10 +4190,10 @@ function displayNameFromEmail(email) {
  * hand-edited db.json) hold — normalising on read means an old draft opens
  * rather than rendering `undefined` in the row.
  */
-/** How many personas or metrics a brief keeps, and how many hero questions. Named rather than
- *  written into the loops, because the Playground has to *state* them when it refuses one more —
- *  a cap that truncates in silence is a claim about how many the reader asked for. */
-const DRAFTED_MAX = 12
+/** How many hero questions a brief keeps. Named rather than written into the loop, because the
+ *  Playground has to *state* it when it refuses one more — a cap that truncates in silence is a
+ *  claim about how many the reader asked for. Personas and metrics are deliberately uncapped
+ *  (the metric limit was removed on request), so the drafted lists have no twin to this. */
 const QUESTION_MAX = 20
 
 function normalizeDrafted(list, { withSql = false } = {}) {
@@ -4230,7 +4230,6 @@ function normalizeDrafted(list, { withSql = false } = {}) {
      */
     if (withSql) drafted.sql = typeof raw.sql === 'string' && raw.sql.trim() ? raw.sql : null
     out.push(drafted)
-    if (out.length >= DRAFTED_MAX) break
   }
   return out
 }
@@ -10078,8 +10077,8 @@ const playgroundView = (useCase) => ({
   golden_queries: normalizeQuestions(useCase.hero_questions),
   files: normalizeQueryFiles(useCase.golden_query_files ?? [], null),
   /* Served rather than restated in the component, because the refusal above quotes them: a cap the
-     page held its own copy of would let Add offer a row the save then turns down. */
-  metric_cap: DRAFTED_MAX,
+     page held its own copy of would let Add offer a row the save then turns down. Metrics carry
+     none — that limit was removed on request, so Add is never withheld over a count there. */
   query_cap: QUESTION_MAX,
   file_cap: QUERY_FILES_MAX,
 })
@@ -14057,7 +14056,9 @@ const routes = [
       }
 
       for (const [label, list, needs, cap] of [
-        ['metric', metrics, 'a name', DRAFTED_MAX],
+        /* A metric list has no cap — the limit was removed on request — so its row carries `null`
+           rather than being dropped from the loop: the blank-name check still applies to it. */
+        ['metric', metrics, 'a name', null],
         ['golden query', golden_queries, 'text', QUESTION_MAX],
       ]) {
         if (list === undefined) continue
@@ -14071,12 +14072,12 @@ const routes = [
         )
         if (blank) return send(res, 400, { error: `every ${label} needs ${needs}.` })
         /*
-         * **Refused rather than truncated.** `normalizeDrafted` and `normalizeQuestions` stop at
-         * their cap, which is right for a document being read and wrong for a list somebody just
-         * pressed Add on: a row that vanished on save is the silent cut this repo refuses
-         * everywhere. The refusal states the cap, so the reader knows what to remove.
+         * **Refused rather than truncated.** `normalizeQuestions` stops at its cap, which is right
+         * for a document being read and wrong for a list somebody just pressed Add on: a row that
+         * vanished on save is the silent cut this repo refuses everywhere. The refusal states the
+         * cap, so the reader knows what to remove.
          */
-        if (list.length > cap) {
+        if (cap !== null && list.length > cap) {
           return send(res, 400, {
             error: `a use case keeps at most ${cap} ${label}s, and this is ${list.length}. Remove one before adding another.`,
           })

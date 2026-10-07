@@ -67,7 +67,6 @@ export default function StudioPlaygroundTab({
             children: (
               <PlaygroundMetrics
                 metrics={playground.metrics}
-                cap={playground.metricCap}
                 busy={busy || loading}
                 onSave={onSaveMetrics}
               />

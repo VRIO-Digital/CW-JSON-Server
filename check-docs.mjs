@@ -7087,21 +7087,35 @@ expect(
 )
 
 /*
- * **The cap refuses rather than truncating.** `normalizeDrafted` and `normalizeQuestions` stop at
- * their cap, which is right for a document being read and wrong for a list somebody just pressed Add
- * on: a row that vanished on save is the silent cut this repo refuses everywhere. And the number is
- * the server's, served rather than restated, or Add would offer a row the save then turns down.
+ * **One cap left, and it still refuses rather than truncating.** The golden-query cap is named
+ * (`QUESTION_MAX`), served (`query_cap`) and refused against with a sentence stating the number —
+ * a row that vanished on save is the silent cut this repo refuses everywhere. The **metric cap was
+ * removed on request**, and the removal is asserted at every layer at once, because half a removal
+ * is the shape that fails silently: a served cap nothing reads, or a panel gating Add on a count
+ * the server no longer refuses. The metric row stays in the refusal loop with `null` for its cap,
+ * so losing the limit did not lose the blank-name check beside it — and `normalizeDrafted` no
+ * longer truncates, which is what makes CAPEX's 23-metric brief servable whole.
  */
 expect(
-  'the caps are named, served, and refused against rather than silently applied',
-  /const DRAFTED_MAX = \d+/.test(server) &&
-    /const QUESTION_MAX = \d+/.test(server) &&
-    /if \(list\.length > cap\)/.test(server) &&
+  'the query cap is named, served and refused against; the metric cap is removed at every layer',
+  /const QUESTION_MAX = \d+/.test(server) &&
+    /if \(cap !== null && list\.length > cap\)/.test(server) &&
     /a use case keeps at most \$\{cap\}/.test(server) &&
-    /metric_cap: DRAFTED_MAX/.test(server) &&
-    /metricCap: raw\.metric_cap/.test(client) &&
-    /cap=\{playground\.metricCap\}/.test(playgroundTab),
-  'a row that vanished on save is a silent cut',
+    /query_cap: QUESTION_MAX/.test(server) &&
+    /\['metric', metrics, 'a name', null\]/.test(server) &&
+    /queryCap: raw\.query_cap/.test(client) &&
+    /queryCap=\{playground\.queryCap\}/.test(playgroundTab) &&
+    /* The removal's own half: no constant, no served field, no client copy, no gate in the panel —
+       Add is withheld by a save in flight and nothing else — and no count branch in the refusal. */
+    !/DRAFTED_MAX/.test(codeOnly(server)) &&
+    !/metric_cap/.test(codeOnly(server)) &&
+    !/metric_cap|metricCap/.test(codeOnly(client)) &&
+    !/metricCap/.test(codeOnly(playgroundTab)) &&
+    /disabled=\{busy\}/.test(metricsPanel) &&
+    !/\bcap\b/.test(codeOnly(metricsPanel)) &&
+    !/metrics\.length >= cap/.test(playgroundDataCode) &&
+    /queries\.length >= cap/.test(playgroundDataCode),
+  'a cap half-removed is a served field nothing reads or a disabled button no refusal explains',
 )
 
 /*

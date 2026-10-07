@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Alert, Button, Form, Input, Modal, Space, Typography } from 'antd'
+import { Alert, Button, Form, Input, Modal, Space } from 'antd'
 import { useState } from 'react'
 import type { PlaygroundMetric } from '../../api/client'
 import {
@@ -26,14 +26,12 @@ import PlaygroundRow from './PlaygroundRow'
  */
 export function MetricsPanel({
   metrics,
-  cap,
   busy,
   onEdit,
   onDelete,
   onAdd,
 }: {
   metrics: PlaygroundMetric[]
-  cap: number
   busy: boolean
   onEdit: (metric: PlaygroundMetric) => void
   onDelete: (metric: PlaygroundMetric) => void
@@ -66,30 +64,21 @@ export function MetricsPanel({
         ))
       )}
 
-      {/* Withheld at the cap rather than refusing after the reader has typed — the refusal sentence
-          still exists for every other path in, and states the number. */}
-      <Space size={SP.sm} wrap align="center">
-        <Button icon={<PlusOutlined />} onClick={onAdd} disabled={busy || metrics.length >= cap}>
-          {playgroundCopy.metrics.add}
-        </Button>
-        {metrics.length >= cap ? (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {`A use case keeps at most ${cap} metrics. Remove one before adding another.`}
-          </Typography.Text>
-        ) : null}
-      </Space>
+      {/* No count gates this button — the metric limit was removed on request, so the only thing
+          that withholds Add is a save already in flight. */}
+      <Button icon={<PlusOutlined />} onClick={onAdd} disabled={busy}>
+        {playgroundCopy.metrics.add}
+      </Button>
     </Space>
   )
 }
 
 export default function PlaygroundMetrics({
   metrics,
-  cap,
   busy,
   onSave,
 }: {
   metrics: PlaygroundMetric[]
-  cap: number
   busy: boolean
   onSave: (next: PlaygroundMetric[]) => void
 }) {
@@ -108,7 +97,7 @@ export default function PlaygroundMetrics({
     setOpen(true)
   }
 
-  const problem = metricProblem(name, metrics, cap, editing)
+  const problem = metricProblem(name, metrics, editing)
 
   const commit = () => {
     if (problem) return
@@ -137,7 +126,6 @@ export default function PlaygroundMetrics({
     <>
       <MetricsPanel
         metrics={metrics}
-        cap={cap}
         busy={busy}
         onEdit={(metric) => start(metric)}
         onDelete={(metric) => onSave(withoutMetric(metrics, metric.name))}
