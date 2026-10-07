@@ -254,7 +254,7 @@
             "relationship_type": "SHIPS_THROUGH_ACCOUNT",
             "cardinality_hint": "1:N",
             "rationale": "An account ships for one generator; a broker account carries no generator_id and ships for several.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "approvals.profile",
@@ -267,7 +267,7 @@
             "relationship_type": "GENERATES_STREAM",
             "cardinality_hint": "1:N",
             "rationale": "Each profile describes one stream from one generator site.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -294,7 +294,7 @@
             "relationship_type": "PRICED_BY",
             "cardinality_hint": "1:N",
             "rationale": "Approved price schedules per account.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -321,7 +321,7 @@
             "relationship_type": "HAS_VERSION",
             "cardinality_hint": "1:N",
             "rationale": "Versions are kept; a newer draft does not supersede a certified version.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "approvals.approval",
@@ -334,7 +334,7 @@
             "relationship_type": "APPROVED_AS",
             "cardinality_hint": "1:N",
             "rationale": "A profile can hold approvals at more than one facility and superseded approvals over time.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -374,7 +374,7 @@
             "relationship_type": "SETS_TOLERANCE",
             "cardinality_hint": "1:N",
             "rationale": "Each approval sets its fingerprint parameters and bounds.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "receiving.receipt",
@@ -387,7 +387,7 @@
             "relationship_type": "ACCEPTED_UNDER",
             "cardinality_hint": "1:N",
             "rationale": "Loads are accepted under an approval; null on Harbor loads received before the cut-over.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -427,7 +427,7 @@
             "relationship_type": "APPROVES_FOR",
             "cardinality_hint": "1:N",
             "rationale": "An approval is valid only at its facility.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "facility.well",
@@ -440,7 +440,7 @@
             "relationship_type": "OPERATES_WELL",
             "cardinality_hint": "1:N",
             "rationale": "Bayou Ridge operates three wells.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -480,7 +480,7 @@
             "relationship_type": "LISTS_CODE",
             "cardinality_hint": "1:N",
             "rationale": "Accepted codes are listed per permit version and unit; the effective version on the as-of date governs.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -520,7 +520,7 @@
             "relationship_type": "HAS_LINE",
             "cardinality_hint": "1:N",
             "rationale": "Manifest lines carry the quantity, unit and codes.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "receiving.receipt",
@@ -533,7 +533,7 @@
             "relationship_type": "RECEIVED_AS",
             "cardinality_hint": "1:1",
             "rationale": "One load received per manifest at a gate.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "receiving.onward_shipment",
@@ -546,7 +546,7 @@
             "relationship_type": "CONSOLIDATED_INTO",
             "cardinality_hint": "1:N",
             "rationale": "Harbor Transfer consolidations after the cut-over; the onward manifest starts a new chain.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -586,7 +586,7 @@
             "relationship_type": "TESTED_BY",
             "cardinality_hint": "1:N",
             "rationale": "About five fingerprint parameters per tested load.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "receiving.discrepancy",
@@ -599,7 +599,7 @@
             "relationship_type": "HAS_DISCREPANCY",
             "cardinality_hint": "1:N",
             "rationale": "Quantity, piece-count and type discrepancies per load.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "receiving.rejection",
@@ -612,7 +612,7 @@
             "relationship_type": "REJECTED_AS",
             "cardinality_hint": "1:1",
             "rationale": "Full or partial rejection of a load.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "ops.certificate_of_disposal",
@@ -625,7 +625,7 @@
             "relationship_type": "CERTIFIED_BY",
             "cardinality_hint": "1:N",
             "rationale": "Certificate lines per load.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "billing.invoice_line",
@@ -638,7 +638,7 @@
             "relationship_type": "INVOICED_AS",
             "cardinality_hint": "1:N",
             "rationale": "Core invoice lines per load.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "billing.surcharge",
@@ -651,7 +651,7 @@
             "relationship_type": "SURCHARGED_BY",
             "cardinality_hint": "1:N",
             "rationale": "Surcharges per load, region-wide.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -782,7 +782,7 @@
             "relationship_type": "SHIPPED_AS",
             "cardinality_hint": "1:N",
             "rationale": "Sabine Fuels blend batches shipped to kilns.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -822,7 +822,7 @@
             "relationship_type": "SHIPPED_BY",
             "cardinality_hint": "1:N",
             "rationale": "Frozen Harbor Transfer history before the cut-over.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "coastline.ce_profile",
@@ -835,7 +835,7 @@
             "relationship_type": "HOLDS_PROFILE",
             "cardinality_hint": "1:N",
             "rationale": "Coastline profiles; profile numbers are scoped to Coastline.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -888,7 +888,7 @@
             "relationship_type": "MIGRATED_TO",
             "cardinality_hint": "N:1",
             "rationale": "Migrated Coastline keys map to VLS core; account numbers were kept.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
@@ -915,7 +915,7 @@
             "relationship_type": "INVOICED_TO",
             "cardinality_hint": "1:N",
             "rationale": "Sabine Fuels invoices from its own system.",
-            "confirmed_by": "jordan.ellis-vls@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
