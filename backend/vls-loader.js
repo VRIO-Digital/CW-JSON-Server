@@ -52,6 +52,38 @@ export async function loadVlsDocument() {
     }
   }
 
+  /*
+   * VLS's data-model review queue resets at boot: every stored declaration and entity goes back
+   * to `confirmed_by: null`, so a freshly started mock server opens the Data Modeling tab with
+   * everything under *suggested, pending* rather than under the relations count.
+   *
+   * Why clearing is right here and not data loss: an acceptance is made against a registered,
+   * profiled source, and the registration lives in the server's memory — a restart drops it. The
+   * same reasoning `releaseDeclarations` applies on DELETE /sources/:id (a source meant to be
+   * profiled, suggested and reviewed again from the top must not keep a reviewer's name on rows
+   * they are about to re-review) applies to the source a restart just dropped. Only the
+   * *attributions* are cleared — the declarations themselves, their names, cardinalities and
+   * rationales, all stay, exactly as that route keeps them.
+   *
+   * Without this, one demo run that accepts rows persists `confirmed_by` into
+   * `vls_catalogue.json` through `commitDb`/`writeSplitFiles`, and every later boot opens on
+   * "N relations · 0 suggested" — reported from use, and previously patched by hand-nulling the
+   * file (which the next accepted run undid).
+   */
+  if (mergedDoc.data_model?.entities) {
+    mergedDoc.data_model = {
+      ...mergedDoc.data_model,
+      entities: mergedDoc.data_model.entities.map((entity) => ({
+        ...entity,
+        confirmed_by: null,
+        relationships: (entity.relationships ?? []).map((r) => ({
+          ...r,
+          confirmed_by: null,
+        })),
+      })),
+    }
+  }
+
   // Load shared settings from backend/settings.json
   try {
     const settingsPath = join(dirname(VLS_DIR), 'settings.json')
