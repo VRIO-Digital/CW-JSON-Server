@@ -51,10 +51,33 @@ const pick = (list, seed) => (list.length === 0 ? null : list[hash(seed) % list.
  * in the server's memory and dies with the process, so a lane derived from it would disappear on a
  * restart while the use case that named it survived — a graph that silently loses a lane is exactly
  * the failure `useUseCaseLanes` exists to prevent.
+ *
+ * **A Microsoft-brand dataset mints the same three kinds under the vendor's own prefixes**
+ * (`SOURCE_ID_PREFIXES` in `server.js`: `azuresql:` / `onedrive:` / `outlook:`), so those are
+ * folded back to the canonical kind here rather than taught to every rule below. This is the cost
+ * the id rename was documented as not having — "nothing parses the prefix" was wrong, this file
+ * did — found as a KEOLIS use case whose picked sources derived **no lanes at all**: `azuresql` was
+ * in neither kind list, so a committed brief with three sources read as *Nothing is attached*.
+ * The alias map is static rather than brand-resolved because this module is pure (no `db`, no
+ * request): the Microsoft spellings are globally unambiguous names for the same three kinds.
  */
+const KIND_ALIASES = { azuresql: 'bigquery', onedrive: 'gdrive', outlook: 'gmail' }
+
 export function pickKind(sourceId) {
   const colon = String(sourceId).indexOf(':')
-  return colon === -1 ? '' : String(sourceId).slice(0, colon)
+  const raw = colon === -1 ? '' : String(sourceId).slice(0, colon)
+  return KIND_ALIASES[raw] ?? raw
+}
+
+/**
+ * What the pick names — the project, drive or mailbox after the prefix. Sliced at the id's own
+ * colon, never by a prefix's length: `'gdrive:'.length` applied to `onedrive:kv-capital-renewal`
+ * returns `ve:kv-capital-renewal`, which then matches no drive and fails exactly as silently as
+ * the kind lists did.
+ */
+export function pickSubject(sourceId) {
+  const colon = String(sourceId).indexOf(':')
+  return colon === -1 ? String(sourceId) : String(sourceId).slice(colon + 1)
 }
 
 /** The structured source type, as the lane rule names it. A BigQuery project is the only structured
@@ -126,7 +149,7 @@ export function selectedTables(doc, useCase) {
   const { structuredPicks } = deriveLanes(doc, useCase)
   const out = []
   for (const pick of structuredPicks) {
-    const projectId = pick.source_id.slice('bigquery:'.length)
+    const projectId = pickSubject(pick.source_id)
     const project = (doc.projects ?? []).find((p) => p.project_id === projectId)
     if (!project) continue
     for (const dataset of project.datasets ?? []) {
@@ -598,7 +621,7 @@ export function corpusDocuments(doc, useCase) {
   const out = []
   for (const pick of picks) {
     if (pickKind(pick.source_id) !== 'gdrive') continue
-    const driveId = pick.source_id.slice('gdrive:'.length)
+    const driveId = pickSubject(pick.source_id)
     const drive = (doc.drives ?? []).find((d) => d.drive_id === driveId)
     if (!drive) continue
     for (const folder of drive.folders ?? []) {

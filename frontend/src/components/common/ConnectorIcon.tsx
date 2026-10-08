@@ -3,6 +3,8 @@
  * runtime. Used to identify the product a source belongs to.
  */
 
+import { brandMarkKey } from '../../data/providerBrand'
+
 export function BigQueryIcon({ size = 20 }: { size?: number }) {
   return (
     <svg
@@ -248,11 +250,54 @@ export function SnowflakeIcon({ size = 20 }: { size?: number }) {
   )
 }
 
+/**
+ * Azure SQL Database — Azure's database cylinder, in its blues. The lighter lid against the
+ * azure body is the vendor's own two-tone, and what tells it from the neutral cylinder and from
+ * MySQL's teal three cards away.
+ */
+export function AzureSqlIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Azure SQL Database">
+      <path d="M4.4 5.6v12.8c0 1.5 3.4 2.8 7.6 2.8s7.6-1.3 7.6-2.8V5.6" fill="#0078D4" />
+      <path
+        d="M4.4 11.4c0 1.6 3.4 2.8 7.6 2.8s7.6-1.2 7.6-2.8"
+        fill="none"
+        stroke="#5EA0EF"
+        strokeWidth="1.3"
+      />
+      <ellipse cx="12" cy="5.6" rx="7.6" ry="2.8" fill="#5EA0EF" />
+      <ellipse cx="12" cy="5.6" rx="7.6" ry="2.8" fill="none" stroke="#0078D4" strokeWidth="1" />
+    </svg>
+  )
+}
+
+/** OneDrive — its two-tone cloud, drawn like every other mark here so nothing is fetched. */
+export function OneDriveIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="OneDrive">
+      <path
+        d="M9.6 7.2a5 5 0 0 1 4.7 3.3 4 4 0 0 1 5.2 2.4H9.6z"
+        fill="#0364B8"
+      />
+      <path
+        d="M6.3 17.8a3.8 3.8 0 0 1-.4-7.6 5 5 0 0 1 9.4-1.4 4 4 0 0 1 4.6 4 4 4 0 0 1-1.3 5z"
+        fill="#28A8EA"
+      />
+      <path
+        d="M8.2 17.8h10.4a4 4 0 0 0 1.3-5 4.1 4.1 0 0 0-2.4-1.3l-9.3 6.3z"
+        fill="#0078D4"
+      />
+    </svg>
+  )
+}
+
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
   gmail: GmailIcon,
   outlook: OutlookIcon,
+  azuresql: AzureSqlIcon,
+  onedrive: OneDriveIcon,
   sap: SapIcon,
   osipi: OsiPiIcon,
   sharepoint: SharePointIcon,
@@ -278,6 +323,13 @@ export default function ConnectorIcon({
   connector: string
   size?: number
 }) {
-  const Mark = MARKS[connector]
+  /*
+   * The key is resolved through the provider brand first: under a Microsoft-brand dataset the
+   * three real kinds draw the Microsoft marks (`bigquery` → Azure SQL, `gdrive` → OneDrive,
+   * `gmail` → Outlook). One resolution here moves every surface that renders a mark — the
+   * Sources rows, the Catalog, the wizard's cards, the sign-in window's grant rows — which is
+   * the point of it living in the component rather than at each call site.
+   */
+  const Mark = MARKS[brandMarkKey(connector)]
   return Mark ? <Mark size={size} /> : <GenericSourceIcon size={size} label={connector} />
 }

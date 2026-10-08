@@ -34,6 +34,7 @@ import DriveProcessPanel from '../components/catalog/DriveProcessPanel'
 import MailProcessPanel from '../components/catalog/MailProcessPanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
+import { brandWords } from '../data/providerBrand'
 import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
 import ProfiledMailDocumentsPanel from '../components/catalog/ProfiledMailDocumentsPanel'
 import ProfilingJobsTab from '../components/catalog/ProfilingJobsTab'
@@ -487,7 +488,7 @@ function CatalogTab({
   if (!loading && catalogued.length === 0) {
     return (
       <>
-        <NoSourceConnected detail="Datasets, documents and messages are discovered from connected sources. Connect a BigQuery project, a Google Drive or a Gmail mailbox and its tables, files or mail will be browsable here." />
+        <NoSourceConnected detail={`Datasets, documents and messages are discovered from connected sources. Connect ${brandWords().structuredSource}, ${brandWords().docsSource} or ${brandWords().mailSource} and its tables, files or mail will be browsable here.`} />
         {/* Said even here — especially here. A tenant whose only source is a stubbed connector
             would otherwise read "nothing is connected" one line under a Sources table listing one. */}
         {uncatalogued > 0 ? (
@@ -900,7 +901,7 @@ export default function CatalogPage() {
     <>
       <PageHeader
         title="Data Catalog"
-        subtitle="Browse and curate every source registered across the platform — BigQuery tables and fields, Google Drive documents, and the documents attached to a Gmail mailbox — describing, tagging, and keeping metadata accurate."
+        subtitle={`Browse and curate every source registered across the platform — ${brandWords().structuredType} tables and fields, ${brandWords().docsType} documents, and the documents attached to ${brandWords().mailSource} — describing, tagging, and keeping metadata accurate.`}
       />
 
       {error ? (

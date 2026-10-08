@@ -8,6 +8,7 @@
  */
 
 import { SOURCE_NAME_MIN } from './sourceName'
+import { brandWords, providerBrand } from './providerBrand'
 
 /**
  * What kind of control a connector field asks for.
@@ -548,6 +549,36 @@ export type ConnectorGroup = 'profiling' | 'credentials' | 'vision'
 export function connectorGroup(connector: Connector): ConnectorGroup {
   if (!connector.available) return 'vision'
   return connector.profiles ? 'profiling' : 'credentials'
+}
+
+/**
+ * The directory under the selected dataset's **provider brand**.
+ *
+ * A Microsoft-brand dataset (KEOLIS) presents the three real connectors as the Microsoft
+ * products they stand in for there — Azure SQL Database, Microsoft OneDrive, Microsoft
+ * Outlook — with the same keys underneath, so every endpoint, pipeline and payload is the one
+ * the Google names run on. The `outlook` *vision* card is dropped under that brand, because
+ * the mail connector there **is** Outlook: a real card and a stub wearing one name would be
+ * two answers to whether Outlook works. Every other dataset gets `CONNECTORS` untouched.
+ *
+ * A function rather than a second array, so there is still exactly one declaration of what a
+ * connector is — the brand only renames, it never adds or rewires one.
+ */
+export function brandedConnectors(): Connector[] {
+  if (providerBrand() !== 'microsoft') return CONNECTORS
+  const words = brandWords()
+  return CONNECTORS.filter((c) => c.key !== 'outlook').map((c) => {
+    if (c.key === 'bigquery') {
+      return { ...c, name: words.structuredName, typeLabel: words.structuredType }
+    }
+    if (c.key === 'gdrive') {
+      return { ...c, name: words.docsName, typeLabel: words.docsType }
+    }
+    if (c.key === 'gmail') {
+      return { ...c, name: words.mailName, typeLabel: words.mailType }
+    }
+    return c
+  })
 }
 
 /*

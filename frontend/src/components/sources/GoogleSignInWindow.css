@@ -505,3 +505,234 @@
   margin-top: var(--sp-4);
   margin-bottom: 0;
 }
+
+/* ---- The Microsoft sign-in's two screens ------------------------------- */
+
+/*
+ * Microsoft's palette and type, for the reason the rest of this sheet is Google's: the window
+ * stands in for somebody else's screen. Segoe, the #0067b8 blue, squared buttons, an underline
+ * email box on the first screen and an outlined password box on the second — the reference
+ * screenshots, not this app's tokens.
+ */
+.msi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sp-6);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1b1b1b;
+}
+
+.msi-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.msi-wordmark-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: #5e5e5e;
+  letter-spacing: -0.2px;
+}
+
+.msi .msi-title {
+  margin: var(--sp-4) 0 var(--sp-4);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1b1b1b;
+}
+
+/* Microsoft's first-screen box: an underline, not an outline. */
+.msi-email {
+  width: 100%;
+  padding: var(--sp-1) 0 var(--sp-2);
+  border: 0;
+  border-bottom: 1px solid #666;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  color: #1b1b1b;
+  outline: none;
+}
+
+.msi-email::placeholder {
+  color: #636363;
+}
+
+.msi-email:focus {
+  border-bottom-color: #0067b8;
+}
+
+.msi-email.is-error {
+  border-bottom-color: #e81123;
+}
+
+.msi-error {
+  margin-top: var(--sp-2);
+  font-size: 12.5px;
+  color: #e81123;
+}
+
+.msi-links {
+  margin-top: var(--sp-4);
+  font-size: 13px;
+}
+
+.msi-muted {
+  color: #1b1b1b;
+}
+
+/* The phrases that are links on the real screen — marked, never anchors: this window opens
+   nothing, the rule every policy phrase above already keeps. */
+.msi-link {
+  color: #0067b8;
+}
+
+.msi-next-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-7);
+}
+
+/* Microsoft's button: squared, filled, with the fixed minimum width its screens use. */
+.msi-btn {
+  min-width: 108px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #0067b8;
+  border-radius: 2px;
+  background: #0067b8;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.msi-btn:hover:not(:disabled) {
+  border-color: #005da6;
+  background: #005da6;
+}
+
+.msi-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* The consent's Cancel — white with a grey border, as the reference draws it. */
+.msi-btn-outline {
+  border-color: #8a8886;
+  background: #fff;
+  color: #1b1b1b;
+}
+
+.msi-btn-outline:hover:not(:disabled) {
+  border-color: #8a8886;
+  background: #f3f2f1;
+}
+
+/* ---- The consent: "Let this app access your info?" --------------------- */
+
+.msi-app-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.msi-app-id {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.msi-app-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1b1b1b;
+}
+
+.msi-app-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 13px;
+  color: #0067b8;
+}
+
+.msi-grants-lead {
+  margin-bottom: var(--sp-2);
+  font-size: 15px;
+  font-weight: 600;
+  color: #1b1b1b;
+}
+
+.msi-grants {
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+  list-style: none;
+}
+
+.msi-grant {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.msi-grant-icon {
+  display: inline-flex;
+  flex: none;
+  width: 22px;
+  margin-top: 1px;
+}
+
+.msi-grant-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.msi-grant-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1b1b1b;
+}
+
+.msi-grant-detail {
+  display: block;
+  font-size: 12.5px;
+  color: #616161;
+}
+
+/* The reference's caret at a row's end. Decoration — nothing expands. */
+.msi-grant-caret {
+  flex: none;
+  align-self: flex-start;
+  font-size: 14px;
+  color: #616161;
+}
+
+.msi-consent-foot {
+  margin: var(--sp-2) 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #616161;
+}
+
+.msi-consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+/*
+ * **The password screen's rules, the *Sign-in options* strip and the back arrow are gone with the
+ * screens they styled — removed on request.** A rule with nothing to style is an invitation for the
+ * control to come back, the reason `replaceLabel` and the mail toggle's copy went with their
+ * controls. The Microsoft flow is now one screen (the email box above) and then the shared
+ * permissions screen, which the `.gsi-*` rules already style.
+ */

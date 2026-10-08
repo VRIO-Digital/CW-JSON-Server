@@ -7860,3 +7860,31 @@ stating why it is load-bearing.
 **Lesson** — *a sandbox flag is inherited by the popups a frame opens, and a blocked download is
 silent at every layer the user can see.* When a control inside a framed or popup document "does
 nothing", read the sandbox attribute of the frame that opened it before rewriting the control.
+
+## A renamed id prefix derived no lanes, because "nothing parses the prefix" was verified by grepping one spelling of parsing
+
+**Symptom** — under KEOLIS, a committed New Graph brief with three picked sources (Azure SQL,
+OneDrive, Outlook) opened Graph Studio reading *"Nothing is attached to this use case"* — no
+structured lane, no document lane, Build disabled. Reported from use with a screenshot.
+
+**Cause** — the Microsoft-brand rename of minted source ids (`azuresql:` / `onedrive:` /
+`outlook:` where Google datasets mint `bigquery:` / `gdrive:` / `gmail:`) was declared safe on the
+claim that nothing parses a prefix back off an id. The claim was checked by grepping for
+`startsWith(` and `.split(` — and `studioLanes.js` parses with neither: `pickKind` slices at
+`indexOf(':')` and two subject extractions sliced by a *prefix's length*
+(`pick.source_id.slice('gdrive:'.length)`), so `onedrive:kv-capital-renewal` yielded the kind
+`onedrive` (in neither kind list → no lane) and would have yielded the subject
+`ve:kv-capital-renewal` (matching no drive). Both fail silently — a filter admitting nothing is an
+empty page, not an error.
+
+**Fix** — `studioLanes.js` folds the Microsoft spellings back to the canonical kinds
+(`KIND_ALIASES` inside `pickKind`) and extracts subjects with `pickSubject`, which slices at the
+id's own colon rather than by any prefix's length. Verified against the real committed brief: both
+lanes derive, 10 tables and 2 documents admitted.
+
+**Guard** — the two tables are documented as a pair (`SOURCE_ID_PREFIXES` in `server.js` names
+`KIND_ALIASES` in its own comment and vice versa), and the rule is stated in CLAUDE.md and
+SKILLS.md: derive a kind through `pickKind` or the source's own `kind` field, never a fresh
+`startsWith`. **Lesson** — a "nothing does X" claim verified by grepping two spellings of X is a
+claim about the spellings; the reliable check was reading the one module whose whole job is
+deriving facts from these ids.

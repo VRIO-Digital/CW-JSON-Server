@@ -9,6 +9,7 @@ import AskAnswerView from '../components/ask/AskAnswerView'
 import AskChatRail from '../components/ask/AskChatRail'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
+import { brandWords } from '../data/providerBrand'
 import {
   selectActiveChat,
   selectAskGraphs,
@@ -240,7 +241,7 @@ export default function AskPage() {
            can be read at question time — the two things this page can ask. A reader with a
            mailbox connected never sees it, which is the whole of the second mode. */
         <NoPublishedGraph
-          detail="Ask queries the published version of a graph — a draft has no version to hold an answer. Connect a Gmail source to ask correspondence directly instead."
+          detail={`Ask queries the published version of a graph — a draft has no version to hold an answer. Connect ${brandWords().mailSource.replace(' mailbox', '')} source to ask correspondence directly instead.`}
           builtCount={data?.builtCount ?? 0}
           draftCount={data?.draftCount ?? 0}
           footnote="A draft cannot be asked — there is no version to hold the answer to."

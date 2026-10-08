@@ -6,6 +6,8 @@
  * the control cannot be asserted on. Nothing here interpolates a figure — the counts and the
  * names are the payload's, read where they are printed.
  */
+
+import { brandWords } from './providerBrand'
 export const askSourceCopy = {
   /*
    * **Eight fields stood here and went with the picker that read them.** `buttonHint`,
@@ -61,7 +63,7 @@ export const askSourceCopy = {
    * asked by being *connected*, so the instruction names the page that connects one.
    */
   pickPrompt:
-    'Connect a Gmail source on Sources to ask it here — a connected source is read whenever no graph is selected.',
+    `Connect ${brandWords().mailSource.replace(' mailbox', '')} source on Sources to ask it here — a connected source is read whenever no graph is selected.`,
 
   /**
    * The same instruction where a graph is also on offer.
@@ -72,7 +74,7 @@ export const askSourceCopy = {
    * it is what takes the sources out of scope.
    */
   pickPromptWithGraph:
-    'Choose a graph above to ask it, or connect a Gmail source on Sources to be asked directly. A question is asked of one or the other, not both.',
+    `Choose a graph above to ask it, or connect ${brandWords().mailSource.replace(' mailbox', '')} source on Sources to be asked directly. A question is asked of one or the other, not both.`,
 } as const
 
 /*

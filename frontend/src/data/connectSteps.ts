@@ -18,6 +18,8 @@
  * pair of acts in different units. **Add an entry only when there is a request
  * behind it.**
  */
+import { providerBrand } from './providerBrand'
+
 export const CONNECT_ACT_COPY = {
   bigquery: {
     preview: 'Discovering the datasets in project {subject}',
@@ -29,5 +31,31 @@ export const CONNECT_ACT_COPY = {
   },
 } as const
 
+/**
+ * The same two acts under a Microsoft-brand dataset, in that vendor's own units — a server holds
+ * databases where a project holds datasets, and a library holds folders the way a drive does. The
+ * `{subject}` rule is unchanged: it is the id the request is really made with.
+ */
+export const CONNECT_ACT_COPY_MICROSOFT = {
+  bigquery: {
+    preview: 'Discovering the databases on server {subject}',
+    finish: 'Registering server {subject} with the databases you checked.',
+  },
+  gdrive: {
+    preview: 'Discovering the folders in {subject}',
+    finish: 'Registering {subject} with the folders you checked.',
+  },
+} as const
+
 export type ConnectStepKind = keyof typeof CONNECT_ACT_COPY
 export type ConnectAct = keyof (typeof CONNECT_ACT_COPY)['bigquery']
+
+/** The sentence for one act, under the current brand, with the subject interpolated. */
+export const connectActCopy = (
+  kind: ConnectStepKind,
+  act: ConnectAct,
+  subject: string,
+): string =>
+  (providerBrand() === 'microsoft' ? CONNECT_ACT_COPY_MICROSOFT : CONNECT_ACT_COPY)[kind][
+    act
+  ].replace('{subject}', subject)

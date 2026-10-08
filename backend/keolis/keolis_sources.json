@@ -5673,7 +5673,7 @@
     "documents": [
       {
         "document_id": "5d4f5223-268c-5927-8443-89fcdf61deb6",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-01_P-VM-021_lift-HPU-delivery-slip.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5684,7 +5684,7 @@
       },
       {
         "document_id": "009b6230-9430-5a8d-96ff-7154dd786e7a",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-02_P-VM-008_T1-closure-access-and-scope.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5695,7 +5695,7 @@
       },
       {
         "document_id": "18b31764-1965-5781-85af-af5bc5c3c232",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-03_P-VM-031_battery-acceptance-snags.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5706,7 +5706,7 @@
       },
       {
         "document_id": "c268f841-41f1-52d0-a8ab-7390e74236ef",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-04_N-VM-044_BUS-204-article-34-4-notice.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5717,7 +5717,7 @@
       },
       {
         "document_id": "3ba0aa2d-dbd7-5904-bee5-9b09d3b146e1",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-05_P-VM-014_tranche2-batch3-delivery.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5728,7 +5728,7 @@
       },
       {
         "document_id": "ecbb3b59-67e0-5138-981a-9d890e54dd0f",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-06_P-VM-026_claim-dispute-and-tranche3-funding.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5739,7 +5739,7 @@
       },
       {
         "document_id": "dad092da-1240-57ec-bc6c-46b647168699",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-07_P-VM-005_TV-100-frame-change-request.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5750,7 +5750,7 @@
       },
       {
         "document_id": "7b54f230-2302-54aa-96e1-bc1b34d60001",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-08_P-VM-017_P-VM-008_supplier-and-resource-constraints.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5761,7 +5761,7 @@
       },
       {
         "document_id": "ff6496ee-d69d-595f-b3ac-9bf36ad4d63f",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-09_DSP-VM-2021_avenant-3-transmission.pdf",
         "mime_type": "application/pdf",
         "pages": 1,
@@ -5772,7 +5772,7 @@
       },
       {
         "document_id": "91cc2c90-81c6-5f2c-b342-53405373a1a3",
-        "label_id": "INBOX",
+        "label_id": "Inbox",
         "name": "EM-10_portfolio-forecast-completeness.pdf",
         "mime_type": "application/pdf",
         "pages": 1,

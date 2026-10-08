@@ -4,6 +4,7 @@ import {
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons'
+import { brandWords } from '../../data/providerBrand'
 import {
   Alert,
   App,
@@ -864,7 +865,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
           type="info"
           showIcon
           title="No structured source is connected"
-          description="A model is tables, columns and relationships, so it is drawn over a connected BigQuery project. Connect one on Sources, then browse and profile it on the Catalog tab."
+          description={`A model is tables, columns and relationships, so it is drawn over a connected ${brandWords().structuredType} source. Connect one on Sources, then browse and profile it on the Catalog tab.`}
         />
         {/* A list that is merely shorter is not a message: a tenant whose only sources are a drive
             and a mailbox would otherwise read "nothing is connected" beside a Sources table

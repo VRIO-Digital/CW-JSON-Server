@@ -124,6 +124,22 @@ if (unaccounted.length > 0) {
   )
 }
 
+/* ------------- the mail corpus, re-filed under Outlook's Inbox — KEOLIS is Microsoft-brand ------------- */
+
+/*
+ * KEOLIS is a Microsoft-brand dataset (`PROVIDER_BRANDS` in `backend/datasets.js`), so its mailbox
+ * carries **Outlook's folders** (`OUTLOOK_FOLDERS` in `server.js`), not Gmail's labels. The package
+ * files its corpus under Gmail's `INBOX`; left that way, every shipped mail document would be
+ * filed under a folder the mailbox does not have — invisible in the catalogue rather than wrong on
+ * screen, which is exactly the silent failure the label check exists to prevent. Received mail goes
+ * to Outlook's `Inbox`, so the re-filing is a rename of the same fact, never a re-sorting.
+ */
+if (source.mail_corpus && Array.isArray(source.mail_corpus.documents)) {
+  for (const doc of source.mail_corpus.documents) {
+    if (doc.label_id === 'INBOX') doc.label_id = 'Inbox'
+  }
+}
+
 /* ---------------- the rendered-document pointers, stripped — see the header ---------------- */
 
 const reports = source.reports

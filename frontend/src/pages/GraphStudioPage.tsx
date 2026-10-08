@@ -5,6 +5,7 @@ import type { TypeLinkDecision } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
+import { brandWords } from '../data/providerBrand'
 import StudioBridgeTab from '../components/studio/StudioBridgeTab'
 import StudioBuildTab from '../components/studio/StudioBuildTab'
 import StudioCanvas2Tab from '../components/studio/StudioCanvas2Tab'
@@ -212,7 +213,7 @@ export default function GraphStudioPage() {
         * treating that as zero would flash "no data source is connected" over a tenant that has some.
         */}
       {connectedSources === 0 ? (
-        <NoSourceConnected detail="A graph is built from data this tenant has connected. Connect a BigQuery project, a Google Drive or a Gmail mailbox — its tables, documents and mail become the lanes a use case is built from here." />
+        <NoSourceConnected detail={`A graph is built from data this tenant has connected. Connect ${brandWords().structuredSource}, ${brandWords().docsSource} or ${brandWords().mailSource} — its tables, documents and mail become the lanes a use case is built from here.`} />
       ) : useCases.length === 0 ? (
         <Alert
           type="info"

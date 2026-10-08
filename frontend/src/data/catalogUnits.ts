@@ -1,5 +1,6 @@
 import type { SourceRow } from '../api/client'
 import { mailProcessCopy } from './mailProcess'
+import { providerBrand } from './providerBrand'
 
 /**
  * The date a reader recognises, not the raw stamp the server sends — the same rendering
@@ -382,5 +383,26 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
  * something false. A connector this build cannot describe is left out of the list and counted in
  * the sentence below it, which is the honest answer and the one a stale bundle should give.
  */
-export const catalogUnitsFor = (kind: string): CatalogUnits | null =>
-  CATALOG_UNITS[kind] ?? null
+export const catalogUnitsFor = (kind: string): CatalogUnits | null => {
+  const units = CATALOG_UNITS[kind] ?? null
+  /*
+   * The **provider brand's** nouns, overlaid rather than declared twice: under a Microsoft-brand
+   * dataset (KEOLIS) the same three kinds are called Azure SQL server / OneDrive / Outlook, and
+   * only the vendor-owned words change — the counts, panels and acts are the rows above,
+   * untouched, so the two brands cannot come to disagree about what a tile counts.
+   */
+  if (!units || providerBrand() !== 'microsoft') return units
+  if (kind === 'bigquery') {
+    return {
+      ...units,
+      accountLabel: 'server',
+      accountNote: 'Azure SQL server',
+      ...(units.scopeTile
+        ? { scopeTile: { ...units.scopeTile, label: 'databases allowed' } }
+        : {}),
+    }
+  }
+  if (kind === 'gdrive') return { ...units, accountNote: 'OneDrive' }
+  if (kind === 'gmail') return { ...units, accountNote: 'Outlook' }
+  return units
+}

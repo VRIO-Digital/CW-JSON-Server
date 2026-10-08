@@ -129,6 +129,29 @@ pickable card sit in one section, because a third heading was removed on request
 `Continue` is disabled until an available card is picked — an unavailable one sets `blocked`
 instead of `selected`, which is what draws its reason.
 
+**Under a Microsoft-brand dataset (KEOLIS — and only KEOLIS; CAPEX and VLS keep the Google login,
+on request) the same flow wears Microsoft's names.** The wizard
+reads `brandedConnectors()` and `brandWords()` from `src/data/providerBrand.ts`, so step 1's three
+real cards are **Azure SQL Database / Microsoft OneDrive / Microsoft Outlook** (the `outlook`
+vision card is dropped there — the real mail connector *is* Outlook), the sign-in window is
+Microsoft's own screens — type an email (*Sign in*), then Microsoft's consent (*Let this app
+access your info?* — app badge, verified domain, a blue glyph per grant, Cancel/Accept); the
+password screen, *Sign-in options* strip and *Can't access your account?* line were removed on
+request (`MICROSOFT_SIGN_IN` + `MICROSOFT_CONSENT` + `signInWindowCopy`/`signInWindowChrome` in
+`consentStages.ts`); a typed address must be in `db.settings.users` — the consent callback refuses
+a stranger under the Microsoft brand for **every** connector, not only mail — and the scopes the window
+renders are the Microsoft ones the server served (`OAUTH_SCOPES_MICROSOFT` in `server.js`), and a
+mailbox's labels are `OUTLOOK_FOLDERS`. The kinds, endpoints and payloads in the tables above are
+**unchanged** — the brand renames, it never rewires. The one id-level rename: a Microsoft-brand
+registration mints `azuresql:` / `onedrive:` / `outlook:` ids (`SOURCE_ID_PREFIXES` in `server.js`)
+where Google datasets mint `bigquery:` / `gdrive:` / `gmail:`. One reader parses the prefix —
+`studioLanes.js`'s `pickKind`, whose `KIND_ALIASES` folds the Microsoft spellings back to the
+canonical kinds (and `pickSubject` slices at the colon, never by a prefix's length) — so a new
+prefix in `SOURCE_ID_PREFIXES` needs an alias there, or a brief's picks derive no lanes. Derive a
+kind through `pickKind` or the source's own `kind` field, never a fresh `startsWith`. Failure mode to know: a shipped mail corpus
+must file under a folder the brand's mailbox actually has (KEOLIS's files under `Inbox`), or its
+documents are silently unreachable in the catalogue.
+
 **Which of the six carry a catalogue is stated on the cards, not by the heading.** Each database
 card's blurb reads *"registers a connection — no profiler yet"*, on the grid beside its name;
 `check-docs` asserts it on all three, because with one section for both kinds that line is the

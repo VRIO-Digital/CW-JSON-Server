@@ -2,12 +2,13 @@ import { DatabaseOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import EmptyState from './EmptyState'
+import EmptyState from './EmptyState'
 import { appPath } from '../../api/dataset'
+import { brandWords } from '../../data/providerBrand'
 
 /** The path from nothing to data — the same three steps wherever this appears. */
 const STEPS = [
-  { title: 'Pick a connector', detail: 'BigQuery or Google Drive' },
+  { title: 'Pick a connector', detail: `${brandWords().structuredType} or ${brandWords().docsType}` },
   { title: 'Authorise', detail: 'sign in — no key file to upload' },
   { title: 'Choose datasets', detail: 'profiling starts automatically' },
 ]

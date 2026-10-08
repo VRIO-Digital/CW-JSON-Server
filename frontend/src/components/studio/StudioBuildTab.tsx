@@ -6,6 +6,7 @@ import { SP } from '../../theme'
 import DocumentPipeline from './DocumentPipeline'
 import StructuredPipeline from './StructuredPipeline'
 import { dur } from '../../data/duration'
+import { brandWords } from '../../data/providerBrand'
 
 /**
  * Where a use case's graphs are built — **both lanes, one button, in order.**
@@ -152,7 +153,7 @@ export default function StudioBuildTab({
           showIcon
           title="Nothing is attached to this use case"
           description={
-            'A graph with no inputs can answer nothing. Pick a source — a BigQuery project, a drive ' +
+            `A graph with no inputs can answer nothing. Pick a source — ${brandWords().structuredSource}, a drive ` +
             'or a mailbox — on step 2 of New Graph, then come back and build.'
           }
         />

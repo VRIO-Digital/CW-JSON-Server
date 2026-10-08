@@ -2,6 +2,7 @@ import {
   ArrowRightOutlined,
   CheckCircleOutlined,
   GoogleOutlined,
+  WindowsOutlined,
 } from '@ant-design/icons'
 import {
   Alert,
@@ -66,10 +67,20 @@ import { useAuthStore } from '../../store/authStore'
 import { IDENTITY_SWITCH } from '../../data/consentStages'
 import { BRAND, BRAND_SOFT, SP } from '../../theme'
 import ConnectorDirectory from './ConnectorDirectory'
-import { CONNECTORS } from '../../data/connectors'
+import { brandedConnectors } from '../../data/connectors'
+import { brandWords, providerBrand } from '../../data/providerBrand'
 import './ConnectSourceModal.css'
 
 type TestState = 'idle' | 'running' | 'passed'
+
+/*
+ * The provider brand's words, read once at module scope — safe because changing dataset reloads
+ * the whole document, so the brand cannot move under a mounted wizard. Under a Microsoft-brand
+ * dataset (KEOLIS) the three real connectors present as Azure SQL Database, OneDrive and Outlook
+ * and the sign-in is Microsoft's; the kinds, endpoints and payloads underneath are unchanged.
+ */
+const VENDOR = brandWords()
+const VendorSignInIcon = providerBrand() === 'microsoft' ? WindowsOutlined : GoogleOutlined
 
 /*
   **The step's product-vision note is gone — removed on request**, from all six branches it stood
@@ -83,11 +94,9 @@ type TestState = 'idle' | 'running' | 'passed'
   now goes unexplained.
 */
 
-/** Human label for a Drive's kind, which the API keeps snake_case. */
-const DRIVE_KIND: Record<string, string> = {
-  my_drive: 'My Drive',
-  shared_drive: 'Shared drive',
-}
+/** Human label for a Drive's kind, which the API keeps snake_case — the brand's own pair:
+    My Drive / Shared drive under Google, OneDrive / Shared library under Microsoft. */
+const DRIVE_KIND: Record<string, string> = VENDOR.driveKinds
 
 function ConnectorCard({
   connector,
@@ -636,7 +645,7 @@ export default function ConnectSourceWizard({
 
   async function finishBigQuery() {
     if (checked.length === 0) {
-      message.warning('Check at least one dataset before finishing.')
+      message.warning(`Check at least one ${VENDOR.unitNoun} before finishing.`)
       return
     }
     setBusy('finish')
@@ -685,7 +694,7 @@ export default function ConnectSourceWizard({
       if (isBigQuery) {
         if (!projectId || !credentialHandle) {
           message.warning(
-            'Sign in with Google, or supply a project ID and credential handle under Advanced.',
+            `Sign in with ${VENDOR.vendor}, or supply a ${VENDOR.containerNoun} ID and credential handle under Advanced.`,
           )
           return
         }
@@ -695,7 +704,7 @@ export default function ConnectSourceWizard({
       if (isDrive) {
         if (!driveId || !driveHandle) {
           message.warning(
-            'Sign in with Google, or supply a drive ID and credential handle under Advanced.',
+            `Sign in with ${VENDOR.vendor}, or supply a drive ID and credential handle under Advanced.`,
           )
           return
         }
@@ -705,7 +714,7 @@ export default function ConnectSourceWizard({
       if (isGmail) {
         /* The one thing this step can be missing: a consent that has not been granted yet. */
         if (!mailbox || !credentialHandle) {
-          message.warning('Sign in with Google to reach the mailbox before continuing.')
+          message.warning(`Sign in with ${VENDOR.vendor} to reach the mailbox before continuing.`)
           return
         }
         setStep(2)
@@ -784,14 +793,14 @@ export default function ConnectSourceWizard({
           phase={signInPhase}
           scopes={oauthScopes}
           stage={loginStage}
-          /* Picking a row *is* signing in as it: the account is recorded and the window moves to
-             the grants, which is what the single row's click already did. */
           /* Picking a row records the account and moves to Google's *confirm* screen, which states
              who is being signed in before any scope is shown. It grants nothing; Continue is what
-             reaches the consent. */
+             reaches the consent. **Microsoft goes straight to the permissions screen** — its
+             password screen was removed on request, and Microsoft's flow has no confirm screen of
+             its own, so stopping at Google's would narrate a screen the vendor does not have. */
           onChooseAccount={(email) => {
             setChosenAs(email)
-            setSignInPhase('confirm')
+            setSignInPhase(providerBrand() === 'microsoft' ? 'consent' : 'confirm')
           }}
           onContinue={() => setSignInPhase('consent')}
           onAllow={() => void grantGoogleConsent()}
@@ -898,7 +907,7 @@ export default function ConnectSourceWizard({
             * answer to which card is chosen.
             */}
           <ConnectorDirectory
-            connectors={CONNECTORS}
+            connectors={brandedConnectors()}
             selectedKey={selected?.key ?? blocked?.key ?? null}
             renderCard={(c, isSelected) => (
               <ConnectorCard connector={c} selected={isSelected} onSelect={() => pick(c)} />
@@ -923,13 +932,13 @@ export default function ConnectSourceWizard({
 
           <Button
             type="primary"
-            icon={<GoogleOutlined />}
+            icon={<VendorSignInIcon />}
             loading={busy === 'login'}
             disabled={busy === 'login' || signInPhase !== null}
             onClick={openGoogleSignIn}
             style={{ marginBottom: 16 }}
           >
-            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
+            {busy === 'login' ? VENDOR.loginBusy : VENDOR.loginButton}
           </Button>
 
           {connectedAs ? (
@@ -940,7 +949,7 @@ export default function ConnectSourceWizard({
               title={
                 <span>
                   Connected as <strong>{connectedAs}</strong> — read-only
-                  access to {projects.length} project(s)
+                  access to {projects.length} {VENDOR.containerNoun}(s)
                 </span>
               }
             />
@@ -971,13 +980,13 @@ export default function ConnectSourceWizard({
 
             {projects.length > 0 ? (
               <Form.Item
-                label="GCP project"
-                extra={`${projects.length} project(s) this account can read. One source connects one project — connect the wizard again for another.`}
+                label={VENDOR.container}
+                extra={`${projects.length} ${VENDOR.containerNoun}(s) this account can read. One source connects one ${VENDOR.containerNoun} — connect the wizard again for another.`}
               >
                 <Select
                   value={projectId || undefined}
                   onChange={(value) => selectProject(value)}
-                  placeholder="Select a project"
+                  placeholder={`Select a ${VENDOR.containerNoun}`}
                   showSearch
                   optionFilterProp="label"
                   /* The display name leads and the id follows it: an account with several
@@ -985,7 +994,7 @@ export default function ConnectSourceWizard({
                      name. Both are shown because the id is what the source registers against. */
                   options={projects.map((p) => ({
                     value: p.project_id,
-                    label: `${p.display_name} (${p.project_id}) — ${p.dataset_count} dataset(s) · ${p.location}`,
+                    label: `${p.display_name} (${p.project_id}) — ${p.dataset_count} ${VENDOR.unitNoun}(s) · ${p.location}`,
                   }))}
                 />
               </Form.Item>
@@ -1000,17 +1009,17 @@ export default function ConnectSourceWizard({
                 label: 'Advanced: enter a project and credential handle manually',
                 children: (
                   <Form layout="vertical" requiredMark={false}>
-                    <Form.Item label="GCP project ID">
+                    <Form.Item label={`${VENDOR.container} ID`}>
                       <Input
                         value={projectId}
                         onChange={(e) => setProjectId(e.target.value)}
-                        placeholder="my-gcp-project-id"
+                        placeholder="my-project-id"
                       />
                     </Form.Item>
 
                     <Form.Item
                       label="Credential handle"
-                      extra="Issued by the Google consent flow. There is no way to paste a raw key — ContextWeave only ever holds a reference."
+                      extra={`Issued by the ${VENDOR.vendor} consent flow. There is no way to paste a raw key — ContextWeave only ever holds a reference.`}
                     >
                       <Input
                         value={credentialHandle}
@@ -1019,11 +1028,13 @@ export default function ConnectSourceWizard({
                       />
                     </Form.Item>
 
-                    <Form.Item label="Dataset allowlist (comma-separated — optional for Preview, required for Finish)">
+                    <Form.Item
+                      label={`${VENDOR.unitNoun.charAt(0).toUpperCase()}${VENDOR.unitNoun.slice(1)} allowlist (comma-separated — optional for Preview, required for Finish)`}
+                    >
                       <Input
                         value={allowlistText}
                         onChange={(e) => setAllowlistText(e.target.value)}
-                        placeholder="dataset_a, dataset_b — leave blank to auto-fill from Preview’s discovered datasets"
+                        placeholder={`${VENDOR.unitNoun}_a, ${VENDOR.unitNoun}_b — leave blank to auto-fill from Preview’s discovered ${VENDOR.unitNoun}s`}
                       />
                     </Form.Item>
 
@@ -1046,13 +1057,13 @@ export default function ConnectSourceWizard({
 
           <Button
             type="primary"
-            icon={<GoogleOutlined />}
+            icon={<VendorSignInIcon />}
             loading={busy === 'login'}
             disabled={busy === 'login' || signInPhase !== null}
             onClick={openGoogleSignIn}
             style={{ marginBottom: 16 }}
           >
-            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
+            {busy === 'login' ? VENDOR.loginBusy : VENDOR.loginButton}
           </Button>
 
           {/*
@@ -1068,7 +1079,7 @@ export default function ConnectSourceWizard({
               type="success"
               showIcon
               style={{ marginBottom: 16 }}
-              title="Gmail is connected — read-only."
+              title={`${VENDOR.mailType} is connected — read-only.`}
             />
           ) : null}
 
@@ -1103,13 +1114,13 @@ export default function ConnectSourceWizard({
 
           <Button
             type="primary"
-            icon={<GoogleOutlined />}
+            icon={<VendorSignInIcon />}
             loading={busy === 'login'}
             disabled={busy === 'login' || signInPhase !== null}
             onClick={openGoogleSignIn}
             style={{ marginBottom: 16 }}
           >
-            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
+            {busy === 'login' ? VENDOR.loginBusy : VENDOR.loginButton}
           </Button>
 
           {connectedAs ? (
@@ -1208,7 +1219,7 @@ export default function ConnectSourceWizard({
 
                     <Form.Item
                       label="Credential handle"
-                      extra="Issued by the Google consent flow. There is no way to paste a raw key — ContextWeave only ever holds a reference."
+                      extra={`Issued by the ${VENDOR.vendor} consent flow. There is no way to paste a raw key — ContextWeave only ever holds a reference.`}
                     >
                       <Input
                         value={driveHandle}
@@ -1307,10 +1318,10 @@ export default function ConnectSourceWizard({
                   type="success"
                   showIcon
                   style={{ marginBottom: 14 }}
-                  title={`project ${preview.project_id} · discovered ${preview.dataset_count} dataset(s)`}
+                  title={`${VENDOR.containerNoun} ${preview.project_id} · discovered ${preview.dataset_count} ${VENDOR.unitNoun}(s)`}
                 />
                 <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
-                  Dataset allowlist — check which datasets this source may profile
+                  {`${VENDOR.unitNoun.charAt(0).toUpperCase()}${VENDOR.unitNoun.slice(1)} allowlist — check which ${VENDOR.unitNoun}s this source may profile`}
                 </Typography.Text>
                 <Checkbox.Group
                   value={checked}
@@ -1325,8 +1336,7 @@ export default function ConnectSourceWizard({
           </Card>
 
           <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-            Discovers the datasets visible to this credential handle without
-            registering anything yet.
+            {`Discovers the ${VENDOR.unitNoun}s visible to this credential handle without registering anything yet.`}
           </Typography.Text>
 
           <Card size="small" style={{ marginTop: 16 }}>
@@ -1371,12 +1381,15 @@ export default function ConnectSourceWizard({
         <>
 
           <Card size="small" style={{ marginBottom: 16 }}>
+            {/* No endpoint in the label — the other two connectors' buttons say the act alone, and
+                under the Microsoft brand "/sources/gmail" on a button that connects Outlook names
+                the plumbing over the product. The endpoint is unchanged underneath. */}
             <Button
               loading={busy === 'preview'}
               onClick={runGmailPreview}
               style={{ marginBottom: gmailPreview ? 14 : 0 }}
             >
-              1. Run preview (POST /sources/gmail/preview)
+              1. Run preview
             </Button>
 
             {busy === 'preview' && !gmailPreview ? (
@@ -1391,10 +1404,10 @@ export default function ConnectSourceWizard({
                   type="success"
                   showIcon
                   style={{ marginBottom: 14 }}
-                  title={`${gmailPreview.mailbox} · ${gmailPreview.label_count} selectable label(s)`}
+                  title={`${gmailPreview.mailbox} · ${gmailPreview.label_count} selectable ${VENDOR.mailLabelNoun}(s)`}
                 />
                 <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
-                  Gmail&rsquo;s own labels
+                  {VENDOR.mailLabelsHeading}
                 </Typography.Text>
                 {/* The labels the endpoint reported, never a list held here: a client-side copy can
                     offer one the API refuses, which is the mistake the consent scopes made once. */}
@@ -1408,8 +1421,7 @@ export default function ConnectSourceWizard({
           </Card>
 
           <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-            Discovers the labels visible to this credential handle without registering anything yet.
-            Read-only — ContextWeave can never send, modify, or delete mail.
+            {`Discovers the ${VENDOR.mailLabelNoun}s visible to this credential handle without registering anything yet. Read-only — ContextWeave can never send, modify, or delete mail.`}
           </Typography.Text>
 
           <Card size="small" style={{ marginTop: 16 }}>
@@ -1419,7 +1431,7 @@ export default function ConnectSourceWizard({
             <Input
               value={gmailQuery}
               onChange={(e) => setGmailQuery(e.target.value)}
-              placeholder="Gmail search, e.g. from:@supplier.com after:2026/01/01"
+              placeholder={VENDOR.mailSearchPlaceholder}
             />
             {/*
               * Said here because this is where somebody would expect to be told: the server stores the
@@ -1427,8 +1439,7 @@ export default function ConnectSourceWizard({
               * query Gmail would have accepted, and what an unmatched one produces is checkable.
               */}
             <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: '8px 0 0' }}>
-              Any Gmail search expression, applied on top of the labels above. A malformed query is not
-              rejected here — it simply matches nothing, so check the message count after the first sync.
+              {`Any ${VENDOR.mailSearchNoun}, applied on top of the ${VENDOR.mailLabelNoun}s above. A malformed query is not rejected here — it simply matches nothing, so check the message count after the first sync.`}
             </Typography.Paragraph>
           </Card>
 
@@ -1440,7 +1451,7 @@ export default function ConnectSourceWizard({
               onClick={finishGmail}
               style={{ marginBottom: registeredGmail ? 14 : 0 }}
             >
-              2. Finish — POST /sources/gmail (registers for real)
+              2. Finish
             </Button>
 
             {registeredGmail ? (
@@ -1458,7 +1469,8 @@ export default function ConnectSourceWizard({
                     {/* Read back from the row the server returned, never from the form: what was
                         stored and what was typed are two facts, and only one of them is a receipt. */}
                     <div>Mailbox: {registeredGmail.mailbox}</div>
-                    <div>Labels: {registeredGmail.labels.join(', ')}</div>
+                    {/* The brand's own noun — Folders under Outlook, Labels under Gmail. */}
+                    <div>{`${VENDOR.mailLabelNoun.charAt(0).toUpperCase()}${VENDOR.mailLabelNoun.slice(1)}s: ${registeredGmail.labels.join(', ')}`}</div>
                     <div>Query: {registeredGmail.query ?? '(none)'}</div>
                     <div>Newly connected: {String(registeredGmail.newly_connected)}</div>
                   </div>

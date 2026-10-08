@@ -880,7 +880,11 @@ SharePoint / docs and SQL database are product vision and explain themselves ins
 vision because of the corpus rather than the API** — the mail
 pipeline is connector-agnostic and would be reused, but Gmail derives its address, its labels and its
 correspondence from what this tenant really holds, and there is no Outlook equivalent; reusing Gmail's
-labels or inventing folders would both put mail in the console that nobody sent. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
+labels or inventing folders would both put mail in the console that nobody sent. **Except under a
+Microsoft-brand dataset (KEOLIS), where the mail connector *is* Outlook** — the real `gmail` kind
+presented under the vendor the tenant runs on, with Outlook's own folders and a corpus that files
+under them, so the vision card is dropped there rather than standing beside a working card wearing
+its name; see *The provider brand* below. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
 lands, and the names are what a reader is choosing between.
 
 **Gmail is profiled for its catalogue and read at question time, and those are two different
@@ -1297,6 +1301,111 @@ nothing generic could be connected, wrong the moment anything real used that pat
 **The connector catalog is the product's, not a dataset's**, so Gmail is offered under EPA as well as
 CAPEX. Making it per-dataset would mean a hardcoded map of which dataset may see which connector, with
 no data behind it.
+
+### The provider brand — KEOLIS is the Microsoft tenant
+
+**What *is* per dataset is the provider brand: which cloud vendor the three real connectors present
+as.** KEOLIS's tenant runs on Microsoft — **and only KEOLIS's, asked for in those terms: CAPEX and
+VLS stay on the Google login** (VLS wore the Microsoft brand for one session and was reverted on
+request, its mail corpus re-filed back under `INBOX`/`SENT` with it) — so under it the structured connector is
+**Azure SQL Database**, the document one is **OneDrive**, the mail one is **Microsoft Outlook**, and
+the consent is a **Microsoft sign-in**. Every other dataset stays Google, unchanged.
+
+**The Microsoft sign-in mocks Microsoft's own screen, not Google's flow re-worded.** Asked for
+against screenshots: a **Sign in** screen with the wordmark top-left, an underline *Email, phone,
+or Skype* box (Microsoft asks you to type where Google offers a chooser — Next with a well-formed
+address is the same act as clicking a Google row, `onChooseAccount`), the *No account? Create one!*
+line, and a squared blue Next — then straight to Microsoft's own consent, ***Let this app access
+your info?*** (asked for against a second screenshot, replacing a Google-shaped consent wearing
+Microsoft words): the app's round badge with its verified domain (`contextweave.com`, the address
+the What-if receipt already prints), *This app would like to:* with a blue glyph per grant and a
+decorative caret, the *"Accepting these permissions means…"* footer, and **Cancel / Accept** drawn
+as Microsoft draws them. The rows are still exactly the scopes the server returned — and to match
+the reference honestly, `OAUTH_SCOPES_MICROSOFT` now *serves* the two grants every real Microsoft
+consent carries around the resource scope: `User.Read` (*Sign in and read your profile*) and
+`offline_access` (*Maintain access to data you have given it access to*), each with its
+`CONSENT_GRANT_COPY` entry — rows are added by requesting more, never by drawing what was not
+asked. `MICROSOFT_SIGN_IN` and `MICROSOFT_CONSENT` in `consentStages.ts` are the screens' copy; the
+`.msi-*` block in `GoogleSignInWindow.css` is their palette (Segoe, `#0067b8`, squared buttons),
+kept apart from the Google `.gsi-*` rules for the reason that sheet is Google-coloured at all: the
+window stands in for somebody else's screen. *Create one!*, *privacy statement*, *Microsoft
+account* and *Learn more about the permissions* — links on the real screens — are marked text,
+never anchors: this window opens nothing.
+
+**It was two screens, and three things were removed on request**: the *Enter your password* screen
+(back arrow, address pill, a theatrical password box whose value never left the component), the
+*Sign-in options* strip, and the *Can't access your account?* line. The copy, the state and the CSS
+went with them — a string nothing renders and a rule with nothing to style are each an invitation
+for the control to come back — and under the Microsoft brand `onChooseAccount` now sets the phase
+straight to `consent`, so the window's `confirm` phase is unreachable there (Google's confirm
+screen is untouched). Nothing about the handshake changed: the grant was always made on the
+permissions screen, and the password was theatre. **Do not restore any of the three without being
+asked.** A typed address may be one the served account list does not carry, so the consent screen's
+account row reads the typed value (`activeEmail`) rather than the picked row alone.
+
+**And a typed address must be the tenant's own, for every connector — asked for after Azure SQL and
+OneDrive connected as anybody while only Outlook refused a stranger.** The Google chooser can only
+produce served directory rows, so this never arose there; Microsoft's sign-in takes typed text, so
+`/sources/oauth/callback` now refuses, **under a Microsoft-brand dataset only**, an `as` address
+`db.settings.users` does not hold — the mailbox route's own refusal, naming who the directory does
+know, landing on Accept exactly where Outlook's always has. The Google-brand behaviour is
+untouched: `db.google_account` stays the fallback for a caller naming nobody, and an unknown
+address from a `curl` still connects with `identity: null` (the console does not change hands), as
+documented in § Identity.
+
+**The brand renames; it never rewires.** The kinds are still `bigquery` / `gdrive` / `gmail`, and
+every endpoint, pipeline, store, schema and payload shape is the one the Google names run on — which is
+what keeps this inside the catalog-is-the-product's rule above: no dataset sees a different *set* of
+connectors (the one exception is the `outlook` *vision* card, dropped under the Microsoft brand because
+the real mail connector there is Outlook — a working card and a stub wearing one name would be two
+answers to whether Outlook works). One declaration per side, and `check-docs` should hold them
+together once it runs again:
+
+- **`PROVIDER_BRANDS` in `backend/datasets.js`** (`{ KEOLIS: 'microsoft' }`), read per request off
+  `activeDataset()`. The server serves the brand's own vocabulary: `OAUTH_SCOPES_MICROSOFT`
+  (`database.windows.net/user_impersonation`, Graph's `Files.Read.All` + `Sites.Read.All`,
+  `Mail.Read`) from `/sources/oauth/start`, a `login.microsoftonline.com` `auth_url`, **Outlook's
+  folders** (`OUTLOOK_FOLDERS` — Inbox · Sent Items · Drafts · Archive · Deleted Items · Junk Email)
+  from `mailLabels()` wherever a mailbox is minted, `typeLabelFor(kind)` for the row labels, and
+  `vendorName()` in the session refusals. `Object.hasOwn(OAUTH_SCOPES, …)` stays the one provider-key
+  check — the two scope tables share keys on purpose. **A source id is minted with the brand's own
+  prefix** (`SOURCE_ID_PREFIXES`): `azuresql:` / `onedrive:` / `outlook:` under Microsoft where the
+  Google datasets mint `bigquery:` / `gdrive:` / `gmail:` — the id is kept visible on the Sources
+  rows and the Catalog header because it is what Disconnect/Delete act on, and under Keolis
+  `gmail:…` on an Outlook mailbox named the plumbing over the product. Every lookup is by the id as
+  issued and the kind travels as its own field — **but one reader parses the prefix, and the first
+  version of this paragraph claimed none did**: `studioLanes.js` derives a use case's lanes from
+  its picks' ids (deliberately without the in-memory `registered` map, so a lane survives a
+  restart), and until its `pickKind` learnt the Microsoft spellings (`KIND_ALIASES`, with
+  `pickSubject` slicing at the id's own colon rather than by a prefix's length), a committed Keolis
+  brief with three picked sources derived **no lanes at all** — Graph Studio reading *Nothing is
+  attached* over a brief that named everything. The two tables must move together, and any new code
+  that derives a kind from an id prefix has two vocabularies to be wrong in — go through `pickKind`
+  or the source's own `kind` field, never a fresh `startsWith`.
+- **`frontend/src/data/providerBrand.ts`**, the client mirror: `brandWords()` is every
+  brand-dependent noun (names, "GCP project"/"Azure SQL server", "dataset"/"database",
+  "label"/"folder", My Drive/OneDrive · Shared drive/Shared library, the `a …`/`an …` source phrases
+  with their own article), and `brandMarkKey()` is what makes `ConnectorIcon` draw the Microsoft
+  marks for the three kinds — one resolution in the component, so every surface that renders a mark
+  moves at once. `brandedConnectors()` skins step 1's cards; `consentStagesFor`, `connectActCopy`,
+  `signInWindowCopy` and `signInWindowChrome` carry the per-brand copy beside their Google originals;
+  `catalogUnitsFor` overlays the Catalog's account nouns. **Module-scope reads of the brand are
+  safe** because switching dataset reloads the whole document — the brand is fixed per page.
+
+**The consent-screen rule is unchanged and is what made this cheap**: the window renders the scopes
+and accounts `/sources/oauth/start` returned, so serving Microsoft scopes *is* the Microsoft consent —
+`CONSENT_GRANT_COPY` gained an entry per Microsoft scope (it is keyed by scope URL, so both brands
+live in one map) and `CONSENT_SCOPE_LABEL` strips the Graph and Azure SQL prefixes alongside Google's.
+
+**The one data change is the Keolis mail corpus' filing.** A Microsoft mailbox carries Outlook's
+folders, so `ingest-keolis.mjs` re-files the package's `INBOX` documents under `Inbox` (a rename of
+the same fact — received mail — never a re-sorting), and the committed `keolis_sources.json`
+matches. Left under Gmail's label, every shipped mail document would be filed under a folder the
+mailbox does not have — invisible in the catalogue, the silent failure the label rule exists to
+prevent. **A corpus' filing follows its dataset's brand**, which is the thing to re-check whenever a
+dataset changes brand: when VLS was briefly Microsoft its corpus moved to `Inbox`/`Sent Items`, and
+reverting the brand meant re-filing it back, or its ten documents would have vanished from the
+catalogue with nothing erroring.
 
 ### Three connectors by credentials — MySQL, PostgreSQL, Snowflake
 

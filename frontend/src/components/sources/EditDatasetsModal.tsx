@@ -1,6 +1,7 @@
 import { App, Checkbox, Modal, Spin, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { listProjectDatasets, type SourceRow } from '../../api/client'
+import { brandWords } from '../../data/providerBrand'
 import { useSourcesStore } from '../../store/sourcesStore'
 import { toMessage } from '../../store/asyncState'
 
@@ -44,7 +45,7 @@ export default function EditDatasetsModal({
       message.error(result.error)
       return
     }
-    message.success(`Allowlist updated — ${checked.length} dataset(s).`)
+    message.success(`Allowlist updated — ${checked.length} ${brandWords().unitNoun}(s).`)
     onSaved()
   }
 
@@ -55,11 +56,11 @@ export default function EditDatasetsModal({
       onOk={() => void save()}
       okText="Save allowlist"
       confirmLoading={pending === sourceId}
-      title={`Edit datasets — ${sourceId ?? ''}`}
+      title={`Edit ${brandWords().unitNoun}s — ${sourceId ?? ''}`}
     >
       <Typography.Paragraph type="secondary" style={{ fontSize: 13 }}>
-        Which datasets in <Typography.Text code>{projectId}</Typography.Text> this
-        source may profile.
+        {`Which ${brandWords().unitNoun}s in `}
+        <Typography.Text code>{projectId}</Typography.Text> this source may profile.
       </Typography.Paragraph>
 
       {loading ? (

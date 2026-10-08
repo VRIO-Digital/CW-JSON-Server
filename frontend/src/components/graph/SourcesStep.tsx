@@ -3,6 +3,7 @@ import { Alert, Button, Checkbox, Input, Modal, Spin, Tag } from 'antd'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { GraphSource, SourcePick } from '../../api/client'
+import { brandWords } from '../../data/providerBrand'
 import {
   mailUsedForCopy,
   readUsedFor,
@@ -185,7 +186,7 @@ export default function SourcesStep({
       // inside it reads as a rendering fault rather than as an empty slot.
       <NoSourceConnected
         bare
-        detail="A graph draws on data this tenant has connected. Connect a BigQuery project or a Google Drive and profile it in the Data Catalog — its tables and documents become selectable here. A Gmail mailbox is selectable as soon as it is connected: it is read at question time rather than profiled."
+        detail={`A graph draws on data this tenant has connected. Connect ${brandWords().structuredSource} or ${brandWords().docsSource} and profile it in the Data Catalog — its tables and documents become selectable here. ${brandWords().mailSource.charAt(0).toUpperCase()}${brandWords().mailSource.slice(1)} is selectable as soon as it is connected: it is read at question time rather than profiled.`}
       />
     )
   }

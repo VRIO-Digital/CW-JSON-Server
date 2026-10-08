@@ -19,6 +19,7 @@ import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import StatCards from '../components/common/StatCards'
 import StatusTag from '../components/common/StatusTag'
+import { brandWords } from '../data/providerBrand'
 import { confirmSourceAction, deletedSourceOutcome } from '../data/sourceActions'
 
 /* An older server answers the delete without `released`; nothing was cleared in that case, and the
@@ -176,7 +177,7 @@ export default function SourcesPage() {
               row.status === 'disconnected'
                 ? 'Disconnected — reconnect this source before changing its allowlist.'
                 : row.kind === 'gmail'
-                  ? 'A mailbox’s labels are settled by the Google consent — re-run the connect wizard to change them.'
+                  ? `A mailbox’s ${brandWords().mailLabelNoun}s are settled by the ${brandWords().vendor} consent — re-run the connect wizard to change them.`
                   : row.kind !== 'bigquery' && row.kind !== 'gdrive'
                     ? 'This connector has no discovery yet, so there is no allowlist to edit.'
                     : undefined
@@ -192,7 +193,7 @@ export default function SourcesPage() {
                 }
                 onClick={() => setEditing(row)}
               >
-                {row.kind === 'gdrive' ? 'Edit folders' : 'Edit datasets'}
+                {row.kind === 'gdrive' ? 'Edit folders' : `Edit ${brandWords().unitNoun}s`}
               </Button>
             </span>
           </Tooltip>
@@ -264,7 +265,7 @@ export default function SourcesPage() {
 
           {!loading && sources.length === 0 ? (
             <NoSourceConnected
-              detail="Register a BigQuery project or a Drive folder and it will appear here the instant it is connected, with extraction and profiling kicked off automatically."
+              detail={`Register ${brandWords().structuredSource} or ${brandWords().docsSource} and it will appear here the instant it is connected, with extraction and profiling kicked off automatically.`}
               action={
                 <Button
                   type="primary"

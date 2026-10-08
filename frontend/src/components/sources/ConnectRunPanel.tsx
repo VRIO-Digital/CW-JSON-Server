@@ -1,7 +1,7 @@
 import { LoadingOutlined } from '@ant-design/icons'
 import { Spin } from 'antd'
 import {
-  CONNECT_ACT_COPY,
+  connectActCopy,
   type ConnectAct,
   type ConnectStepKind,
 } from '../../data/connectSteps'
@@ -38,9 +38,10 @@ export default function ConnectRunPanel({
     <div className="cs-run" role="status" aria-live="polite">
       <Spin indicator={<LoadingOutlined spin />} />
       {/* One expression, not `text {expr} text`: renderToString would split those into
-          separate nodes and an assertion on the sentence would pass over nothing. */}
+          separate nodes and an assertion on the sentence would pass over nothing. The copy is
+          brand-aware — `connectActCopy` picks the vendor's own units off the selected dataset. */}
       <span className="cs-run-message">
-        {CONNECT_ACT_COPY[kind][act].replace('{subject}', subject)}
+        {connectActCopy(kind, act, subject)}
       </span>
     </div>
   )

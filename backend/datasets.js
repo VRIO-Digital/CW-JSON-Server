@@ -45,6 +45,24 @@ export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 
 /**
+ * Which cloud vendor a dataset's tenant runs on — the **provider brand**.
+ *
+ * KEOLIS is the one Microsoft tenant — asked for in exactly those terms: Microsoft for Keolis
+ * only, Google for CAPEX and VLS — so under it the three real connectors present as Azure SQL
+ * Database, OneDrive and Microsoft Outlook, the consent is a Microsoft sign-in, and the scopes
+ * `/sources/oauth/start` serves are Microsoft Graph's. **Nothing underneath changes**: the kinds
+ * are still `bigquery` / `gdrive` / `gmail`, the endpoints, pipelines and payload shapes are
+ * untouched, and every other dataset stays Google. The brand is presentation plus the vendor-owned
+ * vocabulary (scopes, mail folder names), never a second connector implementation.
+ *
+ * A dataset with no entry is Google — the default rather than a refusal, because a brand is a
+ * skin and the Google one is the one every dataset has always had. The client holds the same map
+ * in `frontend/src/data/providerBrand.ts`; `check-docs` holds the two against each other.
+ */
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft' }
+export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
+
+/**
  * The header a request names its dataset in.
  *
  * **A constant because it is also a CORS decision.** Any header that is not one of the four

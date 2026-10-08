@@ -1,13 +1,18 @@
 import { Modal } from 'antd'
+import { useState } from 'react'
 import type { GoogleSignInAccount } from '../../api/client'
 import ConnectorIcon from '../common/ConnectorIcon'
 import {
   CONSENT_GRANT_COPY,
   CONSENT_SCOPE_LABEL,
+  MICROSOFT_CONSENT,
+  MICROSOFT_SIGN_IN,
   avatarTint,
   signInWindowChrome,
+  signInWindowCopy,
   type ConsentProvider,
 } from '../../data/consentStages'
+import { providerBrand } from '../../data/providerBrand'
 import './GoogleSignInWindow.css'
 
 /**
@@ -43,6 +48,144 @@ import './GoogleSignInWindow.css'
  * Split into a panel plus a modal wrapper on purpose: antd renders a `Modal` through a portal that
  * `renderToString` will not traverse, so everything worth asserting lives in `GoogleSignInPanel`.
  */
+
+/** Microsoft's four squares, hand-drawn like every other vendor mark here so nothing is fetched. */
+function MicrosoftLogo({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 23 23" aria-hidden="true">
+      <rect x="1" y="1" width="10" height="10" fill="#F25022" />
+      <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
+      <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
+      <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
+    </svg>
+  )
+}
+
+/**
+ * The vendor's own mark, by brand — the Google G everywhere but a Microsoft-brand dataset, whose
+ * sign-in this window then stands in for with Microsoft's squares. One component, because the
+ * handshake is the same four phases whoever the vendor is; the brand owns the marks and the words.
+ */
+function VendorLogo({ size = 20 }: { size?: number }) {
+  return providerBrand() === 'microsoft' ? (
+    <MicrosoftLogo size={size} />
+  ) : (
+    <GoogleG size={size} />
+  )
+}
+
+/**
+ * The blue glyph against each grant on Microsoft's consent, picked by the scope itself — a person
+ * for the profile, an envelope for mail, a folder for files, a padlock for maintained access — so
+ * a reader sees what is being opened up before reading the sentence, exactly what the Google
+ * screen's product marks do. An unmapped scope gets the neutral key rather than another scope's
+ * glyph, the `ConnectorIcon` rule.
+ */
+function MsGrantIcon({ scope }: { scope: string }) {
+  const c = '#0078d4'
+  const frame = { width: 22, height: 22, viewBox: '0 0 24 24' }
+  if (scope.includes('User.Read')) {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <circle cx="12" cy="8" r="3.6" fill={c} />
+        <path d="M4.8 19.4c.8-3.6 3.8-5.6 7.2-5.6s6.4 2 7.2 5.6z" fill={c} />
+      </svg>
+    )
+  }
+  if (scope.includes('Mail.Read')) {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <rect x="3" y="5.5" width="18" height="13" rx="1.6" fill={c} />
+        <path d="M4 7l8 6 8-6" fill="none" stroke="#fff" strokeWidth="1.6" />
+      </svg>
+    )
+  }
+  if (scope.includes('Files.Read')) {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <path d="M3 6.2c0-.7.5-1.2 1.2-1.2h5l2 2.2h8.6c.7 0 1.2.5 1.2 1.2v9.4c0 .7-.5 1.2-1.2 1.2H4.2c-.7 0-1.2-.5-1.2-1.2z" fill={c} />
+      </svg>
+    )
+  }
+  if (scope.includes('Sites.Read')) {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <circle cx="12" cy="12" r="8.6" fill="none" stroke={c} strokeWidth="1.8" />
+        <path d="M3.5 12h17M12 3.5c-5.6 5.4-5.6 11.6 0 17 5.6-5.4 5.6-11.6 0-17z" fill="none" stroke={c} strokeWidth="1.5" />
+      </svg>
+    )
+  }
+  if (scope.includes('database.windows.net')) {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <ellipse cx="12" cy="6.4" rx="7" ry="2.8" fill={c} />
+        <path d="M5 6.4v11.2c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8V6.4c0 1.6-3.1 2.8-7 2.8s-7-1.2-7-2.8z" fill={c} opacity="0.85" />
+      </svg>
+    )
+  }
+  if (scope === 'offline_access') {
+    return (
+      <svg {...frame} aria-hidden="true">
+        <rect x="5.5" y="10.5" width="13" height="9" rx="1.6" fill={c} />
+        <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke={c} strokeWidth="1.8" />
+      </svg>
+    )
+  }
+  return (
+    <svg {...frame} aria-hidden="true">
+      <circle cx="9" cy="12" r="3.6" fill="none" stroke={c} strokeWidth="1.8" />
+      <path d="M12.5 12h7M17 12v3" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** The app's round mark on Microsoft's consent, as the reference draws it — a badge, not a photo. */
+function AppBadge({ size = 36 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="16.5" fill="#fff" stroke="#0067b8" strokeWidth="2.4" />
+      <path
+        d="M24.5 13.4a7.4 7.4 0 1 0 .4 8.6"
+        fill="none"
+        stroke="#0067b8"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <circle cx="25.4" cy="17.4" r="1.7" fill="#0067b8" />
+    </svg>
+  )
+}
+
+/** The verified tick beside the publisher's domain. */
+function VerifiedCheck({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="#0078d4" />
+      <path d="M7 12.4l3.2 3.2L17 9" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** The squares with the wordmark beside them, as Microsoft's own sign-in card draws them. */
+function MicrosoftWordmark({ size = 21 }: { size?: number }) {
+  return (
+    <span className="msi-wordmark">
+      <MicrosoftLogo size={size} />
+      <span className="msi-wordmark-text">Microsoft</span>
+    </span>
+  )
+}
+
+/**
+ * The initials an address wears where the directory has no row for it — the Microsoft screens
+ * accept a typed address, so the consent screen may be granting for somebody the served account
+ * list does not carry. Derived the way the login's own `emailInitials` derives them.
+ */
+function initialsFromEmail(email: string): string {
+  const parts = email.split('@')[0].split(/[._-]+/).filter(Boolean)
+  const letters = parts.length >= 2 ? [parts[0][0], parts[1][0]] : [email[0] ?? '', email[1] ?? '']
+  return letters.join('').toUpperCase()
+}
 
 /** Google's four-colour G, hand-drawn like every other vendor mark here so nothing is fetched. */
 function GoogleG({ size = 20 }: { size?: number }) {
@@ -115,7 +258,41 @@ export function GoogleSignInPanel({
 }) {
   const app = 'ContextWeave'
 
-  const chromeBar = signInWindowChrome(phase, app, chosen?.email ?? signedInEmail)
+  /* The vendor's words — Google's or Microsoft's, by the selected dataset's brand. */
+  const copy = signInWindowCopy()
+  const isMicrosoft = providerBrand() === 'microsoft'
+  const MS = MICROSOFT_SIGN_IN
+  const MSC = MICROSOFT_CONSENT
+
+  /*
+   * **The Microsoft screen's own state, and it never leaves this component until Next.**
+   *
+   * Microsoft's sign-in asks you to *type* an address where Google's offers a chooser, so the typed
+   * email is local until Next hands it to `onChooseAccount` — the same act a Google row's click is.
+   * There is deliberately no password state: the *Enter your password* screen was removed on
+   * request (see `MICROSOFT_SIGN_IN`), so Next goes straight to the permissions screen, where the
+   * grant was always made.
+   */
+  const [typedEmail, setTypedEmail] = useState('')
+  const [emailError, setEmailError] = useState(false)
+
+  /* The address this handshake is for — the picked row's, or the one typed on the email screen
+     (which the served list may not carry, so the pill and the grant row fall back to it). */
+  const activeEmail = chosen?.email ?? typedEmail.trim()
+  const activeInitials = chosen?.initials ?? initialsFromEmail(activeEmail)
+
+  function submitTypedEmail() {
+    const address = typedEmail.trim()
+    /* Microsoft's own loose shape check — enough to refuse an empty box or a bare word. */
+    if (!/^\S+@\S+\.\S+$/.test(address)) {
+      setEmailError(true)
+      return
+    }
+    setEmailError(false)
+    onChooseAccount(address)
+  }
+
+  const chromeBar = signInWindowChrome(phase, app, activeEmail || signedInEmail)
 
   return (
     <div className="gsi">
@@ -134,7 +311,7 @@ export function GoogleSignInPanel({
       */}
       <div className="gsi-chrome">
         <div className="gsi-chrome-title">
-          <GoogleG size={13} />
+          <VendorLogo size={13} />
           <span className="gsi-chrome-text">{chromeBar.title}</span>
           <span className="gsi-chrome-controls">
             <span aria-hidden="true">&#8211;</span>
@@ -142,7 +319,7 @@ export function GoogleSignInPanel({
             <button
               type="button"
               className="gsi-chrome-close"
-              aria-label="Close the Google sign-in"
+              aria-label={copy.closeAria}
               onClick={onCancel}
               disabled={phase === 'granting'}
             >
@@ -157,15 +334,64 @@ export function GoogleSignInPanel({
         </div>
       </div>
 
-      <div className="gsi-head">
-        <GoogleG size={22} />
-        {/* Google's top bar says the same thing on both screens — it names the mechanism, not the
-            step. The app-specific sentence is the *heading* below it, which is where a real consent
-            screen puts it. */}
-        <span className="gsi-head-text">Sign in with Google</span>
-      </div>
+      {/* Microsoft's screens carry the wordmark inside the card, top-left, so the shared header
+          bar is theirs to skip on every phase. */}
+      {isMicrosoft ? null : (
+        <div className="gsi-head">
+          <VendorLogo size={22} />
+          {/* The vendor's top bar says the same thing on both screens — it names the mechanism, not
+              the step. The app-specific sentence is the *heading* below it, which is where a real
+              consent screen puts it. Google writes a sentence here; Microsoft its wordmark. */}
+          <span className="gsi-head-text">{copy.headText}</span>
+        </div>
+      )}
 
-      {phase === 'account' ? (
+      {isMicrosoft && phase === 'account' ? (
+        <>
+          {/*
+            **Microsoft's Sign in screen, as the reference screenshots draw it.** An email box
+            rather than an account chooser — Microsoft's login asks you to type — so the act here
+            is Next with a well-formed address, which is exactly what a Google row's click is:
+            `onChooseAccount` with the address this handshake will be made as. The two phrases that
+            are links on the real screen are marked text, because this window opens nothing.
+          */}
+          <div className="msi">
+            <MicrosoftWordmark />
+            <div className="msi-title">{MS.title}</div>
+            <input
+              className={`msi-email${emailError ? ' is-error' : ''}`}
+              type="email"
+              value={typedEmail}
+              placeholder={MS.emailPlaceholder}
+              aria-label={MS.emailPlaceholder}
+              autoFocus
+              onChange={(e) => {
+                setTypedEmail(e.target.value)
+                setEmailError(false)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitTypedEmail()
+              }}
+            />
+            {emailError ? <div className="msi-error">{MS.invalidEmail}</div> : null}
+            {/*
+              One line of links, not two, and no *Sign-in options* strip below the card — the
+              *Can't access your account?* row and the strip were **removed on request**, together
+              with the *Enter your password* screen this Next used to lead to: it goes straight to
+              the permissions screen now. Do not restore any of the three without being asked.
+            */}
+            <div className="msi-links">
+              <span className="msi-muted">{MS.noAccount}</span>{' '}
+              <span className="msi-link">{MS.createOne}</span>
+            </div>
+            <div className="msi-next-row">
+              <button type="button" className="msi-btn" onClick={submitTypedEmail}>
+                {MS.next}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : phase === 'account' ? (
         <>
           {/*
             Google's own arrangement, which the one-line lead did not have: the act is a *heading*
@@ -174,7 +400,7 @@ export function GoogleSignInPanel({
             because that is the hierarchy a reader recognises — the question first, then who is
             asking.
           */}
-          <div className="gsi-title">Choose an account</div>
+          <div className="gsi-title">{copy.chooserTitle}</div>
           <div className="gsi-lead">
             to continue to <span className="gsi-app">{app}</span>
           </div>
@@ -269,14 +495,101 @@ export function GoogleSignInPanel({
           </p>
           <p className="gsi-trust-note">
             {'To make changes at any time, go to your '}
-            <span className="gsi-note-mark">Google Account</span>
+            <span className="gsi-note-mark">{copy.accountNoun}</span>
             {'.'}
           </p>
           <p className="gsi-trust-note">
             {'Learn more about '}
-            <span className="gsi-note-mark">Sign in with Google</span>
+            <span className="gsi-note-mark">{copy.signInName}</span>
             {'.'}
           </p>
+        </>
+      ) : isMicrosoft ? (
+        <>
+          {/*
+            **Microsoft's consent, as the reference screenshot draws it** — *Let this app access
+            your info?* over the app's badge and verified domain, then *This app would like to:*
+            with a blue glyph per grant. It replaced the Google-shaped consent wearing Microsoft
+            words, on request. The rows are still exactly the scopes `/sources/oauth/start`
+            returned — `CONSENT_GRANT_COPY` supplies wording only, and an unmapped scope still
+            renders — and Accept is still the one act that spends the consent. The marked phrases
+            open nothing, like every policy phrase in this window.
+          */}
+          <div className="msi msi-consent">
+            <MicrosoftWordmark />
+            <div className="msi-title">{MSC.title}</div>
+
+            <div className="msi-app-row">
+              <AppBadge />
+              <span className="msi-app-id">
+                <span className="msi-app-name">{MSC.appName}</span>
+                <span className="msi-app-domain">
+                  {MSC.appDomain} <VerifiedCheck />
+                </span>
+              </span>
+            </div>
+
+            <div className="msi-grants-lead">{MSC.lead}</div>
+            <ul className="msi-grants">
+              {scopes.map((scope) => {
+                const grant = CONSENT_GRANT_COPY[scope]
+                return (
+                  <li key={scope} className="msi-grant">
+                    <span className="msi-grant-icon" aria-hidden="true">
+                      <MsGrantIcon scope={scope} />
+                    </span>
+                    <span className="msi-grant-body">
+                      <span className="msi-grant-title">
+                        {grant ? grant.title : CONSENT_SCOPE_LABEL(scope)}
+                      </span>
+                      <span className="msi-grant-detail">
+                        {grant
+                          ? grant.detail
+                          : 'Requested by the connector. No plain-English description is mapped for this scope.'}
+                      </span>
+                    </span>
+                    {/* The reference's caret. Decoration: nothing here expands, so it is
+                        aria-hidden rather than a control that does nothing. */}
+                    <span className="msi-grant-caret" aria-hidden="true">
+                      &#8964;
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <p className="msi-consent-foot">
+              {MSC.footAccepting}
+              <span className="msi-link">{MSC.footPrivacy}</span>
+              {MSC.footChange}
+              <span className="msi-link">{MSC.footAccount}</span>
+              {'.'}
+            </p>
+            <p className="msi-consent-foot">
+              <span className="msi-link">{MSC.footLearn}</span>
+            </p>
+
+            {/* Microsoft's own pair, right-aligned — Cancel grants nothing, Accept spends the
+                consent, and neither can be pressed twice while the calls run. */}
+            <div className="msi-consent-actions">
+              <button
+                type="button"
+                className="msi-btn msi-btn-outline"
+                onClick={onCancel}
+                disabled={phase === 'granting'}
+              >
+                {MSC.cancel}
+              </button>
+              <button
+                type="button"
+                className="msi-btn"
+                onClick={onAllow}
+                disabled={phase === 'granting'}
+              >
+                {phase === 'granting' ? MSC.accepting : MSC.accept}
+              </button>
+            </div>
+          </div>
         </>
       ) : (
         <>
@@ -287,18 +600,20 @@ export function GoogleSignInPanel({
             in for.
           */}
           <div className="gsi-title">
-            <span className="gsi-app">{app}</span> wants to access your Google Account
+            <span className="gsi-app">{app}</span> {copy.consentTitleTail}
           </div>
 
           <div className="gsi-who">
+            {/* The picked row's, or the address typed on the Microsoft email screen — a typed
+                address may be one the served account list does not carry. */}
             <span
               className="gsi-avatar"
               aria-hidden="true"
-              style={{ background: avatarTint(chosen?.email ?? '') }}
+              style={{ background: avatarTint(activeEmail) }}
             >
-              {chosen?.initials ?? ''}
+              {activeInitials}
             </span>
-            <span className="gsi-who-email">{chosen?.email ?? ''}</span>
+            <span className="gsi-who-email">{activeEmail}</span>
           </div>
 
           <div className="gsi-grants-lead">
@@ -387,7 +702,7 @@ export function GoogleSignInPanel({
           </p>
           <p className="gsi-trust-note">
             {'To make changes at any time, go to your '}
-            <span className="gsi-note-mark">Google Account</span>
+            <span className="gsi-note-mark">{copy.accountNoun}</span>
             {'.'}
           </p>
 
@@ -417,34 +732,40 @@ export function GoogleSignInPanel({
         stretched across the foot of that screen implied the reader had a decision pending when the
         only decision is which row to press.
       */}
-      <div className={`gsi-actions${phase === 'account' ? ' is-empty' : ''}`}>
-        {phase === 'account' ? null : (
-          <button
-            type="button"
-            className="gsi-btn gsi-btn-text"
-            onClick={onCancel}
-            disabled={phase === 'granting'}
-          >
-            Cancel
-          </button>
-        )}
-        {/* **Continue on the confirm screen, Allow on the grants** — the words are not
-            interchangeable: one moves to the next screen and the other spends the consent. */}
-        {phase === 'confirm' ? (
-          <button type="button" className="gsi-btn gsi-btn-primary" onClick={onContinue}>
-            Continue
-          </button>
-        ) : phase === 'consent' || phase === 'granting' ? (
-          <button
-            type="button"
-            className="gsi-btn gsi-btn-primary"
-            onClick={onAllow}
-            disabled={phase === 'granting'}
-          >
-            {phase === 'granting' ? 'Signing in…' : 'Allow'}
-          </button>
-        ) : null}
-      </div>
+      {/* The Microsoft screens draw their own buttons — Next on the email screen, Cancel/Accept
+          on the consent — so the shared footer is theirs to skip on every phase. Microsoft's
+          `confirm` phase is unreachable: the password screen that lived there was removed on
+          request. */}
+      {isMicrosoft ? null : (
+        <div className={`gsi-actions${phase === 'account' ? ' is-empty' : ''}`}>
+          {phase === 'account' ? null : (
+            <button
+              type="button"
+              className="gsi-btn gsi-btn-text"
+              onClick={onCancel}
+              disabled={phase === 'granting'}
+            >
+              Cancel
+            </button>
+          )}
+          {/* **Continue on the confirm screen, Allow on the grants** — the words are not
+              interchangeable: one moves to the next screen and the other spends the consent. */}
+          {phase === 'confirm' ? (
+            <button type="button" className="gsi-btn gsi-btn-primary" onClick={onContinue}>
+              Continue
+            </button>
+          ) : phase === 'consent' || phase === 'granting' ? (
+            <button
+              type="button"
+              className="gsi-btn gsi-btn-primary"
+              onClick={onAllow}
+              disabled={phase === 'granting'}
+            >
+              {phase === 'granting' ? 'Signing in…' : copy.allowLabel}
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {/*
         The footer every Google screen carries. Static, and marked rather than linked for the
@@ -452,11 +773,11 @@ export function GoogleSignInPanel({
         goes nowhere is the control-with-no-destination refused everywhere else here.
       */}
       <div className="gsi-foot-bar">
-        <span>English (United States)</span>
+        <span>{copy.footLeft}</span>
         <span className="gsi-foot-links">
-          <span>Help</span>
-          <span>Privacy</span>
-          <span>Terms</span>
+          {copy.footLinks.map((link) => (
+            <span key={link}>{link}</span>
+          ))}
         </span>
       </div>
 

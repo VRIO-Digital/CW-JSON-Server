@@ -97,6 +97,7 @@ import {
   documentProxy,
   mergeDocs,
   PRIMARY,
+  providerBrandFor,
   SELECTORS,
   selectorFrom,
   unplannedKeys,
@@ -392,6 +393,94 @@ const OAUTH_SCOPES = {
   gmail: ['https://www.googleapis.com/auth/gmail.readonly'],
 }
 
+/* ---------------- the provider brand ---------------- */
+
+/**
+ * Which vendor the selected dataset's tenant runs on — `google` for every dataset but the ones
+ * `PROVIDER_BRANDS` names. KEOLIS is Microsoft — and only KEOLIS, on request: CAPEX and VLS stay
+ * on the Google login — so its consent serves Microsoft scopes, its mailbox carries Outlook's
+ * folders and its rows are labelled Azure SQL Database / OneDrive / Outlook. The *kinds* stay
+ * `bigquery` / `gdrive` / `gmail` everywhere: the brand is what a connector is called and what
+ * its vendor's own vocabulary is, never a second code path.
+ */
+const providerBrand = () => providerBrandFor(activeDataset())
+
+/** The vendor's name, for every sentence that says whose sign-in or consent this is. */
+const vendorName = () => (providerBrand() === 'microsoft' ? 'Microsoft' : 'Google')
+
+/**
+ * What each connector asks Microsoft for, under a Microsoft-brand dataset.
+ *
+ * The same three provider keys as `OAUTH_SCOPES` — `Object.hasOwn(OAUTH_SCOPES, …)` stays the one
+ * key check, so the two tables cannot come to accept different providers. Every scope here has a
+ * `CONSENT_GRANT_COPY` entry on the client, exactly as the Google ones do.
+ *
+ * **Each list carries the two grants every real Microsoft consent carries**, around the
+ * connector's own resource scope(s): `User.Read` (sign in and read your profile — the handshake
+ * identifies who granted it) and `offline_access` (keep the access the reader just granted, which
+ * is what lets a connector read later without a fresh consent). They are served rather than drawn
+ * into the window, because the consent screen renders the scopes the endpoint returned and must
+ * never show a grant the request does not make — the same rule in the other direction.
+ */
+const OAUTH_SCOPES_MICROSOFT = {
+  bigquery: [
+    'https://graph.microsoft.com/User.Read',
+    'https://database.windows.net/user_impersonation',
+    'offline_access',
+  ],
+  drive: [
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Files.Read.All',
+    'https://graph.microsoft.com/Sites.Read.All',
+    'offline_access',
+  ],
+  gmail: [
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Mail.Read',
+    'offline_access',
+  ],
+}
+
+/** The scopes a provider asks for under the selected dataset's brand. */
+const oauthScopesFor = (provider) =>
+  (providerBrand() === 'microsoft' ? OAUTH_SCOPES_MICROSOFT : OAUTH_SCOPES)[provider]
+
+/** The consent screen's address — where a real handshake would send the browser. */
+const oauthAuthorizeUrl = (state, scopes) =>
+  providerBrand() === 'microsoft'
+    ? `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state=${state}&scope=${scopes.join(' ')}`
+    : `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`
+
+/**
+ * What a source row is *called*, per kind and brand. Computed at read time rather than stored at
+ * registration, so the label always matches the dataset the row is being read under.
+ */
+const TYPE_LABELS = {
+  google: { bigquery: 'BigQuery', gdrive: 'Google Drive', gmail: 'Gmail' },
+  microsoft: { bigquery: 'Azure SQL Database', gdrive: 'OneDrive', gmail: 'Outlook' },
+}
+const typeLabelFor = (kind) => TYPE_LABELS[providerBrand()]?.[kind] ?? kind
+
+/**
+ * The prefix a source id is minted with — the brand's own product, not the kind's internal name.
+ *
+ * The id is on the Sources rows and the Catalog header (it is what Disconnect/Delete act on, so it
+ * is kept visible), and under a Microsoft-brand dataset `gmail:…` on an Outlook mailbox names the
+ * plumbing over the product. Every lookup is by the id as issued (the `registered` map, every
+ * `/sources/:id/...` route) and the kind travels as its own field — **but one reader does parse the
+ * prefix**: `studioLanes.js` derives a use case's lanes from its picks' ids, deliberately without
+ * the `registered` map, so a lane survives a restart. Its `pickKind` folds these Microsoft
+ * spellings back to the canonical kinds (`KIND_ALIASES` there), and the two tables must stay in
+ * step: a prefix minted here that the aliases do not know derives **no lane at all** — a committed
+ * brief reading *Nothing is attached*, which is exactly how this was found. "Nothing parses the
+ * prefix" was this comment's first claim, and it was wrong.
+ */
+const SOURCE_ID_PREFIXES = {
+  google: { bigquery: 'bigquery', gdrive: 'gdrive', gmail: 'gmail' },
+  microsoft: { bigquery: 'azuresql', gdrive: 'onedrive', gmail: 'outlook' },
+}
+const sourceIdPrefix = (kind) => SOURCE_ID_PREFIXES[providerBrand()]?.[kind] ?? kind
+
 /**
  * Gmail's own system labels.
  *
@@ -401,6 +490,17 @@ const OAUTH_SCOPES = {
  * heading was right and the data was wrong.
  */
 const GMAIL_LABELS = ['IMPORTANT', 'INBOX', 'SENT', 'STARRED', 'UNREAD', 'YELLOW_STAR']
+
+/**
+ * Outlook's own folders, for a Microsoft-brand dataset's mailbox — the same claim `GMAIL_LABELS`
+ * makes about Gmail: these are the vendor's system set, not tenant filing. `Inbox` first for the
+ * reason `INBOX` is in Gmail's: it is the folder the wizard defaults to, and the one a shipped
+ * corpus files its received mail under (KEOLIS's `mail_corpus` uses it).
+ */
+const OUTLOOK_FOLDERS = ['Inbox', 'Sent Items', 'Drafts', 'Archive', 'Deleted Items', 'Junk Email']
+
+/** The mail system labels under the selected dataset's brand. */
+const mailLabels = () => (providerBrand() === 'microsoft' ? OUTLOOK_FOLDERS : GMAIL_LABELS)
 
 /**
  * Subject lines the mail profiler's synthesised corpus draws on.
@@ -1108,7 +1208,7 @@ const findMailbox = (address) => {
     mailbox: user.email,
     display_name: `${user.name}'s mailbox`,
     description: `${db.auth_roles.find((r) => r.role_id === user.role_id)?.label ?? user.role_id} · ${user.email}`,
-    labels: GMAIL_LABELS,
+    labels: mailLabels(),
     credential_handle: `gmail-handle-${user.email.replace(/[^a-z0-9]+/gi, '-')}`,
   }
 }
@@ -3119,14 +3219,14 @@ function mailboxMessages(source) {
       const messageId = `${label.toLowerCase().replace(/_/g, '-')}-${String(i + 1).padStart(3, '0')}`
       const person = people[s % people.length]
 
-      /* SENT is the one label that says which way a message went, so it is read rather than
-         hashed: the owner sent it, and anything else arrived. */
-      const outbound = label === 'SENT'
+      /* SENT (Outlook: Sent Items) is the one label that says which way a message went, so it is
+         read rather than hashed: the owner sent it, and anything else arrived. */
+      const outbound = label === 'SENT' || label === 'Sent Items'
       const ownerAddress = owner?.email ?? mailbox
 
-      /* The other labels this message carries. Drawn from Gmail's own set, primary first,
+      /* The other labels this message carries. Drawn from the vendor's own set, primary first,
          and never more than three — a message tagged with all six says nothing. */
-      const extra = GMAIL_LABELS.filter(
+      const extra = mailLabels().filter(
         (l) => l !== label && hash(`${messageId}:${l}`) % 4 === 0,
       ).slice(0, 2)
 
@@ -4428,7 +4528,7 @@ function graphCoverage({ name, picks, heroQuestions }) {
   const runtimeSources = runtimeSourcesIn(picks).map((s) => ({
     source_id: s.source_id,
     source_name: s.source_name,
-    type_label: 'Gmail',
+    type_label: typeLabelFor('gmail'),
     scope: (s.labels ?? []).length,
     scope_label: 'labels',
   }))
@@ -4877,7 +4977,7 @@ function graphSources() {
       connector: source.connector,
       kind: source.kind,
       status: source.status,
-      type_label: isDrive ? 'Google Drive' : isMail ? 'Gmail' : 'BigQuery',
+      type_label: typeLabelFor(source.kind),
       /* What it connected *as* — a mailbox is the account, the way a project is. */
       account: source.project_id ?? source.drive_id ?? source.mailbox ?? '—',
       // "Datasets: a, b" for BigQuery; "Folders: …" for Drive; "Labels: …" for Gmail.
@@ -10964,7 +11064,8 @@ const routes = [
          have read every unknown provider as BigQuery and granted its scope. */
       const asked = query.get('provider')
       const provider = Object.hasOwn(OAUTH_SCOPES, asked) ? asked : 'bigquery'
-      const scopes = OAUTH_SCOPES[provider]
+      /* The brand's own scopes — Microsoft Graph's under a Microsoft-brand dataset. */
+      const scopes = oauthScopesFor(provider)
 
       const state = `state-${nextId()}`
       oauthStates.set(state, provider)
@@ -11045,7 +11146,7 @@ const routes = [
         send(res, 200, {
           state,
           provider,
-          auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`,
+          auth_url: oauthAuthorizeUrl(state, scopes),
           scopes,
           accounts,
         })
@@ -11089,6 +11190,24 @@ const routes = [
       if (as !== null && !EMAIL_RE.test(as)) {
         return send(res, 400, {
           error: `"${as}" is not a valid email address — sign in again and retry the connection.`,
+        })
+      }
+      /*
+       * **Under a Microsoft-brand dataset, the address must be the tenant's own — for every
+       * connector, not only mail.** The Google chooser offers served directory rows, so an unknown
+       * address cannot arrive from the window; Microsoft's sign-in asks you to *type* one, so it
+       * can name anybody — and Azure SQL and OneDrive connected as whoever was typed while only
+       * Outlook's mailbox lookup refused a stranger. Asked for as the same validation everywhere:
+       * the refusal is the mailbox route's own, naming who the directory does hold, and it lands
+       * on Accept exactly where Outlook's always has. Google-brand datasets are untouched — the
+       * documented fallback (`db.google_account` for a caller naming nobody, `identity: null` for
+       * an address the directory lacks) still stands there.
+       */
+      if (as && providerBrand() === 'microsoft' && !findMailbox(as)) {
+        return send(res, 400, {
+          error:
+            `${as} is not in this dataset's directory — it has ` +
+            `${(db.settings?.users ?? []).map((u) => u.email).join(', ')}`,
         })
       }
       const account = as
@@ -11152,7 +11271,7 @@ const routes = [
       const session = query.get('session')
       if (!session || !oauthSessions.has(session)) {
         return send(res, 400, {
-          error: 'invalid or expired session — start the Google sign-in again',
+          error: `invalid or expired session — start the ${vendorName()} sign-in again`,
         })
       }
       if (oauthSessions.get(session) !== 'bigquery') {
@@ -11188,7 +11307,7 @@ const routes = [
       const session = query.get('session')
       if (!session || !oauthSessions.has(session)) {
         return send(res, 400, {
-          error: 'invalid or expired session — start the Google sign-in again',
+          error: `invalid or expired session — start the ${vendorName()} sign-in again`,
         })
       }
       if (oauthSessions.get(session) !== 'drive') {
@@ -11280,7 +11399,7 @@ const routes = [
       const session = query.get('session')
       if (!session || !oauthSessions.has(session)) {
         return send(res, 400, {
-          error: 'invalid or expired session — start the Google sign-in again',
+          error: `invalid or expired session — start the ${vendorName()} sign-in again`,
         })
       }
       const grantedFor = oauthSessions.get(session)
@@ -11439,7 +11558,7 @@ const routes = [
         })
       }
 
-      const sourceId = `gmail:${mailbox}`
+      const sourceId = `${sourceIdPrefix('gmail')}:${mailbox}`
       const alreadyRegistered = registered.has(sourceId)
 
       const record = {
@@ -11552,7 +11671,7 @@ const routes = [
         })
       }
 
-      const sourceId = `gdrive:${drive_id}`
+      const sourceId = `${sourceIdPrefix('gdrive')}:${drive_id}`
       const alreadyRegistered = registered.has(sourceId)
 
       const record = {
@@ -11623,7 +11742,7 @@ const routes = [
         })
       }
 
-      const sourceId = `bigquery:${project_id}`
+      const sourceId = `${sourceIdPrefix('bigquery')}:${project_id}`
       const alreadyRegistered = registered.has(sourceId)
 
       const record = {
