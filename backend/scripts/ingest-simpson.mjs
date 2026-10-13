@@ -152,6 +152,81 @@ if (source.mail_corpus && Array.isArray(source.mail_corpus.documents)) {
   }
 }
 
+/* ------------- the data model, re-shaped so first contact is a review rather than a verdict ------------- */
+
+/*
+ * The package ships its data model already decided: 33 bare anchor entities (no overview content —
+ * each description says "created to anchor a declared relationship") carrying 29 relationships,
+ * every one with `confirmed_by` set to a directory address. On the Data Modeling tab that renders
+ * as relations **Confirmed by you** the first time anybody profiles the source — a claim about the
+ * reader that is false for every row, the exact fault `confirmed_by` exists to prevent (nobody in
+ * this app accepted them; a generator did). Asked for in those terms: on a first profile every
+ * count should land under *suggested, pending*, as it does elsewhere.
+ *
+ * So each declared relationship becomes a **recorded suggestion** — the shape the review queue is
+ * for: the row arrives pending with its name, join, cardinality and the package's own rationale,
+ * and a reader's Accept is what writes `confirmed_by`. `relationship_type_alternatives` is empty
+ * (the declaration stated none). `confidence` has to be a number — `validateDb` requires one on a
+ * *recorded* suggestion, where it is a stated opinion — so it is 0.9: the generator wrote these as
+ * outright facts, and a high stated confidence is the honest downgrade from "asserted" to
+ * "proposed for review". The anchor entities go with the relationships they anchored — an entity
+ * with no declaration and no content left is a row that reads "Curated by AI" over nothing.
+ */
+const CONVERTED_CONFIDENCE = 0.9
+function pendingDataModel(dm) {
+  const suggestions = [...(dm.suggestions ?? [])]
+  const ids = new Set(suggestions.map((s) => s.suggestion_id))
+  const pairKey = (a, b, ca, cb) => [`${a}.${ca}`, `${b}.${cb}`].sort().join('~')
+  const pairs = new Set(suggestions.map((s) => pairKey(s.from_table_key, s.to_table_key, s.from_column, s.to_column)))
+  const slug = (k) => k.replace(/[^a-z0-9]+/gi, '_').toLowerCase()
+  let converted = 0
+  let skipped = 0
+  for (const e of dm.entities ?? []) {
+    for (const r of e.relationships ?? []) {
+      const key = pairKey(e.table_key, r.target_table_key, r.from_columns[0], r.to_columns[0])
+      if (pairs.has(key)) {
+        skipped += 1 /* two rows for one join would ask the reviewer the same question twice */
+        continue
+      }
+      pairs.add(key)
+      let id = `sg_rsp_${slug(e.table_key)}__${slug(r.target_table_key)}`
+      for (let n = 2; ids.has(id); n += 1) id = `sg_rsp_${slug(e.table_key)}__${slug(r.target_table_key)}_${n}`
+      ids.add(id)
+      suggestions.push({
+        suggestion_id: id,
+        from_table_key: e.table_key,
+        from_column: r.from_columns[0],
+        to_table_key: r.target_table_key,
+        to_column: r.to_columns[0],
+        relationship_type: r.relationship_type,
+        relationship_type_alternatives: [],
+        cardinality_hint: r.cardinality_hint,
+        rationale: r.rationale,
+        confidence: CONVERTED_CONFIDENCE,
+      })
+      converted += 1
+    }
+  }
+  return { out: { ...dm, entities: [], suggestions }, converted, skipped }
+}
+
+if (source.data_model) {
+  const multi = (source.data_model.entities ?? []).flatMap((e) => e.relationships ?? []).filter(
+    (r) => (r.from_columns ?? []).length > 1 || (r.to_columns ?? []).length > 1,
+  )
+  if (multi.length > 0) {
+    /* A suggestion carries one column per side, so a multi-column declaration cannot become one
+       without dropping columns in silence — a rebuilt package that ships one needs a decision. */
+    fail(`${multi.length} declared relationship(s) join on more than one column — a recorded suggestion cannot carry that; decide how they convert`)
+  }
+  const { out, converted, skipped } = pendingDataModel(source.data_model)
+  source.data_model = out
+  console.log(
+    `ingest-simpson: data model re-shaped — ${converted} declared relationship(s) now pending ` +
+      `suggestions${skipped > 0 ? `, ${skipped} duplicate pair(s) folded` : ''}; anchor entities removed`,
+  )
+}
+
 /* ------------- runtime.headroom, normalised to the shape the client schema requires ------------- */
 
 /*
