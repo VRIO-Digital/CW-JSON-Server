@@ -51,13 +51,15 @@ import { useReportsStore } from '../store/reportsStore'
  *
  * `ai_submissions_demo_final.html` *is* the Keolis Valmont page — the demo asset was replaced
  * wholesale with the Keolis build, so it stays the default rather than a KEOLIS entry framing the
- * superseded `keolis_ai_submissions.html`. VLS ships its own (`src/Vls/ai-submissions/`, resolved
- * through `datasetAiSubmissionsModules`' per-dataset glob in `reportDocuments.ts`). A dataset with
- * no entry gets the default, which is also what `both` resolves to — this page is not dataset-keyed
- * on the server, so the primary's answer is the honest one there.
+ * superseded `keolis_ai_submissions.html`. VLS and SIMPSON ship their own (`src/Vls/ai-submissions/`
+ * and `src/Simpson/ai-submissions/`, resolved through `datasetAiSubmissionsModules`' per-dataset
+ * glob in `reportDocuments.ts`). A dataset with no entry gets the default, which is also what
+ * `both` resolves to — this page is not dataset-keyed on the server, so the primary's answer is the
+ * honest one there.
  */
 const DATASET_FILES: Record<string, string> = {
   VLS: 'ai_submissions_vls_demo.html',
+  SIMPSON: 'simpson-ai_submissions.html',
 }
 const DEFAULT_FILE = 'ai_submissions_demo_final.html'
 

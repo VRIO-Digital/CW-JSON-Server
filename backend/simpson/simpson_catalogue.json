@@ -1,0 +1,1100 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "family_code",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.96
+    },
+    {
+      "name": "contract_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "document_title",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.93
+    },
+    {
+      "name": "document_type",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.91
+    },
+    {
+      "name": "revision",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.88
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.87
+    },
+    {
+      "name": "signed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "party_customer",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.92
+    },
+    {
+      "name": "party_vendor",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.93
+    },
+    {
+      "name": "supplier_name",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.9
+    },
+    {
+      "name": "clause_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.86
+    },
+    {
+      "name": "entry_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "amount_usd",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.85
+    },
+    {
+      "name": "amount_basis",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.8
+    },
+    {
+      "name": "cap_usd",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.84
+    },
+    {
+      "name": "notice_days",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.83
+    },
+    {
+      "name": "rate_pct",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.86
+    },
+    {
+      "name": "status_stated",
+      "type": "string",
+      "class": "lifecycle_state",
+      "confidence": 0.82
+    },
+    {
+      "name": "plant_ref",
+      "type": "string",
+      "class": "geography",
+      "confidence": 0.84
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "author_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.88,
+      "pii": true
+    },
+    {
+      "name": "statement_kind",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.79
+    }
+  ],
+  "data_model": {
+    "suggestions": [
+      {
+        "suggestion_id": "sg_rsp_notice_contract",
+        "from_table_key": "proc.supplier_price_notice",
+        "from_column": "supplier_id",
+        "to_table_key": "proc.supplier_contract_term",
+        "to_column": "supplier_id",
+        "relationship_type": "VALIDATED_AGAINST",
+        "relationship_type_alternatives": [
+          "GOVERNED_BY"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "A notice's valid_from should be received_on plus the notice days of the supplier's price-change term. The join is on supplier_id; where a supplier has two contracts the clause must be picked by family.",
+        "confidence": 0.78
+      },
+      {
+        "suggestion_id": "sg_rsp_margin_duty",
+        "from_table_key": "fin.margin_monthly",
+        "from_column": "family_code",
+        "to_table_key": "trade.duty_line",
+        "to_column": "entry_id",
+        "relationship_type": "RECOGNISES",
+        "relationship_type_alternatives": [
+          "TURNS_FROM"
+        ],
+        "cardinality_hint": "N:N",
+        "rationale": "Duty in cost of sales is recognised as inventory turns, not as entries are filed. A direct join of monthly duty to entries by family overstates the month; declare it as an allocation, not a join.",
+        "confidence": 0.58
+      },
+      {
+        "suggestion_id": "sg_rsp_sellthrough_invoice",
+        "from_table_key": "sales.dealer_sell_through",
+        "from_column": "dealer_id",
+        "to_table_key": "sales.invoice_line",
+        "to_column": "customer_id",
+        "relationship_type": "SOLD_THROUGH",
+        "relationship_type_alternatives": [
+          "RESOLD"
+        ],
+        "cardinality_hint": "N:N",
+        "rationale": "Dealer sell-through is the builder's purchases from the dealer, not RSP's invoices to the dealer. Joining them equates two different events.",
+        "confidence": 0.44
+      },
+      {
+        "suggestion_id": "sg_rsp_realisation_event",
+        "from_table_key": "sales.price_realisation_monthly",
+        "from_column": "family_code",
+        "to_table_key": "pricing.price_change_event",
+        "to_column": "family_code",
+        "relationship_type": "REALISES",
+        "relationship_type_alternatives": [
+          "TESTS"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "Realisation per month tests the latest event in force for the family and channel.",
+        "confidence": 0.82
+      },
+      {
+        "suggestion_id": "sg_rsp_capacity_report",
+        "from_table_key": "supply.plant_capacity",
+        "from_column": "qualified",
+        "to_table_key": "eng.code_report_plant",
+        "to_column": "status",
+        "relationship_type": "QUALIFIED_BY",
+        "relationship_type_alternatives": [
+          "LISTED_UNDER"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "plant_capacity.qualified should be derived from code_report_plant.status = Listed, not maintained by hand.",
+        "confidence": 0.71
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "ent-fin-margin-monthly-rsp012ba",
+        "confirmed_by": null,
+        "table_key": "fin.margin_monthly",
+        "entity_name": "margin_monthly",
+        "description": "Entity for margin_monthly, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "fin.gm_forecast_snapshot",
+            "from_columns": [
+              "family_code"
+            ],
+            "to_columns": [
+              "family_code"
+            ],
+            "relationship_type": "FORECAST_FOR",
+            "cardinality_hint": "N:N",
+            "rationale": "Both keyed on family_code; the snapshot is full-year, the margin is monthly - joined at family grain only.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "fin.std_cost_version",
+            "from_columns": [
+              "family_code"
+            ],
+            "to_columns": [
+              "family_code"
+            ],
+            "relationship_type": "COSTED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Standard cost versions per SKU roll up to the family the margin is reported at.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T10:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-fin-gm-forecast-snapshot-rsp3457b",
+        "confirmed_by": null,
+        "table_key": "fin.gm_forecast_snapshot",
+        "entity_name": "gm_forecast_snapshot",
+        "description": "Entity for gm_forecast_snapshot, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-fin-std-cost-version-rspef80c",
+        "confirmed_by": null,
+        "table_key": "fin.std_cost_version",
+        "entity_name": "std_cost_version",
+        "description": "Entity for std_cost_version, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-sales-invoice-line-rsp98879",
+        "confirmed_by": null,
+        "table_key": "sales.invoice_line",
+        "entity_name": "invoice_line",
+        "description": "Entity for invoice_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pricing.customer_agreement",
+            "from_columns": [
+              "customer_id"
+            ],
+            "to_columns": [
+              "customer_id"
+            ],
+            "relationship_type": "PRICED_UNDER",
+            "cardinality_hint": "N:1",
+            "rationale": "Each invoice line belongs to a customer whose agreement sets notice, caps and fixed terms.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "fin.margin_monthly",
+            "from_columns": [
+              "family_code"
+            ],
+            "to_columns": [
+              "family_code"
+            ],
+            "relationship_type": "SUMMARISED_IN",
+            "cardinality_hint": "N:1",
+            "rationale": "Invoice lines aggregate to monthly margin by family.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pricing.price_list",
+            "from_columns": [
+              "price_list_id"
+            ],
+            "to_columns": [
+              "price_list_id"
+            ],
+            "relationship_type": "PRICED_FROM",
+            "cardinality_hint": "N:1",
+            "rationale": "The list in force on the invoice date; realisation is net ÷ list.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T12:02:12.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-customer-agreement-rsp71590",
+        "confirmed_by": null,
+        "table_key": "pricing.customer_agreement",
+        "entity_name": "customer_agreement",
+        "description": "Entity for customer_agreement, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pricing.agreement_term",
+            "from_columns": [
+              "agreement_id"
+            ],
+            "to_columns": [
+              "agreement_id"
+            ],
+            "relationship_type": "HAS_TERM",
+            "cardinality_hint": "1:N",
+            "rationale": "Terms per agreement: notice, cap, qualifying costs, fixed until.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-price-list-rsp1dd93",
+        "confirmed_by": null,
+        "table_key": "pricing.price_list",
+        "entity_name": "price_list",
+        "description": "Entity for price_list, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-price-change-event-rsp22973",
+        "confirmed_by": null,
+        "table_key": "pricing.price_change_event",
+        "entity_name": "price_change_event",
+        "description": "Entity for price_change_event, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pricing.price_list",
+            "from_columns": [
+              "family_code"
+            ],
+            "to_columns": [
+              "price_list_id"
+            ],
+            "relationship_type": "ANNOUNCED_IN",
+            "cardinality_hint": "N:1",
+            "rationale": "An event is announced by a list version and its letter.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T15:05:12.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-agreement-term-rspab8ab",
+        "confirmed_by": null,
+        "table_key": "pricing.agreement_term",
+        "entity_name": "agreement_term",
+        "description": "Entity for agreement_term, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-builder-program-rsp88c6c",
+        "confirmed_by": null,
+        "table_key": "pricing.builder_program",
+        "entity_name": "builder_program",
+        "description": "Entity for builder_program, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pricing.builder_program_tier",
+            "from_columns": [
+              "program_id"
+            ],
+            "to_columns": [
+              "program_id"
+            ],
+            "relationship_type": "HAS_TIER",
+            "cardinality_hint": "1:N",
+            "rationale": "Tiers per program.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "sales.rebate_accrual",
+            "from_columns": [
+              "program_id"
+            ],
+            "to_columns": [
+              "program_id"
+            ],
+            "relationship_type": "ACCRUES",
+            "cardinality_hint": "1:N",
+            "rationale": "Quarterly accrual per program.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T17:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-pricing-builder-program-tier-rspe36a5",
+        "confirmed_by": null,
+        "table_key": "pricing.builder_program_tier",
+        "entity_name": "builder_program_tier",
+        "description": "Entity for builder_program_tier, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-sales-rebate-accrual-rsp8111e",
+        "confirmed_by": null,
+        "table_key": "sales.rebate_accrual",
+        "entity_name": "rebate_accrual",
+        "description": "Entity for rebate_accrual, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-sales-dealer-sell-through-rsp33bef",
+        "confirmed_by": null,
+        "table_key": "sales.dealer_sell_through",
+        "entity_name": "dealer_sell_through",
+        "description": "Entity for dealer_sell_through, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pricing.builder_program",
+            "from_columns": [
+              "builder_id"
+            ],
+            "to_columns": [
+              "builder_id"
+            ],
+            "relationship_type": "CONFIRMS",
+            "cardinality_hint": "N:1",
+            "rationale": "Dealer files confirm a builder's sell-through; a missing file confirms nothing.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T19:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-proc-po-line-rsp4e4c5",
+        "confirmed_by": null,
+        "table_key": "proc.po_line",
+        "entity_name": "po_line",
+        "description": "Entity for po_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "proc.supplier",
+            "from_columns": [
+              "supplier_id"
+            ],
+            "to_columns": [
+              "supplier_id"
+            ],
+            "relationship_type": "SUPPLIED_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "Supplier key.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "proc.goods_receipt",
+            "from_columns": [
+              "po_line"
+            ],
+            "to_columns": [
+              "po_line"
+            ],
+            "relationship_type": "RECEIVED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Receipts against the PO line.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "proc.supplier_invoice_line",
+            "from_columns": [
+              "po_line"
+            ],
+            "to_columns": [
+              "po_line"
+            ],
+            "relationship_type": "INVOICED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Invoice lines against the PO line; price variance is invoice − PO.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T10:04:12.000Z"
+      },
+      {
+        "entity_id": "ent-proc-supplier-rsp58a9c",
+        "confirmed_by": null,
+        "table_key": "proc.supplier",
+        "entity_name": "supplier",
+        "description": "Entity for supplier, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "proc.supplier_contract_term",
+            "from_columns": [
+              "supplier_id"
+            ],
+            "to_columns": [
+              "supplier_id"
+            ],
+            "relationship_type": "HAS_TERM",
+            "cardinality_hint": "1:N",
+            "rationale": "Contract terms per supplier.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "proc.supplier_price_notice",
+            "from_columns": [
+              "supplier_id"
+            ],
+            "to_columns": [
+              "supplier_id"
+            ],
+            "relationship_type": "ISSUED_NOTICE",
+            "cardinality_hint": "1:N",
+            "rationale": "Notices per supplier; valid_from follows the contract's notice days.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-proc-goods-receipt-rsp7addf",
+        "confirmed_by": null,
+        "table_key": "proc.goods_receipt",
+        "entity_name": "goods_receipt",
+        "description": "Entity for goods_receipt, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "trade.customs_entry",
+            "from_columns": [
+              "entry_id"
+            ],
+            "to_columns": [
+              "entry_id"
+            ],
+            "relationship_type": "CLEARED_UNDER",
+            "cardinality_hint": "N:1",
+            "rationale": "An import receipt clears under one customs entry.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-proc-supplier-invoice-line-rspef199",
+        "confirmed_by": null,
+        "table_key": "proc.supplier_invoice_line",
+        "entity_name": "supplier_invoice_line",
+        "description": "Entity for supplier_invoice_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-proc-supplier-contract-term-rsp42f37",
+        "confirmed_by": null,
+        "table_key": "proc.supplier_contract_term",
+        "entity_name": "supplier_contract_term",
+        "description": "Entity for supplier_contract_term, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-proc-supplier-price-notice-rsp88176",
+        "confirmed_by": null,
+        "table_key": "proc.supplier_price_notice",
+        "entity_name": "supplier_price_notice",
+        "description": "Entity for supplier_price_notice, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-trade-customs-entry-rsp82289",
+        "confirmed_by": null,
+        "table_key": "trade.customs_entry",
+        "entity_name": "customs_entry",
+        "description": "Entity for customs_entry, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "trade.duty_line",
+            "from_columns": [
+              "entry_id"
+            ],
+            "to_columns": [
+              "entry_id"
+            ],
+            "relationship_type": "HAS_DUTY_LINE",
+            "cardinality_hint": "1:N",
+            "rationale": "One line per duty program on the entry.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "trade.mill_certificate",
+            "from_columns": [
+              "entry_id"
+            ],
+            "to_columns": [
+              "entry_id"
+            ],
+            "relationship_type": "EVIDENCED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Certificates per entry; an entry with none has an unevidenced steel-content line.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "trade.refund_declaration",
+            "from_columns": [
+              "entry_id"
+            ],
+            "to_columns": [
+              "entry_id"
+            ],
+            "relationship_type": "DECLARED_IN",
+            "cardinality_hint": "1:N",
+            "rationale": "Refund declarations per entry, in four states.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "proc.supplier",
+            "from_columns": [
+              "supplier_id"
+            ],
+            "to_columns": [
+              "supplier_id"
+            ],
+            "relationship_type": "EXPORTED_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "The exporting supplier.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-trade-duty-line-rsp9fc86",
+        "confirmed_by": null,
+        "table_key": "trade.duty_line",
+        "entity_name": "duty_line",
+        "description": "Entity for duty_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "trade.duty_rate_table",
+            "from_columns": [
+              "program"
+            ],
+            "to_columns": [
+              "program"
+            ],
+            "relationship_type": "RATED_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "The rate in force on the entry date, by origin and program.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-trade-mill-certificate-rspcd5a7",
+        "confirmed_by": null,
+        "table_key": "trade.mill_certificate",
+        "entity_name": "mill_certificate",
+        "description": "Entity for mill_certificate, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-trade-refund-declaration-rspbcf63",
+        "confirmed_by": null,
+        "table_key": "trade.refund_declaration",
+        "entity_name": "refund_declaration",
+        "description": "Entity for refund_declaration, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-trade-duty-rate-table-rsp4f800",
+        "confirmed_by": null,
+        "table_key": "trade.duty_rate_table",
+        "entity_name": "duty_rate_table",
+        "description": "Entity for duty_rate_table, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-supply-steel-inventory-rspf8720",
+        "confirmed_by": null,
+        "table_key": "supply.steel_inventory",
+        "entity_name": "steel_inventory",
+        "description": "Entity for steel_inventory, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "supply.material",
+            "from_columns": [
+              "grade_id"
+            ],
+            "to_columns": [
+              "grade_id"
+            ],
+            "relationship_type": "FEEDS",
+            "cardinality_hint": "N:N",
+            "rationale": "Grades feed the materials made from them.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T11:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-supply-material-rsp92e7d",
+        "confirmed_by": null,
+        "table_key": "supply.material",
+        "entity_name": "material",
+        "description": "Entity for material, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-supply-steel-purchase-rsp8aadc",
+        "confirmed_by": null,
+        "table_key": "supply.steel_purchase",
+        "entity_name": "steel_purchase",
+        "description": "Entity for steel_purchase, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "supply.steel_inventory",
+            "from_columns": [
+              "grade_id"
+            ],
+            "to_columns": [
+              "grade_id"
+            ],
+            "relationship_type": "REPLENISHES",
+            "cardinality_hint": "N:1",
+            "rationale": "Purchase lots add to inventory by grade.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "supply.steel_index_monthly",
+            "from_columns": [
+              "index_at_purchase"
+            ],
+            "to_columns": [
+              "usd_per_ton"
+            ],
+            "relationship_type": "PRICED_OFF",
+            "cardinality_hint": "N:1",
+            "rationale": "Lots are priced off the month's index plus the grade extra.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T12:04:12.000Z"
+      },
+      {
+        "entity_id": "ent-supply-steel-index-monthly-rspd4799",
+        "confirmed_by": null,
+        "table_key": "supply.steel_index_monthly",
+        "entity_name": "steel_index_monthly",
+        "description": "Entity for steel_index_monthly, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-supply-plant-capacity-rsp72c70",
+        "confirmed_by": null,
+        "table_key": "supply.plant_capacity",
+        "entity_name": "plant_capacity",
+        "description": "Entity for plant_capacity, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "supply.plant",
+            "from_columns": [
+              "plant_id"
+            ],
+            "to_columns": [
+              "plant_id"
+            ],
+            "relationship_type": "CAPACITY_OF",
+            "cardinality_hint": "N:1",
+            "rationale": "Capacity rows per plant and family.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-supply-plant-rsp6d05d",
+        "confirmed_by": null,
+        "table_key": "supply.plant",
+        "entity_name": "plant",
+        "description": "Entity for plant, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-eng-code-report-rsp3fff0",
+        "confirmed_by": null,
+        "table_key": "eng.code_report",
+        "entity_name": "code_report",
+        "description": "Entity for code_report, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "eng.code_report_plant",
+            "from_columns": [
+              "report_id"
+            ],
+            "to_columns": [
+              "report_id"
+            ],
+            "relationship_type": "LISTS_PLANT",
+            "cardinality_hint": "1:N",
+            "rationale": "Plants listed per report; only Listed is coverage.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "eng.code_report_product",
+            "from_columns": [
+              "report_id"
+            ],
+            "to_columns": [
+              "report_id"
+            ],
+            "relationship_type": "COVERS_PRODUCT",
+            "cardinality_hint": "1:N",
+            "rationale": "Product series per report.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "fin.margin_monthly",
+            "from_columns": [
+              "family_code"
+            ],
+            "to_columns": [
+              "family_code"
+            ],
+            "relationship_type": "COVERS_FAMILY",
+            "cardinality_hint": "N:N",
+            "rationale": "Reports cover families; capacity without coverage cannot ship.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T15:01:12.000Z"
+      },
+      {
+        "entity_id": "ent-eng-code-report-plant-rsp98094",
+        "confirmed_by": null,
+        "table_key": "eng.code_report_plant",
+        "entity_name": "code_report_plant",
+        "description": "Entity for code_report_plant, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-eng-code-report-product-rspacc95",
+        "confirmed_by": null,
+        "table_key": "eng.code_report_product",
+        "entity_name": "code_report_product",
+        "description": "Entity for code_report_product, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-11T14:02:41.000Z"
+      },
+      {
+        "entity_id": "ent-eng-change-request-rsp2ebbd",
+        "confirmed_by": null,
+        "table_key": "eng.change_request",
+        "entity_name": "change_request",
+        "description": "Entity for change_request, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "eng.code_report_plant",
+            "from_columns": [
+              "to_source"
+            ],
+            "to_columns": [
+              "plant_ref"
+            ],
+            "relationship_type": "GATED_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "A plant move is gated by the target plant's status on the family's report.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-12T17:03:12.000Z"
+      }
+    ]
+  },
+  "change_signals": [
+    {
+      "signal_id": "sig-rsp-01",
+      "kind": "missing_instances",
+      "severity": "serious",
+      "dataset": "g_rsp_margin_protection",
+      "table": "No demand or order-book model",
+      "detail": "Volume questions beyond the invoiced quarter have nothing to read: no demand model, no housing-start feed. 'Optimal price' and 'demand next quarter' are declined.",
+      "action": "Do not infer demand response from past price changes; realisation is not elasticity.",
+      "detected": "2026-10-12"
+    },
+    {
+      "signal_id": "sig-rsp-02",
+      "kind": "missing_instances",
+      "severity": "serious",
+      "dataset": "g_rsp_margin_protection",
+      "table": "No competitor or market price source",
+      "detail": "Competitor prices and what competitors pay suppliers are not connected. Questions about them are declined rather than estimated from our own costs.",
+      "action": "Never present our landed cost as a market benchmark.",
+      "detected": "2026-10-12"
+    },
+    {
+      "signal_id": "sig-rsp-03",
+      "kind": "sampling_limit",
+      "severity": "warning",
+      "dataset": "g_rsp_margin_protection",
+      "table": "4 Q3 entries without a mill certificate",
+      "detail": "ENT-2026-0030, ENT-2026-0028, ENT-2026-0029, ENT-2026-0031 carry a Section 232 steel-content line on a declared value with no certificate. Duty figures that read them say so.",
+      "action": "Never state Section 232 duty on these entries as evidenced; the HomeBase pack lists the line as 'cannot evaluate'.",
+      "detected": "2026-10-12"
+    },
+    {
+      "signal_id": "sig-rsp-04",
+      "kind": "shallow_chain",
+      "severity": "warning",
+      "dataset": "g_rsp_margin_protection",
+      "table": "Duty recognised as inventory turns",
+      "detail": "fin.margin_monthly.cogs_duty_usd is recognised when inventory turns; trade.duty_line is dated by entry. The two never reconcile month by month and are not joined.",
+      "action": "Do not reconcile monthly duty in cost of sales to entries in the month; use the quarter and say the basis.",
+      "detected": "2026-10-12"
+    },
+    {
+      "signal_id": "sig-rsp-05",
+      "kind": "missing_instances",
+      "severity": "warning",
+      "dataset": "g_rsp_margin_protection",
+      "table": "October 2026 postings are open",
+      "detail": "fin.margin_monthly for October 2026 carries close_status = Open. Every margin answer reads to the certified Q3 close and says so.",
+      "action": "Never read Open months as actuals.",
+      "detected": "2026-10-12"
+    }
+  ]
+}

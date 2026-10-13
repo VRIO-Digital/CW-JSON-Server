@@ -131,6 +131,7 @@ import { loadCapexDocument } from './capex-loader.js'
 import { loadEpaDocument } from './epa-loader.js'
 import { loadKeolisDocument } from './keolis-loader.js'
 import { loadVlsDocument } from './vls-loader.js'
+import { loadSimpsonDocument } from './simpson-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -313,6 +314,16 @@ const loadedDocs = await Promise.all(
         process.exit(1)
       })
     }
+    /* SIMPSON loads from split files in simpson/ folder — the package's reference copy was
+       removed once split, so the committed split files are the store (the VLS arrangement). */
+    if (name === 'SIMPSON') {
+      return loadSimpsonDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load SIMPSON split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Restore backend/simpson/ from the repository:\n      git checkout -- backend/simpson\n`)
+        process.exit(1)
+      })
+    }
     /* Any other datasets load from their db.json files */
     return readJsonDb(
       DB_PATHS[name],
@@ -397,9 +408,9 @@ const OAUTH_SCOPES = {
 
 /**
  * Which vendor the selected dataset's tenant runs on — `google` for every dataset but the ones
- * `PROVIDER_BRANDS` names. KEOLIS is Microsoft — and only KEOLIS, on request: CAPEX and VLS stay
- * on the Google login — so its consent serves Microsoft scopes, its mailbox carries Outlook's
- * folders and its rows are labelled Azure SQL Database / OneDrive / Outlook. The *kinds* stay
+ * `PROVIDER_BRANDS` names. KEOLIS and SIMPSON are Microsoft — CAPEX and VLS stay on the Google
+ * login — so their consent serves Microsoft scopes, their mailboxes carry Outlook's
+ * folders and their rows are labelled Azure SQL Database / OneDrive / Outlook. The *kinds* stay
  * `bigquery` / `gdrive` / `gmail` everywhere: the brand is what a connector is called and what
  * its vendor's own vocabulary is, never a second code path.
  */

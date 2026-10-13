@@ -37,29 +37,34 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * document (its `db.V.json` — the V is VLS; the reference copy was removed once split). Its URL
  * letter is V, which stays unique among E, C, K and B.
  *
+ * SIMPSON is the Simpson demo package (tenant: Ridgeline Structural Products), split into
+ * `backend/simpson/` from the package's merged `db.RIDGELINE.json` by `npm run ingest:simpson`
+ * (the reference copy was removed once split, like VLS's — the committed split files are the
+ * store). Its URL letter is S, which stays unique among E, C, K, V and B.
+ *
  * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS', 'VLS']
+export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS', 'VLS', 'SIMPSON']
 export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 
 /**
  * Which cloud vendor a dataset's tenant runs on — the **provider brand**.
  *
- * KEOLIS is the one Microsoft tenant — asked for in exactly those terms: Microsoft for Keolis
- * only, Google for CAPEX and VLS — so under it the three real connectors present as Azure SQL
- * Database, OneDrive and Microsoft Outlook, the consent is a Microsoft sign-in, and the scopes
- * `/sources/oauth/start` serves are Microsoft Graph's. **Nothing underneath changes**: the kinds
- * are still `bigquery` / `gdrive` / `gmail`, the endpoints, pipelines and payload shapes are
- * untouched, and every other dataset stays Google. The brand is presentation plus the vendor-owned
- * vocabulary (scopes, mail folder names), never a second connector implementation.
+ * KEOLIS and SIMPSON are the Microsoft tenants — Google for CAPEX and VLS — so under them the
+ * three real connectors present as Azure SQL Database, OneDrive and Microsoft Outlook, the
+ * consent is a Microsoft sign-in, and the scopes `/sources/oauth/start` serves are Microsoft
+ * Graph's. **Nothing underneath changes**: the kinds are still `bigquery` / `gdrive` / `gmail`,
+ * the endpoints, pipelines and payload shapes are untouched, and every other dataset stays
+ * Google. The brand is presentation plus the vendor-owned vocabulary (scopes, mail folder
+ * names), never a second connector implementation.
  *
  * A dataset with no entry is Google — the default rather than a refusal, because a brand is a
  * skin and the Google one is the one every dataset has always had. The client holds the same map
  * in `frontend/src/data/providerBrand.ts`; `check-docs` holds the two against each other.
  */
-export const PROVIDER_BRANDS = { KEOLIS: 'microsoft' }
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', SIMPSON: 'microsoft' }
 export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
 
 /**

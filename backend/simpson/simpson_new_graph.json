@@ -1,0 +1,1357 @@
+{
+  "graph_domains": [
+    {
+      "domain_id": "margin-protection",
+      "name": "Margin Protection (cost to price)",
+      "expected_sources": [
+        "ERP finance (margin by family)",
+        "ERP sales (invoice lines, realisation, rebates)",
+        "ERP purchasing (POs, invoices, contract terms)",
+        "Trade (entries, duty lines, certificates, refunds)",
+        "Pricing and agreement register",
+        "Steel supply",
+        "Code reports",
+        "Cost-to-price documents and mailbox"
+      ],
+      "fit": "strong",
+      "note": "Every expected source is connected and profiled; agreements, supplier contracts, notices, entry summaries and code reports are in the Drive corpus; the mailbox is connected.",
+      "unmet_note": "No finance, trade or pricing source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "supplier-pass-through",
+      "name": "Supplier Pass-through and Duty Recovery",
+      "expected_sources": [
+        "Supplier contract terms",
+        "Customs entries and duty lines",
+        "Refund declarations",
+        "Supplier correspondence"
+      ],
+      "fit": "strong",
+      "note": "Clause 9.3 claims, refund states and certificates resolve. Whether a clause was breached is a legal judgement the graph does not make.",
+      "unmet_note": "No contract terms or trade register connected.",
+      "rank": 2
+    },
+    {
+      "domain_id": "plant-change-readiness",
+      "name": "Plant and Supplier Change Readiness",
+      "expected_sources": [
+        "Code reports and plant listings",
+        "Plant capacity",
+        "Change requests",
+        "Landed cost by source"
+      ],
+      "fit": "partial",
+      "note": "Code report coverage, capacity and landed cost resolve; the evaluation agency's scheduling is not connected, so inspection timing is a stated indication only.",
+      "unmet_note": "No engineering register connected.",
+      "rank": 3
+    },
+    {
+      "domain_id": "demand-forecasting",
+      "name": "Demand Forecasting",
+      "expected_sources": [
+        "Order book",
+        "Housing starts and permits",
+        "Elasticity history by channel"
+      ],
+      "fit": "none",
+      "note": "No order-book or market feed is connected and realisation history is not elasticity. Volume and 'optimal price' questions are declined.",
+      "unmet_note": "No demand source connected.",
+      "rank": 4
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "cfo",
+      "name": "Chief Financial Officer",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "floor",
+        "operating margin",
+        "bridge",
+        "committee",
+        "options",
+        "below target"
+      ],
+      "focus": "Asks which families are below target, what moved the margin, how far below the floor, and what the committee can decide.",
+      "top_questions": [
+        "hq1",
+        "hq2",
+        "hq14",
+        "hq20",
+        "hq34",
+        "hq38"
+      ]
+    },
+    {
+      "persona_id": "sourcing",
+      "name": "VP Global Sourcing",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "supplier",
+        "pass-through",
+        "notice",
+        "invoice",
+        "steel cover",
+        "fixed-price"
+      ],
+      "focus": "Asks what suppliers changed, whether notices were valid, what can be claimed back, and how much steel cover there is.",
+      "top_questions": [
+        "hq3",
+        "hq6",
+        "hq7",
+        "hq13",
+        "hq17",
+        "hq21"
+      ]
+    },
+    {
+      "persona_id": "pricing",
+      "name": "Pricing Director",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "price increase",
+        "coverage",
+        "realisation",
+        "agreement",
+        "notice",
+        "list"
+      ],
+      "focus": "Asks whether past increases covered cost, which agreements limit repricing, and what the next cycle needs.",
+      "top_questions": [
+        "hq4",
+        "hq5",
+        "hq18",
+        "hq26",
+        "hq31"
+      ]
+    },
+    {
+      "persona_id": "fpa",
+      "name": "FP&A Manager",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "landed cost",
+        "forecast",
+        "bridge",
+        "run rate",
+        "floor",
+        "family"
+      ],
+      "focus": "Asks for the bridge by family, landed cost by source, the forecast against plan and the increase that holds the floor.",
+      "top_questions": [
+        "hq11",
+        "hq15",
+        "hq25",
+        "hq29",
+        "hq36"
+      ]
+    },
+    {
+      "persona_id": "accounts",
+      "name": "National Accounts Director",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "HomeBase",
+        "BuildMart",
+        "rebate",
+        "statement",
+        "dealer file",
+        "justification"
+      ],
+      "focus": "Asks what each national account can bear, what the cost justification supports, and what builder programs owe.",
+      "top_questions": [
+        "hq8",
+        "hq12",
+        "hq19",
+        "hq27",
+        "hq32"
+      ]
+    },
+    {
+      "persona_id": "trade",
+      "name": "Trade Compliance Manager",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "duty",
+        "entry",
+        "certificate",
+        "refund",
+        "Section 232",
+        "IEEPA"
+      ],
+      "focus": "Asks what duty was paid, what is recoverable and in what state, and which entries lack evidence.",
+      "top_questions": [
+        "hq9",
+        "hq16",
+        "hq24",
+        "hq30",
+        "hq37"
+      ]
+    },
+    {
+      "persona_id": "engineer",
+      "name": "Product Engineer",
+      "domains": [
+        "plant-change-readiness"
+      ],
+      "keywords": [
+        "code report",
+        "inspection",
+        "Lebanon",
+        "plant",
+        "gate",
+        "capacity"
+      ],
+      "focus": "Asks which reports list a plant, when an inspection is, and whether a line can ship.",
+      "top_questions": [
+        "hq10",
+        "hq22",
+        "hq23",
+        "hq35"
+      ]
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "hq1",
+      "text": "Which product families are below target gross margin this quarter, and by how much?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "product",
+        "families",
+        "below",
+        "target",
+        "gross",
+        "margin"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q01",
+      "rationale": "Resolves across rsp_erp.fin + rsp_pricing.pricing at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq2",
+      "text": "What drove the drop in gross margin from Q2 to Q3?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "drove",
+        "drop",
+        "gross",
+        "margin"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q02",
+      "rationale": "Resolves across rsp_erp.fin + rsp_pricing.supply + rsp_trade.trade at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq3",
+      "text": "What drove the margin drop on mechanical anchors: steel, duty, freight or price?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "drove",
+        "margin",
+        "drop",
+        "mechanical",
+        "anchors",
+        "steel"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q03",
+      "rationale": "Resolves across rsp_erp.fin + rsp_erp.proc + rsp_trade.trade + mailbox at question time at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq4",
+      "text": "Did the June and October 2025 price increases cover the cost increases, family by family?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "june",
+        "october",
+        "price",
+        "increases",
+        "cover",
+        "cost"
+      ],
+      "persona": "Pricing Director",
+      "answer_id": "Q04",
+      "rationale": "Resolves across rsp_erp.fin + rsp_erp.sales + rsp_pricing.pricing at high confidence (0.86)."
+    },
+    {
+      "question_id": "hq5",
+      "text": "Which customer agreements limit how fast we can reprice, and when do they renew?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "customer",
+        "agreements",
+        "limit",
+        "fast",
+        "reprice",
+        "when"
+      ],
+      "persona": "Pricing Director",
+      "answer_id": "Q05",
+      "rationale": "Resolves across rsp_pricing.pricing at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq6",
+      "text": "Which supplier contracts let us pass tariff increases back, and which do not?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "supplier",
+        "contracts",
+        "pass",
+        "tariff",
+        "increases",
+        "back"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q06",
+      "rationale": "Resolves across rsp_erp.proc at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq7",
+      "text": "Why did Ningbo Kaitong raise its price in September, and does the invoice match what they told us?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "ningbo",
+        "kaitong",
+        "raise",
+        "price",
+        "september",
+        "invoice"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q07",
+      "rationale": "Resolves across rsp_erp.proc + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq8",
+      "text": "What increase does the HomeBase cost justification support, and by when must we serve notice?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "increase",
+        "homebase",
+        "cost",
+        "justification",
+        "support",
+        "when"
+      ],
+      "persona": "National Accounts Director",
+      "answer_id": "Q08",
+      "rationale": "Resolves across rsp_erp.fin + rsp_erp.proc + rsp_erp.sales + rsp_trade.trade + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq9",
+      "text": "How much duty did we pay that is recoverable, and how much is still unclaimed?",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "much",
+        "duty",
+        "recoverable",
+        "much",
+        "unclaimed"
+      ],
+      "persona": "Trade Compliance Manager",
+      "answer_id": "Q09",
+      "rationale": "Resolves across rsp_trade.trade + mailbox at question time at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq10",
+      "text": "If we move 40% of anchor volume to Lebanon, what do we save, and which code reports must list the plant first?",
+      "domains": [
+        "plant-change-readiness"
+      ],
+      "keywords": [
+        "move",
+        "anchor",
+        "volume",
+        "lebanon",
+        "save",
+        "code"
+      ],
+      "persona": "Product Engineer",
+      "answer_id": "Q10",
+      "rationale": "Resolves across rsp_pricing.eng + rsp_pricing.supply + rsp_trade.trade + mailbox at question time at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq11",
+      "text": "What price increase holds the 47% floor if steel rises another 10%?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "price",
+        "increase",
+        "holds",
+        "floor",
+        "steel",
+        "rises"
+      ],
+      "persona": "FP&A Manager",
+      "answer_id": "Q11",
+      "rationale": "Resolves across rsp_erp.fin + rsp_pricing.pricing at medium confidence (0.84)."
+    },
+    {
+      "question_id": "hq12",
+      "text": "What rebate do we owe Meridian Homes for Q3, and which dealer file is missing?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "rebate",
+        "meridian",
+        "homes",
+        "dealer",
+        "file",
+        "missing"
+      ],
+      "persona": "National Accounts Director",
+      "answer_id": "Q12",
+      "rationale": "Resolves across rsp_erp.sales + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq13",
+      "text": "How many weeks of steel cover do we hold by grade, and which price lists are exposed if the index rises 10%?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "many",
+        "weeks",
+        "steel",
+        "cover",
+        "hold",
+        "grade"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q13",
+      "rationale": "Resolves across rsp_pricing.pricing + rsp_pricing.supply + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq14",
+      "text": "What can we do before the 28 October committee: reprice, re-source or renegotiate, and what does each need?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "before",
+        "october",
+        "committee",
+        "reprice",
+        "re-source",
+        "renegotiate"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q14",
+      "rationale": "Resolves across rsp_erp.proc + rsp_pricing.eng + rsp_pricing.pricing + mailbox at question time at high confidence (0.85)."
+    },
+    {
+      "question_id": "hq15",
+      "text": "What is the landed cost per pound of mechanical anchors by source?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "landed",
+        "cost",
+        "pound",
+        "mechanical",
+        "anchors",
+        "source"
+      ],
+      "persona": "FP&A Manager",
+      "answer_id": "Q15",
+      "rationale": "Resolves across rsp_erp.proc + rsp_trade.trade at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq16",
+      "text": "Which Q3 entries have no mill certificate, and what is at risk?",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "entries",
+        "mill",
+        "certificate",
+        "risk"
+      ],
+      "persona": "Trade Compliance Manager",
+      "answer_id": "Q16",
+      "rationale": "Resolves across rsp_trade.trade + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq17",
+      "text": "When is the Ningbo pass-through claim due, and how much is it?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "when",
+        "ningbo",
+        "pass-through",
+        "claim",
+        "much"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q17",
+      "rationale": "Resolves across rsp_trade.trade at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq18",
+      "text": "How much of the October 2025 increase was realised, by channel?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "much",
+        "october",
+        "increase",
+        "realised",
+        "channel"
+      ],
+      "persona": "Pricing Director",
+      "answer_id": "Q18",
+      "rationale": "Resolves across rsp_erp.sales + rsp_pricing.pricing at high confidence (0.87)."
+    },
+    {
+      "question_id": "hq19",
+      "text": "Which national accounts can take a January increase, and on what notice?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "national",
+        "accounts",
+        "take",
+        "january",
+        "increase",
+        "notice"
+      ],
+      "persona": "National Accounts Director",
+      "answer_id": "Q19",
+      "rationale": "Resolves across rsp_pricing.pricing at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq20",
+      "text": "What is our operating margin in Q3, and how far below the floor?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "operating",
+        "margin",
+        "below",
+        "floor"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q20",
+      "rationale": "Resolves across rsp_erp.fin at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq21",
+      "text": "Which fixed-price supplier lots expire on 31 December, and what did Taichung indicate for 2027?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "fixed-price",
+        "supplier",
+        "lots",
+        "expire",
+        "december",
+        "taichung"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q21",
+      "rationale": "Resolves across rsp_erp.proc + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq22",
+      "text": "Which code reports list the Lebanon plant, and which do not?",
+      "domains": [
+        "plant-change-readiness"
+      ],
+      "keywords": [
+        "code",
+        "reports",
+        "list",
+        "lebanon",
+        "plant"
+      ],
+      "persona": "Product Engineer",
+      "answer_id": "Q22",
+      "rationale": "Resolves across rsp_pricing.eng at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq23",
+      "text": "When is the shearwall inspection at Lebanon, and what does it unlock?",
+      "domains": [
+        "plant-change-readiness"
+      ],
+      "keywords": [
+        "when",
+        "shearwall",
+        "inspection",
+        "lebanon",
+        "unlock"
+      ],
+      "persona": "Product Engineer",
+      "answer_id": "Q23",
+      "rationale": "Resolves across rsp_pricing.eng + rsp_pricing.supply at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq24",
+      "text": "What duty rates apply to Chinese anchors today, and what changed in February?",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "duty",
+        "rates",
+        "apply",
+        "chinese",
+        "anchors",
+        "today"
+      ],
+      "persona": "Trade Compliance Manager",
+      "answer_id": "Q24",
+      "rationale": "Resolves across rsp_trade.trade at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq25",
+      "text": "What is the margin bridge for structural fasteners?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "margin",
+        "bridge",
+        "structural",
+        "fasteners"
+      ],
+      "persona": "FP&A Manager",
+      "answer_id": "Q25",
+      "rationale": "Resolves across rsp_erp.fin + rsp_trade.trade at high confidence (0.89)."
+    },
+    {
+      "question_id": "hq26",
+      "text": "How much of our revenue is price-protected until a stated date?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "much",
+        "revenue",
+        "price-protected",
+        "until",
+        "stated",
+        "date"
+      ],
+      "persona": "Pricing Director",
+      "answer_id": "Q26",
+      "rationale": "Resolves across rsp_pricing.pricing at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq27",
+      "text": "What did the HomeBase buyer say about the increase, and is it binding?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "homebase",
+        "buyer",
+        "about",
+        "increase",
+        "binding"
+      ],
+      "persona": "National Accounts Director",
+      "answer_id": "Q27",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq28",
+      "text": "What did the steel buyer propose on forward cover, and is it approved?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "steel",
+        "buyer",
+        "propose",
+        "forward",
+        "cover",
+        "approved"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q28",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq29",
+      "text": "How does the FY2026 gross margin forecast compare with plan, by family?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "gross",
+        "margin",
+        "forecast",
+        "compare",
+        "plan",
+        "family"
+      ],
+      "persona": "FP&A Manager",
+      "answer_id": "Q29",
+      "rationale": "Resolves across rsp_erp.fin at high confidence (0.88)."
+    },
+    {
+      "question_id": "hq30",
+      "text": "Which refund declarations were rejected, and why?",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "refund",
+        "declarations",
+        "were",
+        "rejected"
+      ],
+      "persona": "Trade Compliance Manager",
+      "answer_id": "Q30",
+      "rationale": "Resolves across rsp_trade.trade at high confidence (0.93)."
+    },
+    {
+      "question_id": "hq31",
+      "text": "What price increases did we take in 2025 and 2026, and where do they apply?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "price",
+        "increases",
+        "take",
+        "where",
+        "apply"
+      ],
+      "persona": "Pricing Director",
+      "answer_id": "Q31",
+      "rationale": "Resolves across rsp_pricing.pricing at high confidence (0.94)."
+    },
+    {
+      "question_id": "hq32",
+      "text": "Can we increase BuildMart prices in January?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "increase",
+        "buildmart",
+        "prices",
+        "january"
+      ],
+      "persona": "National Accounts Director",
+      "answer_id": "Q32",
+      "rationale": "Resolves across rsp_pricing.pricing at high confidence (0.95)."
+    },
+    {
+      "question_id": "hq33",
+      "text": "Which suppliers raised prices in 2026, and were the notices valid under their contracts?",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "suppliers",
+        "raised",
+        "prices",
+        "were",
+        "notices",
+        "valid"
+      ],
+      "persona": "VP Global Sourcing",
+      "answer_id": "Q33",
+      "rationale": "Resolves across rsp_erp.proc at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq34",
+      "text": "What is the cost coverage ratio of a 5% increase for HomeBase?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "cost",
+        "coverage",
+        "ratio",
+        "increase",
+        "homebase"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q34",
+      "rationale": "Resolves across rsp_erp.sales at high confidence (0.90)."
+    },
+    {
+      "question_id": "hq35",
+      "text": "Can the Lebanon line build anchors now?",
+      "domains": [
+        "plant-change-readiness"
+      ],
+      "keywords": [
+        "lebanon",
+        "line",
+        "build",
+        "anchors"
+      ],
+      "persona": "Product Engineer",
+      "answer_id": "Q35",
+      "rationale": "Resolves across the document corpus + mailbox at question time at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq36",
+      "text": "Which families are above target?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "families",
+        "above",
+        "target"
+      ],
+      "persona": "FP&A Manager",
+      "answer_id": "Q36",
+      "rationale": "Resolves across rsp_erp.fin + rsp_pricing.pricing at high confidence (0.92)."
+    },
+    {
+      "question_id": "hq37",
+      "text": "Which entries carried the Section 232 steel-content line in Q3, and how much?",
+      "domains": [
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "entries",
+        "carried",
+        "section",
+        "steel-content",
+        "line",
+        "much"
+      ],
+      "persona": "Trade Compliance Manager",
+      "answer_id": "Q37",
+      "rationale": "Resolves across rsp_trade.trade at high confidence (0.91)."
+    },
+    {
+      "question_id": "hq38",
+      "text": "Where do the figures in the Q3 margin review come from, and how fresh is each source?",
+      "domains": [
+        "margin-protection"
+      ],
+      "keywords": [
+        "where",
+        "figures",
+        "margin",
+        "review",
+        "come",
+        "fresh"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "Q45",
+      "rationale": "Resolves across rsp_erp.fin + rsp_pricing.eng + rsp_pricing.pricing + rsp_trade.trade at high confidence (0.95)."
+    }
+  ],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mv6d8f0z4",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "margin-protection",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "FP&A Manager",
+          "description": "Asks for the bridge by family, landed cost by source, the forecast against plan and the increase that holds the floor.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "National Accounts Director",
+          "description": "Asks what each national account can bear, what the cost justification supports, and what builder programs owe.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Rebate accrual",
+          "description": "Accrual = confirmed sell-through × the tier reached year to date. A month without a dealer file is not confirmed and is never estimated.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        },
+        {
+          "name": "Notice-window days remaining",
+          "description": "Days from today to a notice or claim deadline set by a clause (notice period, claim window, justification period).",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "azuresql:rsp_erp",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "onedrive:my-drive-rsp-pricing",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "What increase does the HomeBase cost justification support, and by when must we serve notice?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT notice_days, term_type, valid_to\nFROM `proc`.`supplier_contract_term`\nLIMIT 1000"
+        },
+        {
+          "text": "Which supplier contracts let us pass tariff increases back, and which do not?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT contract_id, supplier_id, share_pct, term_type\nFROM `proc`.`supplier_contract_term`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-13T07:35:08.110Z"
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "margin-protection",
+      "use_case_id": "uc_margin_protection",
+      "name": "Margin Protection (cost to price)",
+      "description": "One model over certified margin, purchasing, customs, pricing agreements, steel and code reports, so a margin question resolves once - with the clause, the entry or the record that evidences it.",
+      "match_phrases": [
+        "margin",
+        "price increase",
+        "tariff",
+        "duty",
+        "steel",
+        "pass-through",
+        "landed cost",
+        "cost justification",
+        "floor"
+      ],
+      "personas": [
+        "cfo",
+        "sourcing",
+        "pricing",
+        "fpa",
+        "accounts",
+        "trade",
+        "engineer"
+      ],
+      "metrics": [
+        "gm-by-family",
+        "landed-cost-per-lb",
+        "price-realisation",
+        "tariff-cost-per-family",
+        "recoverable-pass-through",
+        "weeks-of-cover",
+        "rebate-accrual",
+        "recoverable-duty"
+      ],
+      "hero_questions": [
+        "hq1",
+        "hq2",
+        "hq3",
+        "hq4",
+        "hq5",
+        "hq6",
+        "hq7",
+        "hq8",
+        "hq9",
+        "hq10",
+        "hq11",
+        "hq12",
+        "hq13",
+        "hq14"
+      ]
+    }
+  ],
+  "graph_metrics": [
+    {
+      "metric_id": "gm-by-family",
+      "name": "Gross margin by family",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "margin",
+        "target",
+        "family",
+        "below"
+      ],
+      "definition": "GM = (net sales − cost of sales) ÷ net sales per family per certified month; cost of sales split into steel, duty, freight, conversion and other. Open months are never read."
+    },
+    {
+      "metric_id": "landed-cost-per-lb",
+      "name": "Landed cost per pound",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "landed",
+        "cost",
+        "pound",
+        "source"
+      ],
+      "definition": "Landed = supplier price + duty at the entry-date rate + inbound freight (+ conversion where made), ÷ net weight, per source."
+    },
+    {
+      "metric_id": "price-realisation",
+      "name": "Price realisation",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "realisation",
+        "list",
+        "net",
+        "channel"
+      ],
+      "definition": "Realisation = net invoice price ÷ list price in force, per channel and family. A list increase is not realised until the ratio holds."
+    },
+    {
+      "metric_id": "tariff-cost-per-family",
+      "name": "Tariff cost per family",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "duty",
+        "tariff",
+        "family",
+        "cost of sales"
+      ],
+      "definition": "Duty recognised in cost of sales per family as inventory turns; never equal to entries filed in the month."
+    },
+    {
+      "metric_id": "recoverable-pass-through",
+      "name": "Recoverable pass-through",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "pass-through",
+        "claim",
+        "clause",
+        "supplier share"
+      ],
+      "definition": "Supplier's share of new duties under a pass-through clause, on the quarter's entries, within the claim window and cap. Waived outside the window."
+    },
+    {
+      "metric_id": "weeks-of-cover",
+      "name": "Weeks of steel cover",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "cover",
+        "weeks",
+        "steel",
+        "inventory"
+      ],
+      "definition": "Weeks = tons on hand ÷ trailing 8-week consumption, per grade. Tons on order are shown separately, never added."
+    },
+    {
+      "metric_id": "rebate-accrual",
+      "name": "Rebate accrual",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "rebate",
+        "program",
+        "tier",
+        "sell-through"
+      ],
+      "definition": "Accrual = confirmed sell-through × the tier reached year to date. A month without a dealer file is not confirmed and is never estimated."
+    },
+    {
+      "metric_id": "recoverable-duty",
+      "name": "Recoverable duty",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "refund",
+        "IEEPA",
+        "recoverable",
+        "declaration"
+      ],
+      "definition": "IEEPA duty on entries to 20 Feb 2026, by state: refunded, claimed, unclaimed. Section 301 and 232 are never recoverable. States are never summed as cash."
+    },
+    {
+      "metric_id": "protected-revenue-share",
+      "name": "Protected revenue share",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "protected",
+        "fixed",
+        "share",
+        "renewal"
+      ],
+      "definition": "Share of net sales under agreements whose price cannot change before a stated date; capped shares shown separately."
+    },
+    {
+      "metric_id": "cost-coverage-ratio",
+      "name": "Cost coverage ratio",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "coverage",
+        "justification",
+        "qualifying",
+        "increase"
+      ],
+      "definition": "Coverage = qualifying cost increase (per the agreement's clause) ÷ revenue effect of a price increase, per agreement."
+    },
+    {
+      "metric_id": "notice-window-days",
+      "name": "Notice-window days remaining",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "notice",
+        "deadline",
+        "days",
+        "claim window"
+      ],
+      "definition": "Days from today to a notice or claim deadline set by a clause (notice period, claim window, justification period)."
+    },
+    {
+      "metric_id": "code-report-plant-coverage",
+      "name": "Code-report plant coverage",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "code report",
+        "plant",
+        "listed",
+        "coverage"
+      ],
+      "definition": "Share of a family's reports that list a plant as a manufacturing location. Requested or scheduled is not coverage."
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "gap-to-target",
+      "name": "Gap to target",
+      "format": "table by family with target, gap and prior quarter; bar of gaps",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "below target",
+        "gap",
+        "family",
+        "quarter"
+      ]
+    },
+    {
+      "format_id": "bridge",
+      "name": "Bridge",
+      "format": "metric row + driver bar + evidence per driver; unattributed remainder stated",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "bridge",
+        "drove",
+        "moved",
+        "why"
+      ]
+    },
+    {
+      "format_id": "terms-table",
+      "name": "Terms table",
+      "format": "one row per agreement or contract with the clause, limit, notice and date",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "agreement",
+        "contract",
+        "notice",
+        "clause",
+        "pass-through"
+      ]
+    },
+    {
+      "format_id": "established-vs-open",
+      "name": "Established vs open",
+      "format": "two tables: dated facts with sources, open questions with owners",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "invoice",
+        "notice",
+        "breach",
+        "match"
+      ]
+    },
+    {
+      "format_id": "lines-evaluated",
+      "name": "Lines evaluated",
+      "format": "included · excluded · cannot evaluate, each with its rule",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "justification",
+        "qualifying",
+        "pack",
+        "support"
+      ]
+    },
+    {
+      "format_id": "by-state",
+      "name": "By state",
+      "format": "metric row per state + table of exceptions; never a total",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "recoverable",
+        "refund",
+        "claimed",
+        "unclaimed"
+      ]
+    },
+    {
+      "format_id": "gates",
+      "name": "Gates",
+      "format": "one row per gate with status, owner and evidence",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "move",
+        "Lebanon",
+        "code report",
+        "ship",
+        "ready"
+      ]
+    },
+    {
+      "format_id": "levers-and-floor",
+      "name": "Levers and floor",
+      "format": "cases table: extra cost, gap to ceiling, increase needed",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "floor",
+        "steel rises",
+        "increase needed",
+        "hold"
+      ]
+    },
+    {
+      "format_id": "provenance-table",
+      "name": "Provenance table",
+      "format": "every figure with dataset, basis and as-of",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "source",
+        "provenance",
+        "as-of",
+        "where from"
+      ]
+    },
+    {
+      "format_id": "decline-with-alternative",
+      "name": "Decline with alternative",
+      "format": "reason for declining + what can be answered instead",
+      "domains": [
+        "margin-protection",
+        "supplier-pass-through"
+      ],
+      "keywords": [
+        "predict",
+        "optimal",
+        "breach",
+        "competitor",
+        "next year"
+      ]
+    }
+  ]
+}

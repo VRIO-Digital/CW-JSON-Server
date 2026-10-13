@@ -1,8 +1,8 @@
 /**
  * The **provider brand**: which cloud vendor the selected dataset's tenant runs on.
  *
- * KEOLIS is the one Microsoft tenant — Microsoft for Keolis only, Google for CAPEX and VLS, asked
- * for in those terms — so under it the three real connectors present as **Azure
+ * KEOLIS and SIMPSON are the Microsoft tenants — Google for CAPEX and VLS, asked
+ * for in those terms — so under them the three real connectors present as **Azure
  * SQL Database, OneDrive and Microsoft Outlook**, and the consent is a Microsoft sign-in. Every other
  * dataset stays Google. **Nothing underneath changes**: the connector kinds are still
  * `bigquery` / `gdrive` / `gmail`, every endpoint, pipeline, store and payload shape is untouched,
@@ -22,7 +22,10 @@ import { currentDataset } from '../api/dataset'
 export type ProviderBrand = 'google' | 'microsoft'
 
 /** Datasets whose tenant runs on Microsoft. A dataset with no entry is Google. */
-export const PROVIDER_BRANDS: Record<string, ProviderBrand> = { KEOLIS: 'microsoft' }
+export const PROVIDER_BRANDS: Record<string, ProviderBrand> = {
+  KEOLIS: 'microsoft',
+  SIMPSON: 'microsoft',
+}
 
 export function providerBrandFor(dataset: string): ProviderBrand {
   return PROVIDER_BRANDS[dataset.trim().toUpperCase()] ?? 'google'
