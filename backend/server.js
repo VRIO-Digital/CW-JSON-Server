@@ -12159,11 +12159,18 @@ const routes = [
       const wrong = wrongConnector(source, 'gmail', 'profile', 'POST')
       if (wrong) return send(res, 400, { error: wrong })
 
-      /* Newest first: `profilingJobs` is append-ordered, so the last match is the current run. */
-      const mine = profilingJobs.filter(
+      /*
+       * **The newest run is the *first* match: `queueJob` unshifts, so the list is newest-first.**
+       * This took the last match, on a comment claiming the list was append-ordered — which held
+       * only while a source had run once. On every later run the poll was answered with the
+       * *previous, already-complete* job: the panel read `complete` on its first tick, stopped
+       * watching, and re-read the table while the new run had committed one document of ten — so
+       * "Process documents" appeared to land a single document until a reload caught the rest.
+       * Reported from use, on the second and every later press.
+       */
+      const job = profilingJobs.find(
         (j) => j.source_id === sourceId && j.kind === 'gmail',
-      )
-      const job = mine.length > 0 ? mine[mine.length - 1] : null
+      ) ?? null
       send(res, 200, { source_id: sourceId, job: job ? jobView(job) : null })
     },
   },
