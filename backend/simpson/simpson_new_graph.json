@@ -894,75 +894,7 @@
       "rationale": "Resolves across rsp_erp.fin + rsp_pricing.eng + rsp_pricing.pricing + rsp_trade.trade at high confidence (0.95)."
     }
   ],
-  "graph_use_cases": [
-    {
-      "use_case_id": "uc-testdata-mv6d8f0z4",
-      "name": "testdata",
-      "status": "committed",
-      "domain_id": "margin-protection",
-      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
-      "personas": [
-        {
-          "name": "FP&A Manager",
-          "description": "Asks for the bridge by family, landed cost by source, the forecast against plan and the increase that holds the floor.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "National Accounts Director",
-          "description": "Asks what each national account can bear, what the cost justification supports, and what builder programs owe.",
-          "source": "ai",
-          "origin": null
-        }
-      ],
-      "metrics": [
-        {
-          "name": "Rebate accrual",
-          "description": "Accrual = confirmed sell-through × the tier reached year to date. A month without a dealer file is not confirmed and is never estimated.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        },
-        {
-          "name": "Notice-window days remaining",
-          "description": "Days from today to a notice or claim deadline set by a clause (notice period, claim window, justification period).",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "azuresql:rsp_erp",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "onedrive:my-drive-rsp-pricing",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What increase does the HomeBase cost justification support, and by when must we serve notice?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT notice_days, term_type, valid_to\nFROM `proc`.`supplier_contract_term`\nLIMIT 1000"
-        },
-        {
-          "text": "Which supplier contracts let us pass tariff increases back, and which do not?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT contract_id, supplier_id, share_pct, term_type\nFROM `proc`.`supplier_contract_term`\nLIMIT 1000"
-        }
-      ],
-      "gap_decisions": [],
-      "golden_query_files": [],
-      "step": 5,
-      "updated_at": "2026-10-13T07:35:08.110Z"
-    }
-  ],
+  "graph_use_cases": [],
   "graph_use_case_templates": [
     {
       "template_id": "margin-protection",

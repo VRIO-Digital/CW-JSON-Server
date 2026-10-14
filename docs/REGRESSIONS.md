@@ -7888,3 +7888,32 @@ SKILLS.md: derive a kind through `pickKind` or the source's own `kind` field, ne
 `startsWith`. **Lesson** — a "nothing does X" claim verified by grepping two spellings of X is a
 claim about the spellings; the reliable check was reading the one module whose whole job is
 deriving facts from these ids.
+
+---
+
+## Mail run shows one document until a reload; every run after the first
+
+**Symptom** — pressing *Process documents* on the Simpson Outlook mailbox ended with the table
+showing **one** document (tiles at 1, "1 document(s) processed"), while a reload or a tab switch
+then showed all 10. Reported from use; the first-ever run on a fresh source was fine.
+
+**Root cause** — `GET /sources/:id/mail-run` picked `mine[mine.length - 1]` under a comment
+claiming `profilingJobs` is append-ordered. It is not: `queueJob` **unshifts**, so the list is
+newest-first and the last match is the *oldest* run. With one run in history that is also the
+newest, which is why the first press worked; on every later press the panel's first poll (3s in)
+was answered with the previous, already-complete job — `status: 'complete'` stopped the interval
+and fired the completion re-read while the new run had committed one document of ten (commits are
+spread across the 7 ticks, first at ~3.4s). The run kept finishing server-side, which is why a
+reload showed all 10.
+
+**Fix** — the handler takes the **first** match (`profilingJobs.find(...)`), the newest run under
+the ordering `queueJob` actually produces. Verified against a live server on the Simpson dataset:
+a second run's first poll now reports the new job `running` at 0%, and the completion re-read
+lands at 10 of 10. The drive twin was checked and is unaffected — `useDriveProcessStore.poll`
+reads the jobs board's own `active` list before `recent`.
+
+**Guard** — *documented*: the handler's comment now states the ordering fact at the site that
+depends on it, next to the failure it produced. **Lesson** — a comment asserting an ordering is a
+claim about the producer, and the producer (`profilingJobs.unshift`) was fifty lines away saying
+the opposite; when a surface shows a stale answer that a reload corrects, suspect which *record*
+was read before suspecting when it was read.
