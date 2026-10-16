@@ -79,8 +79,6 @@ const existing = db.settings ?? {}
 const NAV_KEYS = [
   'reports',
   'ask',
-  'what-if',
-  'ai-submissions',
   'goals',
   'submission',
   'new-graph',

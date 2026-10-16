@@ -4,11 +4,11 @@ import {
   // CheckCircleOutlined,
   DatabaseOutlined,
   DeploymentUnitOutlined,
-  ExperimentOutlined,
+  // ExperimentOutlined,
   FileTextOutlined,
   // LineChartOutlined,
   PlusOutlined,
-  RobotOutlined,
+  // RobotOutlined,
   SafetyCertificateOutlined,
   SendOutlined,
   SettingOutlined,
@@ -82,24 +82,24 @@ export const NAV_ITEMS: NavItem[] = [
     icon: QuestionCircleOutlined,
     group: 'Explore',
   },
-  {
-    key: 'what-if',
-    label: 'What-if Lenses',
-    path: '/what-if',
-    icon: ExperimentOutlined,
-    group: 'Explore',
-  },
-  /*
-   * A fixed showcase page rather than a computed one — see `AISubmissionsPage` for why it is gated
-   * on nothing. Last in Explore because it reads no source and no graph, unlike the three above it.
-   */
-  {
-    key: 'ai-submissions',
-    label: 'AI Submissions',
-    path: '/aisubmission',
-    icon: RobotOutlined,
-    group: 'Explore',
-  },
+  // Commented out, not deleted — both pages stay routed and reachable by URL (`/what-if`,
+  // `/aisubmission`), the same arrangement as /trace and /validation. Their icon imports
+  // (ExperimentOutlined, RobotOutlined) are commented above, and their keys were taken out of the
+  // seed's NAV_KEYS; both want all three back when the entries return.
+  // {
+  //   key: 'what-if',
+  //   label: 'What-if Lenses',
+  //   path: '/what-if',
+  //   icon: ExperimentOutlined,
+  //   group: 'Explore',
+  // },
+  // {
+  //   key: 'ai-submissions',
+  //   label: 'AI Submissions',
+  //   path: '/aisubmission',
+  //   icon: RobotOutlined,
+  //   group: 'Explore',
+  // },
   /*
    * Two views of one framed prototype (`src/Keolis/goals-submission/`): each entry opens the same
    * document on its own screen — `#/K/goals` and `#/K/submissions` — so they are two nav items
