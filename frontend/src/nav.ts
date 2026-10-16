@@ -1,4 +1,5 @@
 import {
+  AimOutlined,
   // ApartmentOutlined,
   // CheckCircleOutlined,
   DatabaseOutlined,
@@ -9,6 +10,7 @@ import {
   PlusOutlined,
   RobotOutlined,
   SafetyCertificateOutlined,
+  SendOutlined,
   SettingOutlined,
   TableOutlined,
   QuestionCircleOutlined,
@@ -25,6 +27,8 @@ export type NavKey =
   | 'graph-studio'
   | 'what-if'
   | 'ai-submissions'
+  | 'goals'
+  | 'submission'
   | 'settings'
   | 'trace'
   | 'validation'
@@ -94,6 +98,25 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'AI Submissions',
     path: '/aisubmission',
     icon: RobotOutlined,
+    group: 'Explore',
+  },
+  /*
+   * Two views of one framed prototype (`src/Keolis/goals-submission/`): each entry opens the same
+   * document on its own screen — `#/K/goals` and `#/K/submissions` — so they are two nav items
+   * rather than one page with a toggle nobody can deep-link.
+   */
+  {
+    key: 'goals',
+    label: 'Goals',
+    path: '/goals',
+    icon: AimOutlined,
+    group: 'Explore',
+  },
+  {
+    key: 'submission',
+    label: 'Submission',
+    path: '/submission',
+    icon: SendOutlined,
     group: 'Explore',
   },
 

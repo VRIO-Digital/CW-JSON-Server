@@ -969,8 +969,8 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-muzd9cp5k",
-      "name": "testdata",
+      "use_case_id": "uc-fdsdsfsdf-mvaw05yz4",
+      "name": "fdsdsfsdf",
       "status": "committed",
       "domain_id": "fleet-infrastructure-sgr",
       "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
@@ -1006,17 +1006,12 @@
       ],
       "sources": [
         {
-          "source_id": "outlook:ellis.hargrove@vriodigital.com",
+          "source_id": "azuresql:keolis_valmont_eam",
           "mode": "all",
           "objects": []
         },
         {
           "source_id": "onedrive:kv-capital-renewal",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "azuresql:keolis_valmont_eam",
           "mode": "all",
           "objects": []
         }
@@ -1032,13 +1027,13 @@
           "text": "Which forecasts are out of date?",
           "priority": "normal",
           "source": "ai",
-          "sql": "SELECT commissioned_date\nFROM `eam`.`asset_register`\nLIMIT 1000"
+          "sql": null
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 5,
-      "updated_at": "2026-10-08T10:01:29.839Z"
+      "updated_at": "2026-10-16T11:31:40.776Z"
     }
   ],
   "graph_use_case_templates": [

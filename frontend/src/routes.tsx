@@ -10,6 +10,7 @@ import AuditPage from './pages/AuditPage'
 import CatalogPage from './pages/CatalogPage'
 import DbEditorPage from './pages/DbEditorPage'
 import DoctorPage from './pages/DoctorPage'
+import GoalsSubmissionPage from './pages/GoalsSubmissionPage'
 import GraphCanvasFullPage from './pages/GraphCanvasFullPage'
 import GraphStudioPage from './pages/GraphStudioPage'
 import LoginPage from './pages/LoginPage'
@@ -160,6 +161,9 @@ export const routes: RouteObject[] = [
           { path: 'what-if', element: <WhatIfPage /> },
           /* A framed showcase page, gated on nothing — see AISubmissionsPage for why. */
           { path: 'aisubmission', element: <AISubmissionsPage /> },
+          /* Two views of one framed prototype, behind the publish gate — see GoalsSubmissionPage. */
+          { path: 'goals', element: <GoalsSubmissionPage view="goals" /> },
+          { path: 'submission', element: <GoalsSubmissionPage view="submission" /> },
           /*
            * Users and persona access — the two tabs that configure who sees what.
            *

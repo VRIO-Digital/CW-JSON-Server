@@ -97,6 +97,7 @@ export default function DocumentViewer({
   onBack,
   backLabel = 'Back to Library',
   seamless = false,
+  fragment,
   enhance,
 }: {
   document: FramedDocument
@@ -105,6 +106,13 @@ export default function DocumentViewer({
   backLabel?: string
   /** Render the document as the page rather than as a framed file. See the note above. */
   seamless?: boolean
+  /**
+   * A `#…` appended to the document's URL, for a framed prototype that routes between its own
+   * screens by hash — the Goals & Submissions page is one document with two views, and the two nav
+   * entries open it at `#/K/goals` and `#/K/submissions`. On the URL rather than in the file lookup,
+   * because `reportDocumentUrl` resolves *files* and a hash is not part of a filename.
+   */
+  fragment?: string
   /**
    * Run against the loaded document, after the stylesheets are in.
    *
@@ -318,7 +326,7 @@ export default function DocumentViewer({
             }
             /* The stylesheet's height stands until the measurement lands, and for a framed report always. */
             style={seamless && fitted !== null ? { height: fitted } : undefined}
-            src={url}
+            src={fragment ? url + fragment : url}
             title={`${doc.title} — rendered document`}
             /*
              * `same-origin` so the document's own scripts run and so `contentWindow.print()` is reachable;
