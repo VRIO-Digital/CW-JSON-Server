@@ -196,6 +196,321 @@ function dropChipAttachments(inner: Document) {
 }
 
 /**
+ * The build answers almost instantly — each agent message lands a beat after the one before — so the
+ * chat reads as an HTML page filling itself in rather than an analyst working. Asked first for a long
+ * hold with a loader, then refined: a shimmer, and **each paragraph rendering 10s after the last**
+ * (`PARAGRAPH_MS`), the arrangement Ask's answer stream already keeps.
+ *
+ * Done from the frame, never by editing the generated file: a MutationObserver catches each agent
+ * message (`.hub-agent`) as React adds it and hides it with a data attribute (not a class — React
+ * rewrites `className` when a message's `is-cont` flag flips, which would un-hide it). Its paragraphs
+ * (the children of its text block, and any card beside it) are then revealed one per `PARAGRAPH_MS`,
+ * with a shimmering skeleton and a changing status line sitting under whatever has been written so far.
+ * Messages are processed **one at a time, in order**, so a flow that pushes five steps in two seconds
+ * still plays out as five separate pieces of work.
+ *
+ * What is held is a message that arrives **because of something the reader just did**: within
+ * `ACT_WINDOW_MS` of a click or keypress outside the goal list, or while earlier messages are still
+ * queued. Opening a saved goal re-renders its whole history at once and must not be replayed with a
+ * wait, so a click in the rail does not arm the hold and a batch of more than `MAX_BATCH` messages is
+ * treated as history. The build's own typing bubble is left alone. A held message that React removes
+ * (the reader opened another goal) is dropped from the queue rather than waited on.
+ */
+const PARAGRAPH_MS = 10_000
+const PANEL_TOTAL_MS = 30_000
+const PANEL_MAX_GAP_MS = 3_000
+const TAB_FALLBACK_MS = 10_000
+const ACT_WINDOW_MS = 10_000
+const MAX_BATCH = 3
+const STATUS_STEP_MS = 3_500
+const AGENT_STATUS = [
+  'Reading the goal and the attached material…',
+  'Pulling the matching figures from the connected sources…',
+  'Cross-checking the numbers against the approved budgets…',
+  'Working out what it means…',
+  'Writing it up…',
+]
+
+/* The panel's "Build in Submissions" (the Outputs rows, `.out`) drew its label in a muted grey on the
+   dark primary fill; the chat's copy of the same button is white. */
+const BUILD_BTN_CSS =
+  ' .out .ant-btn-primary, .out .ant-btn-primary span { color: #fff !important }'
+
+/* "Browse everything" at the foot of the OneDrive / Outlook picker was asked off the menu. It is the one
+   item that follows a `.menu-sep` and is itself a `.mi` (the other separator is followed by the
+   "Connected" heading), so the pair is hidden by that adjacency rather than by its label. */
+const NO_BROWSE_CSS =
+  ' .menu-sep:has(+ .mi), .menu-sep + .mi { display: none !important }'
+
+const AGENT_HOLD_CSS =
+  ' [data-cw-hold] { display: none !important }' +
+  ' .cw-shimmer { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 6px; max-width: 520px }' +
+  ' .cw-shimmer .cw-status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #6b7384 }' +
+  ' .cw-shimmer .gc-typing { padding: 0 }' +
+  ' .cw-shimmer i { display: block; height: 11px; border-radius: 6px; background: linear-gradient(90deg,' +
+  ' #eceff4 25%, #f8f9fb 50%, #eceff4 75%); background-size: 200% 100%; animation: cw-shim 1.4s linear infinite }' +
+  ' .cw-shimmer i:nth-child(2) { width: 96% } .cw-shimmer i:nth-child(3) { width: 88% }' +
+  ' .cw-shimmer i:nth-child(4) { width: 62% }' +
+  ' .st-beat.is-pending .st-body { height: 11px; border-radius: 6px; background: linear-gradient(90deg,' +
+  ' #eceff4 25%, #f8f9fb 50%, #eceff4 75%); background-size: 200% 100%; animation: cw-shim 1.4s linear infinite }' +
+  ' @keyframes cw-shim { from { background-position: 200% 0 } to { background-position: -200% 0 } }' +
+  ' @media (prefers-reduced-motion: reduce) { .cw-shimmer i { animation: none } }'
+
+function holdAgentMessages(inner: Document) {
+  const win = inner.defaultView
+  if (!win) return
+  const queue: HTMLElement[] = []
+  let running = false
+  let lastAct = 0
+
+  const arm = (ev: Event) => {
+    if ((ev.target as Element | null)?.closest?.('.hub-rail')) return
+    lastAct = Date.now()
+  }
+  inner.addEventListener('click', arm, true)
+  inner.addEventListener('keydown', arm, true)
+
+  /* The paragraphs of a message, in order: each child of the text block, and each other block (a card)
+     beside it. A message with neither is one unit — itself. */
+  const unitsOf = (el: HTMLElement): HTMLElement[] => {
+    const body = el.querySelector<HTMLElement>('.hub-agent-body')
+    if (!body) return []
+    const out: HTMLElement[] = []
+    for (const child of Array.from(body.children) as HTMLElement[]) {
+      if (child.classList.contains('hub-text')) out.push(...(Array.from(child.children) as HTMLElement[]))
+      else out.push(child)
+    }
+    return out
+  }
+
+  const makeShimmer = (label = AGENT_STATUS[0]) => {
+    const box = inner.createElement('div')
+    box.className = 'cw-shimmer'
+    const status = inner.createElement('div')
+    status.className = 'cw-status'
+    const dots = inner.createElement('span')
+    dots.className = 'gc-typing'
+    dots.append(inner.createElement('span'), inner.createElement('span'), inner.createElement('span'))
+    const text = inner.createElement('span')
+    text.textContent = label
+    status.append(dots, text)
+    box.appendChild(status)
+    for (let i = 0; i < 3; i++) box.appendChild(inner.createElement('i'))
+    return { box, text }
+  }
+
+  /*
+   * The panel's tabs (Plan · Workflow · Data · Log, then Findings and the rest) are chosen by the
+   * build from the goal's stage, and a stage moves the instant the chat's state does — so Workflow,
+   * Data and Log all appeared at once, ahead of the conversation that is supposed to have produced
+   * them. A tab the build adds after the reader has acted is held, and **released by the chat**: each
+   * time an agent message finishes writing itself, the oldest held tab appears. `TAB_FALLBACK_MS`
+   * chains a release behind each hold as well, so a tab is never stranded when no message is coming.
+   * The first tab (Plan) and the selected one are never held, and a tab is held once per goal.
+   */
+  const heldTabs: HTMLElement[] = []
+  const shownTabs = new Set<string>()
+  let tabAt = 0
+  const releaseTab = (btn: HTMLElement | undefined = heldTabs.shift()) => {
+    if (!btn) return
+    const i = heldTabs.indexOf(btn)
+    if (i >= 0) heldTabs.splice(i, 1)
+    btn.removeAttribute('data-cw-hold')
+  }
+  const holdTab = (btn: HTMLElement) => {
+    if (btn.hasAttribute('data-cw-hold') || btn.classList.contains('is-on')) return
+    if (btn === btn.parentElement?.firstElementChild) return
+    const key = `${win.location.hash}|${(btn.firstChild?.textContent ?? '').trim()}`
+    if (shownTabs.has(key)) return
+    shownTabs.add(key)
+    btn.setAttribute('data-cw-hold', '')
+    heldTabs.push(btn)
+    tabAt = Math.max(Date.now(), tabAt) + TAB_FALLBACK_MS
+    win.setTimeout(() => releaseTab(btn), tabAt - Date.now())
+  }
+
+  const pump = () => {
+    if (running) return
+    const el = queue[0]
+    if (!el) return
+    const body = el.querySelector<HTMLElement>('.hub-agent-body')
+    const units = unitsOf(el)
+    if (!el.isConnected || !body || !units.length) {
+      el.removeAttribute('data-cw-hold')
+      queue.shift()
+      pump()
+      return
+    }
+    running = true
+    for (const u of units) u.setAttribute('data-cw-hold', '')
+    el.removeAttribute('data-cw-hold')
+    const { box, text } = makeShimmer()
+    body.appendChild(box)
+    let step = 0
+    const ticker = win.setInterval(() => {
+      step = Math.min(step + 1, AGENT_STATUS.length - 1)
+      text.textContent = AGENT_STATUS[step]
+    }, STATUS_STEP_MS)
+    let shown = 0
+    const reveal = () => {
+      if (!el.isConnected) shown = units.length
+      else units[shown].removeAttribute('data-cw-hold')
+      shown += 1
+      if (shown < units.length) {
+        /* Keep the shimmer under whatever has been written so far, and restart its status line. */
+        units[shown - 1].after(box)
+        step = 0
+        text.textContent = AGENT_STATUS[0]
+        win.setTimeout(reveal, PARAGRAPH_MS)
+        return
+      }
+      win.clearInterval(ticker)
+      box.remove()
+      if (el.isConnected) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      releaseTab()
+      queue.shift()
+      running = false
+      pump()
+    }
+    win.setTimeout(reveal, PARAGRAPH_MS)
+  }
+
+  /*
+   * The answer story ("Asked · Read · Found · Compared · Therefore") reveals its lines on a timer
+   * inside the build, 0.7–1.3s apart. Each line (`.st-beat`) is held and released `PARAGRAPH_MS` after
+   * the previous one; the build's own pending beat beneath them is the shimmer. Chained off a running
+   * release time rather than a queue so a Replay, which remounts the lines, plays out the same way.
+   */
+  let beatAt = 0
+  const holdBeat = (beat: HTMLElement) => {
+    beat.setAttribute('data-cw-hold', '')
+    beatAt = Math.max(Date.now(), beatAt) + PARAGRAPH_MS
+    win.setTimeout(() => beat.removeAttribute('data-cw-hold'), beatAt - Date.now())
+  }
+
+  /*
+   * The right-hand plan panel (`.pd`: "The brief", "What I'm working from", …) paints every section at
+   * once. Its sections, and the rows of "The brief" (`.bf`), are held and released evenly across
+   * `PANEL_TOTAL_MS` — one total rather than a gap per item, since how many there are depends on the
+   * goal — with a shimmer at the foot of the panel
+   * while anything is still to come. Chained off one running release time, like the story beats.
+   *
+   * A section or row is held **once per goal**: `shown` remembers it by goal (the frame's hash) and its
+   * heading or label, because switching the panel's tabs remounts it and replaying a minute of waiting
+   * over something the reader has already watched arrive would be a bug, not an effect. Armed like the
+   * chat — only after the reader has acted, so opening a saved goal from the rail shows its panel whole.
+   */
+  const shown = new Set<string>()
+  let panelAt = 0
+  let panelPending = 0
+  let panelStart = 0
+  const panelKey = (el: HTMLElement, goal: string) => {
+    const label = el.querySelector('h1,h2,h3,h4,.pd-h,.bf-k')?.textContent ?? el.textContent?.slice(0, 40) ?? ''
+    return `${win.location.hash}|${goal}|${label.trim()}`
+  }
+  /* Sections that are new to a panel — the whole set when the panel mounts, a single one when React
+     adds one to a panel that is already there (the panel element itself persists across goals). */
+  const holdPanel = (pd: HTMLElement, sections: HTMLElement[]) => {
+    const goal = (pd.querySelector('.bf')?.textContent ?? '').slice(0, 80)
+    const steps: { el: HTMLElement; key: string }[] = []
+    for (const section of sections) {
+      if (section.classList.contains('pd-status') || section.classList.contains('cw-shimmer')) continue
+      if (section.hasAttribute('data-cw-hold')) continue
+      steps.push({ el: section, key: panelKey(section, goal) })
+      for (const row of Array.from(section.querySelectorAll<HTMLElement>('.bf > *'))) {
+        steps.push({ el: row, key: panelKey(row, goal) })
+      }
+    }
+    const todo = steps.filter((st) => !shown.has(st.key))
+    if (!todo.length) return
+    /* React may add the sections one call at a time, so the budget belongs to the burst, not to a
+       call: a burst starts when nothing is pending, spaces items at most PANEL_MAX_GAP_MS apart, and
+       nothing in it is released later than PANEL_TOTAL_MS after it started. */
+    if (panelPending <= 0) {
+      panelStart = Date.now()
+      panelAt = panelStart
+    }
+    const gap = Math.min(PANEL_TOTAL_MS / todo.length, PANEL_MAX_GAP_MS)
+    /* One shimmer per panel, however many sections React adds one at a time. */
+    const box = pd.querySelector<HTMLElement>(':scope > .cw-shimmer') ?? makeShimmer('Filling in the plan…').box
+    for (const st of todo) {
+      st.el.setAttribute('data-cw-hold', '')
+      panelAt = Math.min(Math.max(Date.now(), panelAt) + gap, panelStart + PANEL_TOTAL_MS)
+      panelPending += 1
+      /* Due at its slot — but never ahead of the conversation: while the chat is still writing
+         (a message mid-reveal, or more queued), the panel waits and checks again. */
+      const release = () => {
+        if (st.el.isConnected && (running || queue.length > 0)) {
+          win.setTimeout(release, 1_000)
+          return
+        }
+        shown.add(st.key)
+        st.el.removeAttribute('data-cw-hold')
+        panelPending -= 1
+        if (panelPending <= 0) inner.querySelectorAll('.panel-body .cw-shimmer').forEach((n) => n.remove())
+      }
+      win.setTimeout(release, panelAt - Date.now())
+    }
+    pd.appendChild(box)
+  }
+
+  new MutationObserver((records) => {
+    const fresh: HTMLElement[] = []
+    const panelArmed = Date.now() - lastAct < ACT_WINDOW_MS || panelPending > 0
+    for (const rec of records) {
+      for (const node of rec.addedNodes) {
+        if (!(node instanceof win.HTMLElement)) continue
+        if (!panelArmed) continue
+        const tabs = node.matches('.tabs > .tab') ? [node] : [...node.querySelectorAll<HTMLElement>('.tabs > .tab')]
+        for (const t of tabs) holdTab(t)
+        if (node.classList.contains('cw-shimmer')) continue
+        /* A panel root is whatever the active tab draws into `.panel-body` — the plan's `.pd`, the
+           findings, the outputs, the data view. A node added inside one is a new section of it. */
+        const parent = node.parentElement
+        if (parent?.matches('.panel-body > *')) holdPanel(parent, [node])
+        else {
+          const roots = node.matches('.panel-body')
+            ? (Array.from(node.children) as HTMLElement[])
+            : node.matches('.panel-body > *')
+              ? [node]
+              : [...node.querySelectorAll<HTMLElement>('.panel-body > *')]
+          for (const root of roots) holdPanel(root, Array.from(root.children) as HTMLElement[])
+        }
+      }
+    }
+    for (const rec of records) {
+      for (const node of rec.addedNodes) {
+        if (!(node instanceof win.HTMLElement)) continue
+        const beats = node.matches('.st-beat') ? [node] : [...node.querySelectorAll<HTMLElement>('.st-beat')]
+        for (const b of beats) {
+          if (b.classList.contains('is-pending') || b.hasAttribute('data-cw-hold')) continue
+          holdBeat(b)
+        }
+      }
+    }
+    for (const rec of records) {
+      for (const node of rec.addedNodes) {
+        if (!(node instanceof win.HTMLElement)) continue
+        const found = node.matches('.hub-agent') ? [node] : [...node.querySelectorAll<HTMLElement>('.hub-agent')]
+        for (const el of found) {
+          if (el.hasAttribute('data-cw-hold') || queue.includes(el)) continue
+          if (el.querySelector('.gc-typing') || !el.querySelector('.hub-agent-body')) continue
+          if (!fresh.includes(el)) fresh.push(el)
+        }
+      }
+    }
+    if (!fresh.length) return
+    const armed = Date.now() - lastAct < ACT_WINDOW_MS || queue.length > 0
+    if (!armed || fresh.length > MAX_BATCH) return
+    for (const el of fresh) {
+      el.setAttribute('data-cw-hold', '')
+      queue.push(el)
+    }
+    pump()
+  }).observe(inner.body, { childList: true, subtree: true })
+}
+
+/**
  * The rail is React-managed inside the frame, so the button cannot be placed once: opening a goal or
  * a draft re-renders the rail's children and a tight viewport remounts the whole `<aside>`. A
  * MutationObserver re-inserts it whenever a rail is missing one — the `injectSessionTab` precedent,
@@ -454,9 +769,10 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
-            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS
+            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS
             inner.head?.appendChild(style)
             injectRailNewButton(inner)
+            holdAgentMessages(inner)
             dropChipAttachments(inner)
 
             const win = inner.defaultView
