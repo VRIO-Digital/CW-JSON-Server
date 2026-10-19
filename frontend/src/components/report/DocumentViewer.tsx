@@ -97,6 +97,7 @@ export default function DocumentViewer({
   onBack,
   backLabel = 'Back to Library',
   seamless = false,
+  fillWindow = false,
   fragment,
   enhance,
 }: {
@@ -106,6 +107,12 @@ export default function DocumentViewer({
   backLabel?: string
   /** Render the document as the page rather than as a framed file. See the note above. */
   seamless?: boolean
+  /**
+   * Fit the seamless frame to the window's bottom edge rather than to the space left in the page.
+   * For a page that bleeds out of the shell's padding: what sits below it is then not the frame's to
+   * leave room for, and measuring it anyway left a band of empty ground under the document.
+   */
+  fillWindow?: boolean
   /**
    * A `#…` appended to the document's URL, for a framed prototype that routes between its own
    * screens by hash — the Goals & Submissions page frames one build per view, each carrying its own
@@ -156,10 +163,9 @@ export default function DocumentViewer({
        * component to the app frame it is rendered inside, and the number would be wrong the first time
        * that padding changed.
        */
-      const below = Math.max(
-        0,
-        root.scrollHeight - (rect.top + window.scrollY + el.offsetHeight),
-      )
+      const below = fillWindow
+        ? 0
+        : Math.max(0, root.scrollHeight - (rect.top + window.scrollY + el.offsetHeight))
       /*
        * The frame's top **in the document**, so the fit does not depend on where the page happens to be
        * scrolled when a resize arrives: `rect.top` alone is short by the scroll offset, which fits the
@@ -174,7 +180,7 @@ export default function DocumentViewer({
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [seamless, url])
+  }, [seamless, fillWindow, url])
 
   /*
    * Whether the framed document has reached the thing it was opened for.

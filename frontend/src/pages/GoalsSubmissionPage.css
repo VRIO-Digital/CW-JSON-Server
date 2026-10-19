@@ -1,0 +1,18 @@
+/* The framed build is the whole page, so it cancels `.app-content`'s padding (App.css) and fills the
+   content area edge to edge. The three paddings below must stay equal to App.css's, breakpoint for
+   breakpoint, or the frame stops short of — or spills past — the window. */
+.gs-bleed {
+  margin: calc(-1 * var(--sp-7)) calc(-1 * var(--sp-7)) calc(-1 * var(--sp-9));
+}
+
+@media (max-width: 991px) {
+  .gs-bleed {
+    margin: calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-8));
+  }
+}
+
+@media (max-width: 575px) {
+  .gs-bleed {
+    margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4)) calc(-1 * var(--sp-7));
+  }
+}

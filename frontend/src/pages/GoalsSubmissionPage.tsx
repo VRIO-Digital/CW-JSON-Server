@@ -7,6 +7,7 @@ import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
 import { useReportsStore } from '../store/reportsStore'
+import './GoalsSubmissionPage.css'
 
 /**
  * Goals and Submission — two sidebar entries over **one live frame**.
@@ -99,7 +100,9 @@ const HIDE_SHELL_CSS = ' .ant-layout-sider, .mobile-bar { display: none !importa
 /**
  * The build's hub is sized `calc(100vh - 112px)`, and the chrome around it is 122px — the 48px role
  * bar, its content area's 32px top and 48px bottom padding, less the hub's own -6px top margin — so
- * every export of this prototype overflows its viewport by exactly 10px. Standalone that is a sliver
+ * every export of this prototype overflows its viewport by exactly 10px. The content area's vertical
+ * padding is also cut to 8px each, so the hub fills the frame instead of leaving a slab of empty
+ * ground under it (chrome is then 48 + 8 + 8 - 6 = 58px). Standalone that is a sliver
  * of scroll nobody notices; inside a seamless frame it paints a scrollbar the full height of the
  * frame, which beside the composer panel's own scroller reads as the page scrolling twice (reported
  * from use as two vertical scrollbars). Corrected from the frame for the HIDE_SHELL_CSS reason — the
@@ -110,7 +113,10 @@ const HIDE_SHELL_CSS = ' .ant-layout-sider, .mobile-bar { display: none !importa
  * name its classes — a re-export that changes a padding makes it visibly wrong (the sliver of
  * scrollbar returns), never silently.
  */
-const FIT_HUB_CSS = ' @media (min-width: 1101px) { .hub { height: calc(100vh - 122px) !important } }'
+const FIT_HUB_CSS =
+  ' @media (min-width: 1101px) {' +
+  ' .app-content { padding-top: 8px !important; padding-bottom: 8px !important }' +
+  ' .hub { height: calc(100vh - 58px) !important } }'
 
 /**
  * The prototype keeps its goal-list rail's visibility in `localStorage` under this key (default
@@ -386,8 +392,8 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
   }, [view])
 
   return (
-    <>
-      <PageHeader title={title} subtitle={subtitle} />
+    <div className="gs-bleed">
+      {title ? <PageHeader title={title} subtitle={subtitle} /> : null}
       {loading && !index ? (
         <Spin />
       ) : error && !index ? (
@@ -404,6 +410,7 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
         <DocumentViewer
           document={{ file: entry.file, title }}
           seamless
+          fillWindow
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
@@ -479,6 +486,6 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           }}
         />
       )}
-    </>
+    </div>
   )
 }
