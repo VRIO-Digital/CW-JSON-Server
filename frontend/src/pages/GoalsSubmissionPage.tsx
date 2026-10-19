@@ -212,27 +212,81 @@ const SIM_NOTICES: [number, string, string, string][] = [
   [24000, 'Approve the note before it goes out', 'The note to the project manager is drafted and waits for your approval. Nothing is sent until you approve it.', 'findings'],
 ]
 
+/* The bell's own antd badge never drew, so this frame paints a count of its own. It is a fixed element
+   on the document body, placed from the bell's bounding box, rather than a child of the button: the
+   button belongs to React and its ancestors clip. The original `sup` is hidden, React owning it. */
+const BELL_BADGE_CSS =
+  ' .ant-badge:has(> button[aria-label="Notifications"]) > sup { display: none !important }' +
+  ' .cw-bell-count { position: fixed; z-index: 2147483000; min-width: 18px; height: 18px; padding: 0 5px;' +
+  ' border-radius: 9px; background: #f04438; color: #fff; font: 600 11px/18px system-ui, sans-serif;' +
+  ' text-align: center; box-shadow: 0 0 0 2px #fff; pointer-events: none; box-sizing: border-box }'
+
+function badgeNotices(inner: Document) {
+  const win = inner.defaultView as (Window & { __cwJourney?: { useGoalStore?: { getState: () => { notices: { read: boolean }[] } } } }) | null
+  if (!win) return
+  const paint = () => {
+    const btn = inner.querySelector<HTMLElement>('button[aria-label="Notifications"]')
+    const n = win.__cwJourney?.useGoalStore?.getState().notices.filter((x) => !x.read).length ?? 0
+    let badge = inner.querySelector<HTMLElement>('.cw-bell-count')
+    const rect = btn?.getBoundingClientRect()
+    if (!btn || !rect || !rect.width || !n) return void badge?.remove()
+    if (!badge) {
+      badge = inner.createElement('span')
+      badge.className = 'cw-bell-count'
+      inner.body.appendChild(badge)
+    }
+    const text = n > 99 ? '99+' : String(n)
+    if (badge.textContent !== text) badge.textContent = text
+    badge.style.left = `${Math.round(rect.right - 14)}px`
+    badge.style.top = `${Math.max(1, Math.round(rect.top - 2))}px`
+  }
+  new MutationObserver(paint).observe(inner.body, { childList: true, subtree: true })
+  win.addEventListener('resize', paint)
+  win.setInterval(paint, 500)
+}
+
+type GoalStoreLike = {
+  getState: () => { notices: unknown[]; goals?: { id: string; status: string }[] }
+  setState: (p: object) => void
+}
+
 function notifyOnSimulate(inner: Document) {
-  const win = inner.defaultView as (Window & { __cwJourney?: { useGoalStore?: { getState: () => { notices: unknown[] }; setState: (p: object) => void } } }) | null
+  const win = inner.defaultView as (Window & { __cwJourney?: { useGoalStore?: GoalStoreLike } }) | null
   if (!win) return
   inner.addEventListener('click', (ev) => {
-    const btn = (ev.target as Element | null)?.closest?.('button')
-    if (!btn?.textContent?.includes('Simulate the 22 September snapshot')) return
-    const goalId = win.location.hash.match(/goals\/([^/?#]+)/)?.[1]
+    const btn = (ev.target as Element | null)?.closest?.('button, a, [role="button"]')
+    if (!/Simulate( the (22 September )?snapshot|: run now)/.test(btn?.textContent ?? '')) return
     SIM_NOTICES.forEach(([delay, title, text, tab], n) => {
       win.setTimeout(() => {
         const store = win.__cwJourney?.useGoalStore
-        if (!store || !goalId) return
+        if (!store) return
+        /* The goal open in the panel has no id in the frame's hash, so it is read off the store: the
+           one the press just fired, else the hash's, else the first standing goal. */
+        const goals = store.getState().goals ?? []
+        const goalId =
+          win.location.hash.match(/goals\/([^/?#]+)/)?.[1] ??
+          goals.find((g) => g.status === 'fired' || g.status === 'analysing')?.id ??
+          goals[0]?.id
+        if (!goalId) return
+        const held = store.getState().notices as { goalId: string; title: string; read: boolean }[]
+        if (held.some((x) => x.goalId === goalId && x.title === title && !x.read)) return
         const stamp = Date.now()
+        const id = `n-sim-${goalId}-${n}-${stamp.toString(36)}`
         store.setState({
-          notices: [
-            { id: `n-sim-${goalId}-${n}-${stamp.toString(36)}`, at: stamp, kind: 'needs-input', goalId, title, text, read: false, tab },
-            ...store.getState().notices,
-          ],
+          notices: [{ id, at: stamp, kind: 'needs-input', goalId, title, text, read: false, tab }, ...store.getState().notices],
         })
+        /* The build marks a notice read the moment it arrives for the goal that is open, which is the one
+           these are for, so the bell would never count them. They are put back to unread just after. */
+        win.setTimeout(() => {
+          store.setState({
+            notices: (store.getState().notices as { id: string }[]).map((x) => (x.id === id ? { ...x, read: false } : x)),
+          })
+        }, 100)
       }, delay)
     })
-  })
+    /* Capture, because the rail's link stops the click's propagation and a bubbling listener on the
+       document would never hear it. */
+  }, true)
 }
 
 /**
@@ -280,6 +334,10 @@ const BUILD_BTN_CSS =
 /* "Browse everything" at the foot of the OneDrive / Outlook picker was asked off the menu. It is the one
    item that follows a `.menu-sep` and is itself a `.mi` (the other separator is followed by the
    "Connected" heading), so the pair is hidden by that adjacency rather than by its label. */
+/* The black "Waiting for you · Go to it" dock above the composer was asked off. It is the build's own
+   `.dock`, so it is hidden from the frame; the "Needs you" count and the bell still say what waits. */
+const NO_DOCK_CSS = ' .dock { display: none !important }'
+
 const NO_BAR_CSS =
   ' [data-cw-restored] .st-bar, [data-cw-restored] > :first-child { display: none !important }'
 
@@ -308,7 +366,10 @@ function holdAgentMessages(inner: Document) {
   let lastAct = 0
 
   const arm = (ev: Event) => {
-    if ((ev.target as Element | null)?.closest?.('.hub-rail')) return
+    /* A click in the rail only opens a saved goal, which must not arm the hold — except the rail's own
+       "Simulate the snapshot", which fires the goal and is the same act as the panel's button. */
+    const el = ev.target as Element | null
+    if (el?.closest?.('.hub-rail') && !el.closest('.rl-mini')) return
     lastAct = Date.now()
   }
   inner.addEventListener('click', arm, true)
@@ -1028,13 +1089,14 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
-            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS + NO_BAR_CSS + ADDED_BOX_CSS
+            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS + NO_BAR_CSS + NO_DOCK_CSS + ADDED_BOX_CSS + BELL_BADGE_CSS
             inner.head?.appendChild(style)
             injectRailNewButton(inner)
             holdAgentMessages(inner)
             trackForecastAdded(inner)
             dropChipAttachments(inner)
             notifyOnSimulate(inner)
+            badgeNotices(inner)
 
             const win = inner.defaultView
             if (!win) return
