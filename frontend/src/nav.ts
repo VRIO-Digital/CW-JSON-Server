@@ -5,7 +5,7 @@ import {
   DatabaseOutlined,
   DeploymentUnitOutlined,
   // ExperimentOutlined,
-  FileTextOutlined,
+  // FileTextOutlined,
   // LineChartOutlined,
   PlusOutlined,
   // RobotOutlined,
@@ -68,13 +68,15 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   /* ---------- Explore — reading what the graph already answers. ---------- */
-  {
-    key: 'reports',
-    label: 'Reports',
-    path: '/reports',
-    icon: FileTextOutlined,
-    group: 'Explore',
-  },
+  // Commented out, not deleted — `/reports` stays routed and reachable by URL, the same arrangement as
+  // `/what-if` below. Its icon import (FileTextOutlined) is commented too; both come back with the entry.
+  // {
+  //   key: 'reports',
+  //   label: 'Reports',
+  //   path: '/reports',
+  //   icon: FileTextOutlined,
+  //   group: 'Explore',
+  // },
   {
     key: 'ask',
     label: 'Ask',
