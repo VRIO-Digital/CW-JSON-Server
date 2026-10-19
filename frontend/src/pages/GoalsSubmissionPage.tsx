@@ -196,6 +196,46 @@ function dropChipAttachments(inner: Document) {
 }
 
 /**
+ * "Simulate the 22 September snapshot" fires the standing goal and runs its steps by itself, but a few
+ * things still need the reader: an acknowledgement of the breach note and an action on the missing
+ * directory link. The build already has a bell and a notices list, and exposes its store as
+ * `window.__cwJourney.useGoalStore`, so the two notices are pushed into that list (the bell's badge
+ * and its bottom-right toast then follow from the build's own code). Applied from the frame, never by
+ * editing the generated file.
+ */
+function notifyOnSimulate(inner: Document) {
+  const win = inner.defaultView as (Window & { __cwJourney?: { useGoalStore?: { getState: () => { notices: unknown[] }; setState: (p: object) => void } } }) | null
+  if (!win) return
+  inner.addEventListener('click', (ev) => {
+    const btn = (ev.target as Element | null)?.closest?.('button')
+    if (!btn?.textContent?.includes('Simulate the 22 September snapshot')) return
+    const goalId = win.location.hash.match(/goals\/([^/?#]+)/)?.[1]
+    win.setTimeout(() => {
+      const store = win.__cwJourney?.useGoalStore
+      if (!store || !goalId) return
+      const stamp = Date.now()
+      const make = (n: number, title: string, text: string) => ({
+        id: `n-sim-${goalId}-${n}-${stamp.toString(36)}`,
+        at: stamp,
+        kind: 'needs-input',
+        goalId,
+        title,
+        text,
+        read: false,
+        tab: 'plan',
+      })
+      store.setState({
+        notices: [
+          make(1, 'Acknowledge the breach note', 'P-VM-046 is 12.4% over its approved budget. Review the note and acknowledge it.'),
+          make(2, 'Action needed: connect the directory', 'Connect the directory so the project manager can be told by name.'),
+          ...store.getState().notices,
+        ],
+      })
+    }, 1200)
+  })
+}
+
+/**
  * The build answers almost instantly — each agent message lands a beat after the one before — so the
  * chat reads as an HTML page filling itself in rather than an analyst working. Asked first for a long
  * hold with a loader, then refined: a shimmer, and **each paragraph rendering 10s after the last**
@@ -219,6 +259,7 @@ function dropChipAttachments(inner: Document) {
 const PARAGRAPH_MS = 10_000
 const PANEL_TOTAL_MS = 30_000
 const PANEL_MAX_GAP_MS = 3_000
+const PACK_DELAY_MS = 30_000
 const TAB_FALLBACK_MS = 10_000
 const ACT_WINDOW_MS = 10_000
 const MAX_BATCH = 3
@@ -239,6 +280,9 @@ const BUILD_BTN_CSS =
 /* "Browse everything" at the foot of the OneDrive / Outlook picker was asked off the menu. It is the one
    item that follows a `.menu-sep` and is itself a `.mi` (the other separator is followed by the
    "Connected" heading), so the pair is hidden by that adjacency rather than by its label. */
+const NO_BAR_CSS =
+  ' [data-cw-restored] .st-bar, [data-cw-restored] > :first-child { display: none !important }'
+
 const NO_BROWSE_CSS =
   ' .menu-sep:has(+ .mi), .menu-sep + .mi { display: none !important }'
 
@@ -382,7 +426,51 @@ function holdAgentMessages(inner: Document) {
    * release time rather than a queue so a Replay, which remounts the lines, plays out the same way.
    */
   let beatAt = 0
+  /*
+   * A story ("Why this") is played once per recommendation. Its card remounts whenever the reader
+   * leaves the Findings tab and comes back, and the story would replay from line one, progress bar
+   * and all — so once a card's story has been opened, that card's own "Why this" button is hidden
+   * from then on (hidden by data attribute, the button being React's). Only that button: the card,
+   * its figures and its other acts are untouched. Keyed by the goal (frame hash) and the card's
+   * heading, scanned on every mutation because the button's label flips in place between
+   * "Why this" and "Hide the path" without the card being re-added.
+   */
+  const playedStories = new Set<string>()
+  const recoKey = (reco: Element) => `${win.location.hash}|${reco.querySelector('h3')?.textContent?.trim() ?? ''}`
+  const settleStory = (st: HTMLElement) => {
+    const reco = st.closest('.reco')
+    if (!reco || st.hasAttribute('data-cw-restored') || st.hasAttribute('data-cw-played')) return
+    const key = recoKey(reco)
+    if (!playedStories.has(key)) {
+      playedStories.add(key)
+      st.setAttribute('data-cw-played', '')
+      return
+    }
+    /* Seen already and open again (the story's open state outlives the tab): finish it at once and
+       drop its progress bar and controls, so nothing replays. */
+    st.setAttribute('data-cw-restored', '')
+    win.setTimeout(() => {
+      for (const b of st.querySelectorAll<HTMLElement>('button')) {
+        if (b.textContent?.trim() === 'Show all') b.click()
+      }
+    }, 0)
+  }
+  /* Once a recommendation is chosen the build drops *Choose* from the alternatives, and that stays:
+     the decision reads as final, so nothing here adds the button back. */
+  const hideSeenWhy = () => {
+    for (const reco of inner.querySelectorAll<HTMLElement>('.reco')) {
+      if (!playedStories.has(recoKey(reco))) continue
+      for (const b of reco.querySelectorAll<HTMLElement>('.hc-actions button')) {
+        const label = b.textContent?.trim()
+        if (label === 'Why this') b.setAttribute('data-cw-hold', '')
+        /* "Hide the path" goes only where the story is a restored one; a story being watched live
+           keeps its button until the reader is back from another tab. */
+        else if (label === 'Hide the path' && reco.querySelector('.st[data-cw-restored]')) b.setAttribute('data-cw-hold', '')
+      }
+    }
+  }
   const holdBeat = (beat: HTMLElement) => {
+    if (beat.closest('[data-cw-restored]')) return
     beat.setAttribute('data-cw-hold', '')
     beatAt = Math.max(Date.now(), beatAt) + PARAGRAPH_MS
     win.setTimeout(() => beat.removeAttribute('data-cw-hold'), beatAt - Date.now())
@@ -454,7 +542,55 @@ function holdAgentMessages(inner: Document) {
     pd.appendChild(box)
   }
 
+  /*
+   * The Submission's right-hand pack (`.hp`: "Draft · Slide pack", the title, the bar of acts and one
+   * `.sd-part` per slide) used to appear whole the instant *Build it* was pressed. Pressing it (the chip,
+   * the in-chat button, or typing it and sending) starts `PACK_DELAY_MS`: until it has passed everything
+   * in the pack but its head is held and a shimmer says it is being built, then the pack appears whole.
+   * Re-applied on every mutation because React re-renders the panel's children, and keyed on the build
+   * press rather than on what the panel contains, so opening a saved draft is never held.
+   */
+  let buildAt = 0
+  const isBuildIt = (t: string | null | undefined) => /^build it\.?$/i.test((t ?? '').trim())
+  inner.addEventListener(
+    'click',
+    (ev) => {
+      const t = ev.target as Element | null
+      const btn = t?.closest?.('button, [role="button"]')
+      if (btn && isBuildIt(btn.textContent)) buildAt = Date.now()
+      else if (btn?.matches('button.send, .gc-send') && isBuildIt(inner.querySelector<HTMLTextAreaElement>('textarea')?.value)) buildAt = Date.now()
+    },
+    true,
+  )
+  inner.addEventListener(
+    'keydown',
+    (ev) => {
+      const k = ev as KeyboardEvent
+      const t = k.target as HTMLTextAreaElement | null
+      if (k.key === 'Enter' && !k.shiftKey && t?.tagName === 'TEXTAREA' && isBuildIt(t.value)) buildAt = Date.now()
+    },
+    true,
+  )
+  const holdPack = () => {
+    const left = buildAt + PACK_DELAY_MS - Date.now()
+    const pack = inner.querySelector<HTMLElement>('.hp')
+    if (!pack) return
+    if (left <= 0) {
+      pack.querySelectorAll(':scope > [data-cw-hold]').forEach((n) => n.removeAttribute('data-cw-hold'))
+      pack.querySelector(':scope > .cw-shimmer')?.remove()
+      return
+    }
+    for (const child of Array.from(pack.children) as HTMLElement[]) {
+      if (child.classList.contains('hp-head') || child.classList.contains('cw-shimmer')) continue
+      child.setAttribute('data-cw-hold', '')
+    }
+    if (!pack.querySelector(':scope > .cw-shimmer')) pack.appendChild(makeShimmer('Building the slide pack…').box)
+    win.setTimeout(holdPack, Math.min(left, 1_000))
+  }
+
   new MutationObserver((records) => {
+    hideSeenWhy()
+    if (Date.now() < buildAt + PACK_DELAY_MS) holdPack()
     const fresh: HTMLElement[] = []
     const panelArmed = Date.now() - lastAct < ACT_WINDOW_MS || panelPending > 0
     for (const rec of records) {
@@ -481,6 +617,9 @@ function holdAgentMessages(inner: Document) {
     for (const rec of records) {
       for (const node of rec.addedNodes) {
         if (!(node instanceof win.HTMLElement)) continue
+        for (const st of node.matches('.st') ? [node] : [...node.querySelectorAll<HTMLElement>('.st')]) {
+          settleStory(st)
+        }
         const beats = node.matches('.st-beat') ? [node] : [...node.querySelectorAll<HTMLElement>('.st-beat')]
         for (const b of beats) {
           if (b.classList.contains('is-pending') || b.hasAttribute('data-cw-hold')) continue
@@ -507,6 +646,126 @@ function holdAgentMessages(inner: Document) {
       queue.push(el)
     }
     pump()
+  }).observe(inner.body, { childList: true, subtree: true })
+}
+
+/**
+ * "What's missing" lists a box per gap — the four projects with no September forecast (*Add your
+ * working forecast*), the Metropolitan Board's decision on tranche 3 (*Add the Q2 minutes*). Adding the
+ * document changed nothing there: the box kept saying the thing was missing. Asked for: once it is
+ * added the same box turns green and carries an **Added** label, rather than going on reading as a gap.
+ *
+ * The build's missing-box is driven by the plan's answers, not by what has been attached, so this is
+ * done from the frame. Pressing a box's button arms it for that box; choosing a file in the sub-menu it
+ * opens (or the build's own *Added by you* document row arriving) is the signal that it happened, and
+ * the file's name is read off it. The box is restyled in place by a data attribute, with the original
+ * sentence and buttons hidden and a foreign label and note inserted — never removed, since removing a
+ * node React still tracks throws on its next render. Remembered per goal and box, so the panel
+ * remounting (a tab switch) does not bring the amber box back.
+ */
+const MISSING_ADD_LABELS = ['Add your working forecast', 'Add the Q2 minutes']
+
+const ADDED_BOX_CSS =
+  ' .cw-added-box { background: #ecfdf3; border: 1px solid #abefc6; border-radius: 10px; padding: 10px 12px;' +
+  ' margin: 8px 0 }' +
+  ' .cw-added-box .cw-added-tag { display: inline-block; background: #12b76a; color: #fff; font-size: 11px;' +
+  ' font-weight: 600; border-radius: 6px; padding: 1px 8px; margin-bottom: 6px }' +
+  ' .cw-added-box b { display: block; color: #067647 }' +
+  ' .cw-added-box p { margin: 4px 0 0; font-size: 13px; color: #067647 }'
+
+function trackForecastAdded(inner: Document) {
+  const win = inner.defaultView
+  if (!win) return
+  /* The box whose button was pressed, and when. */
+  let armed: { title: string; at: number } | null = null
+  const done = new Map<string, string>()
+
+  const titleOf = (miss: Element) => miss.querySelector('b')?.textContent?.trim() ?? ''
+  const keyOf = (title: string) => `${win.location.hash}|${title}`
+
+  /* The box leaves "Missing" and a green copy of it stands under an "Added" heading of its own, in
+     the same panel, right after the Missing group. The original stays in the DOM (hidden) because
+     React owns it; if nothing visible is left in Missing, its heading goes too. */
+  const settle = (miss: HTMLElement, name: string) => {
+    if (miss.hasAttribute('data-cw-done')) return
+    const group = miss.closest<HTMLElement>('.ctx-g')
+    if (!group) return
+    miss.setAttribute('data-cw-done', '')
+    miss.setAttribute('data-cw-hold', '')
+    let added = group.nextElementSibling as HTMLElement | null
+    if (!added?.classList.contains('cw-added-group')) {
+      added = inner.createElement('div')
+      added.className = 'ctx-g cw-added-group'
+      const head = inner.createElement('div')
+      head.className = 'ctx-gh'
+      head.textContent = 'Added'
+      added.appendChild(head)
+      group.after(added)
+    }
+    const box = inner.createElement('div')
+    box.className = 'cw-added-box'
+    const tag = inner.createElement('span')
+    tag.className = 'cw-added-tag'
+    tag.textContent = 'Added'
+    const title = inner.createElement('b')
+    title.textContent = titleOf(miss)
+    const note = inner.createElement('p')
+    note.textContent = name ? `Added: ${name}. It is no longer missing.` : 'Added. It is no longer missing.'
+    box.append(tag, title, note)
+    added.appendChild(box)
+    if (![...group.querySelectorAll('.miss')].some((m) => !m.hasAttribute('data-cw-done'))) {
+      group.setAttribute('data-cw-hold', '')
+    }
+  }
+  const apply = (name: string) => {
+    if (!armed) return
+    const title = armed.title
+    armed = null
+    done.set(keyOf(title), name)
+    for (const m of inner.querySelectorAll<HTMLElement>('.miss')) if (titleOf(m) === title) settle(m, name)
+  }
+
+  inner.addEventListener(
+    'click',
+    (ev) => {
+      const target = ev.target as Element | null
+      const btn = target?.closest?.('button')
+      if (!btn) return
+      const text = btn.textContent ?? ''
+      const miss = btn.closest('.miss')
+      if (miss && MISSING_ADD_LABELS.some((l) => text.includes(l))) {
+        armed = { title: titleOf(miss), at: Date.now() }
+        return
+      }
+      /* Picking a file in the sub-menu this button opened (a menu with a "‹ Provider" back row). */
+      if (armed && btn.classList.contains('mi')) {
+        const menu = btn.closest('.cmenu')
+        const hasBack = !!menu && [...menu.querySelectorAll('button')].some((b) => b.textContent?.trim().startsWith('‹'))
+        if (hasBack && !text.trim().startsWith('‹')) apply(btn.querySelector('b')?.textContent?.trim() ?? '')
+      }
+    },
+    true,
+  )
+
+  new MutationObserver((records) => {
+    for (const rec of records) {
+      for (const node of rec.addedNodes) {
+        if (!(node instanceof win.HTMLElement)) continue
+        /* The build's own signal that a document landed, for an add that did not go through the menu. */
+        if (armed) {
+          const docs = node.matches('.doc-in') ? [node] : [...node.querySelectorAll<HTMLElement>('.doc-in')]
+          for (const d of docs) {
+            if (d.querySelector('.tag.you')) apply(d.querySelector('b')?.textContent?.trim() ?? '')
+          }
+        }
+        /* A remounted panel: the box is back, and so is the answer to it. */
+        const boxes = node.matches('.miss') ? [node] : [...node.querySelectorAll<HTMLElement>('.miss')]
+        for (const m of boxes) {
+          const name = done.get(keyOf(titleOf(m)))
+          if (name !== undefined) settle(m, name)
+        }
+      }
+    }
   }).observe(inner.body, { childList: true, subtree: true })
 }
 
@@ -769,11 +1028,13 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
-            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS
+            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS + NO_BAR_CSS + ADDED_BOX_CSS
             inner.head?.appendChild(style)
             injectRailNewButton(inner)
             holdAgentMessages(inner)
+            trackForecastAdded(inner)
             dropChipAttachments(inner)
+            notifyOnSimulate(inner)
 
             const win = inner.defaultView
             if (!win) return

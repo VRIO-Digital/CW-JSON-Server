@@ -969,36 +969,36 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-sdfdsfds-mvf89g6c4",
-      "name": "sdfdsfds",
+      "use_case_id": "uc-sadsad-mvfeaxps4",
+      "name": "sadsad",
       "status": "committed",
       "domain_id": "fleet-infrastructure-sgr",
-      "business_need": "dsfsfdsfdsf",
+      "business_need": "sadsad",
       "personas": [
         {
-          "name": "Authority Liaison (PPI)",
-          "description": "Asks what the authority will see, what is claimable and what is only potential.",
+          "name": "Operating Company Executive",
+          "description": "Asks which projects need a decision this week, what the full exposure is, and whether approved work is ready.",
           "source": "ai",
           "origin": null
         },
         {
-          "name": "Infrastructure Project Manager",
-          "description": "Asks whether works can start, what they depend on, and what has changed in scope.",
+          "name": "Investment Controller",
+          "description": "Asks whether forecasts reconcile, what moved and why, and what sits outside the authorised scope.",
           "source": "ai",
           "origin": null
         }
       ],
       "metrics": [
         {
-          "name": "Service Availability Margin",
-          "description": "Margin = [Eligible available vehicles] − [Peak requirement] − [Agreed reserve], by class, location and time; each unavailable vehicle subtracted once.",
+          "name": "Approved Funding Gap",
+          "description": "Funding_Gap = [Forecast fundable expenditure] − [Applicable approved funding], applying scope, caps and co-funding; uncovered costs labelled separately.",
           "source": "ai",
           "origin": null,
           "sql": null
         },
         {
-          "name": "Project Cash Position",
-          "description": "Cash_Position = [Cash paid] − [Project-related cash received] at a stated cutoff; excludes unpaid expense and uncollected approved recovery.",
+          "name": "Forecast Total Project Cost",
+          "description": "Forecast_Total = [Posted actuals] + [Valid uninvoiced accruals] + [Forecast cost to complete]. Accruals are matched and reversed when invoices arrive; cost to complete excludes work already accrued.",
           "source": "ai",
           "origin": null,
           "sql": null
@@ -1011,29 +1011,29 @@
           "objects": []
         },
         {
-          "source_id": "onedrive:my-drive-kv-controlling",
+          "source_id": "onedrive:kv-capital-renewal",
           "mode": "all",
           "objects": []
         }
       ],
       "hero_questions": [
         {
-          "text": "What was known about the tranche 2 delay when the Q2 review met?",
+          "text": "Which vehicles are released for duty after the battery campaign?",
           "priority": "normal",
           "source": "ai",
-          "sql": "SELECT actual_finish\nFROM `eam`.`work_order`\nLIMIT 1000"
+          "sql": "SELECT reason, engineering_release, asset_id, depot_id\nFROM `eam`.`availability_interval`\nLIMIT 1000"
         },
         {
-          "text": "If operations spends €25,000 on external maintenance, what does the lift project cost?",
+          "text": "Did the lift project progress report flag any risk?",
           "priority": "normal",
           "source": "ai",
-          "sql": "SELECT project_code, material_cost_eur, actual_finish\nFROM `eam`.`work_order`\nLIMIT 1000"
+          "sql": "SELECT project_code, status\nFROM `eam`.`work_order`\nLIMIT 1000"
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 5,
-      "updated_at": "2026-10-19T12:25:57.986Z"
+      "updated_at": "2026-10-19T15:15:06.297Z"
     }
   ],
   "graph_use_case_templates": [
