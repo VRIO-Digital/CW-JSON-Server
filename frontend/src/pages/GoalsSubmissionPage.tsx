@@ -156,6 +156,46 @@ const RAIL_NEW_CSS =
   ' .cw-rail-new .cw-plus { font-size: 15px; font-weight: 500; line-height: 1 }'
 
 /**
+ * The start screen's "Answer once / Keep watching" switch is a soft pill with no outline, so it reads
+ * as a segmented control rather than as two tabs. Asked for a border so it looks like a tab: the strip
+ * gets a hairline frame and each button its own border, the active one white with the brand colour on
+ * its edge and its label. Applied from the frame for the HIDE_SHELL_CSS reason; `!important` because
+ * the build's own `.ns-toggle` rules are declared later in the document than this sheet's insertion.
+ */
+const TOGGLE_TAB_CSS =
+  ' .ns-toggle { border: 1px solid #dfe3ea !important; background: #fff !important }' +
+  ' .ns-toggle button { border: 1px solid transparent !important }' +
+  ' .ns-toggle button.is-on { border-color: #f4562b !important; color: #f4562b !important;' +
+  ' font-weight: 600 !important; box-shadow: none !important }'
+
+/**
+ * A suggestion chip on the start screen ("Use the Q3 committee pack example") fills the composer with
+ * its text **and** attaches the example's documents. Asked for the text alone: the chip should only
+ * bring in the paragraph. The build's chip handler is `setStart({ prompt, files })` and the file is
+ * generated, so the attachments are taken back out from the frame — a delegated click listener lets
+ * the build apply the chip, then presses each attachment's own Remove button. One per tick, because
+ * every Remove closes over the file list it rendered with, so pressing several in one tick would
+ * leave only the last removal standing. Keyed on the Remove buttons' `aria-label` (`Remove <name>`),
+ * the build's own accessible name for them; a re-export renaming it leaves the files attached, which
+ * is visible, never a broken page.
+ */
+function dropChipAttachments(inner: Document) {
+  inner.addEventListener('click', (ev) => {
+    if (!(ev.target as Element | null)?.closest?.('.ns-ex .gc-chip')) return
+    const win = inner.defaultView
+    if (!win) return
+    let guard = 20
+    const next = () => {
+      const btn = inner.querySelector<HTMLElement>('.nstart button[aria-label^="Remove "]')
+      if (!btn || guard-- <= 0) return
+      btn.click()
+      win.setTimeout(next, 0)
+    }
+    win.setTimeout(next, 0)
+  })
+}
+
+/**
  * The rail is React-managed inside the frame, so the button cannot be placed once: opening a goal or
  * a draft re-renders the rail's children and a tight viewport remounts the whole `<aside>`. A
  * MutationObserver re-inserts it whenever a rail is missing one — the `injectSessionTab` precedent,
@@ -414,9 +454,10 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
-            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS
+            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS
             inner.head?.appendChild(style)
             injectRailNewButton(inner)
+            dropChipAttachments(inner)
 
             const win = inner.defaultView
             if (!win) return
