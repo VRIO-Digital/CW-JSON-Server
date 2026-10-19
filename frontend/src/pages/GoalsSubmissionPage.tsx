@@ -518,8 +518,27 @@ function holdAgentMessages(inner: Document) {
   }
   /* Once a recommendation is chosen the build drops *Choose* from the alternatives, and that stays:
      the decision reads as final, so nothing here adds the button back. */
+  /* Once a recommendation is chosen its story is finished business: pressing Choose again made the
+     story replay with its progress bar running. The card is remembered as chosen and its story is
+     settled the way a revisited one is (restored: no bar, no controls, no replay). */
+  const chosenRecos = new Set<string>()
+  const settleChosen = (reco: Element) => {
+    for (const st of reco.querySelectorAll<HTMLElement>('.st')) st.setAttribute('data-cw-restored', '')
+  }
+  inner.addEventListener(
+    'click',
+    (ev) => {
+      const b = (ev.target as Element | null)?.closest?.('.hc-actions button')
+      const reco = b?.closest('.reco')
+      if (!b || !reco || b.textContent?.trim() !== 'Choose') return
+      chosenRecos.add(recoKey(reco))
+      settleChosen(reco)
+    },
+    true,
+  )
   const hideSeenWhy = () => {
     for (const reco of inner.querySelectorAll<HTMLElement>('.reco')) {
+      if (chosenRecos.has(recoKey(reco))) settleChosen(reco)
       if (!playedStories.has(recoKey(reco))) continue
       for (const b of reco.querySelectorAll<HTMLElement>('.hc-actions button')) {
         const label = b.textContent?.trim()
