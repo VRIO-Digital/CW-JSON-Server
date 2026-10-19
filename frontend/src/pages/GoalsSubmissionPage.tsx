@@ -203,6 +203,15 @@ function dropChipAttachments(inner: Document) {
  * and its bottom-right toast then follow from the build's own code). Applied from the frame, never by
  * editing the generated file.
  */
+const SIM_NOTICES: [number, string, string, string][] = [
+  [1200, 'Acknowledge the breach note', 'P-VM-046 is 12.4% over its approved budget. Review the note and acknowledge it.', 'plan'],
+  [1500, 'Action needed: connect the directory', 'Connect the directory so the project manager can be told by name.', 'plan'],
+  [3000, 'Add your working forecast', 'Four projects have no September forecast, so their figures are not checked yet. Add the forecast to include them.', 'plan'],
+  [4500, 'Add the Q2 minutes', "The Metropolitan Board's decision on tranche 3 is not on file. Add the Q2 minutes so it can be cited.", 'plan'],
+  [22000, 'Choose a recommendation', 'Findings are ready, with one preferred option. Review them and choose before anything is sent.', 'findings'],
+  [24000, 'Approve the note before it goes out', 'The note to the project manager is drafted and waits for your approval. Nothing is sent until you approve it.', 'findings'],
+]
+
 function notifyOnSimulate(inner: Document) {
   const win = inner.defaultView as (Window & { __cwJourney?: { useGoalStore?: { getState: () => { notices: unknown[] }; setState: (p: object) => void } } }) | null
   if (!win) return
@@ -210,28 +219,19 @@ function notifyOnSimulate(inner: Document) {
     const btn = (ev.target as Element | null)?.closest?.('button')
     if (!btn?.textContent?.includes('Simulate the 22 September snapshot')) return
     const goalId = win.location.hash.match(/goals\/([^/?#]+)/)?.[1]
-    win.setTimeout(() => {
-      const store = win.__cwJourney?.useGoalStore
-      if (!store || !goalId) return
-      const stamp = Date.now()
-      const make = (n: number, title: string, text: string) => ({
-        id: `n-sim-${goalId}-${n}-${stamp.toString(36)}`,
-        at: stamp,
-        kind: 'needs-input',
-        goalId,
-        title,
-        text,
-        read: false,
-        tab: 'plan',
-      })
-      store.setState({
-        notices: [
-          make(1, 'Acknowledge the breach note', 'P-VM-046 is 12.4% over its approved budget. Review the note and acknowledge it.'),
-          make(2, 'Action needed: connect the directory', 'Connect the directory so the project manager can be told by name.'),
-          ...store.getState().notices,
-        ],
-      })
-    }, 1200)
+    SIM_NOTICES.forEach(([delay, title, text, tab], n) => {
+      win.setTimeout(() => {
+        const store = win.__cwJourney?.useGoalStore
+        if (!store || !goalId) return
+        const stamp = Date.now()
+        store.setState({
+          notices: [
+            { id: `n-sim-${goalId}-${n}-${stamp.toString(36)}`, at: stamp, kind: 'needs-input', goalId, title, text, read: false, tab },
+            ...store.getState().notices,
+          ],
+        })
+      }, delay)
+    })
   })
 }
 
