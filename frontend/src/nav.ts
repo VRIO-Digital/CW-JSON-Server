@@ -101,9 +101,9 @@ export const NAV_ITEMS: NavItem[] = [
   //   group: 'Explore',
   // },
   /*
-   * Two views of one framed prototype (`src/Keolis/goals-submission/`): each entry opens the same
-   * document on its own screen — `#/K/goals` and `#/K/submissions` — so they are two nav items
-   * rather than one page with a toggle nobody can deep-link.
+   * Two framed prototype builds (`src/Keolis/goals-submission/`): each entry opens its own document
+   * — `Keolis_Goals.html` and `Keolis_Submissions.html` — so they are two nav items rather than one
+   * page with a toggle nobody can deep-link.
    */
   {
     key: 'goals',
@@ -123,7 +123,7 @@ export const NAV_ITEMS: NavItem[] = [
   /* ---------- Build & Configure — everything upstream of a published graph. ---------- */
   {
     key: 'new-graph',
-    label: 'New Graph',
+    label: 'New role',
     path: '/new-graph',
     icon: PlusOutlined,
     group: 'Build & Configure',

@@ -112,10 +112,10 @@ const datasetAiSubmissionsModules = import.meta.glob('../*/ai-submissions/*.html
 }) as Record<string, string>
 
 /*
- * And a seventh, for a dataset that ships its Goals & Submissions prototype as a rendered page —
+ * And a seventh, for a dataset that ships its Goals & Submissions prototype as rendered pages —
  * KEOLIS does (`src/Keolis/goals-submission/`). The same per-dataset shape as the others, and the
- * folder is again what classifies the file. One document carries both screens; the Goals and
- * Submission nav entries open it at its own hash routes.
+ * folder is again what classifies the file. Two documents, one per screen; the Goals and Submission
+ * nav entries each open their own.
  */
 const goalsSubmissionModules = import.meta.glob('../*/goals-submission/*.html', {
   query: '?url',

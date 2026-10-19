@@ -108,9 +108,10 @@ export default function DocumentViewer({
   seamless?: boolean
   /**
    * A `#…` appended to the document's URL, for a framed prototype that routes between its own
-   * screens by hash — the Goals & Submissions page is one document with two views, and the two nav
-   * entries open it at `#/K/goals` and `#/K/submissions`. On the URL rather than in the file lookup,
-   * because `reportDocumentUrl` resolves *files* and a hash is not part of a filename.
+   * screens by hash — the Goals & Submissions page frames one build per view, each carrying its own
+   * route (`#/K/goals`, `#/K/submissions`), and passes the route its file carries. On the URL rather
+   * than in the file lookup, because `reportDocumentUrl` resolves *files* and a hash is not part of
+   * a filename.
    */
   fragment?: string
   /**

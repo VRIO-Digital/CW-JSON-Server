@@ -295,6 +295,12 @@ const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
   gmail: GmailIcon,
+  /* The Google showcase cards on a Microsoft-brand dataset. Their own keys, because under that
+     brand the real kinds resolve to the Microsoft marks — these must stay Google's whatever the
+     brand, which `brandMarkKey`'s passthrough for unknown keys gives them. */
+  google_bigquery: BigQueryIcon,
+  google_drive: GoogleDriveIcon,
+  google_gmail: GmailIcon,
   outlook: OutlookIcon,
   azuresql: AzureSqlIcon,
   onedrive: OneDriveIcon,

@@ -552,6 +552,62 @@ export function connectorGroup(connector: Connector): ConnectorGroup {
 }
 
 /**
+ * The Google connectors as **showcase cards on a Microsoft-brand dataset** — asked for in those
+ * terms: the directory should show the Google side of the catalog too, while the working flow
+ * stays the Microsoft cards above.
+ *
+ * They are their own three entries rather than the real `bigquery`/`gdrive`/`gmail` rows left
+ * unskinned, because under the Microsoft brand those keys *are* Azure SQL, OneDrive and Outlook —
+ * `brandMarkKey` resolves their marks, the consent serves Microsoft scopes, and a Google card on
+ * the real keys would open a Microsoft sign-in, a consent screen describing a grant that is not
+ * being made. So these carry keys of their own and the generic register path behind them: picking
+ * one runs the field loop and `POST /sources/generic`, never the consent flow, and nothing about
+ * the Microsoft connectors changes. The keys are underscored, never the real kinds — a second card
+ * carrying `bigquery` would be two answers to what that key is — and each has its own mark in
+ * `ConnectorIcon`, reached by passthrough since `brandMarkKey` does not know them. `available` is
+ * declared false here and flipped per brand in `brandedConnectors`, so a Google-brand dataset
+ * (where the real Google cards exist) never offers a second BigQuery.
+ */
+const GOOGLE_SHOWCASE_REASON =
+  'This tenant runs on Microsoft, so the working connectors here are Azure SQL Database, ' +
+  'Microsoft OneDrive and Microsoft Outlook above — the same three pipelines, presented under ' +
+  'the vendor the tenant runs on. The Google connectors are live on the Google-tenant datasets ' +
+  'and are listed here to show the breadth of the catalog.'
+
+const GOOGLE_SHOWCASE: Connector[] = [
+  {
+    key: 'google_bigquery',
+    name: 'Google BigQuery',
+    blurb: 'structured warehouse',
+    typeLabel: 'BigQuery',
+    available: false,
+    profiles: false,
+    reason: GOOGLE_SHOWCASE_REASON,
+    fields: [nameField],
+  },
+  {
+    key: 'google_drive',
+    name: 'Google Drive',
+    blurb: 'docs, sheets, files',
+    typeLabel: 'Google Drive',
+    available: false,
+    profiles: false,
+    reason: GOOGLE_SHOWCASE_REASON,
+    fields: [nameField],
+  },
+  {
+    key: 'google_gmail',
+    name: 'Gmail',
+    blurb: 'email + attachments',
+    typeLabel: 'Gmail',
+    available: false,
+    profiles: false,
+    reason: GOOGLE_SHOWCASE_REASON,
+    fields: [nameField],
+  },
+]
+
+/**
  * The directory under the selected dataset's **provider brand**.
  *
  * A Microsoft-brand dataset (KEOLIS) presents the three real connectors as the Microsoft
@@ -559,15 +615,25 @@ export function connectorGroup(connector: Connector): ConnectorGroup {
  * Outlook — with the same keys underneath, so every endpoint, pipeline and payload is the one
  * the Google names run on. The `outlook` *vision* card is dropped under that brand, because
  * the mail connector there **is** Outlook: a real card and a stub wearing one name would be
- * two answers to whether Outlook works. Every other dataset gets `CONNECTORS` untouched.
+ * two answers to whether Outlook works. The three **Google showcase cards** are appended
+ * instead (see above). Every other dataset gets `CONNECTORS` untouched.
+ *
+ * **And under that brand every card is offered as available — asked for in those terms**: the
+ * Keolis demo wants one *Available now* grid with no "not yet built" section. The flip is honest
+ * because every card then really does something when picked: the three Microsoft connectors keep
+ * their consent → preview → finish flow, and everything else — the stubs and the Google showcase
+ * cards alike — runs the generic field loop and registers a source through `POST /sources/generic`,
+ * exactly the path the three database cards already take. The `reason` strings stay on the
+ * showcase and stub cards for the Google-brand datasets, where the vision section is unchanged.
  *
  * A function rather than a second array, so there is still exactly one declaration of what a
- * connector is — the brand only renames, it never adds or rewires one.
+ * connector is — the brand renames the real three and adds only display cards, it never
+ * rewires one.
  */
 export function brandedConnectors(): Connector[] {
   if (providerBrand() !== 'microsoft') return CONNECTORS
   const words = brandWords()
-  return CONNECTORS.filter((c) => c.key !== 'outlook').map((c) => {
+  const renamed = CONNECTORS.filter((c) => c.key !== 'outlook').map((c) => {
     if (c.key === 'bigquery') {
       return { ...c, name: words.structuredName, typeLabel: words.structuredType }
     }
@@ -579,6 +645,9 @@ export function brandedConnectors(): Connector[] {
     }
     return c
   })
+  return [...renamed, ...GOOGLE_SHOWCASE].map((c) =>
+    c.available ? c : { ...c, available: true },
+  )
 }
 
 /*

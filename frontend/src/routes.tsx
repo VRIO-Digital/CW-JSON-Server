@@ -161,7 +161,7 @@ export const routes: RouteObject[] = [
           { path: 'what-if', element: <WhatIfPage /> },
           /* A framed showcase page, gated on nothing — see AISubmissionsPage for why. */
           { path: 'aisubmission', element: <AISubmissionsPage /> },
-          /* Two views of one framed prototype, behind the publish gate — see GoalsSubmissionPage. */
+          /* Two framed prototype builds, one per entry, behind the publish gate — see GoalsSubmissionPage. */
           { path: 'goals', element: <GoalsSubmissionPage view="goals" /> },
           { path: 'submission', element: <GoalsSubmissionPage view="submission" /> },
           /*

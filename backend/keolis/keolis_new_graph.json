@@ -969,8 +969,56 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-fdsdsfsdf-mvaw05yz4",
-      "name": "fdsdsfsdf",
+      "use_case_id": "uc-testdata-mvf0vlvb5",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "fleet-infrastructure-sgr",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Authority Liaison (PPI)",
+          "description": "Asks what the authority will see, what is claimable and what is only potential.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Open Commitment",
+          "description": "Open_Commitment = [Ordered] − [Received] − [Cancelled], at the PO line's valuation basis. Unpaid invoices are not future work.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "azuresql:keolis_valmont_eam",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "onedrive:kv-capital-renewal",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which assets have the worst condition scores?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT score, asset_id, score_scale, next_inspection_due\nFROM `eam`.`condition_assessment`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-19T08:59:08.442Z"
+    },
+    {
+      "use_case_id": "uc-sadasdsad-mvezranl4",
+      "name": "sadasdsad",
       "status": "committed",
       "domain_id": "fleet-infrastructure-sgr",
       "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
@@ -1011,7 +1059,7 @@
           "objects": []
         },
         {
-          "source_id": "onedrive:kv-capital-renewal",
+          "source_id": "onedrive:my-drive-kv-controlling",
           "mode": "all",
           "objects": []
         }
@@ -1022,18 +1070,12 @@
           "priority": "normal",
           "source": "ai",
           "sql": "SELECT score, asset_id, score_scale, next_inspection_due\nFROM `eam`.`condition_assessment`\nLIMIT 1000"
-        },
-        {
-          "text": "Which forecasts are out of date?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": null
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 5,
-      "updated_at": "2026-10-16T11:31:40.776Z"
+      "updated_at": "2026-10-19T08:27:48.527Z"
     }
   ],
   "graph_use_case_templates": [

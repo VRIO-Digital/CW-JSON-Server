@@ -361,7 +361,7 @@ export default function Sidebar({
         </Typography.Title>
 
         <Typography.Text className="tagline">
-          FROM DATA TO DECISIONS
+          The AI Analyst That Gets Work Done
         </Typography.Text>
       </div>
 
