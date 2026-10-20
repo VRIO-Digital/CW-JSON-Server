@@ -1,0 +1,326 @@
+[
+  {
+    "persona_id": "csc-chair",
+    "name": "SVP Capital Delivery (committee chair)",
+    "domains": [
+      "capital-program",
+      "contract-change"
+    ],
+    "keywords": [
+      "program",
+      "committee",
+      "decision",
+      "large project",
+      "tolerance"
+    ],
+    "focus": "Chairs the Capital Steering Committee. Asks where the program stands, which large projects need a decision, and what goes in the quarterly pack.",
+    "top_questions": [
+      "hq3",
+      "hq6",
+      "hq7",
+      "hq8",
+      "hq12",
+      "hq16"
+    ]
+  },
+  {
+    "persona_id": "capital-controller",
+    "name": "Capital Controller",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "forecast",
+      "variance",
+      "ledger",
+      "plan",
+      "accrual",
+      "commitment"
+    ],
+    "focus": "Asks whether forecasts reconcile to the ledger, whether the year's plan will be spent by December, and what moved since last month.",
+    "top_questions": [
+      "hq1",
+      "hq2",
+      "hq11",
+      "hq30",
+      "hq32"
+    ]
+  },
+  {
+    "persona_id": "rate-case-director",
+    "name": "Director, Rate Case and Regulatory",
+    "domains": [
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "rate case",
+      "test year",
+      "in service",
+      "rate base",
+      "prudence",
+      "order"
+    ],
+    "focus": "Asks which claimed projects will be in service inside the test year, how plant additions compare with the order, and what evidence backs a cost increase.",
+    "top_questions": [
+      "hq5",
+      "hq9",
+      "hq10",
+      "hq18",
+      "hq19"
+    ]
+  },
+  {
+    "persona_id": "project-controls",
+    "name": "Project Controls Manager",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "stale",
+      "refresh",
+      "forecast round",
+      "project manager",
+      "slip"
+    ],
+    "focus": "Asks which forecasts are stale, which project managers to chase, and which projects moved most since the last round.",
+    "top_questions": [
+      "hq4",
+      "hq17",
+      "hq34",
+      "hq44"
+    ]
+  },
+  {
+    "persona_id": "treasury",
+    "name": "Treasury and Funding",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "cash",
+      "month",
+      "funding",
+      "SRF",
+      "WIFIA",
+      "grant"
+    ],
+    "focus": "Asks how much cash the program needs by month and how much of it is covered by loans and grants.",
+    "top_questions": [
+      "hq13"
+    ]
+  },
+  {
+    "persona_id": "utility-president",
+    "name": "Utility President",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "utility",
+      "plan",
+      "spend",
+      "rate base",
+      "commission"
+    ],
+    "focus": "Asks how their utility's plan, spend and rate base additions compare with what the commission was told.",
+    "top_questions": [
+      "hq15"
+    ]
+  },
+  {
+    "persona_id": "compliance",
+    "name": "Compliance Manager",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "PFAS",
+      "lead service line",
+      "consent order",
+      "mandate",
+      "deadline"
+    ],
+    "focus": "Asks whether mandated work (PFAS treatment, lead service lines, consent orders) is on pace for its deadline.",
+    "top_questions": [
+      "hq14",
+      "hq33"
+    ]
+  },
+  {
+    "persona_id": "category-manager",
+    "name": "Category Manager, Capital Works",
+    "domains": [
+      "capital-program",
+      "contract-change"
+    ],
+    "keywords": [
+      "framework",
+      "supplier",
+      "price",
+      "savings",
+      "off-framework"
+    ],
+    "focus": "Asks how much capital spend goes through framework agreements, what the program is saving against its target, and which orders went off-framework.",
+    "top_questions": [
+      "hq25",
+      "hq26",
+      "hq27",
+      "hq29"
+    ]
+  },
+  {
+    "persona_id": "plant-accounting",
+    "name": "Plant Accounting Manager",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "CWIP",
+      "unitize",
+      "in service",
+      "retirement",
+      "depreciation"
+    ],
+    "focus": "Asks which projects are in service but still in CWIP, what has been unitized, and what depreciation and retirements the month booked.",
+    "top_questions": [
+      "hq20",
+      "hq22",
+      "hq24"
+    ]
+  },
+  {
+    "persona_id": "project-manager",
+    "name": "Project Manager",
+    "domains": [
+      "capital-program",
+      "contract-change"
+    ],
+    "keywords": [
+      "my project",
+      "change order",
+      "contingency",
+      "forecast",
+      "commitments"
+    ],
+    "focus": "Asks where a single project stands against its approved budget, what is committed, and how much contingency is left.",
+    "top_questions": [
+      "hq28",
+      "hq35"
+    ]
+  },
+  {
+    "persona_id": "engineering-director",
+    "name": "Director, Engineering and Asset Management",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "asset risk",
+      "priority",
+      "renewal",
+      "backlog",
+      "condition"
+    ],
+    "focus": "Asks which high-risk renewals are unfunded, how the plan ranks projects, and what moved between plan vintages.",
+    "top_questions": [
+      "hq40",
+      "hq45"
+    ]
+  },
+  {
+    "persona_id": "cfo",
+    "name": "Chief Financial Officer",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "rate base",
+      "financing",
+      "capex",
+      "plan",
+      "return"
+    ],
+    "focus": "Asks what the program adds to rate base, how much it needs financed, and whether the year's capital will be spent.",
+    "top_questions": [
+      "hq21",
+      "hq36",
+      "hq37",
+      "hq42"
+    ]
+  },
+  {
+    "persona_id": "board-finance",
+    "name": "Board Finance Committee",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "five-year plan",
+      "envelope",
+      "rate impact",
+      "approval"
+    ],
+    "focus": "Asks whether the five-year plan stays inside its envelope and what it means for customer rates.",
+    "top_questions": [
+      "hq39"
+    ]
+  },
+  {
+    "persona_id": "commission-staff",
+    "name": "Commission staff (data requests)",
+    "domains": [
+      "rate-case-recovery"
+    ],
+    "keywords": [
+      "data request",
+      "used and useful",
+      "prudent",
+      "test year"
+    ],
+    "focus": "Asks for the evidence behind the rate base: what is in service, what it cost, and why the cost was prudent.",
+    "top_questions": [
+      "hq23",
+      "hq43"
+    ]
+  },
+  {
+    "persona_id": "lender-liaison",
+    "name": "Lender and funding agency liaison",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "SRF",
+      "WIFIA",
+      "draw",
+      "eligible spend",
+      "compliance records"
+    ],
+    "focus": "Asks how much eligible spend can be drawn this month and whether the compliance records are complete.",
+    "top_questions": [
+      "hq41"
+    ]
+  },
+  {
+    "persona_id": "operations-director",
+    "name": "Regional Operations Director",
+    "domains": [
+      "capital-program"
+    ],
+    "keywords": [
+      "in service",
+      "outage",
+      "disruption",
+      "region"
+    ],
+    "focus": "Asks when new plant comes into service in the region and which projects will disrupt operations.",
+    "top_questions": [
+      "hq31",
+      "hq38"
+    ]
+  }
+]

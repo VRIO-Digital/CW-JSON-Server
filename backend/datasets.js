@@ -127,6 +127,13 @@ export const MERGE_PLAN = {
   _meta: 'primary',
   _provenance: 'primary',
 
+  /* The Northline export's New Role library, Goals and Submissions state — one set per dataset that
+     ships them, and a merged view has no single one (CAPEX alone does; EPA and KEOLIS ship none). */
+  new_role: 'primary',
+  document_readings: 'primary',
+  goals: 'primary',
+  submissions: 'primary',
+
   /* Identity and the account — one tenant, one set of people, whichever dataset is in view. */
   google_account: 'primary',
   auth_roles: 'primary',

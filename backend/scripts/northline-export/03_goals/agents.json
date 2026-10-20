@@ -1,0 +1,36 @@
+{
+  "note": "Agents are named like colleagues in Goals and Submissions (not in New Role). A new goal takes the next free name; the seeded procurement watch uses Agent Ledger; the rate base example gets the next free name in the session.",
+  "pool": [
+    {
+      "name": "Agent Ledger",
+      "icon": "radar",
+      "colour": "#9e3819"
+    },
+    {
+      "name": "Agent Compass",
+      "icon": "compass",
+      "colour": "#0f5c7b"
+    },
+    {
+      "name": "Agent Beacon",
+      "icon": "bulb",
+      "colour": "#8a5a00"
+    },
+    {
+      "name": "Agent Keel",
+      "icon": "rocket",
+      "colour": "#6b3fa0"
+    },
+    {
+      "name": "Agent Sentinel",
+      "icon": "experiment",
+      "colour": "#3b6e22"
+    },
+    {
+      "name": "Agent Harbour",
+      "icon": "thunder",
+      "colour": "#1f4e9c"
+    }
+  ],
+  "mark": "A monogram in the agent's colour, the same in the conversation, the list and the panel."
+}

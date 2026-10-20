@@ -1,0 +1,752 @@
+{
+  "meta": {
+    "persona_name": "Priya Raman",
+    "persona_role": "Capital Controller · Northline Water Group",
+    "persona_initials": "PR",
+    "entity_plural": "projects",
+    "scope_line": "the Northline capital program",
+    "source_trace": "Traces to: northline_epbcs.plan, northline_epbcs.forecast, northline_pmo.project, as of 2026-10-15.",
+    "entity_singular": "project",
+    "ask_placeholder": "e.g. Which large projects are furthest over their approved budget?"
+  },
+  "fields": [
+    {
+      "key": "name",
+      "label": "Project",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "portfolio",
+      "label": "Category",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "region",
+      "label": "Region",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "phase",
+      "label": "Stage",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "owner",
+      "label": "Project manager",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "funding",
+      "label": "Utility",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "partner",
+      "label": "Utility",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "contract",
+      "label": "Size",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "reason",
+      "label": "Position",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "auth",
+      "label": "Approved ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "comm",
+      "label": "Approved at WIN ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "proj",
+      "label": "Forecast ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varD",
+      "label": "Over ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varP",
+      "label": "Over (%)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "pct",
+      "label": "Variance %",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "status",
+      "label": "Status",
+      "kind": "cat",
+      "filterable": true
+    }
+  ],
+  "assumptions": {
+    "scope": {
+      "value": "active",
+      "label": "the large projects in the fixture"
+    },
+    "measure": {
+      "value": "varP",
+      "label": "approved budget"
+    },
+    "horizon": {
+      "value": "lifetime",
+      "label": "at the 15 October forecast"
+    },
+    "graph": {
+      "value": "nwg_cpa",
+      "label": "the Capital Program Analyst graph"
+    }
+  },
+  "opts": {
+    "scope": {
+      "q": "Which projects to include?",
+      "options": [
+        {
+          "value": "active",
+          "label": "the large projects in the fixture",
+          "d": "The nine above 10% and two named projects"
+        },
+        {
+          "value": "belmara",
+          "label": "Belmara only",
+          "d": "The utility in a rate case"
+        }
+      ]
+    },
+    "measure": {
+      "q": "\"Over budget\" measured against?",
+      "options": [
+        {
+          "value": "varP",
+          "label": "approved budget",
+          "d": "The Active Budget Plan"
+        }
+      ]
+    },
+    "horizon": {
+      "q": "Over what period?",
+      "options": [
+        {
+          "value": "lifetime",
+          "label": "at the 15 October forecast",
+          "d": "Forecast at completion"
+        }
+      ]
+    },
+    "graph": {
+      "q": "Which published graph should this run against?",
+      "options": [
+        {
+          "value": "nwg_cpa",
+          "label": "the Capital Program Analyst graph",
+          "short": "Capital Program Analyst",
+          "d": "Published · EPBCS + PeopleSoft + PMO + documents + mailbox · refreshed today"
+        }
+      ]
+    }
+  },
+  "generators": [
+    {
+      "name": "C23B300_651 Clearwell Replacement, Ashcombe",
+      "auth": 6.98,
+      "comm": 6.98,
+      "proj": 8.12,
+      "portfolio": "Plant",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Juno Gorlicki",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 1.14,
+      "varP": 16.3,
+      "pct": 16.3,
+      "sales": 6.98,
+      "gm": 8.12,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C23B438_694 Well Field Expansion, Harrowgate",
+      "auth": 4.31,
+      "comm": 4.31,
+      "proj": 4.92,
+      "portfolio": "Plant",
+      "region": "Lakeshore",
+      "phase": "In Delivery",
+      "owner": "Jasper Alvedes",
+      "funding": "Dunmoor",
+      "partner": "Dunmoor",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.61,
+      "varP": 14.2,
+      "pct": 14.2,
+      "sales": 4.31,
+      "gm": 4.92,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C23B539_698 Pump Station Rebuild, Selby Point",
+      "auth": 4.55,
+      "comm": 4.55,
+      "proj": 5.15,
+      "portfolio": "Plant",
+      "region": "Lakeshore",
+      "phase": "In Delivery",
+      "owner": "Nadia Jankovic",
+      "funding": "Dunmoor",
+      "partner": "Dunmoor",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.6,
+      "varP": 13.2,
+      "pct": 13.2,
+      "sales": 4.55,
+      "gm": 5.15,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C24B249_612 Clearwell Replacement, Kestrel Valley",
+      "auth": 4.29,
+      "comm": 4.29,
+      "proj": 4.83,
+      "portfolio": "Plant",
+      "region": "Northvale",
+      "phase": "In Delivery",
+      "owner": "Katya Rennick",
+      "funding": "Ardenia",
+      "partner": "Ardenia",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.54,
+      "varP": 12.6,
+      "pct": 12.6,
+      "sales": 4.29,
+      "gm": 4.83,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C24B390_645 Well Field Expansion, Thornbury",
+      "auth": 4.08,
+      "comm": 4.08,
+      "proj": 4.56,
+      "portfolio": "Plant",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Hollis Quintero",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.48,
+      "varP": 11.8,
+      "pct": 11.8,
+      "sales": 4.08,
+      "gm": 4.56,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C24B523_670 PFAS GAC Install, Pellworth",
+      "auth": 5.01,
+      "comm": 5.01,
+      "proj": 5.58,
+      "portfolio": "PFAS",
+      "region": "Cascadia",
+      "phase": "In Delivery",
+      "owner": "Rosalind Rennick",
+      "funding": "Corvale",
+      "partner": "Corvale",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.57,
+      "varP": 11.4,
+      "pct": 11.4,
+      "sales": 5.01,
+      "gm": 5.58,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C25B432_645 Jarrowfield WTP, Thornbury",
+      "auth": 7.82,
+      "comm": 7.82,
+      "proj": 8.68,
+      "portfolio": "PFAS",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Osric Feniak",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.86,
+      "varP": 11.0,
+      "pct": 11.0,
+      "sales": 7.82,
+      "gm": 8.68,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C25B456_651 Booster Station Upgrade, Ashcombe",
+      "auth": 8.67,
+      "comm": 8.67,
+      "proj": 9.59,
+      "portfolio": "Plant",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Rosalind Callaghan",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.92,
+      "varP": 10.6,
+      "pct": 10.6,
+      "sales": 8.67,
+      "gm": 9.59,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C26B381_658 PFAS Bellwater 5, Draycott",
+      "auth": 5.0,
+      "comm": 5.0,
+      "proj": 5.51,
+      "portfolio": "PFAS",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Juno Halloran",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Above 10%",
+      "varD": 0.51,
+      "varP": 10.2,
+      "pct": 10.2,
+      "sales": 5.0,
+      "gm": 5.51,
+      "status": "Over 10%"
+    },
+    {
+      "name": "C23B225_690 Dunmoor East Filter Media Renewal",
+      "auth": 51.6,
+      "comm": 51.6,
+      "proj": 54.75,
+      "portfolio": "Plant",
+      "region": "Lakeshore",
+      "phase": "In Delivery",
+      "owner": "Unassigned",
+      "funding": "Dunmoor",
+      "partner": "Dunmoor",
+      "contract": "Large",
+      "reason": "Over",
+      "varD": 3.15,
+      "varP": 6.1,
+      "pct": 6.1,
+      "sales": 51.6,
+      "gm": 54.75,
+      "status": "At risk"
+    },
+    {
+      "name": "C25B315_658 Quarrydown WTP PFAS Treatment",
+      "auth": 64.2,
+      "comm": 64.2,
+      "proj": 66.95,
+      "portfolio": "PFAS",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Unassigned",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Over",
+      "varD": 2.75,
+      "varP": 4.3,
+      "pct": 4.3,
+      "sales": 64.2,
+      "gm": 66.95,
+      "status": "Within"
+    },
+    {
+      "name": "C26B283_645 PFAS GAC Install, Brookmere",
+      "auth": 28.94,
+      "comm": 28.94,
+      "proj": 29.58,
+      "portfolio": "PFAS",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Gideon Corvino",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Over",
+      "varD": 0.64,
+      "varP": 2.2,
+      "pct": 2.2,
+      "sales": 28.94,
+      "gm": 29.58,
+      "status": "Within"
+    },
+    {
+      "name": "C25B206_640 Booster Station Upgrade, Belmara Central",
+      "auth": 5.2,
+      "comm": 5.2,
+      "proj": 5.11,
+      "portfolio": "Plant",
+      "region": "Eastmoor",
+      "phase": "In Delivery",
+      "owner": "Xenia Sarkisian",
+      "funding": "Belmara",
+      "partner": "Belmara",
+      "contract": "Large",
+      "reason": "Within",
+      "varD": -0.09,
+      "varP": -1.7,
+      "pct": -1.7,
+      "sales": 5.2,
+      "gm": 5.11,
+      "status": "Within"
+    }
+  ],
+  "facilities": [],
+  "quarters": [],
+  "traces": [],
+  "starters": [
+    {
+      "id": "rep_q_over10",
+      "report_tag": "large-projects-above-10",
+      "label": "Large projects above 10%",
+      "title": "Large projects above 10%",
+      "q": "Show which large projects are more than 10% over, and whether each has a revision raised.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varP"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_project_360",
+      "report_tag": "project-360",
+      "label": "Project 360",
+      "title": "Project 360",
+      "q": "Give one project’s full position: approved, committed, forecast and contingency left.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "proj"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_rate_base",
+      "report_tag": "belmara-rate-base-position",
+      "label": "Belmara Rate Base Position",
+      "title": "Belmara Rate Base Position",
+      "q": "Show the Belmara rate base against the 2025 order, and keep what is out apart from what is in.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "auth",
+            "proj",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varP"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "label": "Summary tiles",
+      "d": "Projects, approved, forecast, over",
+      "block": {
+        "type": "kpis",
+        "title": "Summary",
+        "kpis": [
+          "count",
+          "auth",
+          "proj",
+          "varP"
+        ]
+      }
+    },
+    {
+      "label": "Over-budget chart",
+      "d": "Projects ranked by percent over approved",
+      "block": {
+        "type": "chart",
+        "title": "Over approved by project",
+        "chartType": "bar",
+        "measure": "varP"
+      }
+    },
+    {
+      "label": "Forecast chart",
+      "d": "Forecast at completion per project",
+      "block": {
+        "type": "chart",
+        "title": "Forecast by project",
+        "chartType": "column",
+        "measure": "proj"
+      }
+    },
+    {
+      "label": "Project detail",
+      "d": "One row per project, with status and the figures behind it",
+      "block": {
+        "type": "table",
+        "title": "Detail",
+        "cols": [
+          "name",
+          "status",
+          "auth",
+          "proj",
+          "varD",
+          "varP"
+        ]
+      }
+    }
+  ],
+  "slice_default": [
+    "portfolio",
+    "region",
+    "phase",
+    "status"
+  ],
+  "audiences": [
+    {
+      "key": "business_user_exec",
+      "label": "Business User -- Executive",
+      "d": "All utilities, all projects, all financials."
+    },
+    {
+      "key": "analyst",
+      "label": "Data Analyst",
+      "d": "All projects and financials. Project manager names masked (PII)."
+    },
+    {
+      "key": "architect",
+      "label": "Domain Architect",
+      "d": "Everything, at every grain, including contract terms."
+    },
+    {
+      "key": "admin",
+      "label": "Platform Admin",
+      "d": "Structure, lineage, cost and access. No financial values."
+    }
+  ],
+  "library": [],
+  "row_model": {
+    "label": "name",
+    "sublabel": "{portfolio} · {phase} · {owner}",
+    "status": "status",
+    "tones": {
+      "Over 10%": "over",
+      "At risk": "warn",
+      "Within": "ok"
+    },
+    "scopes": {
+      "active": {},
+      "belmara": {
+        "field": "funding",
+        "op": "eq",
+        "value": "Belmara"
+      }
+    },
+    "measures": [
+      "varP",
+      "varD",
+      "pct",
+      "proj",
+      "auth",
+      "comm"
+    ],
+    "kpis": [
+      {
+        "key": "count",
+        "label": "Projects in scope",
+        "agg": "rows"
+      },
+      {
+        "key": "auth",
+        "label": "Approved",
+        "agg": "sum",
+        "field": "auth",
+        "format": "money_m"
+      },
+      {
+        "key": "proj",
+        "label": "Forecast",
+        "agg": "sum",
+        "field": "proj",
+        "format": "money_m"
+      },
+      {
+        "key": "varP",
+        "label": "Over approved",
+        "agg": "avg",
+        "field": "varP",
+        "format": "pct"
+      },
+      {
+        "key": "over",
+        "label": "Over 10%",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "Over 10%",
+        "tone": "bad"
+      },
+      {
+        "key": "atrisk",
+        "label": "At risk",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "At risk",
+        "tone": "warn"
+      }
+    ],
+    "formats": {
+      "auth": "money_m",
+      "comm": "money_m",
+      "proj": "money_m",
+      "varD": "money_m",
+      "varP": "pct",
+      "pct": "pct",
+      "status": "text"
+    },
+    "labels": {},
+    "pills": {},
+    "blocks": [
+      "kpis",
+      "chart",
+      "table"
+    ],
+    "footer": []
+  }
+}

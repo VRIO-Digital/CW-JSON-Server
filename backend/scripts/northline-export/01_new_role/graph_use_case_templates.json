@@ -1,0 +1,61 @@
+[
+  {
+    "template_id": "capital-program-analyst",
+    "use_case_id": "uc_capital_program_analyst",
+    "name": "Capital Program Analyst",
+    "description": "One graph over plan, forecast, ledger, commitments, approvals, contracts and rate case claims, so a capital question resolves once and states which vintage and which forecast it read.",
+    "match_phrases": [
+      "capital program",
+      "forecast variance",
+      "WIN",
+      "test year",
+      "in service",
+      "rate base",
+      "change order"
+    ],
+    "personas": [
+      "csc-chair",
+      "capital-controller",
+      "rate-case-director",
+      "project-controls",
+      "treasury",
+      "utility-president",
+      "compliance",
+      "category-manager",
+      "plant-accounting",
+      "project-manager",
+      "engineering-director",
+      "cfo",
+      "board-finance",
+      "commission-staff",
+      "lender-liaison",
+      "operations-director"
+    ],
+    "metrics": [
+      "forecast-variance",
+      "large-over-10",
+      "spend-vs-plan-ytd",
+      "annual-plan-delivery",
+      "forecast-freshness",
+      "open-commitments",
+      "change-order-rate",
+      "contingency-remaining",
+      "win-queue",
+      "test-year-at-risk"
+    ],
+    "hero_questions": [
+      "hq1",
+      "hq2",
+      "hq3",
+      "hq4",
+      "hq5",
+      "hq6",
+      "hq7",
+      "hq8",
+      "hq9",
+      "hq10",
+      "hq11",
+      "hq12"
+    ]
+  }
+]

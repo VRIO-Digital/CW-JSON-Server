@@ -4,7 +4,7 @@
       "name": "document_id",
       "type": "string",
       "class": "identifier",
-      "confidence": 0.94
+      "confidence": 0.95
     },
     {
       "name": "project_code",
@@ -13,143 +13,519 @@
       "confidence": 0.97
     },
     {
+      "name": "contract_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
       "name": "document_title",
       "type": "string",
       "class": "label",
-      "confidence": 0.91
+      "confidence": 0.93
     },
     {
       "name": "document_type",
       "type": "string",
       "class": "classification",
-      "confidence": 0.88
+      "confidence": 0.91
     },
     {
-      "name": "ejcdc_form",
+      "name": "revision",
       "type": "string",
       "class": "classification",
-      "confidence": 0.92
-    },
-    {
-      "name": "contract_number",
-      "type": "string",
-      "class": "identifier",
-      "confidence": 0.95
-    },
-    {
-      "name": "counterparty_contractor",
-      "type": "string",
-      "class": "organisation",
-      "confidence": 0.89
-    },
-    {
-      "name": "counterparty_engineer",
-      "type": "string",
-      "class": "organisation",
-      "confidence": 0.87
+      "confidence": 0.88
     },
     {
       "name": "effective_date",
       "type": "date",
       "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.87
+    },
+    {
+      "name": "signed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "party_authority",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.92
+    },
+    {
+      "name": "party_operator",
+      "type": "string",
+      "class": "organisation",
       "confidence": 0.93
     },
     {
-      "name": "notice_to_proceed_date",
-      "type": "date",
-      "class": "date",
+      "name": "supplier_name",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.9
+    },
+    {
+      "name": "clause_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.86
+    },
+    {
+      "name": "asset_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "amount_eur",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.85
+    },
+    {
+      "name": "amount_basis",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.8
+    },
+    {
+      "name": "cap_eur",
+      "type": "numeric",
+      "class": "measure_commitment",
       "confidence": 0.84
     },
     {
-      "name": "contract_price_at_award",
+      "name": "notice_days",
       "type": "numeric",
-      "class": "measure_commitment",
-      "confidence": 0.94
+      "class": "measure",
+      "confidence": 0.83
     },
     {
-      "name": "contract_price_as_adjusted",
-      "type": "numeric",
-      "class": "measure_commitment",
-      "confidence": 0.94
-    },
-    {
-      "name": "change_order_count",
-      "type": "int64",
-      "class": "measure_record",
-      "confidence": 0.9
-    },
-    {
-      "name": "project_manager_name",
+      "name": "status_stated",
       "type": "string",
-      "class": "person",
-      "confidence": 0.92,
-      "pii": true
+      "class": "lifecycle_state",
+      "confidence": 0.82
     },
     {
-      "name": "business_unit_line",
+      "name": "finding_severity",
       "type": "string",
-      "class": "organisation",
-      "confidence": 0.86
+      "class": "risk_score",
+      "confidence": 0.84
     },
     {
-      "name": "page_count",
-      "type": "int64",
-      "class": "measure_record",
-      "confidence": 0.96
-    },
-    {
-      "name": "is_scope_document",
-      "type": "bool",
-      "class": "flag",
-      "confidence": 0.95
-    },
-    {
-      "name": "active_budget_plan_stated",
-      "type": "numeric",
-      "class": "measure_commitment",
-      "confidence": 0.79
-    },
-    {
-      "name": "most_recent_budget_plan_stated",
-      "type": "numeric",
-      "class": "measure_commitment",
-      "confidence": 0.79
-    },
-    {
-      "name": "value_under_contract_stated",
-      "type": "numeric",
-      "class": "measure_commitment",
+      "name": "chainage",
+      "type": "string",
+      "class": "geography",
       "confidence": 0.81
     },
     {
-      "name": "signature_block_names",
+      "name": "signatory_name",
       "type": "string",
       "class": "person",
-      "confidence": 0.71,
+      "confidence": 0.9,
       "pii": true
     },
     {
-      "name": "scope_text",
+      "name": "author_name",
       "type": "string",
-      "class": "label",
-      "confidence": 0.6
+      "class": "person",
+      "confidence": 0.88,
+      "pii": true
     },
     {
-      "name": "folder_name",
+      "name": "statement_kind",
       "type": "string",
-      "class": "label",
-      "confidence": 0.9
-    },
-    {
-      "name": "extraction_confidence",
-      "type": "numeric",
-      "class": "risk_score",
-      "confidence": 0.86
+      "class": "classification",
+      "confidence": 0.79
     }
   ],
   "data_model": {
-    "suggestions": [],
-    "entities": []
+    "suggestions": [
+      {
+        "suggestion_id": "sg_nw_inservice_unmatched",
+        "from_table_key": "upload.inservice",
+        "from_column": "project_code",
+        "to_table_key": "pmo.project",
+        "to_column": "project_code",
+        "relationship_type": "HAS_IN_SERVICE_DATE",
+        "relationship_type_alternatives": [
+          "DATES"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "260 of 3,770 rows name codes that do not exist in pmo.project. Keep them as unmatched rather than forcing a join.",
+        "confidence": 0.71
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "ent-pmo-project-nw60c7b",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "pmo.project",
+        "entity_name": "project",
+        "description": "Entity for project, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "epbcs.plan",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_PLAN_LINE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both carry project_code; a project has one plan line per fiscal year and vintage.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "epbcs.forecast",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_FORECAST",
+            "cardinality_hint": "1:N",
+            "rationale": "A project has one working forecast per forecast date.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "epbcs.monthly_spread",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_MONTHLY_PLAN",
+            "cardinality_hint": "1:N",
+            "rationale": "Monthly plan and forecast per project.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "gl.project_costing_line",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_COST_LINE",
+            "cardinality_hint": "1:N",
+            "rationale": "Ledger lines carry the project code. Lines without one stay unallocated rather than being attributed.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "commitments.po_line",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "COMMITS",
+            "cardinality_hint": "1:N",
+            "rationale": "Order lines name the project they commit.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "commitments.win_authorization",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_AUTHORIZATION",
+            "cardinality_hint": "1:N",
+            "rationale": "Every approval and budget revision is raised against one project.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pmo.contract",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "DELIVERED_UNDER",
+            "cardinality_hint": "1:N",
+            "rationale": "A contract delivers one project; a project can have several contracts.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pmo.utility",
+            "from_columns": [
+              "utility_code"
+            ],
+            "to_columns": [
+              "utility_code"
+            ],
+            "relationship_type": "OWNED_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "Each project belongs to one utility.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pmo.rate_case_claim",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "CLAIMED_IN",
+            "cardinality_hint": "1:N",
+            "rationale": "A project can be claimed in more than one docket.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "upload.inservice",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_IN_SERVICE_DATE",
+            "cardinality_hint": "1:1",
+            "rationale": "The in-service file has one row per project; 260 rows match no project and are kept as unmatched.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "assets.plant_in_service",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "PLACED_IN_SERVICE_AS",
+            "cardinality_hint": "1:N",
+            "rationale": "Assets placed in service carry the project they came from.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "assets.cwip_balance",
+            "from_columns": [
+              "project_code"
+            ],
+            "to_columns": [
+              "project_code"
+            ],
+            "relationship_type": "HAS_CWIP",
+            "cardinality_hint": "1:N",
+            "rationale": "One CWIP balance per project per period.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T00:00:00.000Z"
+      },
+      {
+        "entity_id": "ent-pmo-contract-nwb6fd2",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "pmo.contract",
+        "entity_name": "contract",
+        "description": "Entity for contract, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pmo.change_order",
+            "from_columns": [
+              "contract_no"
+            ],
+            "to_columns": [
+              "contract_no"
+            ],
+            "relationship_type": "CHANGED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Change orders are numbered within their contract.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "commitments.po_line",
+            "from_columns": [
+              "contract_no"
+            ],
+            "to_columns": [
+              "contract_no"
+            ],
+            "relationship_type": "RELEASED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "Orders release against a contract; stand-alone orders carry no contract.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T00:00:00.000Z"
+      },
+      {
+        "entity_id": "ent-assets-plant-in-service-nwb8082",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "assets.plant_in_service",
+        "entity_name": "plant_in_service",
+        "description": "Entity for plant_in_service, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "assets.depreciation_reserve",
+            "from_columns": [
+              "asset_id"
+            ],
+            "to_columns": [
+              "asset_id"
+            ],
+            "relationship_type": "DEPRECIATED_BY",
+            "cardinality_hint": "1:N",
+            "rationale": "One depreciation row per asset per month.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T00:00:00.000Z"
+      },
+      {
+        "entity_id": "ent-pmo-utility-nw45cc8",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "pmo.utility",
+        "entity_name": "utility",
+        "description": "Entity for utility, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "assets.rate_base_component",
+            "from_columns": [
+              "utility_code"
+            ],
+            "to_columns": [
+              "utility_code"
+            ],
+            "relationship_type": "HAS_RATE_BASE_COMPONENT",
+            "cardinality_hint": "1:N",
+            "rationale": "Deductions and additions are kept per utility.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T00:00:00.000Z"
+      },
+      {
+        "entity_id": "ent-commitments-po-line-nwbf7ab",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "commitments.po_line",
+        "entity_name": "po_line",
+        "description": "Entity for po_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "commitments.framework_agreement",
+            "from_columns": [
+              "item_code"
+            ],
+            "to_columns": [
+              "item_code"
+            ],
+            "relationship_type": "PRICED_UNDER",
+            "cardinality_hint": "N:1",
+            "rationale": "A catalogue item has one framework price while the agreement is valid; an off-framework line still matches its item.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "gl.vendor",
+            "from_columns": [
+              "vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "ORDERED_FROM",
+            "cardinality_hint": "N:1",
+            "rationale": "Vendor on the order.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-15T00:00:00.000Z"
+      }
+    ]
   },
-  "change_signals": []
+  "change_signals": [
+    {
+      "signal_id": "cs1",
+      "kind": "gap",
+      "title": "Primavera P6 is not connected",
+      "detail": "Milestones and critical path float cannot be read; schedule questions are declined.",
+      "do_not": "Do not infer schedule slip from spend."
+    },
+    {
+      "signal_id": "cs2",
+      "kind": "partial",
+      "title": "In-service file does not cover every project",
+      "detail": "990 of 4,500 projects have no row; 260 rows name codes that do not exist.",
+      "do_not": "Do not treat a missing row as in service."
+    }
+  ],
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (invented - four regulated US water utilities standing in for the prospect; no figure is Veolia’s)",
+    "schema_source": "the development team’s db.CAPEX.json key set and field shapes, as carried by the reference packages of 2026-09-24 and 2026-10-12",
+    "generated_by": "_build/build_platform.py",
+    "as_of": "2026-10-15",
+    "today": "2026-10-19",
+    "note": "Every value is generated from the datasets in datasets/ and the scripts in _build/. Never hand-edit this file - change the generator and rebuild.",
+    "keys_carried_from_capex_schema": 31
+  },
+  "_provenance": {
+    "google_account": "demo login identity (the presenter); unchanged from the existing datasets",
+    "auth_roles": "the four persona roles the app already defines; access notes written for Northline Water Group",
+    "credentials": "one handle per Azure SQL source (northline_epbcs, northline_psoft, northline_pmo); deterministic",
+    "projects": "gen/gen_graph_northline.py - 3 Azure SQL sources, 6 datasets, 19 tables; row counts are the invented warehouse’s",
+    "audit": "authored for the demo week (13 to 19 October 2026)",
+    "traces": "sealed traces over recorded answers; stats computed from them",
+    "evals": "computed from ask_answers, the review queue and the sanity checks",
+    "change_signals": "the graph’s own gaps - what the data cannot support, with the do-not clause",
+    "column_profiles": "every column of the 19 tables, with profiler statistics; the dictionaries in uploads/05_data_catalog carry the same columns",
+    "column_vocabulary": "the highest-confidence profiled columns",
+    "document_vocabulary": "the document-corpus profile of the OneDrive source",
+    "drives": "the Capital Program folder in OneDrive: 7 folders, 30 documents; page, character and chunk counts measured from the rendered files in drive_corpus/",
+    "drive_credentials": "one handle per drive; deterministic",
+    "document_extractions": "_build/extractions_northline.py - what the document graph builder reads from each document, resolved to canvas node ids",
+    "graph_domains": "domains ranked by what the connected data supports",
+    "graph_studio": "_build/graph_northline.py canvas (concepts, thin instances, measures; spring layout seed 7) + 8 review items with 1 pivot + 5 sanity checks",
+    "graph_personas": "the personas of the Capital Program Analyst role; top_questions are the hero ids each one asks",
+    "graph_hero_questions": "every question the Ask answers carry (HQ1 to HQ45)",
+    "graph_answer_formats": "the block mixes the answers use",
+    "graph_use_cases": "the one committed role - Capital Program Analyst for Northline Water",
+    "graph_use_case_templates": "assembled from the ids above",
+    "ask_answers": "_build/answers_northline.py - 49 recorded answers (HQ1 to HQ45 and four extra declines Q46 to Q49); every figure computed from the datasets",
+    "reports": "_build/gov_northline.py - three reports and their governance; Reports is hidden from the sidebar for every persona, but governance feeds Audit & Governance",
+    "settings": "the eight demo users (all on the demo login domain) and the nav permissions the app uses today (Reports hidden)",
+    "reports_prototype": "the Authoring tab fixture - the large projects above 10% and the projects the stories name, in USD millions",
+    "data_model": "declared relationships between the tables, confirmed by the presenter, plus open suggestions",
+    "graph_metrics": "the governed measures of the Capital Program Analyst role",
+    "mail_corpus": "the capital program mailbox - 22 messages in 16 threads (mailbox_export/)",
+    "studio_graph": "the as-built graph-version shape: structured lane over the selected tables, document lane extracted from the corpus, Bridge type links"
+  }
 }

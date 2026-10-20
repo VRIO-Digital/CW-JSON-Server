@@ -75,6 +75,8 @@ interface SuggestState {
   suggest: (input: {
     domainId: string | null
     businessNeed: string
+    roleId?: string | null
+    areas?: string[]
   }) => Promise<Result>
   /** Waving one away is a local act — nothing about it was ever saved. */
   dismiss: (id: string) => void
@@ -120,6 +122,8 @@ function createSuggestStore(
   fetcher: (input: {
     domainId: string | null
     businessNeed: string
+    roleId?: string | null
+    areas?: string[]
   }) => Promise<{ suggestions: Suggestion[]; emptyReason: string | null; run: LlmRun }>,
   /*
    * How a corrected row is written back, for the one pool that has such a route. Passed in rather

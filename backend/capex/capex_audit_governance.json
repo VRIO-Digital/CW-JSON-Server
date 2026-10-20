@@ -3,176 +3,182 @@
     "stats": [
       {
         "label": "Access rules in force",
-        "value": "5",
-        "note": "1 of 5 readers carry a restriction"
+        "value": "8",
+        "note": "1 of 8 readers carries a restriction"
       },
       {
         "label": "PII columns",
-        "value": "9",
-        "note": "across 64 catalogued tables",
+        "value": "4",
+        "note": "across 19 catalogued tables",
         "tone": "good"
       },
       {
         "label": "Columns to review",
-        "value": "35",
+        "value": "9",
         "note": "profiler confidence below the accept floor",
         "tone": "warn"
       },
       {
         "label": "Cost-cap headroom",
-        "value": "18%",
-        "note": "tightest: Graph builds (tenant) at 82.0%",
+        "value": "31%",
+        "note": "tightest: Goals (tenant) at 69.0%",
         "tone": "warn"
       }
     ],
     "events": [
       {
-        "actor": "Rei Nakamura",
-        "action": "Opened Project 360",
-        "resource": "Project 360",
+        "actor": "Marc Beaulieu",
+        "action": "Opened Belmara Rate Base Position",
+        "resource": "Belmara Rate Base Position",
         "severity": "Info",
         "tone": "neutral",
-        "at": "Today 09:24",
-        "detail": "Their access resolved: Business unit = 690 - Dunmoor East — 8 of 60 projects today.",
+        "at": "Today 09:05",
+        "detail": "His access resolved: utility = Belmara - 939 of 3768 approved projects; no masks.",
         "category": "open"
       },
       {
         "actor": "Ellis Hargrove",
-        "action": "Opened Variance Report",
-        "resource": "Variance Report",
+        "action": "Opened Capital Program Position",
+        "resource": "Capital Program Position",
         "severity": "Info",
         "tone": "neutral",
-        "at": "Today 09:12",
-        "detail": "His access resolved: all 60 projects, commercial terms masked.",
+        "at": "Today 08:41",
+        "detail": "His access resolved: all 3768 approved projects, all five utilities, no masks.",
         "category": "open"
       },
       {
         "actor": "system",
-        "action": "Scheduled refresh ran on Variance Report",
-        "resource": "ref",
+        "action": "Scheduled refresh ran on Capital Program Position",
+        "resource": "Capital Program Position",
         "severity": "Info",
         "tone": "neutral",
         "at": "Today 07:00",
-        "detail": "Ledger blocks only. The line-item explanations and both correspondence blocks are read at open time under the asking session’s own mailbox entitlement, so they are never cached.",
+        "detail": "Plan, forecast and ledger blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. 63 Lakeshore forecasts still marked provisional.",
         "category": "ref"
       },
       {
-        "actor": "Sofia Lindqvist",
-        "action": "Published what-if scenario Commodity index exposure — PFAS program",
-        "resource": "what-if scenario Commodity index exposure — PFAS program",
+        "actor": "Tolu Adeyemi",
+        "action": "Armed the goal 'Keep procurement 2.5% lower across all projects'",
+        "resource": "goal g-rule-framework",
         "severity": "Info",
         "tone": "neutral",
-        "at": "Aug 14 16:40",
-        "detail": "2 readers · 2 cases (Base case, Steel spike +18%) · points to graph v4 · numbers refresh Mondays 6:00 AM.",
+        "at": "Oct 16 15:20",
+        "detail": "Fires on each new order-line load; checks every line against the framework and benchmark prices.",
         "category": "pub"
       },
       {
-        "actor": "Dana Whitfield",
-        "action": "Changed Rei Nakamura’s access rule",
-        "resource": "Rei Nakamura’s access rule",
+        "actor": "Rei Nakamura",
+        "action": "Published graph Capital Program Analyst v1",
+        "resource": "graph v1",
         "severity": "Medium",
         "tone": "warn",
-        "at": "Aug 14 15:20",
-        "detail": "Restriction basis: Business unit = 690 - Dunmoor East — resolves to 8 projects today. Applied immediately to everything published to them.",
-        "category": "rule"
-      },
-      {
-        "actor": "system",
-        "action": "Adaeze Okonjo holds no data scope",
-        "resource": "req",
-        "severity": "Medium",
-        "tone": "warn",
-        "at": "Aug 14 11:05",
-        "detail": "By design, not by omission — a platform admin administers entitlement and does not thereby acquire it. Anything published to her opens empty, and the audit records that it opened.",
-        "category": "req"
-      },
-      {
-        "actor": "Dana Whitfield",
-        "action": "Published Project 360",
-        "resource": "Project 360",
-        "severity": "Info",
-        "tone": "neutral",
-        "at": "Aug 13 09:40",
-        "detail": "3 readers · refreshes only when it’s opened · no approval step.",
+        "at": "Oct 15 16:02",
+        "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
         "category": "pub"
       },
       {
-        "actor": "system",
-        "action": "Dana Whitfield masked commercial terms for Sofia Lindqvist and Ellis Hargrove",
-        "resource": "rule",
+        "actor": "Rei Nakamura",
+        "action": "Changed rule for Marc Beaulieu",
+        "resource": "data access rule",
         "severity": "Medium",
         "tone": "warn",
-        "at": "Aug 13 09:38",
-        "detail": "Vendor contacts, contract values and unit rates. Both keep all 60 rows — masking removes columns, not rows, and the masked figures never reach the browser.",
+        "at": "Oct 15 11:10",
+        "detail": "Restriction basis = utility (Belmara).",
         "category": "rule"
       },
       {
-        "actor": "system",
-        "action": "Scheduled refresh ran on Rate-Case Filing Calendar",
-        "resource": "ref",
+        "actor": "Nishant Srivastav",
+        "action": "Started submission 'Belmara rate base schedules RB-1 to RB-5' from a goal",
+        "resource": "submission sub-rb-schedules-2026",
         "severity": "Info",
         "tone": "neutral",
-        "at": "Aug 12 06:00",
-        "detail": "Monthly, 1st at 06:00 UTC. Two in-service dates moved out of the FY26 filing window.",
+        "at": "Oct 14 17:35",
+        "detail": "Built from the goal g-belmara-rate-base on the template Belmara rate base schedules, 2025 case.",
+        "category": "pub"
+      },
+      {
+        "actor": "Priya Raman",
+        "action": "Exported Capital Program Position (XLSX)",
+        "resource": "Capital Program Position",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 14 12:18",
+        "detail": "Export carries the watermark and the as-of line; the provisional Lakeshore rows export on a separate sheet.",
+        "category": "export"
+      },
+      {
+        "actor": "system",
+        "action": "Sealed trace for 'What is Belmara's rate base at the end of the test year, and how does it compare with the last order?'",
+        "resource": "trace_nwg02",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 14 10:22",
+        "detail": "5 spans · $0.15 · confidence 0.88",
         "category": "ref"
       },
       {
-        "actor": "Sofia Lindqvist",
-        "action": "Published Variance Report",
-        "resource": "Variance Report",
-        "severity": "Info",
-        "tone": "neutral",
-        "at": "Aug 11 14:10",
-        "detail": "3 readers · refreshes daily 07:00 UTC · no approval step.",
-        "category": "pub"
+        "actor": "Raj Patel",
+        "action": "Changed persona access for Business User - Executive",
+        "resource": "settings",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 13 09:30",
+        "detail": "Reports hidden from the sidebar for all personas (beta).",
+        "category": "rule"
       }
     ],
     "policies": [
       {
         "name": "Two gates",
-        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (component 13, audience). Gate 2 decides which ROWS a viewer sees inside it (component 12, data scope). They are independent: a viewer can be correctly entitled and correctly see zero rows.",
+        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
         "status": "Enforced",
         "tone": "good"
       },
       {
         "name": "Counts are computed",
-        "desc": "Every count on this screen — \"sees 8 of 60\" — is derived from the roster at paint time. No count is stored. A stated count stops being true the moment the roster changes and nothing notices.",
+        "desc": "Every count on this screen - \"sees 939 of 3768\" - is derived from the project roster at paint time, never typed.",
         "status": "Enforced",
         "tone": "good"
       },
       {
         "name": "Rule shape",
-        "desc": "A person is full-scope, or restricted by exactly one BASIS field plus the values of it they may see. A separate boolean mask hides row-level money while leaving totals visible.",
+        "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
         "status": "Enforced",
         "tone": "good"
       },
       {
         "name": "Legal basis",
-        "desc": "A field qualifies as a restriction basis only if every one of its values maps to a definite, non-empty set of the roster. Continuous measures — forecast, EAC variance, percent complete — are excluded: a rule on them re-resolves every week, which makes it a filter, not an access rule.",
+        "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (utility, region, program, category).",
         "status": "Enforced",
         "tone": "good"
       },
       {
-        "name": "No approval",
-        "desc": "There is no approval queue. Publishing, granting and revoking are immediate and logged. (Superseded the earlier CAPEX draft, which carried a six-item approval queue.)",
+        "name": "Commission view",
+        "desc": "A filing for a commission carries its own utility’s rate base and evidence; other utilities’ plans and supplier prices stay restricted.",
         "status": "Enforced",
         "tone": "good"
       },
       {
-        "name": "Admin holds none",
-        "desc": "The platform administrator administers entitlement and does not thereby acquire it. Their zero scope is by design, not omission.",
+        "name": "Correspondence is runtime",
+        "desc": "Mailbox content is read at question time under the reader’s permissions and never becomes a graph fact or a cached figure.",
         "status": "Enforced",
         "tone": "good"
       },
       {
-        "name": "Publishing never widens",
-        "desc": "Adding a reader to an artifact grants existence, never rows. The reader opens it under their own rule.",
+        "name": "Provisional forecasts",
+        "desc": "A forecast older than the monthly refresh is shown as provisional with its date; it is never silently treated as current.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Goals act only on approval",
+        "desc": "A goal drafts notes and lists; anything sent or changed outside the product waits for the person who owns the goal.",
         "status": "Enforced",
         "tone": "good"
       }
     ],
     "event_window": "Last 7 days · 10 events",
-    "policy_total": 7,
+    "policy_total": 8,
     "categories": [
       {
         "id": "all",
@@ -195,8 +201,8 @@
         "label": "Refreshes"
       },
       {
-        "id": "req",
-        "label": "Requests"
+        "id": "export",
+        "label": "Exports"
       }
     ]
   },
@@ -204,224 +210,224 @@
     "stats": [
       {
         "label": "p50 duration",
-        "value": "2.1 s",
+        "value": "3.5 s",
         "note": "across 11 sealed traces"
       },
       {
         "label": "p95 duration",
-        "value": "8.4 s",
-        "note": "longest: What did correspondence say about Elkhart Gr",
+        "value": "7.3 s",
+        "note": "longest: What is Belmara's rate base at the end of th",
         "tone": "warn"
       },
       {
         "label": "Unaccounted time",
-        "value": "840 ms",
+        "value": "690 ms",
         "note": "shown as a gap, never folded into a step"
       },
       {
         "label": "Cost this window",
-        "value": "$0.73",
+        "value": "$1.01",
         "note": "against the $2.00 per-question budget"
       }
     ],
     "items": [
       {
-        "id": "trace_cw05",
-        "operation": "What did correspondence say about Elkhart Granular Media Retrofit?",
-        "service": "Capital Programme Graph v1",
-        "duration": 8400,
+        "id": "trace_nwg01",
+        "operation": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 7300,
         "spans": 5,
         "status": "Slow",
         "tone": "warn",
-        "at": "2026-03-31T14:20:31Z",
-        "actor": "Dana Whitfield",
-        "confidence": 0.81,
-        "cost_usd": 0.21,
+        "at": "2026-10-16T15:00:00Z",
+        "actor": "Marc Beaulieu",
+        "confidence": 0.9,
+        "cost_usd": 0.17,
         "sealed": true
       },
       {
-        "id": "trace_cw01",
-        "operation": "What is the five-year capital gap, and what is driving it?",
-        "service": "Capital Programme Graph v1",
-        "duration": 2140,
-        "spans": 6,
-        "status": "OK",
-        "tone": "good",
-        "at": "2026-03-31T11:02:14Z",
-        "actor": "Ellis Hargrove",
-        "confidence": 0.88,
+        "id": "trace_nwg02",
+        "operation": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 5600,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-16T14:13:29Z",
+        "actor": "Priya Raman",
+        "confidence": 0.93,
         "cost_usd": 0.13,
         "sealed": true
       },
       {
-        "id": "trace_cw02",
-        "operation": "How much have we spent?",
-        "service": "Capital Programme Graph v1",
-        "duration": 4100,
-        "spans": 4,
-        "status": "OK",
-        "tone": "good",
-        "at": "2026-03-31T10:48:02Z",
-        "actor": "Ellis Hargrove",
-        "confidence": 0.86,
-        "cost_usd": 0.09,
-        "sealed": true
-      },
-      {
-        "id": "trace_cw04",
-        "operation": "What is the estimate at completion for Elkhart Granular Media Retrofit?",
-        "service": "Capital Programme Graph v1",
-        "duration": 2300,
-        "spans": 6,
-        "status": "OK",
-        "tone": "good",
-        "at": "2026-03-31T09:58:40Z",
-        "actor": "Sofia Lindqvist",
-        "confidence": 0.87,
+        "id": "trace_nwg03",
+        "operation": "Which order lines were placed off-framework above the framework price, and what did that cost?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 6200,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-16T13:26:58Z",
+        "actor": "Tolu Adeyemi",
+        "confidence": 0.9,
         "cost_usd": 0.14,
         "sealed": true
       },
       {
-        "id": "trace_cw08",
-        "operation": "What is the five-year capital gap, and what is driving it?",
-        "service": "Capital Programme Graph v1",
-        "duration": 700,
+        "id": "trace_nwg04",
+        "operation": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 4700,
         "spans": 4,
         "status": "OK",
         "tone": "good",
-        "at": "2026-03-31T09:21:06Z",
-        "actor": "Rei Nakamura",
-        "confidence": null,
-        "cost_usd": 0.01,
+        "at": "2026-10-16T12:39:27Z",
+        "actor": "Marc Beaulieu",
+        "confidence": 0.91,
+        "cost_usd": 0.11,
         "sealed": true
       },
       {
-        "id": "trace_cw09",
-        "operation": "How did FY2024 commitments compare with FY2024 budget?",
-        "service": "Capital Programme Graph v1",
-        "duration": 2280,
-        "spans": 5,
+        "id": "trace_nwg05",
+        "operation": "Are we on track to spend the FY26 plan by December?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 3500,
+        "spans": 4,
         "status": "OK",
         "tone": "good",
-        "at": "2026-03-30T15:14:07Z",
-        "actor": "Sofia Lindqvist",
-        "confidence": 0.89,
+        "at": "2026-10-16T11:52:56Z",
+        "actor": "Priya Raman",
+        "confidence": 0.92,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_nwg06",
+        "operation": "Which major additions are missing part of their prudence record?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 5100,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-16T10:05:25Z",
+        "actor": "Nishant Srivastav",
+        "confidence": 0.87,
+        "cost_usd": 0.12,
+        "sealed": true
+      },
+      {
+        "id": "trace_nwg07",
+        "operation": "Which projects have not been re-forecast for more than 45 days?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 2600,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-15T09:18:54Z",
+        "actor": "Rei Nakamura",
+        "confidence": 0.94,
+        "cost_usd": 0.07,
+        "sealed": true
+      },
+      {
+        "id": "trace_nwg08",
+        "operation": "How much has the procurement savings program secured against its 2.5% target?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 2900,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-15T08:31:23Z",
+        "actor": "Tolu Adeyemi",
+        "confidence": 0.9,
         "cost_usd": 0.08,
         "sealed": true
       },
       {
-        "id": "trace_cw06",
-        "operation": "How did FY2023 commitments compare with FY2023 budget?",
-        "service": "Capital Programme Graph v1",
-        "duration": 2100,
+        "id": "trace_nwg09",
+        "operation": "Where does my project stand: approved, committed, forecast and contingency left?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 3100,
         "spans": 4,
         "status": "OK",
         "tone": "good",
-        "at": "2026-03-30T15:12:33Z",
-        "actor": "Sofia Lindqvist",
-        "confidence": null,
-        "cost_usd": 0.04,
+        "at": "2026-10-15T07:44:52Z",
+        "actor": "Nishant Srivastav",
+        "confidence": 0.88,
+        "cost_usd": 0.08,
         "sealed": true
       },
       {
-        "id": "trace_cw07",
-        "operation": "What is our customer churn this quarter?",
-        "service": "Capital Programme Graph v1",
-        "duration": 400,
+        "id": "trace_nwg10",
+        "operation": "Which large projects slipped on their critical path this month?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 600,
         "spans": 2,
         "status": "OK",
         "tone": "good",
-        "at": "2026-03-30T11:40:08Z",
-        "actor": "Ellis Hargrove",
+        "at": "2026-10-15T06:57:21Z",
+        "actor": "Rei Nakamura",
         "confidence": null,
         "cost_usd": 0.01,
         "sealed": true
       },
       {
-        "id": "trace_cw03",
-        "operation": "Add up budget, committed and forecast by executive category.",
-        "service": "Capital Programme Graph v1",
-        "duration": 1100,
-        "spans": 4,
+        "id": "trace_nwg11",
+        "operation": "What will ductile iron pipe cost next year?",
+        "service": "Capital Program Analyst graph v1",
+        "duration": 700,
+        "spans": 2,
         "status": "OK",
         "tone": "good",
-        "at": "2026-03-29T16:31:55Z",
-        "actor": "Sofia Lindqvist",
+        "at": "2026-10-15T05:10:50Z",
+        "actor": "Tolu Adeyemi",
         "confidence": null,
-        "cost_usd": 0.02,
-        "sealed": true
-      },
-      {
-        "id": "trace_view_gap_01",
-        "operation": "Report view — Five-Year Capital Gap",
-        "service": "Capital Programme Graph v1",
-        "duration": 790,
-        "spans": 6,
-        "status": "OK",
-        "tone": "good",
-        "at": "2026-03-31T09:16:44Z",
-        "actor": "Rei Nakamura",
-        "confidence": null,
-        "cost_usd": null,
-        "sealed": true
-      },
-      {
-        "id": "trace_view_360_01",
-        "operation": "Report view — Project 360",
-        "service": "Capital Programme Graph v1",
-        "duration": 1260,
-        "spans": 6,
-        "status": "OK",
-        "tone": "good",
-        "at": "2026-03-31T09:24:19Z",
-        "actor": "Rei Nakamura",
-        "confidence": null,
-        "cost_usd": null,
+        "cost_usd": 0.01,
         "sealed": true
       }
     ],
-    "sampling": "Every question is sealed — no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "sampling": "Every question is sealed - no sampling. A trace a viewer cannot find is a trace that does not exist.",
     "waterfall": {
-      "trace_id": "trace_cw05",
-      "operation": "What did correspondence say about Elkhart Granular Media Retrofit?",
-      "total_ms": 8400,
-      "unaccounted_ms": 840,
+      "trace_id": "trace_nwg01",
+      "operation": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+      "total_ms": 7300,
+      "unaccounted_ms": 690,
       "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
       "spans": [
         {
           "name": "Understand & plan",
           "start": 0,
-          "duration": 300,
+          "duration": 330,
           "agent": "supervisor",
-          "detail": "classified: qualitative · runtime source required"
+          "detail": "classified: rate base roll-forward · Belmara · test year end 31 Dec 2026"
         },
         {
           "name": "Resolve the subject",
-          "start": 300,
-          "duration": 460,
+          "start": 330,
+          "duration": 560,
           "agent": "graph agent",
-          "detail": "C23B293_612 → contractors → contracts"
+          "detail": "Northline Water of Belmara → order 2025-RC-118 → 38 post-test-year projects → plant by class"
+        },
+        {
+          "name": "Read governed facts",
+          "start": 890,
+          "duration": 2420,
+          "agent": "graph agent",
+          "detail": "psoft.asset · psoft.cwip · rate base components · pmo.inservice (as of 2026-10-12)"
         },
         {
           "name": "Pull correspondence",
-          "start": 760,
-          "duration": 3900,
+          "start": 3310,
+          "duration": 1960,
           "agent": "runtime agent",
-          "detail": "src_  · 90-day window · 4 mailboxes in scope · permissions follow the source"
+          "detail": "outlook · 90-day window · threads R1, R2, P1 · permissions follow the reader"
         },
         {
-          "name": "Extract & resolve observations",
-          "start": 4660,
-          "duration": 2400,
-          "agent": "runtime agent",
-          "detail": "3 extractions → 2 above the 0.70 floor → resolved against the graph"
-        },
-        {
-          "name": "Assemble & seal",
-          "start": 7060,
-          "duration": 500,
+          "name": "Compose and check",
+          "start": 5270,
+          "duration": 1340,
           "agent": "supervisor",
-          "detail": "observations kept distinguishable from graph facts"
+          "detail": "approved rates only · the seven dated 2027 out · the nine as completed construction · totals foot"
         }
       ]
     }
@@ -435,138 +441,137 @@
       },
       {
         "label": "Hero questions answerable",
-        "value": "3 of 5",
+        "value": "4 of 5",
         "note": "graph sanity checks",
         "tone": "warn"
       },
       {
         "label": "High-confidence answers",
-        "value": "23 of 40",
-        "note": "14 medium, 3 low",
-        "tone": "warn"
+        "value": "37 of 49",
+        "note": "12 medium, 0 low"
       },
       {
         "label": "Must-review graph items",
-        "value": "7",
-        "note": "0 resolved",
+        "value": "8",
+        "note": "0 resolved · 1 pivot",
         "tone": "crit"
       }
     ],
     "runs": [
       {
         "suite": "hero-question-answerability",
-        "target": "g_northline_capex · 5 checks",
+        "target": "g_nwg_capital_program_analyst · 5 checks",
         "checks": 5,
-        "pass_rate": 60,
+        "pass_rate": 80,
         "status": "Degraded",
         "tone": "warn",
-        "ran_at": "2026-05-31"
+        "ran_at": "2026-10-15"
       },
       {
         "suite": "answer-confidence",
-        "target": "query set · 40 questions",
-        "checks": 40,
-        "pass_rate": 57.5,
+        "target": "query set · 49 questions",
+        "checks": 49,
+        "pass_rate": 75.5,
         "status": "Degraded",
         "tone": "warn",
-        "ran_at": "2026-05-31"
+        "ran_at": "2026-10-15"
       },
       {
         "suite": "refusal-correctness",
-        "target": "5 declines",
-        "checks": 5,
+        "target": "11 declines",
+        "checks": 11,
         "pass_rate": 100,
         "status": "Passed",
         "tone": "good",
-        "ran_at": "2026-05-31"
+        "ran_at": "2026-10-15"
       },
       {
-        "suite": "edge-method-lanes",
-        "target": "908 edges",
-        "checks": 908,
-        "pass_rate": 55.7,
-        "status": "Degraded",
-        "tone": "warn",
-        "ran_at": "2026-05-31"
-      },
-      {
-        "suite": "basis-partition",
-        "target": "5 restriction bases",
-        "checks": 5,
+        "suite": "statement-not-promoted",
+        "target": "notes, drafts, emails, studies not filed",
+        "checks": 7,
         "pass_rate": 100,
         "status": "Passed",
         "tone": "good",
-        "ran_at": "2026-08-18"
+        "ran_at": "2026-10-15"
       },
       {
-        "suite": "cost-cap-headroom",
-        "target": "6 caps",
-        "checks": 6,
-        "pass_rate": 83.3,
+        "suite": "citation-validity",
+        "target": "133 citations",
+        "checks": 133,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-15"
+      },
+      {
+        "suite": "ledger-reconciliation",
+        "target": "project posted actuals vs the monthly ledger",
+        "checks": 12,
+        "pass_rate": 91.7,
         "status": "Degraded",
         "tone": "warn",
-        "ran_at": "2026-05-31"
+        "ran_at": "2026-10-15"
       }
     ],
     "checks": [
       {
-        "name": "sc1 · Which projects are forecasting above their approved plan, an",
-        "dataset": "g_northline_capex",
+        "name": "sc1 · Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+        "dataset": "g_nwg_capital_program_analyst",
         "result": "Passed",
         "tone": "good",
-        "detail": "Answerable - with a declared materiality floor"
+        "detail": "Answerable - at the 15 October forecast, Lakeshore marked provisional"
       },
       {
-        "name": "sc2 · What is our exposure to any single contractor across the por",
-        "dataset": "g_northline_capex",
+        "name": "sc2 · What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+        "dataset": "g_nwg_capital_program_analyst",
         "result": "Passed",
         "tone": "good",
-        "detail": "Answerable for the contract corpus only"
+        "detail": "Answerable - approved rates, the seven out, the nine shown as completed construction"
       },
       {
-        "name": "sc3 · Which projects hold an authorization but show no activity th",
-        "dataset": "g_northline_capex",
+        "name": "sc3 · Which order lines were placed off-framework above the framework price, and what did that cost?",
+        "dataset": "g_nwg_capital_program_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - order line grain, against Schedule A"
+      },
+      {
+        "name": "sc4 · Which projects claimed in the Belmara test year are now at risk of missing it?",
+        "dataset": "g_nwg_capital_program_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - the 12 October in-service file wins over the September schedule"
+      },
+      {
+        "name": "sc5 · Which large projects slipped on their critical path this month?",
+        "dataset": "g_nwg_capital_program_analyst",
         "result": "Refused",
         "tone": "crit",
-        "detail": "Declined as asked - no natural instances"
+        "detail": "Declined - the schedule source is not connected"
       },
       {
-        "name": "sc4 · How much is committed but not yet spent?",
-        "dataset": "g_northline_capex",
-        "result": "Refused",
-        "tone": "crit",
-        "detail": "Declined - the commitment link has no instances"
-      },
-      {
-        "name": "sc5 · What changed between the 3+9 forecast and the working view, ",
-        "dataset": "g_northline_capex",
+        "name": "Study rates not promoted to approved rates",
+        "dataset": "review queue",
         "result": "Passed",
         "tone": "good",
-        "detail": "Answerable - vintage pinned, cause is runtime"
+        "detail": "rq6 held; approved 2.40% used"
       },
       {
-        "name": "rq1 · 'Working Forecast' proposed as a Plan Vintage member - creat",
+        "name": "June forecasts not read as current",
         "dataset": "review queue",
-        "result": "Failed",
-        "tone": "crit",
-        "detail": "confidence 0.42, below the vintage membership (semantics-changing) floor"
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq3 held; 63 Lakeshore rows marked provisional"
       },
       {
-        "name": "rq2 · Grantham Materials Laboratory, LLC - same firm across 3 proj",
+        "name": "Avoided premium not counted as a saving",
         "dataset": "review queue",
-        "result": "Warning",
-        "tone": "warn",
-        "detail": "confidence 0.86, below the identity merge (schema-changing) floor"
-      },
-      {
-        "name": "rq3 · Change order rider -> contract, matched on a contract number",
-        "dataset": "review queue",
-        "result": "Warning",
-        "tone": "warn",
-        "detail": "confidence 0.88, below the unstructured -> structured (schema-changing) floor"
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq7 held; secured stays $8.7M"
       }
     ],
     "run_trigger": "On graph build and on query-set regeneration",
-    "failure_summary": "3 low-confidence answers · 7 graph items awaiting review"
+    "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (project posted $818.1M vs ledger $812.0M, timing of reclasses) open with the controller"
   }
 }

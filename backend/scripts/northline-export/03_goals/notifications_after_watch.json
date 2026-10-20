@@ -1,0 +1,39 @@
+[
+  {
+    "id": "n-g-rule-framework-mvfxsr6b-executed",
+    "at": "2026-10-20T00:20:24.083Z",
+    "kind": "executed",
+    "goalId": "g-rule-framework",
+    "title": "Executed: Re-place the nine unconfirmed lines and fix the catalogue",
+    "text": "Agent Ledger did all 4 steps on the 14 lines. The goal is under Executed; the watch stays armed for the next order load.",
+    "read": false,
+    "tab": "runs",
+    "found": "Note and order list sent; catalogue change raised; tracker updated to $9.0M, pending the re-orders.",
+    "cta": "Open the goal"
+  },
+  {
+    "id": "n-g-rule-framework-mvfxslcn-findings",
+    "at": "2026-10-20T00:20:16.535Z",
+    "kind": "findings",
+    "goalId": "g-rule-framework",
+    "title": "Off-framework orders in tonight’s load: a recommendation waits for you",
+    "text": "Agent Ledger ran the five steps on the 14 lines and sent the note to you, the project managers and Procurement. It waits for your review under Needs you.",
+    "read": false,
+    "tab": "runs",
+    "found": "14 of 31 new lines off-framework: $3.86M ordered, $0.55M above framework prices. Nine are not yet confirmed by the supplier and can be re-placed at no cost.",
+    "rec": "Re-place the nine unconfirmed lines on the frameworks and fix the catalogue default.",
+    "cta": "Review it"
+  },
+  {
+    "id": "n-g-rule-framework-mvfxses9-fired",
+    "at": "2026-10-20T00:20:08.025Z",
+    "kind": "fired",
+    "goalId": "g-rule-framework",
+    "title": "Standing goal fired: off-framework orders in tonight’s load",
+    "text": "Agent Ledger is analysing it now. You hear back with findings and a recommendation.",
+    "read": false,
+    "tab": "runs",
+    "found": "14 of 31 new lines off-framework: $3.86M ordered, $0.55M above framework prices.",
+    "cta": "Watch it run"
+  }
+]

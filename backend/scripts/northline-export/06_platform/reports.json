@@ -1,0 +1,2522 @@
+{
+  "meta": {
+    "persona_name": "Priya Raman",
+    "persona_role": "Capital Controller · Northline Water Group",
+    "persona_initials": "PR",
+    "entity_plural": "projects",
+    "scope_line": "the Northline capital program",
+    "source_trace": "Traces to: northline_epbcs.plan, northline_epbcs.forecast, northline_psoft.gl, northline_psoft.commitments, northline_pmo.project, as of 2026-10-15."
+  },
+  "fields": [
+    {
+      "key": "name",
+      "label": "Project",
+      "kind": "text",
+      "filterable": false,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "cat",
+      "label": "Category",
+      "kind": "cat",
+      "filterable": true,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "reg",
+      "label": "Region",
+      "kind": "cat",
+      "filterable": true,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "phase",
+      "label": "Stage",
+      "kind": "cat",
+      "filterable": true,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "bu",
+      "label": "Utility",
+      "kind": "cat",
+      "filterable": true,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "comp",
+      "label": "Compliance driver",
+      "kind": "cat",
+      "filterable": true,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "approved",
+      "label": "Approved",
+      "kind": "num",
+      "filterable": false,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "forecast",
+      "label": "Forecast",
+      "kind": "num",
+      "filterable": false,
+      "avail": true,
+      "note": null
+    },
+    {
+      "key": "var_pct",
+      "label": "Against approved %",
+      "kind": "num",
+      "filterable": false,
+      "avail": true,
+      "note": null
+    }
+  ],
+  "assumptions": {
+    "scope": {
+      "value": "approved",
+      "label": "all 3,768 approved projects"
+    },
+    "measure": {
+      "value": "approved",
+      "label": "approved budget"
+    },
+    "horizon": {
+      "value": "lifetime",
+      "label": "lifetime, at the 15 October forecast"
+    }
+  },
+  "opts": {
+    "scope": {
+      "q": "Which projects to include?",
+      "options": [
+        {
+          "value": "approved",
+          "label": "all 3,768 approved projects",
+          "d": "Everything with an Active Budget Plan"
+        },
+        {
+          "value": "large",
+          "label": "large projects in delivery",
+          "d": "1,419 projects"
+        }
+      ]
+    },
+    "measure": {
+      "q": "\"Over budget\" measured against?",
+      "options": [
+        {
+          "value": "approved",
+          "label": "approved budget",
+          "d": "The Active Budget Plan"
+        },
+        {
+          "value": "original",
+          "label": "original WIN approval",
+          "d": "Before revisions"
+        }
+      ]
+    },
+    "horizon": {
+      "q": "Over what period?",
+      "options": [
+        {
+          "value": "lifetime",
+          "label": "lifetime, at the 15 October forecast",
+          "d": "Forecast at completion"
+        },
+        {
+          "value": "fy26",
+          "label": "FY26",
+          "d": "January to December 2026"
+        },
+        {
+          "value": "ytd",
+          "label": "FY26 to September",
+          "d": "Posted actuals"
+        }
+      ]
+    }
+  },
+  "slice_default": [
+    "bu",
+    "cat",
+    "phase"
+  ],
+  "summary_catalog": [
+    {
+      "key": "count",
+      "label": "projects in view",
+      "tone": null,
+      "agg": "rows",
+      "field": null,
+      "format": "int",
+      "def": "Projects the scope admits",
+      "scope_class": "count"
+    },
+    {
+      "key": "approved",
+      "label": "approved budget",
+      "tone": null,
+      "agg": "sum",
+      "field": "approved",
+      "format": "money_m",
+      "def": "Active Budget Plan",
+      "scope_class": "sum"
+    },
+    {
+      "key": "forecast",
+      "label": "forecast at completion",
+      "tone": "warn",
+      "agg": "sum",
+      "field": "forecast",
+      "format": "money_m",
+      "def": "Latest working forecast",
+      "scope_class": "sum"
+    },
+    {
+      "key": "over10",
+      "label": "large projects above 10%",
+      "tone": "crit",
+      "agg": "count_eq",
+      "field": "status",
+      "format": "int",
+      "def": "Forecast more than 10% over",
+      "scope_class": "count"
+    }
+  ],
+  "summary_default": [],
+  "data": {
+    "projects": [
+      {
+        "n": "C23B300_651 · Clearwell Replacement, Ashcombe",
+        "reg": "Eastmoor",
+        "cat": "Plant",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "No compliance constraint"
+      },
+      {
+        "n": "C23B438_694 · Well Field Expansion, Harrowgate",
+        "reg": "Lakeshore",
+        "cat": "Plant",
+        "bu": "Northline Water of Dunmoor",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C23B539_698 · Pump Station Rebuild, Selby Point",
+        "reg": "Lakeshore",
+        "cat": "Plant",
+        "bu": "Northline Water of Dunmoor",
+        "phase": "In Delivery",
+        "comp": "No compliance constraint"
+      },
+      {
+        "n": "C24B249_612 · Clearwell Replacement, Kestrel Valley",
+        "reg": "Northvale",
+        "cat": "Plant",
+        "bu": "Northline Water of Ardenia",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C24B390_645 · Well Field Expansion, Thornbury",
+        "reg": "Eastmoor",
+        "cat": "Plant",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C24B523_670 · PFAS GAC Install, Pellworth",
+        "reg": "Cascadia",
+        "cat": "PFAS",
+        "bu": "Northline Water of Corvale",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C25B432_645 · Jarrowfield WTP, Thornbury",
+        "reg": "Eastmoor",
+        "cat": "PFAS",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C25B456_651 · Booster Station Upgrade, Ashcombe",
+        "reg": "Eastmoor",
+        "cat": "Plant",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "No compliance constraint"
+      },
+      {
+        "n": "C26B381_658 · PFAS Bellwater 5, Draycott",
+        "reg": "Eastmoor",
+        "cat": "PFAS",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C23B225_690 · Dunmoor East Filter Media Renewal",
+        "reg": "Lakeshore",
+        "cat": "Plant",
+        "bu": "Northline Water of Dunmoor",
+        "phase": "In Delivery",
+        "comp": "No compliance constraint"
+      },
+      {
+        "n": "C25B315_658 · Quarrydown WTP PFAS Treatment",
+        "reg": "Eastmoor",
+        "cat": "PFAS",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C26B283_645 · PFAS GAC Install, Brookmere",
+        "reg": "Eastmoor",
+        "cat": "PFAS",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "Mandated by Government Agency"
+      },
+      {
+        "n": "C25B206_640 · Booster Station Upgrade, Belmara Central",
+        "reg": "Eastmoor",
+        "cat": "Plant",
+        "bu": "Northline Water of Belmara",
+        "phase": "In Delivery",
+        "comp": "No compliance constraint"
+      }
+    ],
+    "contracts": [
+      {
+        "id": "pkg_def_2023_c01",
+        "no": "DEF-2023-C01",
+        "project": "prj_c23b225_690",
+        "projectCode": "C23B225_690",
+        "projectName": "Dunmoor East Filter Media Renewal",
+        "title": "Phase 1 filters 1 to 6",
+        "form": "EJCDC C-521",
+        "role": "Contractor",
+        "contractor": "Vasquez Heritage Builders, Inc.",
+        "contractorId": "org_vasquez_heritage_builders_inc",
+        "value": 12580000,
+        "effective": "2023-06-05",
+        "doc": "onedrive://02_Projects/C23B225_690/DEF-2023-C01_Construction_Agreement_Vasquez.pdf",
+        "documentSource": "src_onedrive",
+        "resolvedTo": "e_contract",
+        "buildTime": true,
+        "method": "extracted",
+        "methodNote": "Contractor, form, value and effective date read from the cover sheet."
+      },
+      {
+        "id": "pkg_def_2026_c02",
+        "no": "DEF-2026-C02",
+        "project": "prj_c23b225_690",
+        "projectCode": "C23B225_690",
+        "projectName": "Dunmoor East Filter Media Renewal",
+        "title": "Phase 2 filters 7 to 12",
+        "form": "EJCDC C-521",
+        "role": "Contractor",
+        "contractor": "Kelso Ridge Constructors, Inc.",
+        "contractorId": "org_kelso_ridge_constructors_inc",
+        "value": 13178000,
+        "effective": "2025-09-08",
+        "doc": "onedrive://02_Projects/C23B225_690/DEF-2026-C02_Construction_Agreement_Kelso_Ridge.pdf",
+        "documentSource": "src_onedrive",
+        "resolvedTo": "e_contract",
+        "buildTime": true,
+        "method": "extracted",
+        "methodNote": "Contractor, form, value and effective date read from the cover sheet."
+      },
+      {
+        "id": "pkg_qdn_2025_c01",
+        "no": "QDN-2025-C01",
+        "project": "prj_c25b315_658",
+        "projectCode": "C25B315_658",
+        "projectName": "Quarrydown WTP PFAS Treatment",
+        "title": "PFAS treatment construction",
+        "form": "EJCDC C-521",
+        "role": "Contractor",
+        "contractor": "Kelso Ridge Constructors, Inc.",
+        "contractorId": "org_kelso_ridge_constructors_inc",
+        "value": 33760000,
+        "effective": "2025-04-14",
+        "doc": "onedrive://02_Projects/C25B315_658/QDN-2025-C01_CO-003_Transfer_Pump_Station.pdf",
+        "documentSource": "src_onedrive",
+        "resolvedTo": "e_contract",
+        "buildTime": true,
+        "method": "extracted",
+        "methodNote": "Contractor, form, value and effective date read from the cover sheet."
+      }
+    ],
+    "changeOrders": [
+      {
+        "id": "co_def_co_003",
+        "ref": "DEF CO-003",
+        "project": "prj_c23b225_690",
+        "projectCode": "C23B225_690",
+        "projectName": "Dunmoor East Filter Media Renewal",
+        "package": "DEF-2026-C02",
+        "packageId": "pkg_def_2026_c02",
+        "value": 1207400,
+        "days": 0,
+        "kind": "Change order",
+        "status": "executed",
+        "reason": "Filter floors 8, 9 and 11 out of level",
+        "contractor": "Kelso Ridge Constructors, Inc.",
+        "contractorId": "org_kelso_ridge_constructors_inc",
+        "doc": "onedrive://02_Projects/C23B225_690/DEF-2026-C02_Construction_Agreement_Kelso_Ridge.pdf",
+        "documentSource": "src_onedrive",
+        "extractedConf": 0.97,
+        "raised": "2026-08-11",
+        "resolvedTo": "e_change_order",
+        "buildTime": true,
+        "note": "Executed after the June forecast; not in the loaded forecast.",
+        "inForecast": false
+      },
+      {
+        "id": "co_def_co_004",
+        "ref": "DEF CO-004",
+        "project": "prj_c23b225_690",
+        "projectCode": "C23B225_690",
+        "projectName": "Dunmoor East Filter Media Renewal",
+        "package": "DEF-2026-C02",
+        "packageId": "pkg_def_2026_c02",
+        "value": 847600,
+        "days": 214,
+        "kind": "Change order",
+        "status": "executed",
+        "reason": "Time extension while Filters 10 and 11 are out",
+        "contractor": "Kelso Ridge Constructors, Inc.",
+        "contractorId": "org_kelso_ridge_constructors_inc",
+        "doc": "onedrive://02_Projects/C23B225_690/DEF-2026-C02_Construction_Agreement_Kelso_Ridge.pdf",
+        "documentSource": "src_onedrive",
+        "extractedConf": 0.97,
+        "raised": "2026-09-22",
+        "resolvedTo": "e_change_order",
+        "buildTime": true,
+        "note": "Executed after the June forecast; moves in service to about 30 November 2027.",
+        "inForecast": false
+      },
+      {
+        "id": "co_qdn_co_003",
+        "ref": "QDN CO-003",
+        "project": "prj_c25b315_658",
+        "projectCode": "C25B315_658",
+        "projectName": "Quarrydown WTP PFAS Treatment",
+        "package": "QDN-2025-C01",
+        "packageId": "pkg_qdn_2025_c01",
+        "value": 2207400,
+        "days": 0,
+        "kind": "Change order",
+        "status": "executed",
+        "reason": "Intermediate transfer pump station",
+        "contractor": "Kelso Ridge Constructors, Inc.",
+        "contractorId": "org_kelso_ridge_constructors_inc",
+        "doc": "onedrive://02_Projects/C25B315_658/QDN-2025-C01_CO-003_Transfer_Pump_Station.pdf",
+        "documentSource": "src_onedrive",
+        "extractedConf": 0.97,
+        "raised": "2026-09-18",
+        "resolvedTo": "e_change_order",
+        "buildTime": true,
+        "note": "In the 15 October forecast; the $2.75M revision is drafted at Level 03.",
+        "inForecast": true
+      }
+    ],
+    "business_units": [
+      "640 - Belmara Central",
+      "645 - Thornbury",
+      "651 - Ashcombe",
+      "658 - Draycott",
+      "690 - Dunmoor East",
+      "694 - Harrowgate",
+      "698 - Selby Point"
+    ],
+    "regions": [
+      "Eastmoor",
+      "Northvale",
+      "Cascadia",
+      "Lakeshore",
+      "Shared Services"
+    ],
+    "categories": [
+      "Plant",
+      "Network common",
+      "Lead service lines",
+      "PFAS",
+      "Network blanket",
+      "Overhead"
+    ]
+  },
+  "reports": [
+    {
+      "report_id": "rep_nwg_program",
+      "report_tag": "capital-program-position",
+      "subject": "project × utility",
+      "title": "Capital Program Position",
+      "question": "Show where the program stands against approved budget and the FY26 plan, with the exceptions and the provisional rows visible.",
+      "spine": "projects",
+      "scope": "sc_author_all",
+      "scope_label": "Author -- all data",
+      "measure": "m_forecast_variance",
+      "measure_label": "Forecast variance",
+      "reading": {
+        "template": "Show where the program stands against approved budget and the FY26 plan, with the exceptions and the provisional rows visible. Read over {scope}, by {measure}.",
+        "slots": [
+          "scope",
+          "measure"
+        ]
+      },
+      "blocks": [
+        {
+          "id": "b1",
+          "type": "figRow",
+          "label": "Program - 15 October working forecast",
+          "grain": "program",
+          "source": "program",
+          "figures": [
+            {
+              "key": "approved",
+              "label": "Approved budget",
+              "measure": "m_approved",
+              "measureLabel": "Approved budget",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 8270000000.0,
+              "display": "$8,270.0M",
+              "exact": "$8,270,000,000",
+              "note": null,
+              "prov": "pv_nwgde697"
+            },
+            {
+              "key": "forecast",
+              "label": "Forecast at completion",
+              "measure": "m_forecast",
+              "measureLabel": "Forecast at completion",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 8320000000.0,
+              "display": "$8,320.0M",
+              "exact": "$8,320,000,000",
+              "note": null,
+              "prov": "pv_nwga9156"
+            },
+            {
+              "key": "var_pct",
+              "label": "Against approved",
+              "measure": "m_forecast_variance",
+              "measureLabel": "Against approved",
+              "unit": "PCT",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 0.66,
+              "display": "0.7%",
+              "exact": null,
+              "note": null,
+              "prov": "pv_nwgf82c7"
+            },
+            {
+              "key": "posted",
+              "label": "FY26 posted to September",
+              "measure": "m_posted",
+              "measureLabel": "FY26 posted to September",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 812000000.0,
+              "display": "$812.0M",
+              "exact": "$812,000,000",
+              "note": null,
+              "prov": "pv_nwg7c587"
+            },
+            {
+              "key": "plan_ytd",
+              "label": "FY26 plan to September",
+              "measure": "m_plan_ytd",
+              "measureLabel": "FY26 plan to September",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 844500000.0,
+              "display": "$844.5M",
+              "exact": "$844,500,000",
+              "note": null,
+              "prov": "pv_nwgf0251"
+            }
+          ],
+          "basesPresent": [
+            "record"
+          ],
+          "basisNote": "Forecasts at the 15 October refresh; posted actuals from the general ledger to 30 September.",
+          "combines": false,
+          "combinesNote": "Lifetime budgets and FY26 cash are different frames and are not added.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 3768,
+            "label": "the 3,768 approved projects",
+            "note": "63 Lakeshore forecasts are June figures, marked provisional."
+          }
+        },
+        {
+          "id": "b2",
+          "type": "bar",
+          "label": "FY26 posted to September as a share of the year plan, by utility",
+          "grain": "utility",
+          "source": "utilities",
+          "chartType": "bar",
+          "axis": [
+            "Ardenia",
+            "Belmara",
+            "Corvale",
+            "Dunmoor",
+            "Shared Services"
+          ],
+          "axisLabel": "percent of the FY26 plan",
+          "coord": {
+            "basis": "record",
+            "period_frame": "single"
+          },
+          "coordStated": "record basis · this period",
+          "series": [
+            {
+              "key": "share",
+              "label": "Posted ÷ year plan",
+              "measure": "m_plan_share",
+              "unit": "PCT",
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "values": [
+                {
+                  "raw": 68.6,
+                  "display": "68.6%",
+                  "unit": "PCT",
+                  "exact": null
+                },
+                {
+                  "raw": 68.6,
+                  "display": "68.6%",
+                  "unit": "PCT",
+                  "exact": null
+                },
+                {
+                  "raw": 69.0,
+                  "display": "69.0%",
+                  "unit": "PCT",
+                  "exact": null
+                },
+                {
+                  "raw": 69.0,
+                  "display": "69.0%",
+                  "unit": "PCT",
+                  "exact": null
+                },
+                {
+                  "raw": 68.8,
+                  "display": "68.8%",
+                  "unit": "PCT",
+                  "exact": null
+                }
+              ],
+              "total": null,
+              "noTotal": "Shares per utility are not summed."
+            }
+          ],
+          "baseline": null,
+          "stackTotalCombines": false,
+          "failure": null,
+          "note": "Every utility is behind its share of the plan by a similar margin.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 3768,
+            "label": "the 3,768 approved projects",
+            "note": "63 Lakeshore forecasts are June figures, marked provisional."
+          }
+        },
+        {
+          "id": "b3",
+          "type": "narrative",
+          "label": "Reading",
+          "grain": "program",
+          "source": "program",
+          "role": "exclusion",
+          "body": "The program is inside the 5% tolerance at +0.66%. Nine large projects are more than 10% over; six have a revision at Level 03. The year forecast of $1,109.8M leaves $70.2M to re-phase, which needs the committee. Lakeshore is provisional.",
+          "parts": [
+            {
+              "text": "The program is inside the 5% tolerance at +0.66%. Nine large projects are more than 10% over; six have a revision at Level 03. The year forecast of $1,109.8M leaves $70.2M to re-phase, which needs the committee. Lakeshore is provisional."
+            }
+          ],
+          "figures": [],
+          "unbound": null,
+          "unboundNote": null,
+          "cites": null,
+          "population": {
+            "kind": "declared",
+            "n": 3768,
+            "label": "the 3,768 approved projects",
+            "note": "63 Lakeshore forecasts are June figures, marked provisional."
+          }
+        },
+        {
+          "id": "b4",
+          "type": "ask",
+          "label": "Ask about this report",
+          "grain": "program",
+          "source": "program",
+          "suggestions": [
+            "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+            "Are we on track to spend the FY26 plan by December?",
+            "Which projects have not been re-forecast for more than 45 days?"
+          ],
+          "unresolved": null,
+          "unresolvedWhy": null,
+          "enabled": true,
+          "disabledWhy": null,
+          "binding": {
+            "graph": "g_nwg_capital_program_analyst",
+            "scope": "sc_author_all",
+            "asOf": "2026-10-15T18:00:00Z",
+            "reportId": "rep_nwg_program"
+          },
+          "population": {
+            "kind": "declared",
+            "n": 3768,
+            "label": "the 3,768 approved projects",
+            "note": "63 Lakeshore forecasts are June figures, marked provisional."
+          }
+        }
+      ],
+      "heading": "Capital Program Position",
+      "subtitle": "Show where the program stands against approved budget and the FY26 plan, with the exceptions and the provisional rows visible.",
+      "badge": "Program",
+      "note": "Show where the program stands against approved budget and the FY26 plan, with the exceptions and the provisional rows visible.",
+      "tiles": [
+        {
+          "label": "Against approved",
+          "value": "+0.66%",
+          "unit": "tolerance 5%",
+          "tone": "good",
+          "exact": null,
+          "measure": "m_forecast_variance"
+        },
+        {
+          "label": "Large projects above 10%",
+          "value": "9",
+          "unit": "of 1,419 in delivery",
+          "tone": "warn",
+          "exact": null,
+          "measure": "m_large_over_10"
+        },
+        {
+          "label": "FY26 behind plan",
+          "value": "$32.5M",
+          "unit": "3.8% to September",
+          "tone": "warn",
+          "exact": "$32,500,000",
+          "measure": "m_plan_ytd"
+        },
+        {
+          "label": "Provisional",
+          "value": "63",
+          "unit": "Lakeshore on June figures",
+          "tone": "crit",
+          "exact": null,
+          "measure": "m_forecast_freshness"
+        }
+      ],
+      "footer": [
+        {
+          "label": "As of",
+          "text": "As of 2026-10-15, the age of its stalest input (the working forecast refresh). Fresher datasets contributed but cannot lift the floor."
+        },
+        {
+          "label": "Bound to",
+          "text": "g_nwg_capital_program_analyst v1 · role Capital Program Analyst"
+        },
+        {
+          "label": "Caveat",
+          "text": "63 Lakeshore forecasts are June figures until the catch-up batch on 23 October."
+        },
+        {
+          "label": "Served",
+          "text": "Capital Program Position · 1 · Rei Nakamura (Domain Architect) under Author -- full · 3,768 of 3,768 rows · as of 2026-10-15"
+        }
+      ],
+      "source_file": "src/report/report_resolved.json#rep_nwg_program",
+      "summary_keys": [],
+      "resolved": {
+        "version": 1,
+        "status": "published",
+        "persona": "Domain Architect",
+        "rows_served": 3768,
+        "rows_total": 3768,
+        "rows_note": null,
+        "blocks_served": 4,
+        "blocks_total": 4,
+        "as_of": "2026-10-15",
+        "as_of_line": "As of 2026-10-15 - the age of the stalest of 3 contributing datasets (EPBCS working forecast). Fresher datasets contributed and cannot lift the floor.",
+        "watermark": "Capital Program Position · 1 · Rei Nakamura (Domain Architect) under Author -- full · 3,768 of 3,768 rows · as of 2026-10-15",
+        "export_formats": [
+          "PDF",
+          "XLSX",
+          "CSV"
+        ],
+        "empty": false,
+        "empty_cause": null
+      },
+      "rendered_href": "/report/nwg-report.html?report=rep_nwg_program"
+    },
+    {
+      "report_id": "rep_nwg_rate_base",
+      "report_tag": "belmara-rate-base-position",
+      "subject": "project × utility",
+      "title": "Belmara Rate Base Position",
+      "question": "Show the Belmara rate base at the test year end against the 2025 order, and keep what is out apart from what is in.",
+      "spine": "projects",
+      "scope": "sc_author_all",
+      "scope_label": "Author -- all data",
+      "measure": "m_forecast_variance",
+      "measure_label": "Forecast variance",
+      "reading": {
+        "template": "Show the Belmara rate base at the test year end against the 2025 order, and keep what is out apart from what is in. Read over {scope}, by {measure}.",
+        "slots": [
+          "scope",
+          "measure"
+        ]
+      },
+      "blocks": [
+        {
+          "id": "b1",
+          "type": "figRow",
+          "label": "Belmara rate base - 31 December 2026",
+          "grain": "utility",
+          "source": "ratebase",
+          "figures": [
+            {
+              "key": "net_plant",
+              "label": "Net plant at 31 December",
+              "measure": "m_net_plant",
+              "measureLabel": "Net plant at 31 December",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 1246000000.0,
+              "display": "$1,246.0M",
+              "exact": "$1,246,000,000",
+              "note": null,
+              "prov": "pv_nwg87ae1"
+            },
+            {
+              "key": "deduct",
+              "label": "Deductions",
+              "measure": "m_rb_deductions",
+              "measureLabel": "Deductions",
+              "unit": "USD",
+              "signed": true,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": -192900000.0,
+              "display": "$-192.9M",
+              "exact": "$-192,900,000",
+              "note": null,
+              "prov": "pv_nwged4da"
+            },
+            {
+              "key": "add",
+              "label": "Additions",
+              "measure": "m_rb_additions",
+              "measureLabel": "Additions",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 19500000.0,
+              "display": "$19.5M",
+              "exact": "$19,500,000",
+              "note": null,
+              "prov": "pv_nwg39b02"
+            },
+            {
+              "key": "rate_base",
+              "label": "Rate base",
+              "measure": "m_rate_base",
+              "measureLabel": "Rate base",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 1072600000.0,
+              "display": "$1,072.6M",
+              "exact": "$1,072,600,000",
+              "note": null,
+              "prov": "pv_nwgdc388"
+            },
+            {
+              "key": "order",
+              "label": "Allowed in 2025",
+              "measure": "m_rate_base_order",
+              "measureLabel": "Allowed in 2025",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 776900000.0,
+              "display": "$776.9M",
+              "exact": "$776,900,000",
+              "note": null,
+              "prov": "pv_nwg29fc8"
+            }
+          ],
+          "basesPresent": [
+            "record"
+          ],
+          "basisNote": "Approved depreciation rates (2.40% composite); the 2026 study is not filed.",
+          "combines": true,
+          "combinesNote": "Rate base = net plant − deductions + additions.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 939,
+            "label": "the 939 approved Belmara projects",
+            "note": "Plant ledger loaded for Belmara only."
+          }
+        },
+        {
+          "id": "b2",
+          "type": "bar",
+          "label": "Gross plant in service by class, 30 September",
+          "grain": "plant class",
+          "source": "ratebase",
+          "chartType": "bar",
+          "axis": [
+            "Mains",
+            "Treatment",
+            "Services, meters, hydrants",
+            "Supply and pumping",
+            "General plant"
+          ],
+          "axisLabel": "USD millions",
+          "coord": {
+            "basis": "record",
+            "period_frame": "single"
+          },
+          "coordStated": "record basis · this period",
+          "series": [
+            {
+              "key": "gross",
+              "label": "Gross plant",
+              "measure": "m_gross_plant",
+              "unit": "USD",
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "values": [
+                {
+                  "raw": 624300000.0,
+                  "display": "$624.3M",
+                  "unit": "USD",
+                  "exact": "$624,300,000"
+                },
+                {
+                  "raw": 438900000.0,
+                  "display": "$438.9M",
+                  "unit": "USD",
+                  "exact": "$438,900,000"
+                },
+                {
+                  "raw": 196200000.0,
+                  "display": "$196.2M",
+                  "unit": "USD",
+                  "exact": "$196,200,000"
+                },
+                {
+                  "raw": 171600000.0,
+                  "display": "$171.6M",
+                  "unit": "USD",
+                  "exact": "$171,600,000"
+                },
+                {
+                  "raw": 58700000.0,
+                  "display": "$58.7M",
+                  "unit": "USD",
+                  "exact": "$58,700,000"
+                }
+              ],
+              "total": {
+                "raw": 1489700000.0,
+                "display": "$1,489.7M"
+              },
+              "noTotal": null
+            }
+          ],
+          "baseline": null,
+          "stackTotalCombines": true,
+          "failure": null,
+          "note": "The five classes reconcile to the fixed-asset ledger.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 939,
+            "label": "the 939 approved Belmara projects",
+            "note": "Plant ledger loaded for Belmara only."
+          }
+        },
+        {
+          "id": "b3",
+          "type": "narrative",
+          "label": "What is in and what is out",
+          "grain": "utility",
+          "source": "ratebase",
+          "role": "caveat",
+          "body": "The 31 post-test-year projects on track are in. The seven dated 2027 ($41.3M) are out and listed for the next case. The nine completed projects still in CWIP ($6.8M) are counted as completed construction; Plant Accounting moves them on 6 November. Two of the twelve largest additions are missing part of their prudence record.",
+          "parts": [
+            {
+              "text": "The 31 post-test-year projects on track are in. The seven dated 2027 ($41.3M) are out and listed for the next case. The nine completed projects still in CWIP ($6.8M) are counted as completed construction; Plant Accounting moves them on 6 November. Two of the twelve largest additions are missing part of their prudence record."
+            }
+          ],
+          "figures": [],
+          "unbound": null,
+          "unboundNote": null,
+          "cites": null,
+          "population": {
+            "kind": "declared",
+            "n": 939,
+            "label": "the 939 approved Belmara projects",
+            "note": "Plant ledger loaded for Belmara only."
+          }
+        },
+        {
+          "id": "b4",
+          "type": "ask",
+          "label": "Ask about this rate base",
+          "grain": "utility",
+          "source": "ratebase",
+          "suggestions": [
+            "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+            "Which projects claimed in the Belmara test year are now at risk of missing it?",
+            "Which major additions are missing part of their prudence record?"
+          ],
+          "unresolved": null,
+          "unresolvedWhy": null,
+          "enabled": true,
+          "disabledWhy": null,
+          "binding": {
+            "graph": "g_nwg_capital_program_analyst",
+            "scope": "sc_author_all",
+            "asOf": "2026-10-15T18:00:00Z",
+            "reportId": "rep_nwg_rate_base"
+          },
+          "population": {
+            "kind": "declared",
+            "n": 939,
+            "label": "the 939 approved Belmara projects",
+            "note": "Plant ledger loaded for Belmara only."
+          }
+        }
+      ],
+      "heading": "Belmara Rate Base Position",
+      "subtitle": "Show the Belmara rate base at the test year end against the 2025 order, and keep what is out apart from what is in.",
+      "badge": "Utility",
+      "note": "Show the Belmara rate base at the test year end against the 2025 order, and keep what is out apart from what is in.",
+      "tiles": [
+        {
+          "label": "Rate base",
+          "value": "$1,072.6M",
+          "unit": "31 Dec 2026",
+          "tone": "neutral",
+          "exact": "$1,072,600,000",
+          "measure": "m_rate_base"
+        },
+        {
+          "label": "Change since the order",
+          "value": "+$295.7M",
+          "unit": "38.1%",
+          "tone": "warn",
+          "exact": null,
+          "measure": "m_rate_base_change"
+        },
+        {
+          "label": "Held for the next case",
+          "value": "$41.3M",
+          "unit": "7 projects",
+          "tone": "crit",
+          "exact": "$41,300,000",
+          "measure": "m_test_year_at_risk"
+        }
+      ],
+      "footer": [
+        {
+          "label": "As of",
+          "text": "As of 2026-10-15, the age of its stalest input (the working forecast refresh). Fresher datasets contributed but cannot lift the floor."
+        },
+        {
+          "label": "Bound to",
+          "text": "g_nwg_capital_program_analyst v1 · role Capital Program Analyst"
+        },
+        {
+          "label": "Caveat",
+          "text": "63 Lakeshore forecasts are June figures until the catch-up batch on 23 October."
+        },
+        {
+          "label": "Served",
+          "text": "Belmara Rate Base Position · 1 · Rei Nakamura (Domain Architect) under Author -- full · 939 of 939 rows · as of 2026-10-15"
+        }
+      ],
+      "source_file": "src/report/report_resolved.json#rep_nwg_rate_base",
+      "summary_keys": [],
+      "resolved": {
+        "version": 1,
+        "status": "published",
+        "persona": "Business User -- Executive",
+        "rows_served": 939,
+        "rows_total": 939,
+        "rows_note": null,
+        "blocks_served": 4,
+        "blocks_total": 4,
+        "as_of": "2026-10-15",
+        "as_of_line": "As of 2026-10-15 - the age of the stalest of 3 contributing datasets (EPBCS working forecast). Fresher datasets contributed and cannot lift the floor.",
+        "watermark": "Belmara Rate Base Position · 1 · Rei Nakamura (Domain Architect) under Author -- full · 939 of 939 rows · as of 2026-10-15",
+        "export_formats": [
+          "PDF",
+          "XLSX",
+          "CSV"
+        ],
+        "empty": false,
+        "empty_cause": null
+      },
+      "rendered_href": "/report/nwg-report.html?report=rep_nwg_rate_base"
+    },
+    {
+      "report_id": "rep_nwg_procurement",
+      "report_tag": "framework-compliance-and-savings",
+      "subject": "project × utility",
+      "title": "Framework Compliance and Savings",
+      "question": "Show the savings secured against the 2.5% target and the premium paid off-framework, and never net the two.",
+      "spine": "projects",
+      "scope": "sc_author_all",
+      "scope_label": "Author -- all data",
+      "measure": "m_forecast_variance",
+      "measure_label": "Forecast variance",
+      "reading": {
+        "template": "Show the savings secured against the 2.5% target and the premium paid off-framework, and never net the two. Read over {scope}, by {measure}.",
+        "slots": [
+          "scope",
+          "measure"
+        ]
+      },
+      "blocks": [
+        {
+          "id": "b1",
+          "type": "figRow",
+          "label": "Procurement savings 2026-27 and framework compliance",
+          "grain": "program",
+          "source": "procurement",
+          "figures": [
+            {
+              "key": "secured",
+              "label": "Secured",
+              "measure": "m_savings_secured",
+              "measureLabel": "Secured",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 8700000.0,
+              "display": "$8.7M",
+              "exact": "$8,700,000",
+              "note": null,
+              "prov": "pv_nwgf83df"
+            },
+            {
+              "key": "target",
+              "label": "Target",
+              "measure": "m_savings_target",
+              "measureLabel": "Target",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 24200000.0,
+              "display": "$24.2M",
+              "exact": "$24,200,000",
+              "note": null,
+              "prov": "pv_nwgd0359"
+            },
+            {
+              "key": "path",
+              "label": "Straight-line path to date",
+              "measure": "m_savings_path",
+              "measureLabel": "Straight-line path to date",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 7300000.0,
+              "display": "$7.3M",
+              "exact": "$7,300,000",
+              "note": null,
+              "prov": "pv_nwg54533"
+            },
+            {
+              "key": "off6m",
+              "label": "Off-framework since April",
+              "measure": "m_off_framework",
+              "measureLabel": "Off-framework since April",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 11400000.0,
+              "display": "$11.4M",
+              "exact": "$11,400,000",
+              "note": null,
+              "prov": "pv_nwgcfd0b"
+            },
+            {
+              "key": "prem6m",
+              "label": "Premium since April",
+              "measure": "m_off_framework_premium",
+              "measureLabel": "Premium since April",
+              "unit": "USD",
+              "signed": false,
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "coordProblems": [],
+              "expr": null,
+              "exprError": null,
+              "exprReads": null,
+              "raw": 1370000.0,
+              "display": "$1.4M",
+              "exact": "$1,370,000",
+              "note": null,
+              "prov": "pv_nwg09992"
+            }
+          ],
+          "basesPresent": [
+            "record"
+          ],
+          "basisNote": "A saving counts once it is in an order or a signed contract; the premium is leakage and is not netted.",
+          "combines": false,
+          "combinesNote": "Secured savings and premium paid are kept apart; they are never netted into one figure.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 14,
+            "label": "the 14 off-framework order lines of 20 October",
+            "note": "Premium since April read from the order lines placed April to September."
+          }
+        },
+        {
+          "id": "b2",
+          "type": "bar",
+          "label": "Premium paid above framework or benchmark since April, by category",
+          "grain": "category",
+          "source": "procurement",
+          "chartType": "bar",
+          "axis": [
+            "Ductile iron pipe and fittings",
+            "Valves and hydrants",
+            "Meters",
+            "GAC media",
+            "Pumps and motors"
+          ],
+          "axisLabel": "USD millions, April to September",
+          "coord": {
+            "basis": "record",
+            "period_frame": "single"
+          },
+          "coordStated": "record basis · this period",
+          "series": [
+            {
+              "key": "prem",
+              "label": "Premium",
+              "measure": "m_off_framework_premium",
+              "unit": "USD",
+              "coord": {
+                "basis": "record",
+                "period_frame": "single"
+              },
+              "coordStated": "record basis · this period",
+              "values": [
+                {
+                  "raw": 740000.0,
+                  "display": "$0.74M",
+                  "unit": "USD",
+                  "exact": "$740,000"
+                },
+                {
+                  "raw": 520000.0,
+                  "display": "$0.52M",
+                  "unit": "USD",
+                  "exact": "$520,000"
+                },
+                {
+                  "raw": 60000.0,
+                  "display": "$0.06M",
+                  "unit": "USD",
+                  "exact": "$60,000"
+                },
+                {
+                  "raw": 0.0,
+                  "display": "$0.00M",
+                  "unit": "USD",
+                  "exact": "$0"
+                },
+                {
+                  "raw": 50000.0,
+                  "display": "$0.05M",
+                  "unit": "USD",
+                  "exact": "$50,000"
+                }
+              ],
+              "total": {
+                "raw": 1370000.0,
+                "display": "$1.37M"
+              },
+              "noTotal": null
+            }
+          ],
+          "baseline": null,
+          "stackTotalCombines": true,
+          "failure": null,
+          "note": "Pipe and valves carry most of it; GAC media went fully through its framework.",
+          "coverage": null,
+          "population": {
+            "kind": "declared",
+            "n": 14,
+            "label": "the 14 off-framework order lines of 20 October",
+            "note": "Premium since April read from the order lines placed April to September."
+          }
+        },
+        {
+          "id": "b3",
+          "type": "narrative",
+          "label": "Reading",
+          "grain": "program",
+          "source": "procurement",
+          "role": "caveat",
+          "body": "The program is ahead of its path, but the catalogue still defaults pipe and valves to spot suppliers. The 20 October load placed 14 lines off-framework, $3.9M ordered and $0.6M above framework prices; nine are unconfirmed and can be cancelled at no cost.",
+          "parts": [
+            {
+              "text": "The program is ahead of its path, but the catalogue still defaults pipe and valves to spot suppliers. The 20 October load placed 14 lines off-framework, $3.9M ordered and $0.6M above framework prices; nine are unconfirmed and can be cancelled at no cost."
+            }
+          ],
+          "figures": [],
+          "unbound": null,
+          "unboundNote": null,
+          "cites": null,
+          "population": {
+            "kind": "declared",
+            "n": 14,
+            "label": "the 14 off-framework order lines of 20 October",
+            "note": "Premium since April read from the order lines placed April to September."
+          }
+        },
+        {
+          "id": "b4",
+          "type": "ask",
+          "label": "Ask about this report",
+          "grain": "program",
+          "source": "procurement",
+          "suggestions": [
+            "Which order lines were placed off-framework above the framework price, and what did that cost?",
+            "How much has the procurement savings program secured against its 2.5% target?",
+            "What lead times are framework suppliers confirming now?"
+          ],
+          "unresolved": null,
+          "unresolvedWhy": null,
+          "enabled": true,
+          "disabledWhy": null,
+          "binding": {
+            "graph": "g_nwg_capital_program_analyst",
+            "scope": "sc_author_all",
+            "asOf": "2026-10-15T18:00:00Z",
+            "reportId": "rep_nwg_procurement"
+          },
+          "population": {
+            "kind": "declared",
+            "n": 14,
+            "label": "the 14 off-framework order lines of 20 October",
+            "note": "Premium since April read from the order lines placed April to September."
+          }
+        }
+      ],
+      "heading": "Framework Compliance and Savings",
+      "subtitle": "Show the savings secured against the 2.5% target and the premium paid off-framework, and never net the two.",
+      "badge": "Program",
+      "note": "Show the savings secured against the 2.5% target and the premium paid off-framework, and never net the two.",
+      "tiles": [
+        {
+          "label": "Secured",
+          "value": "$8.7M",
+          "unit": "of $24.2M",
+          "tone": "good",
+          "exact": "$8,700,000",
+          "measure": "m_savings_secured"
+        },
+        {
+          "label": "Off-framework, 20 Oct load",
+          "value": "14 lines",
+          "unit": "$0.6M premium",
+          "tone": "crit",
+          "exact": null,
+          "measure": "m_off_framework"
+        },
+        {
+          "label": "Leak run rate",
+          "value": "≈ $2.6M",
+          "unit": "a year",
+          "tone": "warn",
+          "exact": null,
+          "measure": "m_off_framework_premium"
+        }
+      ],
+      "footer": [
+        {
+          "label": "As of",
+          "text": "As of 2026-10-15, the age of its stalest input (the working forecast refresh). Fresher datasets contributed but cannot lift the floor."
+        },
+        {
+          "label": "Bound to",
+          "text": "g_nwg_capital_program_analyst v1 · role Capital Program Analyst"
+        },
+        {
+          "label": "Caveat",
+          "text": "63 Lakeshore forecasts are June figures until the catch-up batch on 23 October."
+        },
+        {
+          "label": "Served",
+          "text": "Framework Compliance and Savings · 1 · Rei Nakamura (Domain Architect) under Author -- full · 14 of 14 rows · as of 2026-10-15"
+        }
+      ],
+      "source_file": "src/report/report_resolved.json#rep_nwg_procurement",
+      "summary_keys": [],
+      "resolved": {
+        "version": 1,
+        "status": "published",
+        "persona": "Data Analyst",
+        "rows_served": 14,
+        "rows_total": 14,
+        "rows_note": null,
+        "blocks_served": 4,
+        "blocks_total": 4,
+        "as_of": "2026-10-15",
+        "as_of_line": "As of 2026-10-15 - the age of the stalest of 3 contributing datasets (EPBCS working forecast). Fresher datasets contributed and cannot lift the floor.",
+        "watermark": "Framework Compliance and Savings · 1 · Rei Nakamura (Domain Architect) under Author -- full · 14 of 14 rows · as of 2026-10-15",
+        "export_formats": [
+          "PDF",
+          "XLSX",
+          "CSV"
+        ],
+        "empty": false,
+        "empty_cause": null
+      },
+      "rendered_href": "/report/nwg-report.html?report=rep_nwg_procurement"
+    }
+  ],
+  "saved": [],
+  "governance": {
+    "statuses": [
+      {
+        "key": "published",
+        "label": "Published",
+        "tone": "good"
+      },
+      {
+        "key": "draft",
+        "label": "Draft",
+        "tone": "neutral"
+      },
+      {
+        "key": "scheduled",
+        "label": "Scheduled",
+        "tone": "neutral"
+      },
+      {
+        "key": "unpublished",
+        "label": "Unpublished",
+        "tone": "warn"
+      }
+    ],
+    "reports": [
+      {
+        "report_id": "rep_nwg_program",
+        "status": "published",
+        "version": "v1",
+        "author": "Rei Nakamura",
+        "category": "Program",
+        "as_of": "2026-10-19T07:00:00Z",
+        "schedule": "Refreshes daily · 07:00 UTC",
+        "approval": "none",
+        "audience": [
+          "business_user_exec",
+          "analyst",
+          "architect"
+        ],
+        "note": "The schedule covers plan, forecast and ledger blocks; correspondence is read at open time.",
+        "link": "contextweave.northline-water.example/r/capital-program-position",
+        "readers": [
+          {
+            "email": "ellis.hargrove@vriodigital.com",
+            "name": "Ellis Hargrove",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope"
+            }
+          },
+          {
+            "email": "priya.raman@vriodigital.com",
+            "name": "Priya Raman",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope, project manager names masked"
+            }
+          },
+          {
+            "email": "marc.beaulieu@vriodigital.com",
+            "name": "Marc Beaulieu",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "rules",
+              "projects_admitted": 939,
+              "detail": "Utility = Belmara"
+            }
+          }
+        ]
+      },
+      {
+        "report_id": "rep_nwg_rate_base",
+        "status": "published",
+        "version": "v1",
+        "author": "Nishant Srivastav",
+        "category": "Utility",
+        "as_of": "2026-10-16T07:00:00Z",
+        "schedule": "Only when it’s opened",
+        "approval": "Director, Rate Case and Regulatory sign-off",
+        "audience": [
+          "business_user_exec",
+          "analyst",
+          "architect"
+        ],
+        "note": "Bound to approved depreciation rates; the study rates are never used.",
+        "link": "contextweave.northline-water.example/r/belmara-rate-base-position",
+        "readers": [
+          {
+            "email": "marc.beaulieu@vriodigital.com",
+            "name": "Marc Beaulieu",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "rules",
+              "projects_admitted": 939,
+              "detail": "Utility = Belmara"
+            }
+          },
+          {
+            "email": "ellis.hargrove@vriodigital.com",
+            "name": "Ellis Hargrove",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope"
+            }
+          },
+          {
+            "email": "priya.raman@vriodigital.com",
+            "name": "Priya Raman",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope"
+            }
+          }
+        ]
+      },
+      {
+        "report_id": "rep_nwg_procurement",
+        "status": "published",
+        "version": "v1",
+        "author": "Priya Raman",
+        "category": "Program",
+        "as_of": "2026-10-20T07:00:00Z",
+        "schedule": "Weekly on Monday at 6:00 AM",
+        "approval": "none",
+        "audience": [
+          "business_user_exec",
+          "analyst",
+          "architect"
+        ],
+        "note": "Secured and premium export on separate sheets.",
+        "link": "contextweave.northline-water.example/r/framework-compliance-and-savings",
+        "readers": [
+          {
+            "email": "tolu.adeyemi@vriodigital.com",
+            "name": "Tolu Adeyemi",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope"
+            }
+          },
+          {
+            "email": "ellis.hargrove@vriodigital.com",
+            "name": "Ellis Hargrove",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope"
+            }
+          },
+          {
+            "email": "sofia.lindqvist@vriodigital.com",
+            "name": "Sofia Lindqvist",
+            "gate1_entitled": true,
+            "gate2": {
+              "kind": "full",
+              "projects_admitted": 3768,
+              "detail": "Full scope, contract values masked"
+            }
+          }
+        ]
+      }
+    ],
+    "data_scope": [
+      {
+        "role_id": "ellis_hargrove",
+        "scope": "All 3,768",
+        "predicate": "Full scope",
+        "grain": "project",
+        "masked": "",
+        "may_author": false,
+        "full": true,
+        "mask": false,
+        "rule": null,
+        "email": "ellis.hargrove@vriodigital.com",
+        "name": "Ellis Hargrove",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "nishant_srivastav",
+        "scope": "All 3,768",
+        "predicate": "Full scope",
+        "grain": "project",
+        "masked": "",
+        "may_author": true,
+        "full": true,
+        "mask": false,
+        "rule": null,
+        "email": "nishant.srivastav@vriodigital.com",
+        "name": "Nishant Srivastav",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "priya_raman",
+        "scope": "All 3,768, masked",
+        "predicate": "Project manager names masked",
+        "grain": "project",
+        "masked": "project manager names",
+        "may_author": true,
+        "full": true,
+        "mask": true,
+        "rule": null,
+        "email": "priya.raman@vriodigital.com",
+        "name": "Priya Raman",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "sofia_lindqvist",
+        "scope": "All 3,768, masked",
+        "predicate": "Contract values masked",
+        "grain": "project",
+        "masked": "contract values",
+        "may_author": false,
+        "full": true,
+        "mask": true,
+        "rule": null,
+        "email": "sofia.lindqvist@vriodigital.com",
+        "name": "Sofia Lindqvist",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "rei_nakamura",
+        "scope": "All 3,768",
+        "predicate": "Full scope",
+        "grain": "project",
+        "masked": "",
+        "may_author": true,
+        "full": true,
+        "mask": false,
+        "rule": null,
+        "email": "rei.nakamura@vriodigital.com",
+        "name": "Rei Nakamura",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "tolu_adeyemi",
+        "scope": "All 3,768",
+        "predicate": "Full scope",
+        "grain": "project",
+        "masked": "",
+        "may_author": true,
+        "full": true,
+        "mask": false,
+        "rule": null,
+        "email": "tolu.adeyemi@vriodigital.com",
+        "name": "Tolu Adeyemi",
+        "projects_admitted": 3768,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      },
+      {
+        "role_id": "marc_beaulieu",
+        "scope": "939 of 3,768",
+        "predicate": "Utility = Belmara",
+        "grain": "project",
+        "masked": "",
+        "may_author": false,
+        "full": false,
+        "mask": false,
+        "rule": {
+          "basis": "utility",
+          "values": [
+            "Belmara"
+          ]
+        },
+        "email": "marc.beaulieu@vriodigital.com",
+        "name": "Marc Beaulieu",
+        "projects_admitted": 939,
+        "of_total": 3768,
+        "computed_from": "projects[] at paint time"
+      }
+    ],
+    "gate_notes": {
+      "both": "The two are administered in two separate places: audience at publish time, data scope on the reader’s row.",
+      "entitlement": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address.",
+      "data_scope": "Which rows does this viewer’s predicate admit? Managed on the reader’s row; follows the person everywhere.",
+      "author": "Writing a report definition is a separate permission from reading one.",
+      "cannot_be_front_end": "If the browser receives 3,768 rows and shows 939, the other rows have leaked. The server filters before it serves."
+    },
+    "publishing": {
+      "title": "Publish this report",
+      "republish_title": "Publish your changes",
+      "lead": "It goes live to the people you pick - nobody else is told it exists.",
+      "name": {
+        "label": "Report name",
+        "help": "Give it a name your audience will recognise.",
+        "placeholder": "e.g. Capital Program Position - October"
+      },
+      "readers": {
+        "label": "Who can open it",
+        "placeholder": "Type a name or email address…",
+        "empty": "Nobody yet - this report stays private until you add a reader.",
+        "note": "Each person sees only what their data access allows.",
+        "caveat": "This narrows who is shown the report. It is not access control.",
+        "local_caveat": "Readers are recorded on the artifact; their data scope is managed in Audit & Governance.",
+        "presets": [
+          "Ellis Hargrove",
+          "Marc Beaulieu",
+          "Tolu Adeyemi",
+          "Priya Raman",
+          "Sofia Lindqvist",
+          "Rei Nakamura"
+        ],
+        "default": []
+      },
+      "freshness": {
+        "label": "Keep it fresh",
+        "presets": [
+          {
+            "id": "open",
+            "label": "Only when it’s opened",
+            "sentence": "Only when it’s opened"
+          },
+          {
+            "id": "daily",
+            "label": "Every weekday (Mon to Fri) at 7:00 AM",
+            "sentence": "Every weekday at 7:00 AM"
+          },
+          {
+            "id": "monday",
+            "label": "Weekly on Monday at 6:00 AM",
+            "sentence": "Weekly on Monday at 6:00 AM"
+          },
+          {
+            "id": "monthly",
+            "label": "Monthly on the 1st at 6:00 AM",
+            "sentence": "Monthly on the 1st at 6:00 AM"
+          },
+          {
+            "id": "custom",
+            "label": "Custom…",
+            "sentence": "Custom schedule"
+          }
+        ],
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ],
+        "times": [
+          "6:00 AM",
+          "7:00 AM",
+          "8:00 AM",
+          "12:00 PM",
+          "6:00 PM"
+        ],
+        "units": [
+          "day",
+          "week",
+          "month"
+        ],
+        "default": "open",
+        "default_detail": {
+          "preset": "open",
+          "every": 1,
+          "unit": "week",
+          "days": [
+            "Mon"
+          ],
+          "time": "6:00 AM"
+        },
+        "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+      },
+      "foot": "Live immediately after you publish.",
+      "buttons": {
+        "publish": "Publish report",
+        "republish": "Publish changes",
+        "cancel": "Cancel",
+        "unpublish": "Unpublish",
+        "manage": "Manage publishing…"
+      }
+    },
+    "audit": {
+      "copy": {
+        "title": "Audit & Governance",
+        "lead": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which utilities and projects each person can see - and every open is logged.",
+        "not_enforced": "A rule is recorded, not enforced, until the server filters on it. No report on this demo serves a row a reader’s rule excludes.",
+        "gates": [
+          {
+            "key": "open",
+            "title": "Who can open",
+            "detail": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address."
+          },
+          {
+            "key": "inside",
+            "title": "What they see inside",
+            "detail": "Data access per person, managed on the reader’s row - utility, region, program or category."
+          },
+          {
+            "key": "log",
+            "title": "Every open is logged",
+            "detail": "Who opened what, what their access resolved to, and every access change - in the audit trail."
+          }
+        ],
+        "empty_log": "Nothing recorded yet. Change a rule or open a report and it appears here.",
+        "log_note": "Nothing in the log is editable; the trail is append-only.",
+        "basis_note": "A field qualifies as a restriction basis only if every one of its values is known on every row."
+      },
+      "categories": [
+        {
+          "key": "all",
+          "label": "All",
+          "id": "all"
+        },
+        {
+          "key": "pub",
+          "label": "Publishing",
+          "id": "pub"
+        },
+        {
+          "key": "open",
+          "label": "Opens",
+          "id": "open"
+        },
+        {
+          "key": "rule",
+          "label": "Rule changes",
+          "id": "rule"
+        },
+        {
+          "key": "ref",
+          "label": "Refreshes",
+          "id": "ref"
+        },
+        {
+          "key": "export",
+          "label": "Exports",
+          "id": "export"
+        }
+      ],
+      "events": [
+        {
+          "actor": "Marc Beaulieu",
+          "action": "Opened Belmara Rate Base Position",
+          "resource": "Belmara Rate Base Position",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Today 09:05",
+          "detail": "His access resolved: utility = Belmara - 939 of 3768 approved projects; no masks.",
+          "category": "open"
+        },
+        {
+          "actor": "Ellis Hargrove",
+          "action": "Opened Capital Program Position",
+          "resource": "Capital Program Position",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Today 08:41",
+          "detail": "His access resolved: all 3768 approved projects, all five utilities, no masks.",
+          "category": "open"
+        },
+        {
+          "actor": "system",
+          "action": "Scheduled refresh ran on Capital Program Position",
+          "resource": "Capital Program Position",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Today 07:00",
+          "detail": "Plan, forecast and ledger blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. 63 Lakeshore forecasts still marked provisional.",
+          "category": "ref"
+        },
+        {
+          "actor": "Tolu Adeyemi",
+          "action": "Armed the goal 'Keep procurement 2.5% lower across all projects'",
+          "resource": "goal g-rule-framework",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Oct 16 15:20",
+          "detail": "Fires on each new order-line load; checks every line against the framework and benchmark prices.",
+          "category": "pub"
+        },
+        {
+          "actor": "Rei Nakamura",
+          "action": "Published graph Capital Program Analyst v1",
+          "resource": "graph v1",
+          "severity": "Medium",
+          "tone": "warn",
+          "at": "Oct 15 16:02",
+          "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+          "category": "pub"
+        },
+        {
+          "actor": "Rei Nakamura",
+          "action": "Changed rule for Marc Beaulieu",
+          "resource": "data access rule",
+          "severity": "Medium",
+          "tone": "warn",
+          "at": "Oct 15 11:10",
+          "detail": "Restriction basis = utility (Belmara).",
+          "category": "rule"
+        },
+        {
+          "actor": "Nishant Srivastav",
+          "action": "Started submission 'Belmara rate base schedules RB-1 to RB-5' from a goal",
+          "resource": "submission sub-rb-schedules-2026",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Oct 14 17:35",
+          "detail": "Built from the goal g-belmara-rate-base on the template Belmara rate base schedules, 2025 case.",
+          "category": "pub"
+        },
+        {
+          "actor": "Priya Raman",
+          "action": "Exported Capital Program Position (XLSX)",
+          "resource": "Capital Program Position",
+          "severity": "Medium",
+          "tone": "warn",
+          "at": "Oct 14 12:18",
+          "detail": "Export carries the watermark and the as-of line; the provisional Lakeshore rows export on a separate sheet.",
+          "category": "export"
+        },
+        {
+          "actor": "system",
+          "action": "Sealed trace for 'What is Belmara's rate base at the end of the test year, and how does it compare with the last order?'",
+          "resource": "trace_nwg02",
+          "severity": "Info",
+          "tone": "neutral",
+          "at": "Oct 14 10:22",
+          "detail": "5 spans · $0.15 · confidence 0.88",
+          "category": "ref"
+        },
+        {
+          "actor": "Raj Patel",
+          "action": "Changed persona access for Business User - Executive",
+          "resource": "settings",
+          "severity": "Medium",
+          "tone": "warn",
+          "at": "Oct 13 09:30",
+          "detail": "Reports hidden from the sidebar for all personas (beta).",
+          "category": "rule"
+        }
+      ],
+      "restriction_bases": [
+        {
+          "id": "utility",
+          "label": "Utility",
+          "values": 5
+        },
+        {
+          "id": "region",
+          "label": "Region",
+          "values": 5
+        },
+        {
+          "id": "program",
+          "label": "Program",
+          "values": 3
+        },
+        {
+          "id": "category",
+          "label": "Category",
+          "values": 6
+        },
+        {
+          "id": "business_unit",
+          "label": "Business unit",
+          "values": 16
+        }
+      ],
+      "excluded_bases": {
+        "fields": [
+          "forecast",
+          "variance_pct",
+          "approved_budget",
+          "posted"
+        ],
+        "reason": "Continuous. A rule written on them re-resolves every time a figure moves, so a reader’s scope would change without anyone changing the rule."
+      }
+    },
+    "document": {
+      "document_id": "GOVERNANCE_AUDIT_NWG",
+      "file": "governance_audit_nwg.html",
+      "title": "Context Weave - Audit & Governance · Northline Water Group",
+      "heading": "⛨ Audit & Governance",
+      "subtitle": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which rows each reader may see.",
+      "tabs": [
+        {
+          "key": "0",
+          "label": "Reports"
+        },
+        {
+          "key": "1",
+          "label": "Audit log"
+        }
+      ],
+      "package": "veolia_capex_demo_data_package_2026-10-19",
+      "screen": "08 - Audit & Governance",
+      "generated": "2026-10-19",
+      "roster_total": 3768
+    }
+  },
+  "authoring_fixture": {
+    "_note": "The project fixture the authoring screen previews against: the nine large projects above 10% and the two named in the stories, in USD millions, read from the drill data.",
+    "projects": [
+      {
+        "name": "C23B300_651 Clearwell Replacement, Ashcombe",
+        "auth": 6.98,
+        "comm": 6.98,
+        "proj": 8.12,
+        "portfolio": "Plant",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Juno Gorlicki",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C23B438_694 Well Field Expansion, Harrowgate",
+        "auth": 4.31,
+        "comm": 4.31,
+        "proj": 4.92,
+        "portfolio": "Plant",
+        "region": "Lakeshore",
+        "phase": "In Delivery",
+        "owner": "Jasper Alvedes",
+        "funding": "Dunmoor",
+        "partner": "Dunmoor",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C23B539_698 Pump Station Rebuild, Selby Point",
+        "auth": 4.55,
+        "comm": 4.55,
+        "proj": 5.15,
+        "portfolio": "Plant",
+        "region": "Lakeshore",
+        "phase": "In Delivery",
+        "owner": "Nadia Jankovic",
+        "funding": "Dunmoor",
+        "partner": "Dunmoor",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C24B249_612 Clearwell Replacement, Kestrel Valley",
+        "auth": 4.29,
+        "comm": 4.29,
+        "proj": 4.83,
+        "portfolio": "Plant",
+        "region": "Northvale",
+        "phase": "In Delivery",
+        "owner": "Katya Rennick",
+        "funding": "Ardenia",
+        "partner": "Ardenia",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C24B390_645 Well Field Expansion, Thornbury",
+        "auth": 4.08,
+        "comm": 4.08,
+        "proj": 4.56,
+        "portfolio": "Plant",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Hollis Quintero",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C24B523_670 PFAS GAC Install, Pellworth",
+        "auth": 5.01,
+        "comm": 5.01,
+        "proj": 5.58,
+        "portfolio": "PFAS",
+        "region": "Cascadia",
+        "phase": "In Delivery",
+        "owner": "Rosalind Rennick",
+        "funding": "Corvale",
+        "partner": "Corvale",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C25B432_645 Jarrowfield WTP, Thornbury",
+        "auth": 7.82,
+        "comm": 7.82,
+        "proj": 8.68,
+        "portfolio": "PFAS",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Osric Feniak",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C25B456_651 Booster Station Upgrade, Ashcombe",
+        "auth": 8.67,
+        "comm": 8.67,
+        "proj": 9.59,
+        "portfolio": "Plant",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Rosalind Callaghan",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C26B381_658 PFAS Bellwater 5, Draycott",
+        "auth": 5.0,
+        "comm": 5.0,
+        "proj": 5.51,
+        "portfolio": "PFAS",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Juno Halloran",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Above 10%"
+      },
+      {
+        "name": "C23B225_690 Dunmoor East Filter Media Renewal",
+        "auth": 51.6,
+        "comm": 51.6,
+        "proj": 54.75,
+        "portfolio": "Plant",
+        "region": "Lakeshore",
+        "phase": "In Delivery",
+        "owner": "Unassigned",
+        "funding": "Dunmoor",
+        "partner": "Dunmoor",
+        "contract": "Large",
+        "reason": "Over"
+      },
+      {
+        "name": "C25B315_658 Quarrydown WTP PFAS Treatment",
+        "auth": 64.2,
+        "comm": 64.2,
+        "proj": 66.95,
+        "portfolio": "PFAS",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Unassigned",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Over"
+      },
+      {
+        "name": "C26B283_645 PFAS GAC Install, Brookmere",
+        "auth": 28.94,
+        "comm": 28.94,
+        "proj": 29.58,
+        "portfolio": "PFAS",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Gideon Corvino",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Over"
+      },
+      {
+        "name": "C25B206_640 Booster Station Upgrade, Belmara Central",
+        "auth": 5.2,
+        "comm": 5.2,
+        "proj": 5.11,
+        "portfolio": "Plant",
+        "region": "Eastmoor",
+        "phase": "In Delivery",
+        "owner": "Xenia Sarkisian",
+        "funding": "Belmara",
+        "partner": "Belmara",
+        "contract": "Large",
+        "reason": "Within"
+      }
+    ],
+    "derived": {
+      "C23B300_651 Clearwell Replacement, Ashcombe": {
+        "status": "Over 10%",
+        "variancePoints": 16.3,
+        "varianceDollarsM": 1.14,
+        "gmPct": 16.3
+      },
+      "C23B438_694 Well Field Expansion, Harrowgate": {
+        "status": "Over 10%",
+        "variancePoints": 14.2,
+        "varianceDollarsM": 0.61,
+        "gmPct": 14.2
+      },
+      "C23B539_698 Pump Station Rebuild, Selby Point": {
+        "status": "Over 10%",
+        "variancePoints": 13.2,
+        "varianceDollarsM": 0.6,
+        "gmPct": 13.2
+      },
+      "C24B249_612 Clearwell Replacement, Kestrel Valley": {
+        "status": "Over 10%",
+        "variancePoints": 12.6,
+        "varianceDollarsM": 0.54,
+        "gmPct": 12.6
+      },
+      "C24B390_645 Well Field Expansion, Thornbury": {
+        "status": "Over 10%",
+        "variancePoints": 11.8,
+        "varianceDollarsM": 0.48,
+        "gmPct": 11.8
+      },
+      "C24B523_670 PFAS GAC Install, Pellworth": {
+        "status": "Over 10%",
+        "variancePoints": 11.4,
+        "varianceDollarsM": 0.57,
+        "gmPct": 11.4
+      },
+      "C25B432_645 Jarrowfield WTP, Thornbury": {
+        "status": "Over 10%",
+        "variancePoints": 11.0,
+        "varianceDollarsM": 0.86,
+        "gmPct": 11.0
+      },
+      "C25B456_651 Booster Station Upgrade, Ashcombe": {
+        "status": "Over 10%",
+        "variancePoints": 10.6,
+        "varianceDollarsM": 0.92,
+        "gmPct": 10.6
+      },
+      "C26B381_658 PFAS Bellwater 5, Draycott": {
+        "status": "Over 10%",
+        "variancePoints": 10.2,
+        "varianceDollarsM": 0.51,
+        "gmPct": 10.2
+      },
+      "C23B225_690 Dunmoor East Filter Media Renewal": {
+        "status": "At risk",
+        "variancePoints": 6.1,
+        "varianceDollarsM": 3.15,
+        "gmPct": 6.1
+      },
+      "C25B315_658 Quarrydown WTP PFAS Treatment": {
+        "status": "Within",
+        "variancePoints": 4.3,
+        "varianceDollarsM": 2.75,
+        "gmPct": 4.3
+      },
+      "C26B283_645 PFAS GAC Install, Brookmere": {
+        "status": "Within",
+        "variancePoints": 2.2,
+        "varianceDollarsM": 0.64,
+        "gmPct": 2.2
+      },
+      "C25B206_640 Booster Station Upgrade, Belmara Central": {
+        "status": "Within",
+        "variancePoints": -1.7,
+        "varianceDollarsM": -0.09,
+        "gmPct": -1.7
+      }
+    },
+    "unit": "USD millions and percent",
+    "derivationRules": {
+      "variancePoints": "(forecast − approved) ÷ approved × 100",
+      "varianceDollarsM": "forecast − approved",
+      "status": "variance > 10% -> Over 10%; > 5% -> At risk; else Within",
+      "gmPct": "variance percent"
+    }
+  },
+  "register": {
+    "roster": "projects",
+    "identity": "n",
+    "fields": [
+      {
+        "key": "n",
+        "label": "Project",
+        "kind": "text",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "reg",
+        "label": "Region",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "bu",
+        "label": "Utility",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "comp",
+        "label": "Compliance driver",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      }
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "R1",
+      "report_id": "rep_nwg_program",
+      "file": "R1_capital_program_position.html",
+      "title": "Capital Program Position",
+      "subtitle": "Show where the program stands against approved budget and the FY26 plan, with the exceptions and the provisional rows visible.",
+      "category": "Program",
+      "status": "published",
+      "version": "v1",
+      "slug": "capital-program-position",
+      "author": "pp_nakamura",
+      "refresh": "Daily 07:00 UTC",
+      "updated_at": "2026-10-15T16:10:00Z",
+      "spec_file": "Capital_Program_Position_Specification.html"
+    },
+    {
+      "document_id": "R2",
+      "report_id": "rep_nwg_rate_base",
+      "file": "R2_belmara_rate_base_position.html",
+      "title": "Belmara Rate Base Position",
+      "subtitle": "Show the Belmara rate base at the test year end against the 2025 order, and keep what is out apart from what is in.",
+      "category": "Utility",
+      "status": "published",
+      "version": "v1",
+      "slug": "belmara-rate-base-position",
+      "author": "pp_srivastav",
+      "refresh": "On open",
+      "updated_at": "2026-10-16T16:11:00Z",
+      "spec_file": "Belmara_Rate_Base_Position_Specification.html"
+    },
+    {
+      "document_id": "R3",
+      "report_id": "rep_nwg_procurement",
+      "file": "R3_framework_compliance_and_savings.html",
+      "title": "Framework Compliance and Savings",
+      "subtitle": "Show the savings secured against the 2.5% target and the premium paid off-framework, and never net the two.",
+      "category": "Program",
+      "status": "published",
+      "version": "v1",
+      "slug": "framework-compliance-and-savings",
+      "author": "pp_raman",
+      "refresh": "Weekly Monday 06:00",
+      "updated_at": "2026-10-17T16:12:00Z",
+      "spec_file": "Framework_Compliance_and_Savings_Specification.html"
+    }
+  ],
+  "authoring_document": "report_authoring_simplified_v3.html"
+}

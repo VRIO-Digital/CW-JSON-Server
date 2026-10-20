@@ -1,0 +1,346 @@
+{
+  "note": "A goal typed in other words: generic reads, a four-step plan, a run that ends at a question, no findings. What the product says when it has no recorded analysis.",
+  "journey": {
+    "id": "g-is-quarrydown-wtp-pfas-treatment-sti-mvfxtj8o",
+    "mode": "once",
+    "kind": "once",
+    "case": "generic",
+    "title": "Is Quarrydown WTP PFAS Treatment still on budget for the December star…",
+    "agent": {
+      "name": "Agent Harbour",
+      "icon": "thunder",
+      "colour": "#1f4e9c"
+    },
+    "prompt": "Is Quarrydown WTP PFAS Treatment still on budget for the December start of its transfer pump station?",
+    "files": [],
+    "stage": "running",
+    "status": "ready",
+    "rv": [
+      "scope",
+      "decision",
+      "src:fin",
+      "src:ppm",
+      "src:mail",
+      "memory",
+      "success",
+      "fixed",
+      "miss:generic",
+      "steps"
+    ],
+    "reads": [
+      {
+        "tool": "resolve the goal against the role graph",
+        "res": "“Is Quarrydown WTP PFAS Treatment still on budget for the December star…” → 14 governed measures, the approved projects, documents and mail",
+        "rv": [
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan epbcs.plan · epbcs.forecast",
+        "res": "3,768 approved projects · $8.27B approved · $8.32B forecast at 15 Oct",
+        "rv": [
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "scan pmo.project · psoft.po_line",
+        "res": "4,500 projects · order lines checked against four frameworks",
+        "rv": [
+          "src:ppm"
+        ]
+      },
+      {
+        "tool": "read Outlook · OneDrive",
+        "res": "19 threads and 30 documents linked to the program",
+        "rv": [
+          "src:mail"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Plant enters rate base only in service · frameworks mandatory above $25k · provisional figures are marked",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "match the goal to a recorded analysis",
+        "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+        "warn": true,
+        "rv": [
+          "miss:generic"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {},
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "g1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Ground the goal in the role graph",
+        "purpose": "Which measures, projects and documents the goal names.",
+        "how": "Resolve every term in the goal to a governed measure, a project or a document; list anything that does not resolve.",
+        "draws": [
+          "Capital Program Analyst graph v1"
+        ],
+        "check": "Every term maps to something the graph holds, or is listed as unresolved."
+      },
+      {
+        "id": "g2",
+        "col": 1,
+        "row": 1,
+        "type": "compute",
+        "title": "State the current position with its components",
+        "purpose": "Budget, forecast and their parts for everything in scope.",
+        "how": "From the latest working forecast and the posted ledger.",
+        "draws": [
+          "epbcs.plan",
+          "epbcs.forecast",
+          "psoft.gl"
+        ],
+        "check": "Totals reconcile to the governed measures within rounding."
+      },
+      {
+        "id": "g3",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Read what the documents and the mailbox say that the tables do not",
+        "purpose": "Dated statements that differ from EPBCS or PeopleSoft.",
+        "how": "Contractor, regulator and internal statements with dates or amounts.",
+        "draws": [
+          "Outlook mailbox",
+          "OneDrive documents",
+          "WIN register"
+        ],
+        "check": "Nothing is attributed without a dated reference."
+      },
+      {
+        "id": "g4",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Set out the ways forward and test them against the constraints",
+        "purpose": "At least two courses of action and \"do nothing\".",
+        "how": "Each with the figure it produces and the approvals it needs.",
+        "draws": [
+          "Steps 1 to 3"
+        ],
+        "check": "No course of action breaks a stated constraint."
+      }
+    ],
+    "edges": [
+      [
+        "g1",
+        "g2"
+      ],
+      [
+        "g2",
+        "g3"
+      ],
+      [
+        "g3",
+        "g4"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "g1": {
+        "state": "done",
+        "at": "21:21",
+        "text": "Done"
+      },
+      "g2": {
+        "state": "done",
+        "at": "21:21",
+        "text": "Done"
+      },
+      "g3": {
+        "state": "done",
+        "at": "21:21",
+        "text": "Done"
+      },
+      "g4": {
+        "state": "done",
+        "at": "21:21",
+        "text": "Done"
+      }
+    },
+    "findings": [],
+    "recs": [],
+    "outputs": [],
+    "started": [],
+    "gaps": [],
+    "chat": [
+      {
+        "who": "me",
+        "text": "Is Quarrydown WTP PFAS Treatment still on budget for the December start of its transfer pump station?",
+        "files": [],
+        "id": "j118-mvfxtj8o",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "resolve the goal against the role graph",
+              "res": "“Is Quarrydown WTP PFAS Treatment still on budget for the December star…” → 14 governed measures, the approved projects, documents and mail",
+              "live": false
+            },
+            {
+              "tool": "scan epbcs.plan · epbcs.forecast",
+              "res": "3,768 approved projects · $8.27B approved · $8.32B forecast at 15 Oct",
+              "live": false
+            },
+            {
+              "tool": "scan pmo.project · psoft.po_line",
+              "res": "4,500 projects · order lines checked against four frameworks",
+              "live": false
+            },
+            {
+              "tool": "read Outlook · OneDrive",
+              "res": "19 threads and 30 documents linked to the program",
+              "live": false
+            },
+            {
+              "tool": "search role memory",
+              "res": "Plant enters rate base only in service · frameworks mandatory above $25k · provisional figures are marked",
+              "live": false
+            },
+            {
+              "tool": "match the goal to a recorded analysis",
+              "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "4 steps · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j119-mvfxtjsc",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and stop at a question rather than land findings. The two examples carry full analyses.",
+        "id": "j120-mvfxtnn0",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+        "id": "j121-mvfxtodo",
+        "at": "21:21"
+      },
+      {
+        "who": "me",
+        "text": "Agree and run",
+        "id": "j122-mvfxtoiy",
+        "at": "21:21"
+      },
+      {
+        "who": "event",
+        "text": "Plan agreed · v1 · 21:21",
+        "id": "j123-mvfxtoiz",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "Agreed, v1. Running the four steps now.",
+        "id": "j124-mvfxtoj0",
+        "at": "21:21"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · Ground the goal in the role graph",
+        "id": "j125-mvfxtq2m",
+        "at": "21:21"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · State the current position with its components",
+        "id": "j126-mvfxtrb3",
+        "at": "21:21"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · Read what the documents and the mailbox say that the tables do not",
+        "id": "j127-mvfxtsjk",
+        "at": "21:21"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · Set out the ways forward and test them against the constraints",
+        "id": "j128-mvfxtts1",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "All steps run. The goal names a measure the graph does not compute in this copy, so I have the position but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state it as a range from the recorded positions? Either way, the two example goals are where the full journeys are.",
+        "id": "j129-mvfxtts1",
+        "at": "21:21"
+      },
+      {
+        "who": "me",
+        "text": "Drop it from the goal",
+        "id": "j130-mvfxtugp",
+        "at": "21:21"
+      },
+      {
+        "who": "agent",
+        "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+        "id": "j131-mvfxtuuq",
+        "at": "21:21"
+      }
+    ],
+    "chips": [
+      "Open the data",
+      "Save this plan"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Steer the run in plain words…"
+    },
+    "log": [
+      {
+        "t": "21:21",
+        "who": "You",
+        "what": "Agreed the plan (v1) and started the run."
+      },
+      {
+        "t": "21:21",
+        "who": "You",
+        "what": "Answered: Drop it from the goal"
+      }
+    ],
+    "runs": [],
+    "flags": {
+      "genericQ": true,
+      "answeredQ": true
+    },
+    "doneCount": 4,
+    "paused": false,
+    "agreedAt": "21:21"
+  }
+}

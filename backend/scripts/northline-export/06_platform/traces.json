@@ -1,0 +1,226 @@
+{
+  "stats": [
+    {
+      "label": "p50 duration",
+      "value": "3.5 s",
+      "note": "across 11 sealed traces"
+    },
+    {
+      "label": "p95 duration",
+      "value": "7.3 s",
+      "note": "longest: What is Belmara's rate base at the end of th",
+      "tone": "warn"
+    },
+    {
+      "label": "Unaccounted time",
+      "value": "690 ms",
+      "note": "shown as a gap, never folded into a step"
+    },
+    {
+      "label": "Cost this window",
+      "value": "$1.01",
+      "note": "against the $2.00 per-question budget"
+    }
+  ],
+  "items": [
+    {
+      "id": "trace_nwg01",
+      "operation": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 7300,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-10-16T15:00:00Z",
+      "actor": "Marc Beaulieu",
+      "confidence": 0.9,
+      "cost_usd": 0.17,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg02",
+      "operation": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 5600,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-10-16T14:13:29Z",
+      "actor": "Priya Raman",
+      "confidence": 0.93,
+      "cost_usd": 0.13,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg03",
+      "operation": "Which order lines were placed off-framework above the framework price, and what did that cost?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 6200,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-10-16T13:26:58Z",
+      "actor": "Tolu Adeyemi",
+      "confidence": 0.9,
+      "cost_usd": 0.14,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg04",
+      "operation": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 4700,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-16T12:39:27Z",
+      "actor": "Marc Beaulieu",
+      "confidence": 0.91,
+      "cost_usd": 0.11,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg05",
+      "operation": "Are we on track to spend the FY26 plan by December?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 3500,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-16T11:52:56Z",
+      "actor": "Priya Raman",
+      "confidence": 0.92,
+      "cost_usd": 0.09,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg06",
+      "operation": "Which major additions are missing part of their prudence record?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 5100,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-10-16T10:05:25Z",
+      "actor": "Nishant Srivastav",
+      "confidence": 0.87,
+      "cost_usd": 0.12,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg07",
+      "operation": "Which projects have not been re-forecast for more than 45 days?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 2600,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-15T09:18:54Z",
+      "actor": "Rei Nakamura",
+      "confidence": 0.94,
+      "cost_usd": 0.07,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg08",
+      "operation": "How much has the procurement savings program secured against its 2.5% target?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 2900,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-15T08:31:23Z",
+      "actor": "Tolu Adeyemi",
+      "confidence": 0.9,
+      "cost_usd": 0.08,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg09",
+      "operation": "Where does my project stand: approved, committed, forecast and contingency left?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 3100,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-15T07:44:52Z",
+      "actor": "Nishant Srivastav",
+      "confidence": 0.88,
+      "cost_usd": 0.08,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg10",
+      "operation": "Which large projects slipped on their critical path this month?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 600,
+      "spans": 2,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-15T06:57:21Z",
+      "actor": "Rei Nakamura",
+      "confidence": null,
+      "cost_usd": 0.01,
+      "sealed": true
+    },
+    {
+      "id": "trace_nwg11",
+      "operation": "What will ductile iron pipe cost next year?",
+      "service": "Capital Program Analyst graph v1",
+      "duration": 700,
+      "spans": 2,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-10-15T05:10:50Z",
+      "actor": "Tolu Adeyemi",
+      "confidence": null,
+      "cost_usd": 0.01,
+      "sealed": true
+    }
+  ],
+  "sampling": "Every question is sealed - no sampling. A trace a viewer cannot find is a trace that does not exist.",
+  "waterfall": {
+    "trace_id": "trace_nwg01",
+    "operation": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+    "total_ms": 7300,
+    "unaccounted_ms": 690,
+    "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+    "spans": [
+      {
+        "name": "Understand & plan",
+        "start": 0,
+        "duration": 330,
+        "agent": "supervisor",
+        "detail": "classified: rate base roll-forward · Belmara · test year end 31 Dec 2026"
+      },
+      {
+        "name": "Resolve the subject",
+        "start": 330,
+        "duration": 560,
+        "agent": "graph agent",
+        "detail": "Northline Water of Belmara → order 2025-RC-118 → 38 post-test-year projects → plant by class"
+      },
+      {
+        "name": "Read governed facts",
+        "start": 890,
+        "duration": 2420,
+        "agent": "graph agent",
+        "detail": "psoft.asset · psoft.cwip · rate base components · pmo.inservice (as of 2026-10-12)"
+      },
+      {
+        "name": "Pull correspondence",
+        "start": 3310,
+        "duration": 1960,
+        "agent": "runtime agent",
+        "detail": "outlook · 90-day window · threads R1, R2, P1 · permissions follow the reader"
+      },
+      {
+        "name": "Compose and check",
+        "start": 5270,
+        "duration": 1340,
+        "agent": "supervisor",
+        "detail": "approved rates only · the seven dated 2027 out · the nine as completed construction · totals foot"
+      }
+    ]
+  }
+}

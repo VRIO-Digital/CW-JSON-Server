@@ -1,0 +1,466 @@
+{
+  "note": "The agent's lines as recorded in the transcripts (the transcripts are authoritative; every message there carries its card and order), de-duplicated, with what the analyst said just before. chipsByStage is the chip row and composer at the end of each transcript.",
+  "recorded": [
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Is Quarrydown WTP PFAS Treatment still on budget for the December start of its transfer pump station?",
+      "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+      "card": "reads"
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Is Quarrydown WTP PFAS Treatment still on budget for the December start of its transfer pump station?",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and stop at a question rather than land findings. The two examples carry full analyses.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Is Quarrydown WTP PFAS Treatment still on budget for the December start of its transfer pump station?",
+      "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Agreed, v1. Running the four steps now.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "All steps run. The goal names a measure the graph does not compute in this copy, so I have the position but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state it as a range from the recorded positions? Either way, the two example goals are where the full journeys are.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Drop it from the goal",
+      "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+      "card": null
+    },
+    {
+      "transcript": "offframework_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "14 lines in the 20 October order load are off-framework, $0.55M above framework prices: what can still be done?",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it.",
+      "card": null
+    },
+    {
+      "transcript": "offframework_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Agreed, v1. Running the five steps on the 14 off-framework lines now; findings land as each one finishes.",
+      "card": null
+    },
+    {
+      "transcript": "offframework_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Done, and the note is out to you and the project managers. **14 of the 31 lines in the 20 October load are off-framework: $3.86M ordered, $0.55M above framework prices.** The ordering catalogue still sends pipe and valve orders to two spot suppliers, although the framework lead times are back to normal.\n\nI recommend **re-placing the nine unconfirmed lines on the frameworks**, which keeps $0.30M at no cost, and fixing the catalogue default. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+      "card": "note"
+    },
+    {
+      "transcript": "offframework_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Accept all findings",
+      "text": "All 4 findings accepted. Next, the decision: 3 ways forward, and I prefer option 1. \"Why this\" plays how I got there.",
+      "card": "decision"
+    },
+    {
+      "transcript": "offframework_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Choose option 2",
+      "text": "Recorded. **Re-place all 14, including the five confirmed lines.** The schedules, the memo and the slides are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+      "card": "send"
+    },
+    {
+      "transcript": "once_rb_01_plan_ready.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Two things I could not find; one at a time.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "What counts as success: RB-4 lists the seven by project manager",
+      "text": "Changed **What counts as success** in the plan. The recommendation is judged against it.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: the depreciation study rates",
+      "text": "Here is what that changes in the plan. Nothing moves until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_rb_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: the depreciation study rates",
+      "text": "Added **What-if: the 2026 depreciation study rates** to the plan, beside the decisions page. It shares steps 1 to 3 and runs after the checkpoint.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: the depreciation study rates",
+      "text": "Agreed, that is v3 of the plan, and the run has started. I stop before the prudence review to confirm how the nine completed projects in CWIP are treated. Findings land as steps finish, provisional until the end. Anything you change from here is logged against the plan.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_03_findings_ready.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Count them as completed construction",
+      "text": "Findings ready. **Present $1,072.6M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case.** That is $295.7M above the rate base allowed in 2025. 2 caveats reached the recommendation; the two prudence gaps are the ones I would close first.\n\nFour findings are on the right. Accept each one, or challenge it, then choose the way forward.",
+      "card": "findings"
+    },
+    {
+      "transcript": "once_rb_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Leave the nine in CWIP",
+      "text": "Here is what that changes. Nothing re-runs until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_rb_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Accept all findings",
+      "text": "Re-ran step 2 with your instruction. Findings 2 and 3 changed, and the plan now records leaving the nine in CWIP as your call.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Choose option 1",
+      "text": "Recorded. **Present $1,065.8M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case.** The schedules, the memo and the slides are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+      "card": "send"
+    },
+    {
+      "transcript": "once_rb_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Save this plan",
+      "text": "Saved as **“Rate base: plant, used and useful, prudence”**, on the left under Saved plans. A new goal can start from it.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "",
+      "text": "Reading it now.",
+      "card": "reads"
+    },
+    {
+      "transcript": "once_rb_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "",
+      "text": "Read the study. It proposes a **composite 2.56%** against the approved 2.40%, about $2.4M a year more depreciation, but it is not filed, so the schedules keep the approved rates. Ask for the what-if and I show it beside step 4. The plan on the right shows what changed.",
+      "card": null
+    },
+    {
+      "transcript": "once_rb_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Drop the prudence step",
+      "text": "Here is what dropping it costs. Nothing moves until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_rb_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Drop the prudence step",
+      "text": "Agreed, that is v3 of the plan, and the run has started. The nine completed projects are settled, so there is no stop before the prudence review. Findings land as steps finish, provisional until the end. Anything you change from here is logged against the plan.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_rate_base_refresh_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every quarterly close, refresh the Belmara rate base and update the schedules.",
+      "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+      "card": "reads"
+    },
+    {
+      "transcript": "schedule_rate_base_refresh_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every quarterly close, refresh the Belmara rate base and update the schedules.",
+      "text": "The plan for the watch is on the right. One thing I could not find.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_rate_base_refresh_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Just me",
+      "text": "That is the plan for the watch. To change a line, press Edit on it and tell me here, or just type. Nothing is armed until you say so.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_rate_base_refresh_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Just me",
+      "text": "Armed. It runs after the 6 November close, then every quarter; you hear from me when the schedules are refreshed. Nothing runs until then.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_rate_base_refresh_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Simulate: run now",
+      "text": "**Running.** The scheduled run has started; the six steps run by themselves and the schedules are refreshed at the end. You do not need to be here for this.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "text": "The plan for the watch is on the right. Two things I could not find; one at a time.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Check every order as it is placed",
+      "text": "Checked as orders are placed now. That catches a line before the supplier confirms it, while it can still be changed at no cost; expect more, smaller notes.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Check every order as it is placed",
+      "text": "Armed. I check every new order line at the nightly load; the next is tonight’s order load, 02:00 on 20 October. Nothing runs until then. The catalogue still defaults to the spot suppliers for pipe and valves, so expect this to fire.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "text": "Armed. I check every new order line at the nightly load (02:00) against the four frameworks and the category benchmarks. Nothing runs until a line above $25k goes off a framework that covers it, or more than 5% above benchmark.\n\nThe plan on the right is what runs when it fires: five steps, no checkpoint, and a note to you, the project managers and Procurement. It waits for you under Needs you when it is done.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight’s order load (20 October)",
+      "text": "**Fired.** The 02:00 order load brought 31 new lines; 14 are off a framework that covers the item. **$3.86M ordered, $0.55M above framework prices, on nine network blanket projects.** Running the five steps now; the note goes out when they are done and the run waits for you under Needs you. You do not need to be here for this.",
+      "card": "fired"
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight’s order load (20 October)",
+      "text": "Done, and the note is out to you, the project managers and Procurement. **14 of the 31 lines in the 20 October load are off-framework: $3.86M ordered, $0.55M above framework prices.** The ordering catalogue still sends pipe and valve orders to two spot suppliers, although the framework lead times are back to normal.\n\nI recommend **re-placing the nine unconfirmed lines on the frameworks**, which keeps $0.30M at no cost, and fixing the catalogue default. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+      "card": "note"
+    },
+    {
+      "transcript": "watch_rule_02_chosen_confirm.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Choose option 1",
+      "text": "Recorded. **Re-place the nine unconfirmed lines on the frameworks, and fix the catalogue default.** Here is what I will do about it. Nothing happens until you say execute.",
+      "card": "execute"
+    },
+    {
+      "transcript": "watch_rule_03_executed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Execute",
+      "text": "Executed. Note and order list sent; catalogue change raised; tracker updated to $9.0M, pending the re-orders. The note is also in Submissions as a draft you can finish; cancelling and re-ordering the lines is Procurement’s to do.\n\nThis run is now under **Executed** on the left. The watch itself stays armed under Standing goals and checks the next order load tonight.",
+      "card": null
+    }
+  ],
+  "chipsByStage": {
+    "generic_typed_goal.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Open the data",
+        "Save this plan"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "offframework_once.json": {
+      "stage": "running",
+      "status": "accepted",
+      "chips": [
+        "Build the schedules in Submissions",
+        "Save this plan",
+        "Make it standing"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_rb_01_plan_ready.json": {
+      "stage": "plan",
+      "status": "draft",
+      "chips": [
+        "Only the post-test-year projects",
+        "Add a what-if: the depreciation study rates",
+        "Drop the prudence step",
+        "Agree and run"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything in plain words…"
+      }
+    },
+    "once_rb_02_checkpoint.json": {
+      "stage": "running",
+      "status": "wait",
+      "chips": [
+        "What are you doing now?"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_rb_03_findings_ready.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why take the seven out?",
+        "Leave the nine in CWIP",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_rb_04_steered_chosen_saved.json": {
+      "stage": "running",
+      "status": "accepted",
+      "chips": [
+        "Build the schedules in Submissions",
+        "Make it standing"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_rb_documents_web.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why take the seven out?",
+        "Leave the nine in CWIP",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "schedule_rate_base_refresh_run.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why take the seven out?",
+        "Leave the nine in CWIP",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_new_armed.json": {
+      "stage": "armed",
+      "status": "armed",
+      "chips": [
+        "Simulate tonight’s order load (20 October)",
+        "What will it look like when it fires?",
+        "Open the rate base goal"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_01_fired_note_sent.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why option 1?",
+        "Open the note",
+        "Snooze these projects until the next load"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_02_chosen_confirm.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Execute",
+        "Not now"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_03_executed.json": {
+      "stage": "armed",
+      "status": "executed",
+      "chips": [
+        "Open the draft in Submissions",
+        "Save this plan"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    }
+  }
+}

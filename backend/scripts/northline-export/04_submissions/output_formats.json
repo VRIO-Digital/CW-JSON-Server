@@ -1,0 +1,217 @@
+{
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (fictional; the Veolia CAPEX demo world)",
+    "dataset": "NORTHLINE",
+    "asOf": "2026-10-15",
+    "today": "2026-10-19",
+    "exported_from": "ContextWeave_Veolia_CPA_offline.html source (veolia_cpa_prototype_2026-10-19): src/data/*.ts, src/store/*.ts",
+    "note": "The three ways a submission starts and the formats an author can describe. A described output has no template until the author saves its outline as one."
+  },
+  "origins": [
+    "recommendation",
+    "described",
+    "template"
+  ],
+  "formats": [
+    {
+      "key": "Slide pack",
+      "label": "Slide pack",
+      "icon": "slides",
+      "unit": "slide",
+      "goodFor": "A committee or a review: one idea per slide, figures large, the decision on its own slide.",
+      "skeleton": [
+        {
+          "heading": "Title and position in one line",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Decisions asked",
+          "role": "purpose",
+          "position": "end"
+        },
+        {
+          "heading": "Sources and as-of dates",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Dashboard",
+      "label": "Dashboard",
+      "icon": "dashboard",
+      "unit": "panel",
+      "goodFor": "Something people come back to: figures as tiles, one chart per question, exceptions as a list, every tile drilling to its rows.",
+      "skeleton": [
+        {
+          "heading": "Headline tiles",
+          "role": "summary",
+          "hint": "The three or four figures that say where things stand; each tile opens its rows.",
+          "position": "start"
+        },
+        {
+          "heading": "Open decisions",
+          "role": "purpose",
+          "position": "end"
+        },
+        {
+          "heading": "Data behind the panels",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Document",
+      "label": "Document",
+      "icon": "document",
+      "unit": "section",
+      "goodFor": "A report someone reads end to end: context, findings, options, recommendation, evidence.",
+      "skeleton": [
+        {
+          "heading": "Purpose and decision asked",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Summary",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence",
+          "position": "end"
+        },
+        {
+          "heading": "Assumptions and open items",
+          "role": "assumptions",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Memo",
+      "label": "Memo",
+      "icon": "memo",
+      "unit": "paragraph",
+      "goodFor": "One page to one reader: the ask first, the reasons, what happens next.",
+      "skeleton": [
+        {
+          "heading": "The ask",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "In short",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Workbook",
+      "label": "Spreadsheet",
+      "icon": "sheet",
+      "unit": "sheet",
+      "goodFor": "Figures people will sort, filter and reconcile: one sheet per table, a cover that says what is in it.",
+      "skeleton": [
+        {
+          "heading": "Cover: what this workbook holds and as of when",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Sources per line",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Email",
+      "label": "Email",
+      "icon": "email",
+      "unit": "paragraph",
+      "goodFor": "A message one person reads on a phone: the ask in the first line, three short paragraphs, the figures attached.",
+      "skeleton": [
+        {
+          "heading": "Subject and the ask in one line",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Attachments and where the figures come from",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    }
+  ],
+  "example_briefs": [
+    {
+      "goalId": "g-belmara-rate-base",
+      "format": "Slide pack",
+      "description": "A slide pack for the working session with BPUC staff on 4 November. One slide with the rate base at 31 December 2026 and how it compares with 2025. One slide on plant in service by class, gross and net of depreciation. One slide on how the rate base moved since the 2025 order. One slide on what is used and useful at the test year end, with the seven projects dated 2027. One slide on the prudence record of the major additions and the two gaps. Close with the sources and as-of dates."
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "format": "Dashboard",
+      "description": "A dashboard for the Belmara rate case. Headline tiles: rate base, change since 2025, held for the next case, prudence gaps. Plant by class, gross and net. The roll-forward from the 2025 order. The post-test-year projects and their in-service dates. The twelve largest additions and their prudence record."
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "format": "Memo",
+      "description": "A one-page memo to Marc before the session: the rate base we present, why the seven are out, how the nine completed projects are treated, the two prudence gaps and who closes them, and the next steps with dates."
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "format": "Slide pack",
+      "description": "A short slide pack for Tolu Adeyemi: the savings program against the 2.5% target, the 14 off-framework lines in the 20 October load and their premium, why it keeps happening since April, the three options with the saving each keeps, how the agent got to its recommendation, and what happens next."
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "format": "Email",
+      "description": "An email to Tolu Adeyemi and the nine project managers: the nine lines we ask Procurement to re-place today, the premium in two lines, the catalogue default that caused it, and the list of affected orders attached."
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "format": "Workbook",
+      "description": "A spreadsheet for Procurement: the 14 lines with project, item, supplier, unit price, framework price, premium and confirmation, the categories since April, and the sources for each line."
+    }
+  ],
+  "actions_on_a_draft": {
+    "share": "A link to the submission (hash route); for a dashboard the link opens the live view, not a copy.",
+    "download_by_format": {
+      "Slide pack": [
+        "PowerPoint (.pptx): title slide + one slide per section, text left, the section picture right"
+      ],
+      "Dashboard": [
+        "PDF (browser print of the dashboard only)",
+        "Image (PNG of the dashboard)"
+      ],
+      "Workbook": [
+        "CSV (all sheets)"
+      ],
+      "Document": [
+        "PDF",
+        "HTML page"
+      ],
+      "Memo": [
+        "PDF",
+        "HTML page"
+      ],
+      "Email": [
+        "HTML page"
+      ]
+    }
+  },
+  "live_dashboard": "A Dashboard is always live: a described dashboard opens on its panels at once (stage draft, no brief step), every panel is computed from the goal and the drill data when the page opens, the banner shows the data as-of date and a refresh time. Evidence is kept out of the panels and shown in the Data lineage drawer."
+}

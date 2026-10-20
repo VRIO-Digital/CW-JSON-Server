@@ -1,0 +1,22 @@
+[
+  {
+    "role_id": "business_user_exec",
+    "label": "Business User -- Executive",
+    "access_note": "All utilities, all projects, all financials."
+  },
+  {
+    "role_id": "analyst",
+    "label": "Data Analyst",
+    "access_note": "All projects and financials. Project manager names masked (PII)."
+  },
+  {
+    "role_id": "architect",
+    "label": "Domain Architect",
+    "access_note": "Everything, at every grain, including contract terms."
+  },
+  {
+    "role_id": "admin",
+    "label": "Platform Admin",
+    "access_note": "Structure, lineage, cost and access. No financial values."
+  }
+]

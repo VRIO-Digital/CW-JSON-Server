@@ -1,0 +1,670 @@
+{
+  "note": "The 14 off-framework lines asked as a one-off: no questions, five steps, four findings, option 2 (re-place all 14) chosen.",
+  "journey": {
+    "id": "g-off-framework-orders-in-the-20-octob-mvfxt38o",
+    "mode": "once",
+    "kind": "once",
+    "case": "overrun-once",
+    "title": "Off-framework orders in the 20 October load: 14 lines $0.55M above framework prices",
+    "agent": {
+      "name": "Agent Sentinel",
+      "icon": "experiment",
+      "colour": "#3b6e22"
+    },
+    "prompt": "14 lines in the 20 October order load are off-framework, $0.55M above framework prices: what can still be done?",
+    "files": [],
+    "stage": "running",
+    "status": "accepted",
+    "rv": [
+      "against",
+      "memory",
+      "watch",
+      "src:fin",
+      "src:proc",
+      "where",
+      "src:cal",
+      "prior",
+      "until",
+      "steps"
+    ],
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "Frameworks are mandatory above $25k per line where one covers the item · a saving counts once it is in an order or a signed contract",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Procurement_Savings_Program_2026-27.pdf",
+        "res": "Target 2.5% of $968.0M addressable capital spend: $24.2M by 30 June 2027",
+        "rv": [
+          "watch",
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "scan psoft.po_line · framework price schedules",
+        "res": "Every order line with its item, supplier and unit price · 4 frameworks, 9 priced items · category benchmarks",
+        "rv": [
+          "src:proc"
+        ]
+      },
+      {
+        "tool": "read the order calendar",
+        "res": "New order lines load nightly at 02:00. Next: tonight, Tuesday 20 October, with Monday’s orders",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "“Belmara rate base” reads the same awards for its prudence check; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Savings tracker: $8.7M secured · off-framework buying about $1.4M above framework since April · the catalogue still defaults to the spot suppliers",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {
+      "acc:W1": "1",
+      "acc:W2": "1",
+      "acc:W3": "1",
+      "acc:W4": "1"
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the order load flagged, and size it",
+        "purpose": "Which lines are off-framework or above benchmark, and by how much.",
+        "how": "Every new order line against the framework price schedules and the category benchmarks: the unit price paid, the framework price, the premium, and whether the supplier has confirmed the line. Limited to the lines in the load that fired the rule.",
+        "draws": [
+          "psoft.po_line",
+          "Framework price schedules",
+          "psoft.supplier"
+        ],
+        "check": "Every flagged line recomputes from its quantity, unit price and framework price."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone raised it",
+        "purpose": "Is this new, and is someone already on it.",
+        "how": "Off-framework buying by category since April, the framework lead times, the ordering catalogue, and what Procurement and the project managers have said.",
+        "draws": [
+          "psoft.po_line (since April)",
+          "Outlook: Procurement and project managers (S1, S2, S3)",
+          "Savings_tracker_2026-10.xlsx"
+        ],
+        "check": "Every figure since April recomputes from the order lines."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Trace each line against its framework price",
+        "purpose": "The premium item by item, and whether the policy allowed it.",
+        "how": "For each flagged line: the framework that covers the item, its price, the premium, and the Procurement exception the policy requires on the order.",
+        "draws": [
+          "psoft.po_line",
+          "FA-2025-PIPE-01, FA-2025-VLV-02 (Schedule A)",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "The line premiums sum to the batch premium."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with the saving it keeps, checked against open goals.",
+        "how": "Each option with the saving it keeps against the 2.5% target, what it costs (restocking, delay), who has to agree, and an honest statement if nothing can be recovered; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Belmara rate base",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every option states the saving it keeps and what it costs."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Note to the people you chose",
+        "purpose": "One page, sent without waiting for you.",
+        "how": "The lines, why they went off-framework, the premium, the options, and the catalogue fix; on the off-framework order note template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: off-framework order note"
+        ],
+        "check": "Every figure in the note links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "done",
+        "at": "21:20",
+        "text": "Done · 14 lines · $0.55M",
+        "caveat": true
+      },
+      "w2": {
+        "state": "done",
+        "at": "21:20",
+        "text": "Done · since April"
+      },
+      "w3": {
+        "state": "done",
+        "at": "21:20",
+        "text": "Done · 15% to 18% over",
+        "caveat": true
+      },
+      "w4": {
+        "state": "done",
+        "at": "21:20",
+        "text": "Done · 3 options"
+      },
+      "w5": {
+        "state": "done",
+        "at": "21:20",
+        "text": "Done · note sent"
+      }
+    },
+    "findings": [
+      "W1",
+      "W2",
+      "W3",
+      "W4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Re-place the nine unconfirmed lines on the frameworks, and fix the catalogue default",
+        "summary": "Cancel the nine unconfirmed lines at no cost and re-order them on FA-2025-PIPE-01 and FA-2025-VLV-02 at framework prices; let the five confirmed lines ship. Ask Procurement to have the catalogue default set back to the framework suppliers, so the next load does not repeat it.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0.30M",
+            "tone": "good"
+          },
+          {
+            "label": "Secured after",
+            "value": "$9.0M · 37.2%"
+          },
+          {
+            "label": "Leak stopped",
+            "value": "≈ $2.6M a year",
+            "tone": "good"
+          },
+          {
+            "label": "Crews held up",
+            "value": "none",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "Leaves $0.26M of premium on the five confirmed lines, and rests on Harbor and Kestrel holding their quoted lead times.",
+        "preferred": false,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The rule fired: 14 lines in the 20 October load are off-framework. What can still be done?"
+          },
+          {
+            "kind": "read",
+            "text": "Read the 31 new lines against the framework price schedules.",
+            "figure": "$0.55M premium",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Nine of the 14 are not yet confirmed by the supplier.",
+            "figure": "9 lines · $2.04M",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: an unconfirmed line cancels at no cost.",
+            "ref": {
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Harbor Pipe is back to 4 weeks, so re-placing does not hold up the crews.",
+            "figure": "4 weeks",
+            "ref": {
+              "thread": "S1"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "The catalogue still sends new orders to the spot suppliers.",
+            "ref": {
+              "thread": "S2"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Re-place the nine today and fix the catalogue, so the saving is kept and the leak stops."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Re-place all 14, including the five confirmed lines",
+        "summary": "Cancel the nine unconfirmed lines and ask Northgate and Ridgeline to take back the five confirmed ones at up to 5% restocking; re-order all 14 on the frameworks and fix the catalogue.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0.46M after restocking",
+            "tone": "good"
+          },
+          {
+            "label": "Secured after",
+            "value": "$9.16M · 37.9%"
+          },
+          {
+            "label": "Restocking",
+            "value": "up to $0.09M",
+            "tone": "warn"
+          },
+          {
+            "label": "Needs suppliers to agree",
+            "value": "5 lines",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "About $0.17M more, but it needs two spot suppliers to agree, and three of the confirmed pipe lines are already picked for delivery this week.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could all 14 lines come back to the frameworks?"
+          },
+          {
+            "kind": "read",
+            "text": "Five lines are confirmed by the supplier.",
+            "figure": "$1.82M ordered",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Their premium is $0.26M; restocking would be up to $0.09M.",
+            "figure": "$0.17M net"
+          },
+          {
+            "kind": "found",
+            "text": "Three of the five are already picked for delivery."
+          },
+          {
+            "kind": "therefore",
+            "text": "Possible, but the extra $0.17M depends on two suppliers agreeing and may delay deliveries."
+          }
+        ],
+        "preferred": true
+      },
+      {
+        "id": "r3",
+        "title": "Let this batch stand and fix the catalogue only",
+        "summary": "Keep the 14 orders as placed; change the catalogue default so the next orders go to the frameworks.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0",
+            "tone": "crit"
+          },
+          {
+            "label": "Premium paid",
+            "value": "$0.55M",
+            "tone": "crit"
+          },
+          {
+            "label": "Leak stopped",
+            "value": "≈ $2.6M a year",
+            "tone": "good"
+          },
+          {
+            "label": "Disruption",
+            "value": "none",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "No change for nine project teams, but the $0.55M is paid and the secured figure does not move.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "What if the orders are left alone?"
+          },
+          {
+            "kind": "read",
+            "text": "The catalogue default is what keeps sending orders off-framework.",
+            "ref": {
+              "thread": "S2"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Fixing it stops about $2.6M a year of premium; this batch still costs $0.55M.",
+            "figure": "$0.55M paid"
+          },
+          {
+            "kind": "therefore",
+            "text": "The cheapest to do, and the most expensive outcome for this batch."
+          }
+        ],
+        "preferred": false
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-proc-note",
+        "label": "Off-framework order note: the 20 October load",
+        "audience": "Tolu Adeyemi, Head of Capital Procurement, and the nine project managers",
+        "purpose": "Re-place the nine unconfirmed lines on the frameworks before the suppliers confirm them",
+        "template": "Procurement: off-framework order note",
+        "templateId": "t-proc-note",
+        "why": "The open lines cancel at no cost only until the suppliers confirm them."
+      },
+      {
+        "id": "sub-proc-change",
+        "label": "Catalogue change request: framework suppliers as the default",
+        "audience": "Procurement systems, through Tolu Adeyemi",
+        "purpose": "Set the ordering catalogue back to the framework suppliers for pipe, fittings, valves and hydrants",
+        "template": "Procurement: catalogue change request",
+        "templateId": "t-proc-change",
+        "why": "Tolu asked for the affected orders and what they cost before IT changes the default."
+      }
+    ],
+    "started": [],
+    "gaps": [
+      "Whether the suppliers confirm any of the nine open lines before the 08:00 status refresh.",
+      "Whether re-placing holds up any crew: two blankets (CZZF50316_651, CZZF50113_658) need pipe within four weeks, and Harbor quotes four.",
+      "Pumps and motors have no framework; their benchmark is last year’s average price, not refreshed since January."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "14 lines in the 20 October order load are off-framework, $0.55M above framework prices: what can still be done?",
+        "files": [],
+        "id": "j98-mvfxt38o",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "search role memory",
+              "res": "Frameworks are mandatory above $25k per line where one covers the item · a saving counts once it is in an order or a signed contract",
+              "live": false
+            },
+            {
+              "tool": "read Procurement_Savings_Program_2026-27.pdf",
+              "res": "Target 2.5% of $968.0M addressable capital spend: $24.2M by 30 June 2027",
+              "live": false
+            },
+            {
+              "tool": "scan psoft.po_line · framework price schedules",
+              "res": "Every order line with its item, supplier and unit price · 4 frameworks, 9 priced items · category benchmarks",
+              "live": false
+            },
+            {
+              "tool": "read the order calendar",
+              "res": "New order lines load nightly at 02:00. Next: tonight, Tuesday 20 October, with Monday’s orders",
+              "live": false
+            },
+            {
+              "tool": "check open goals",
+              "res": "“Belmara rate base” reads the same awards for its prudence check; I read it whenever this fires",
+              "live": false
+            },
+            {
+              "tool": "read the latest position",
+              "res": "Savings tracker: $8.7M secured · off-framework buying about $1.4M above framework since April · the catalogue still defaults to the spot suppliers",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "5 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j99-mvfxt3s8",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it.",
+        "id": "j100-mvfxt7v9",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+        "id": "j101-mvfxt8lt",
+        "at": "21:20"
+      },
+      {
+        "who": "me",
+        "text": "Agree and run",
+        "id": "j102-mvfxt8u4",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Plan agreed · v1 · 21:20",
+        "id": "j103-mvfxt8u5",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "Agreed, v1. Running the five steps on the 14 off-framework lines now; findings land as each one finishes.",
+        "id": "j104-mvfxt8u5",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · 14 of 31 lines off-framework · $3.86M ordered, $0.55M above framework",
+        "id": "j105-mvfxtajd",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · 9 of the 14 lines are not yet confirmed by the supplier",
+        "id": "j106-mvfxtajd",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · off-framework since April; the catalogue still defaults to the spot suppliers",
+        "id": "j107-mvfxtbum",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · premiums 14.9% to 18.1%; no exception on any order",
+        "id": "j108-mvfxtd0b",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · three options; re-placing the nine and fixing the catalogue preferred",
+        "id": "j109-mvfxte8t",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Note sent · waits for your review · 21:20",
+        "id": "j110-mvfxtfei",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "Done, and the note is out to you and the project managers. **14 of the 31 lines in the 20 October load are off-framework: $3.86M ordered, $0.55M above framework prices.** The ordering catalogue still sends pipe and valve orders to two spot suppliers, although the framework lead times are back to normal.\n\nI recommend **re-placing the nine unconfirmed lines on the frameworks**, which keeps $0.30M at no cost, and fixing the catalogue default. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+        "card": {
+          "kind": "note"
+        },
+        "id": "j111-mvfxtfej",
+        "at": "21:20"
+      },
+      {
+        "who": "me",
+        "text": "Accept all findings",
+        "id": "j112-mvfxtg1a",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "All 4 findings accepted. Next, the decision: 3 ways forward, and I prefer option 1. \"Why this\" plays how I got there.",
+        "card": {
+          "kind": "decision"
+        },
+        "id": "j113-mvfxtgcv",
+        "at": "21:20"
+      },
+      {
+        "who": "me",
+        "text": "Choose option 2",
+        "id": "j114-mvfxthbl",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Recommendation chosen · 21:20",
+        "id": "j115-mvfxthbm",
+        "at": "21:20"
+      },
+      {
+        "who": "event",
+        "text": "Executed · decision recorded · 21:20",
+        "id": "j116-mvfxthbm",
+        "at": "21:20"
+      },
+      {
+        "who": "agent",
+        "text": "Recorded. **Re-place all 14, including the five confirmed lines.** The schedules, the memo and the slides are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+        "card": {
+          "kind": "send"
+        },
+        "id": "j117-mvfxthbn",
+        "at": "21:20"
+      }
+    ],
+    "chips": [
+      "Build the schedules in Submissions",
+      "Save this plan",
+      "Make it standing"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Steer the run in plain words…"
+    },
+    "log": [
+      {
+        "t": "21:20",
+        "who": "You",
+        "what": "Agreed the plan (v1) and started the run."
+      },
+      {
+        "t": "21:20",
+        "who": "Agent Sentinel",
+        "what": "Step 1 done · 14 of 31 lines off-framework · $3.86M ordered, $0.55M above framework"
+      },
+      {
+        "t": "21:20",
+        "who": "Agent Sentinel",
+        "what": "Step 2 done · off-framework since April; the catalogue still defaults to the spot suppliers"
+      },
+      {
+        "t": "21:20",
+        "who": "Agent Sentinel",
+        "what": "Step 3 done · premiums 14.9% to 18.1%; no exception on any order"
+      },
+      {
+        "t": "21:20",
+        "who": "Agent Sentinel",
+        "what": "Step 4 done · three options; re-placing the nine and fixing the catalogue preferred"
+      },
+      {
+        "t": "21:20",
+        "who": "Agent Sentinel",
+        "what": "Off-framework note sent to you and the project managers. Waiting for you under Needs you."
+      },
+      {
+        "t": "21:20",
+        "who": "You",
+        "what": "Accepted findings 1, 2, 3, 4."
+      },
+      {
+        "t": "21:20",
+        "who": "You",
+        "what": "Chose the recommendation: Re-place all 14, including the five confirmed lines"
+      }
+    ],
+    "runs": [],
+    "flags": {},
+    "doneCount": 5,
+    "paused": false,
+    "agreedAt": "21:20",
+    "chosen": "r2",
+    "executedAt": "21:20"
+  }
+}

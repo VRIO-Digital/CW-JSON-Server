@@ -1,0 +1,490 @@
+{
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (fictional; the Veolia CAPEX demo world)",
+    "dataset": "NORTHLINE",
+    "asOf": "2026-10-15",
+    "today": "2026-10-19",
+    "exported_from": "ContextWeave_Veolia_CPA_offline.html source (veolia_cpa_prototype_2026-10-19): src/data/*.ts, src/store/*.ts",
+    "note": "The template library. A recommendation always rests on a template that exists here (templateId). The file is in templates/ at the package root."
+  },
+  "section_roles": [
+    "purpose",
+    "summary",
+    "findings",
+    "options",
+    "why",
+    "evidence",
+    "assumptions",
+    "next",
+    "free"
+  ],
+  "stages": [
+    "brief",
+    "template",
+    "outline",
+    "draft",
+    "reviewed"
+  ],
+  "families": [
+    "Regulatory filings",
+    "Capital governance",
+    "Procurement",
+    "Your prior deliverables",
+    "Described for a goal",
+    "Your file"
+  ],
+  "templates": [
+    {
+      "id": "t-prior-rb-2025",
+      "name": "Belmara rate base schedules, 2025 case (as filed).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your 2025 schedules to the Belmara commission, structure read from the file: RB-1 to RB-5 and an evidence index.",
+      "file": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+      "sections": [
+        {
+          "heading": "RB-1 Rate base summary",
+          "role": "summary"
+        },
+        {
+          "heading": "RB-2 Plant in service by class",
+          "role": "findings",
+          "hint": "Gross plant and accumulated depreciation by class at the test year end."
+        },
+        {
+          "heading": "RB-3 Roll-forward and rate base at 31 December",
+          "role": "findings",
+          "hint": "Rate base allowed in 2025, additions, depreciation, contributions and deferred taxes."
+        },
+        {
+          "heading": "RB-4 Additions above $2.5M and their prudence record",
+          "role": "findings",
+          "hint": "Each addition with its in-service date, approval and award."
+        },
+        {
+          "heading": "RB-5 Rate base adjustments",
+          "role": "free",
+          "hint": "Contributions in aid of construction, deferred taxes, advances, cash working capital, materials and supplies."
+        },
+        {
+          "heading": "Projects held for the next case and open items",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-reg-prudence-uu",
+      "name": "Prudence and used-and-useful memo",
+      "family": "Regulatory filings",
+      "format": "Memo",
+      "note": "Why the additions to rate base were prudent and are used and useful at the test year end, for the rate case record.",
+      "file": "Prudence_and_used_and_useful_memo_template.docx",
+      "sections": [
+        {
+          "heading": "The rate base and what this memo supports",
+          "role": "purpose"
+        },
+        {
+          "heading": "Used and useful at the test year end",
+          "role": "findings"
+        },
+        {
+          "heading": "The prudence record of the major additions",
+          "role": "findings"
+        },
+        {
+          "heading": "What is taken out or held, and why",
+          "role": "options"
+        },
+        {
+          "heading": "Why the additions were prudent",
+          "role": "why"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        },
+        {
+          "heading": "Open items",
+          "role": "assumptions"
+        }
+      ]
+    },
+    {
+      "id": "t-reg-ratebase-deck",
+      "name": "Rate base presentation",
+      "family": "Regulatory filings",
+      "format": "Slide pack",
+      "note": "A short deck for a working session with commission staff: the rate base, how it moved, what is held.",
+      "file": "Rate_base_presentation_template.pptx",
+      "sections": [
+        {
+          "heading": "The rate base at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "What has been invested: plant by class, net of depreciation",
+          "role": "findings"
+        },
+        {
+          "heading": "How the rate base moved since the 2025 order",
+          "role": "findings"
+        },
+        {
+          "heading": "Used and useful at 31 December",
+          "role": "findings"
+        },
+        {
+          "heading": "Prudence of the major additions",
+          "role": "findings"
+        },
+        {
+          "heading": "Held for the next case, and open items",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-reg-ratebase",
+      "name": "Rate base schedules",
+      "family": "Regulatory filings",
+      "format": "Workbook",
+      "note": "The rate base at a test year end, for any of the four commissions: summary, plant, adjustments, evidence.",
+      "file": "Rate_base_schedules_template.xlsx",
+      "sections": [
+        {
+          "heading": "Cover and docket reference",
+          "role": "purpose"
+        },
+        {
+          "heading": "Rate base summary",
+          "role": "summary"
+        },
+        {
+          "heading": "Plant in service and accumulated depreciation by class",
+          "role": "findings"
+        },
+        {
+          "heading": "Used and useful at the test year end",
+          "role": "findings"
+        },
+        {
+          "heading": "Adjustments to rate base",
+          "role": "free",
+          "hint": "Contributions, deferred taxes, advances, working capital."
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-proc-note",
+      "name": "Off-framework order note",
+      "family": "Procurement",
+      "format": "Memo",
+      "note": "One page to Procurement and the project managers when orders go off a framework: the lines, the premium, what to do.",
+      "file": "Off-framework_order_note_template.docx",
+      "sections": [
+        {
+          "heading": "What we ask, and by when",
+          "role": "purpose"
+        },
+        {
+          "heading": "The lines and their premium",
+          "role": "findings"
+        },
+        {
+          "heading": "Why it happened",
+          "role": "findings"
+        },
+        {
+          "heading": "Options",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        },
+        {
+          "heading": "Affected orders",
+          "role": "free",
+          "hint": "Order line, project, item, supplier, unit price, framework price, premium, confirmation."
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-proc-change",
+      "name": "Catalogue change request",
+      "family": "Procurement",
+      "format": "Document",
+      "note": "What Procurement systems need to change a default supplier or price in the ordering catalogue.",
+      "file": "Catalogue_change_request_template.docx",
+      "sections": [
+        {
+          "heading": "Change asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Why: what the current default costs",
+          "role": "findings"
+        },
+        {
+          "heading": "Items and suppliers affected",
+          "role": "free",
+          "hint": "Catalogue item, current default supplier, framework supplier, framework number."
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-gov-revision",
+      "name": "WIN budget revision request",
+      "family": "Capital governance",
+      "format": "Document",
+      "note": "What the WIN approver needs before a project above 10% makes further commitments.",
+      "file": "WIN_Budget_Revision_Request_template.docx",
+      "sections": [
+        {
+          "heading": "Revision asked and approval level",
+          "role": "purpose"
+        },
+        {
+          "heading": "The project and its approved budget",
+          "role": "free",
+          "hint": "Project code, utility, approved budget, WIN level and date, contingency in the approval."
+        },
+        {
+          "heading": "What changed and why",
+          "role": "findings"
+        },
+        {
+          "heading": "Cost and schedule impact",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        },
+        {
+          "heading": "Assumptions and open points",
+          "role": "assumptions"
+        }
+      ]
+    },
+    {
+      "id": "t-gov-note",
+      "name": "Committee note",
+      "family": "Capital governance",
+      "format": "Document",
+      "note": "One page for the Capital Steering Committee: the position, the options, the ask.",
+      "file": "Committee_note_template.docx",
+      "sections": [
+        {
+          "heading": "Decision asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Position",
+          "role": "findings"
+        },
+        {
+          "heading": "Options",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation and why",
+          "role": "summary"
+        },
+        {
+          "heading": "Risks and assumptions",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        }
+      ]
+    },
+    {
+      "id": "t-gov-review-pack",
+      "name": "Quarterly program review pack",
+      "family": "Capital governance",
+      "format": "Slide pack",
+      "note": "The standard pack for the Capital Steering Committee each quarter.",
+      "file": "Quarterly_program_review_template.pptx",
+      "sections": [
+        {
+          "heading": "Headline figure",
+          "role": "summary"
+        },
+        {
+          "heading": "Movements since last quarter",
+          "role": "findings"
+        },
+        {
+          "heading": "Projects re-phased or at risk",
+          "role": "why"
+        },
+        {
+          "heading": "Options and the one proposed",
+          "role": "options"
+        },
+        {
+          "heading": "Decisions asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Assumptions",
+          "role": "assumptions"
+        }
+      ]
+    },
+    {
+      "id": "t-reg-ptya",
+      "name": "Post-test-year update",
+      "family": "Regulatory filings",
+      "format": "Workbook",
+      "note": "The in-service update a commission asks for before a post-test-year adjustment is allowed.",
+      "file": "Post-test-year_update_template.xlsx",
+      "sections": [
+        {
+          "heading": "Cover and order reference",
+          "role": "purpose"
+        },
+        {
+          "heading": "Projects claimed and their in-service dates",
+          "role": "findings"
+        },
+        {
+          "heading": "Projects at risk or removed",
+          "role": "options"
+        },
+        {
+          "heading": "Certificates to follow",
+          "role": "next"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-reg-prudence",
+      "name": "Prudence support memo",
+      "family": "Regulatory filings",
+      "format": "Memo",
+      "note": "Why a cost overrun was prudent, for the rate case record.",
+      "file": "Prudence_support_memo_template.docx",
+      "sections": [
+        {
+          "heading": "The cost and the project",
+          "role": "purpose"
+        },
+        {
+          "heading": "What happened, in order",
+          "role": "findings"
+        },
+        {
+          "heading": "What was considered",
+          "role": "options"
+        },
+        {
+          "heading": "Why the decision was prudent",
+          "role": "why"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-csc-q2",
+      "name": "Capital Steering Committee, Q2 2026 review.pptx",
+      "family": "Your prior deliverables",
+      "format": "Slide pack",
+      "note": "Your Q2 deck, structure read from the file: a title slide and six slides.",
+      "file": "Capital Steering Committee, Q2 2026 review.pptx",
+      "sections": [
+        {
+          "heading": "Program at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "The year: FY26 cash against plan",
+          "role": "findings"
+        },
+        {
+          "heading": "Exceptions: large projects above 10%",
+          "role": "findings"
+        },
+        {
+          "heading": "Rate case: in service for the test year",
+          "role": "findings"
+        },
+        {
+          "heading": "Decisions requested",
+          "role": "purpose"
+        },
+        {
+          "heading": "Appendix: sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-bpuc-q2",
+      "name": "BPUC post-test-year schedule, Q2 (as filed).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your Q2 schedule to the Belmara commission, structure read from the file: cover, two schedules, evidence index.",
+      "file": "BPUC post-test-year schedule, Q2 (as filed).xlsx",
+      "sections": [
+        {
+          "heading": "Cover",
+          "role": "purpose"
+        },
+        {
+          "heading": "Schedule 1: projects claimed",
+          "role": "findings"
+        },
+        {
+          "heading": "Schedule 2: in-service status",
+          "role": "free",
+          "hint": "Planned and current in-service date for each project claimed."
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    }
+  ]
+}

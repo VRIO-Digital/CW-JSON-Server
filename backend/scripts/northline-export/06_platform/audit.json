@@ -1,0 +1,207 @@
+{
+  "stats": [
+    {
+      "label": "Access rules in force",
+      "value": "8",
+      "note": "1 of 8 readers carries a restriction"
+    },
+    {
+      "label": "PII columns",
+      "value": "4",
+      "note": "across 19 catalogued tables",
+      "tone": "good"
+    },
+    {
+      "label": "Columns to review",
+      "value": "9",
+      "note": "profiler confidence below the accept floor",
+      "tone": "warn"
+    },
+    {
+      "label": "Cost-cap headroom",
+      "value": "31%",
+      "note": "tightest: Goals (tenant) at 69.0%",
+      "tone": "warn"
+    }
+  ],
+  "events": [
+    {
+      "actor": "Marc Beaulieu",
+      "action": "Opened Belmara Rate Base Position",
+      "resource": "Belmara Rate Base Position",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 09:05",
+      "detail": "His access resolved: utility = Belmara - 939 of 3768 approved projects; no masks.",
+      "category": "open"
+    },
+    {
+      "actor": "Ellis Hargrove",
+      "action": "Opened Capital Program Position",
+      "resource": "Capital Program Position",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 08:41",
+      "detail": "His access resolved: all 3768 approved projects, all five utilities, no masks.",
+      "category": "open"
+    },
+    {
+      "actor": "system",
+      "action": "Scheduled refresh ran on Capital Program Position",
+      "resource": "Capital Program Position",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 07:00",
+      "detail": "Plan, forecast and ledger blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. 63 Lakeshore forecasts still marked provisional.",
+      "category": "ref"
+    },
+    {
+      "actor": "Tolu Adeyemi",
+      "action": "Armed the goal 'Keep procurement 2.5% lower across all projects'",
+      "resource": "goal g-rule-framework",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Oct 16 15:20",
+      "detail": "Fires on each new order-line load; checks every line against the framework and benchmark prices.",
+      "category": "pub"
+    },
+    {
+      "actor": "Rei Nakamura",
+      "action": "Published graph Capital Program Analyst v1",
+      "resource": "graph v1",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 15 16:02",
+      "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+      "category": "pub"
+    },
+    {
+      "actor": "Rei Nakamura",
+      "action": "Changed rule for Marc Beaulieu",
+      "resource": "data access rule",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 15 11:10",
+      "detail": "Restriction basis = utility (Belmara).",
+      "category": "rule"
+    },
+    {
+      "actor": "Nishant Srivastav",
+      "action": "Started submission 'Belmara rate base schedules RB-1 to RB-5' from a goal",
+      "resource": "submission sub-rb-schedules-2026",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Oct 14 17:35",
+      "detail": "Built from the goal g-belmara-rate-base on the template Belmara rate base schedules, 2025 case.",
+      "category": "pub"
+    },
+    {
+      "actor": "Priya Raman",
+      "action": "Exported Capital Program Position (XLSX)",
+      "resource": "Capital Program Position",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 14 12:18",
+      "detail": "Export carries the watermark and the as-of line; the provisional Lakeshore rows export on a separate sheet.",
+      "category": "export"
+    },
+    {
+      "actor": "system",
+      "action": "Sealed trace for 'What is Belmara's rate base at the end of the test year, and how does it compare with the last order?'",
+      "resource": "trace_nwg02",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Oct 14 10:22",
+      "detail": "5 spans · $0.15 · confidence 0.88",
+      "category": "ref"
+    },
+    {
+      "actor": "Raj Patel",
+      "action": "Changed persona access for Business User - Executive",
+      "resource": "settings",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 13 09:30",
+      "detail": "Reports hidden from the sidebar for all personas (beta).",
+      "category": "rule"
+    }
+  ],
+  "policies": [
+    {
+      "name": "Two gates",
+      "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Counts are computed",
+      "desc": "Every count on this screen - \"sees 939 of 3768\" - is derived from the project roster at paint time, never typed.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Rule shape",
+      "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Legal basis",
+      "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (utility, region, program, category).",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Commission view",
+      "desc": "A filing for a commission carries its own utility’s rate base and evidence; other utilities’ plans and supplier prices stay restricted.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Correspondence is runtime",
+      "desc": "Mailbox content is read at question time under the reader’s permissions and never becomes a graph fact or a cached figure.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Provisional forecasts",
+      "desc": "A forecast older than the monthly refresh is shown as provisional with its date; it is never silently treated as current.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Goals act only on approval",
+      "desc": "A goal drafts notes and lists; anything sent or changed outside the product waits for the person who owns the goal.",
+      "status": "Enforced",
+      "tone": "good"
+    }
+  ],
+  "event_window": "Last 7 days · 10 events",
+  "policy_total": 8,
+  "categories": [
+    {
+      "id": "all",
+      "label": "All"
+    },
+    {
+      "id": "pub",
+      "label": "Publishing"
+    },
+    {
+      "id": "open",
+      "label": "Opens"
+    },
+    {
+      "id": "rule",
+      "label": "Rule changes"
+    },
+    {
+      "id": "ref",
+      "label": "Refreshes"
+    },
+    {
+      "id": "export",
+      "label": "Exports"
+    }
+  ]
+}

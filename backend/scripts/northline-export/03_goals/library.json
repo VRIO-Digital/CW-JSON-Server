@@ -1,0 +1,63 @@
+{
+  "note": "Files reachable from the + menu. Each one has an effect on the plan when added to the rate base goal (case once); on any other goal it is read and listed under What I’m working from with \"nothing in it changes the plan as it stands\".",
+  "onedrive": [
+    {
+      "id": "deck",
+      "file": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+      "upload": "uploads/03_goals/Belmara_Rate_Base_Schedules_2025_case.xlsx",
+      "corpus": "DOC:rb-2025-schedules",
+      "effect": "Already read: the 2025 schedules are the template for the new schedules"
+    },
+    {
+      "id": "q2min",
+      "file": "BPUC_Order_2025-RC-118_excerpt.pdf",
+      "upload": "uploads/03_goals/BPUC_Order_2025-RC-118_excerpt.pdf",
+      "corpus": "DOC:bpuc-order",
+      "effect": "Answers the question on the seven: item 14 removes any project not in service by 31 December, so they come out and are listed for the next case. The card folds with 'from the BPUC order'."
+    },
+    {
+      "id": "fcwork",
+      "file": "Rate_base_working_2026-10.xlsx",
+      "upload": "uploads/03_goals/Rate_base_working_2026-10.xlsx",
+      "corpus": "DOC:my-rb-working",
+      "effect": "Answers both questions: the nine are counted as completed construction and the seven come out, listed for the next case. If step 2 has run, the run keeps what it has."
+    },
+    {
+      "id": "rc",
+      "file": "Belmara_Depreciation_Study_2026.pdf",
+      "upload": "uploads/03_goals/Belmara_Depreciation_Study_2026.pdf",
+      "corpus": "DOC:dep-study",
+      "effect": "Read: composite 2.56% proposed against 2.40% approved, not filed; the schedules keep the approved rates and the what-if can show it"
+    }
+  ],
+  "outlook": [
+    {
+      "id": "p5",
+      "thread": "P1",
+      "subject": "Completed construction still in CWIP: Belmara",
+      "upload": "uploads/03_goals/mail/P1.eml",
+      "effect": "Answers the question on the nine: in service with certificates on file, so they count as completed construction. The card folds with 'from Plant Accounting’s thread'."
+    },
+    {
+      "id": "c3",
+      "thread": "R1",
+      "subject": "BPUC post-test-year update: in-service confirmations",
+      "upload": "uploads/03_goals/mail/R1.eml",
+      "effect": "Answers the question on the seven: out of the total and on a separate at-risk list until the PMs confirm on 6 November"
+    },
+    {
+      "id": "p2",
+      "thread": "R2",
+      "subject": "Belmara rate base: schedules for the November update",
+      "upload": "uploads/03_goals/mail/R2.eml",
+      "effect": "Already read from Outlook; listed under what I’m working from"
+    }
+  ],
+  "web": {
+    "toggle": "Web search",
+    "once": "The BPUC public docket 2025-RC-118: the update date, the staff data requests and whether a depreciation study has been filed. Never a project manager’s confirmation.",
+    "watch": "Public price indices for ductile iron and valves, cited in the note."
+  },
+  "azure_sql": "Lists the connected warehouse (northline_epbcs, northline_psoft, northline_pmo); reads are always available, nothing to attach.",
+  "upload": "Any file from the computer is read and listed; it changes the plan only when it answers something."
+}

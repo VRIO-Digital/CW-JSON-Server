@@ -1,0 +1,122 @@
+[
+  {
+    "format_id": "ranked-exception",
+    "name": "Ranked exception list",
+    "format": "table ranked by variance, factors visible, owner per row",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "overrun",
+      "above 10%",
+      "exceptions"
+    ]
+  },
+  {
+    "format_id": "variance-explained",
+    "name": "Variance explained",
+    "format": "narrative + metric row + drivers bar with evidence per driver",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "variance",
+      "why",
+      "over budget"
+    ]
+  },
+  {
+    "format_id": "program-at-a-glance",
+    "name": "Program at a glance",
+    "format": "metric row + one table per utility",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "program",
+      "stand",
+      "tolerance"
+    ]
+  },
+  {
+    "format_id": "year-delivery",
+    "name": "Year delivery",
+    "format": "monthly bars plan vs posted vs forecast + gap",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "FY26",
+      "December",
+      "re-phase"
+    ]
+  },
+  {
+    "format_id": "test-year-check",
+    "name": "Test-year check",
+    "format": "claimed vs expected in-service table with rate base",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "test year",
+      "in service",
+      "claim"
+    ]
+  },
+  {
+    "format_id": "prudence-record",
+    "name": "Prudence record",
+    "format": "evidence list with dates and approvals",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "prudent",
+      "evidence",
+      "approval"
+    ]
+  },
+  {
+    "format_id": "provenance-table",
+    "name": "Provenance table",
+    "format": "every figure with table, basis and as-of",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "source",
+      "provenance",
+      "as-of"
+    ]
+  },
+  {
+    "format_id": "decline-with-alternative",
+    "name": "Decline with alternative",
+    "format": "reason for declining + what can be answered instead",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "predict",
+      "critical path",
+      "schedule"
+    ]
+  }
+]

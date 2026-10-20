@@ -56,7 +56,8 @@ import {
   metricFoundItems,
 } from '../data/documentReadings'
 import { domainForRole } from '../data/roleBrief'
-import { questionSql as questionSqlRequest } from '../api/client'
+import { hydrateRoleLibrary } from '../data/roleLibrary'
+import { getRoleLibrary, questionSql as questionSqlRequest } from '../api/client'
 import { toMessage } from '../store/asyncState'
 import {
   firstIncompleteStep,
@@ -201,7 +202,6 @@ export default function NewGraphPage() {
   const navigate = useNavigate()
 
   const domainsData = useGraphDomainsStore((s) => s.data)
-  const domainsError = useGraphDomainsStore((s) => s.error)
   const loadDomains = useGraphDomainsStore((s) => s.load)
 
   const data = useUseCasesStore((s) => s.data)
@@ -313,6 +313,22 @@ export default function NewGraphPage() {
     void loadGraphSources()
   }, [load, loadDomains, loadGraphSources])
 
+  /* The role library the dataset ships, if it ships one — otherwise the wizard keeps the one it carries.
+     A failed read is not an error worth a toast: the bundled library is a working default, so the
+     step simply draws that. `libraryTick` is what makes the steps draw again once it is swapped in. */
+  const [libraryTick, setLibraryTick] = useState(0)
+  useEffect(() => {
+    let live = true
+    getRoleLibrary()
+      .then((library) => {
+        if (live && hydrateRoleLibrary(library)) setLibraryTick((n) => n + 1)
+      })
+      .catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [])
+
   /* The use case is called after the role until the reader names it themselves. */
   useEffect(() => {
     if (!nameTouched && roleDraft.defaultName) setName(roleDraft.defaultName)
@@ -330,11 +346,11 @@ export default function NewGraphPage() {
 
   /* The role settles the business domain (`domainForRole`): the one answer step 1 used to ask for. */
   useEffect(() => {
-    if (!roleDraft.roleId || domains.length === 0) return
+    if (!roleDraft.roleId) return
     const next = domainForRole(roleDraft.roleId, domains.map((d) => d.domainId))
     if (next && next !== domainId) setDomainId(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleDraft.roleId, domains])
+  }, [roleDraft.roleId, domains, libraryTick])
   const graphSources = sourcesData?.sources ?? []
 
   /** What `stepIssue` judges every step on. */
@@ -388,7 +404,13 @@ export default function NewGraphPage() {
         : what === 'questions'
           ? suggestQuestionList
           : suggestPersonaList
-    const result = await ask({ domainId, businessNeed })
+    /* A role brief drafts from the role's own library, narrowed to the responsibilities kept in scope. */
+    const result = await ask({
+      domainId,
+      businessNeed,
+      roleId: roleDraft.roleId,
+      areas: roleDraft.inScope.map((a) => a.id),
+    })
     if (!result.ok) message.error(result.error)
   }
 
@@ -726,9 +748,6 @@ export default function NewGraphPage() {
            */
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={18}>
-              {domainsError ? (
-                <ApiErrorAlert error={domainsError} onRetry={() => void loadDomains()} />
-              ) : null}
               <RoleStep
                 draft={roleDraft}
                 name={name}
@@ -851,7 +870,9 @@ export default function NewGraphPage() {
                 runCap={metricRun?.costCapUsd}
                 onSuggest={() => void runSuggest('metrics')}
                 onDismiss={dismissMetric}
-                onEdit={editMetric}
+                /* Editing writes the graph pool's metric; a role's metrics live in its own library, which
+                   nothing here writes — so the act is withheld rather than offered and refused. */
+                onEdit={roleDraft.roleId ? undefined : editMetric}
                 /* The measures the attached documents define. Passed on this step alone — the
                    personas call site declares no slot — and the panel draws nothing where
                    nothing is attached, so the heading cannot stand over an empty list. */

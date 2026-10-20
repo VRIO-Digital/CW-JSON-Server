@@ -1,0 +1,1124 @@
+{
+  "note": "After the steer (the nine left in CWIP: steps 2 and 3 re-run, the rate base moves to $1,065.8M), all findings accepted, the preferred recommendation chosen, the plan saved.",
+  "journey": {
+    "id": "g-belmara-rate-base-at-31-december-202-mvfxquaw",
+    "mode": "once",
+    "kind": "once",
+    "case": "once",
+    "title": "Belmara rate base at 31 December 2026, for the BPUC",
+    "agent": {
+      "name": "Agent Compass",
+      "icon": "compass",
+      "colour": "#0f5c7b"
+    },
+    "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+    "files": [
+      {
+        "id": "seed",
+        "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+        "s": "420 KB"
+      },
+      {
+        "id": "seed",
+        "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+        "s": "280 KB"
+      }
+    ],
+    "stage": "running",
+    "status": "accepted",
+    "rv": [
+      "doc:q2",
+      "deliver",
+      "doc:deck",
+      "scope",
+      "src:fin",
+      "decision",
+      "src:ppm",
+      "as:t3",
+      "src:ins",
+      "src:mail",
+      "as:four",
+      "miss:four",
+      "memory",
+      "success",
+      "fixed",
+      "miss:t3",
+      "steps",
+      "step:f1"
+    ],
+    "reads": [
+      {
+        "tool": "read Belmara_Rate_Base_Schedules_2025_case.xlsx",
+        "res": "Schedules RB-1 to RB-5; rate base $776.9M at 31 December 2024, allowed in full. The structure the BPUC accepted",
+        "rv": [
+          "doc:q2",
+          "deliver"
+        ]
+      },
+      {
+        "tool": "read BPUC_2026_Post-Test-Year_Schedule.xlsx",
+        "res": "38 projects, $214.6M, claimed in service by 31 December 2026 · update due 13 November",
+        "rv": [
+          "doc:deck",
+          "scope"
+        ]
+      },
+      {
+        "tool": "scan psoft.asset · psoft.asset_depreciation",
+        "res": "Belmara plant in service $1,489.7M gross, $414.5M accumulated depreciation at 30 September, in five classes",
+        "rv": [
+          "src:fin",
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan CWIP · WIN register · psoft.commitments",
+        "res": "$287.6M in CWIP · WIN approvals, awards and change orders for every addition above $2.5M",
+        "rv": [
+          "src:ppm"
+        ]
+      },
+      {
+        "tool": "read upload.inservice · 12 October file",
+        "res": "Seven of the 38 post-test-year projects now dated 2027, $41.3M · two of the 31 on track have no row",
+        "warn": true,
+        "rv": [
+          "as:t3",
+          "src:ins"
+        ]
+      },
+      {
+        "tool": "read Outlook: regulatory · Plant Accounting",
+        "res": "Marc: schedules by 30 October, approved rates · Plant Accounting: nine projects in service since May to July still in CWIP, $6.8M",
+        "warn": true,
+        "rv": [
+          "src:mail",
+          "as:four",
+          "miss:four"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Plant enters rate base only in service at the test year end · approved depreciation rates until a new order · additions above $2.5M need a prudence record",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "search for PM confirmations on the seven in-service dates",
+        "res": "One PM confirms the slip (C23B361_658); six have not answered. Marc asked for answers by 6 November",
+        "warn": true,
+        "rv": [
+          "as:t3",
+          "miss:t3"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "four",
+        "title": "Nine projects are in service but still booked to CWIP ($6.8M): do they count?",
+        "text": "Plant Accounting says nine Belmara projects went into service between May and July, with certificates on file, but they stay in CWIP until the 6 November close. The order keeps CWIP out of rate base, but plant in service at the test year end counts.",
+        "tiles": [
+          {
+            "v": "june",
+            "t": "Count them as completed construction",
+            "s": "In service, certificates on file"
+          },
+          {
+            "v": "standin",
+            "t": "Leave them in CWIP, as booked today",
+            "s": "$6.8M lower; they move on 6 November anyway"
+          },
+          {
+            "v": "wait",
+            "t": "Wait for the 6 November close",
+            "s": "The plan waits for it"
+          },
+          {
+            "v": "ask",
+            "t": "Ask me again before the schedules",
+            "s": "I stop at a checkpoint",
+            "rec": true
+          }
+        ]
+      },
+      {
+        "key": "t3",
+        "title": "The seven post-test-year projects now dated 2027: how do the schedules treat them?",
+        "text": "The 12 October in-service file moves seven of the 38 into 2027 ($41.3M). The order removes anything not in service by 31 December, and the update is due 13 November. Only one project manager has confirmed so far.",
+        "tiles": [
+          {
+            "v": "out",
+            "t": "Take them out now and list them for the next case",
+            "s": "What the order says",
+            "rec": true
+          },
+          {
+            "v": "expected",
+            "t": "Out of the total, on a separate at-risk list",
+            "s": "Marc decides after 6 November"
+          },
+          {
+            "v": "approved",
+            "t": "Keep all 38 in, as filed",
+            "s": "Only if the PMs correct the dates"
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "four": "standin",
+      "t3": "out"
+    },
+    "over": {
+      "success": "RB-4 lists the seven by project manager",
+      "acc:F1": "1",
+      "acc:F3": "1",
+      "acc:F2b": "1",
+      "acc:F4": "1"
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 4,
+    "agreedV": 3,
+    "history": [
+      {
+        "t": "21:19",
+        "what": "Changed “What counts as success”"
+      },
+      {
+        "t": "21:19",
+        "what": "Forked a what-if: What-if: the 2026 depreciation study rates"
+      },
+      {
+        "t": "21:19",
+        "what": "During the run: the nine completed projects are left in CWIP"
+      }
+    ],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "n1",
+        "col": 0,
+        "row": 1,
+        "type": "compute",
+        "title": "State plant in service and depreciation by class",
+        "purpose": "What Belmara has invested in plant, pipes and treatment, and what is left after depreciation.",
+        "how": "Gross plant in service and accumulated depreciation by class at 30 September, from the fixed-asset ledger, at the approved depreciation rates; reconciled to the 2025 schedules.",
+        "draws": [
+          "psoft.asset (plant in service)",
+          "psoft.asset_depreciation",
+          "BPUC order 2025-RC-118, item 11"
+        ],
+        "check": "Classes sum to the fixed-asset ledger; depreciation at the approved rates."
+      },
+      {
+        "id": "n2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Test what is used and useful at 31 December",
+        "purpose": "Which additions are in service at the test year end, and which are not.",
+        "how": "The 38 post-test-year projects against the 12 October in-service file and the project managers’ replies; completed construction still in CWIP; the CWIP the order keeps out.",
+        "draws": [
+          "upload.inservice",
+          "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "Outlook: regulatory (R1), Plant Accounting (P1)",
+          "Plant_Accounting_unitization_status_2026-10.xlsx"
+        ],
+        "check": "Every project is in, out or held, with the reason."
+      },
+      {
+        "id": "n3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Roll the rate base forward from the 2025 order",
+        "purpose": "From $776.9M at the 2024 test year end to 31 December 2026.",
+        "how": "Additions and depreciation since the 2024 test year, the fourth-quarter additions and depreciation, then contributions, deferred taxes, advances, cash working capital and materials, in the RB-1 to RB-5 structure.",
+        "draws": [
+          "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "psoft.asset",
+          "Belmara_Depreciation_Study_2026.pdf",
+          "Outlook: regulatory (R2)"
+        ],
+        "check": "The roll-forward ties back to the $776.9M allowed and forward to the ledger."
+      },
+      {
+        "id": "cp",
+        "col": 2,
+        "row": 1,
+        "type": "checkpoint",
+        "title": "Confirm how the nine completed projects in CWIP are treated",
+        "purpose": "Stops here and asks you before the prudence review and the schedules.",
+        "how": "Plant Accounting has not moved the nine yet. The schedules and the memo rest on how they are treated, and only you can confirm it.",
+        "draws": [
+          "Your answer"
+        ],
+        "check": "Your answer is recorded on the plan before anything after it runs."
+      },
+      {
+        "id": "n4",
+        "col": 3,
+        "row": 1,
+        "type": "gather",
+        "title": "Check the prudence record of the major additions",
+        "purpose": "Whether each addition above $2.5M can show it was prudently incurred.",
+        "how": "For the twelve largest fourth-quarter additions: the WIN approval and its level, the business case, the award (bids, or a sole-source justification), and every change order with its approval.",
+        "draws": [
+          "WIN register",
+          "psoft.commitments",
+          "pmo.change_order",
+          "BPUC order 2025-RC-118, item 16",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every addition has a complete record, or its gap is named."
+      },
+      {
+        "id": "n5",
+        "col": 4,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What to present, and how",
+        "purpose": "One rate base to present, with what it trades off.",
+        "how": "Weigh presenting the seven out against keeping all 38 as filed, or holding for the close and the confirmations; state the trade-off and every caveat that reached it.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your answer at the checkpoint"
+        ],
+        "check": "The recommendation names its remaining caveats and the alternatives it rejected."
+      },
+      {
+        "id": "n6",
+        "col": 5,
+        "row": 1,
+        "type": "deliver",
+        "title": "Draft the schedules, the memo and the slides",
+        "purpose": "What Marc needs by 30 October.",
+        "how": "Schedules RB-1 to RB-5 on the 2025 structure; a prudence and used-and-useful memo; a short deck for the 4 November session. Every figure linked to the step that produced it.",
+        "draws": [
+          "Steps 1 to 5",
+          "Template: Belmara rate base schedules, 2025 case"
+        ],
+        "check": "Every figure links back to its step."
+      },
+      {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the 2026 depreciation study rates",
+        "purpose": "The rate base if the study’s proposed rates applied from 1 January 2026.",
+        "how": "Re-runs accumulated depreciation at the proposed composite 2.56% instead of the approved 2.40%; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "Belmara_Depreciation_Study_2026.pdf"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      }
+    ],
+    "edges": [
+      [
+        "n1",
+        "n2"
+      ],
+      [
+        "n1",
+        "n3"
+      ],
+      [
+        "n2",
+        "cp"
+      ],
+      [
+        "n3",
+        "cp"
+      ],
+      [
+        "cp",
+        "n4"
+      ],
+      [
+        "n4",
+        "n5"
+      ],
+      [
+        "n5",
+        "n6"
+      ],
+      [
+        "cp",
+        "f1"
+      ],
+      [
+        "f1",
+        "n5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "n1": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · $1,075.2M net"
+      },
+      "n2": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · re-run · 1 judgement",
+        "caveat": true,
+        "contentKey": "n2b"
+      },
+      "n3": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · $1,065.8M · re-run"
+      },
+      "cp": {
+        "state": "done",
+        "text": "Answered · counted"
+      },
+      "n4": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · 2 gaps · re-run"
+      },
+      "n5": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · 1 preferred, 2 alternatives · re-run"
+      },
+      "n6": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · 3 drafts in Outputs · re-run"
+      },
+      "f1": {
+        "state": "done",
+        "at": "21:19",
+        "text": "Done · side by side"
+      }
+    },
+    "findings": [
+      "F1",
+      "F3",
+      "F2b",
+      "F4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Present $1,065.8M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case",
+        "summary": "Schedules RB-1 to RB-5 at 31 December 2026 at the approved depreciation rates, with the nine completed projects left in CWIP until the close and the two prudence gaps closed before the 4 November session. The seven go on a separate list for the next case, each with the date it could come back in.",
+        "figures": [
+          {
+            "label": "Rate base",
+            "value": "$1,065.8M"
+          },
+          {
+            "label": "Since 2025",
+            "value": "+$288.9M · 37.2%",
+            "tone": "warn"
+          },
+          {
+            "label": "Held for next case",
+            "value": "$41.3M · 7 projects",
+            "tone": "warn"
+          },
+          {
+            "label": "Prudence gaps",
+            "value": "2 · $34.1M",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "About $4.4M a year of revenue waits for the next case, but nothing in the filing rests on a date the project managers have not confirmed.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Marc needs the Belmara rate base for DR-07 and DR-09 by 30 October."
+          },
+          {
+            "kind": "read",
+            "text": "Read plant in service and depreciation by class at 30 September.",
+            "figure": "$1,075.2M net",
+            "ref": {
+              "sheet": "ratebase"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Seven of the 38 post-test-year projects are dated 2027.",
+            "figure": "$41.3M",
+            "ref": {
+              "doc": "DOC:inservice-file"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the order: plant counts only when in service at the test year end.",
+            "ref": {
+              "doc": "DOC:bpuc-order"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Nine completed projects are still in CWIP; at your call they stay out until the close.",
+            "figure": "$6.8M left out",
+            "ref": {
+              "thread": "P1"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Two of the twelve largest additions have prudence gaps.",
+            "figure": "$34.1M",
+            "ref": {
+              "sheet": "additions"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Present $1,065.8M with the seven out, and close the two gaps before staff see the file."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Present all 38 as filed, $1,107.1M, and update when the project managers confirm",
+        "summary": "Keep the seven in the schedules until the 6 November confirmations, then take out any still dated 2027 in the 13 November update.",
+        "figures": [
+          {
+            "label": "Rate base",
+            "value": "$1,107.1M"
+          },
+          {
+            "label": "Rests on",
+            "value": "6 unconfirmed dates",
+            "tone": "crit"
+          },
+          {
+            "label": "Revision after filing",
+            "value": "likely",
+            "tone": "warn"
+          },
+          {
+            "label": "Revenue at stake",
+            "value": "$4.4M a year"
+          }
+        ],
+        "tradeoff": "Keeps the revenue in the filing for now, but staff see a figure the order says will come down, and one project manager has already confirmed the slip.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the filing keep all 38 until the dates are confirmed?"
+          },
+          {
+            "kind": "read",
+            "text": "Six of the seven dates are not yet confirmed.",
+            "ref": {
+              "thread": "R1"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "The order removes anything not in service by 31 December.",
+            "figure": "$41.3M",
+            "ref": {
+              "doc": "DOC:bpuc-order"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it if the project managers correct their dates; otherwise the schedules come down on 13 November."
+          }
+        ],
+        "preferred": false
+      },
+      {
+        "id": "r3",
+        "title": "Hold the schedules until the 6 November close and the confirmations",
+        "summary": "Wait for Plant Accounting to move the nine and for the project managers to answer, then file schedules where every figure is booked and confirmed.",
+        "figures": [
+          {
+            "label": "Every figure",
+            "value": "booked and confirmed",
+            "tone": "good"
+          },
+          {
+            "label": "Schedules ready",
+            "value": "~9 Nov",
+            "tone": "crit"
+          },
+          {
+            "label": "Marc’s date",
+            "value": "30 Oct missed",
+            "tone": "crit"
+          },
+          {
+            "label": "Review before 13 Nov",
+            "value": "4 days",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "The cleanest record, but Marc goes into the 4 November session without schedules, and the update gets four days of review.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could staff be given only booked, confirmed figures?"
+          },
+          {
+            "kind": "read",
+            "text": "The close is 6 November; the confirmations are due the same day.",
+            "ref": {
+              "thread": "P1"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Marc needs the schedules on 30 October and meets staff on 4 November.",
+            "figure": "10 days late"
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it if the session moves; otherwise present now with the open items named."
+          }
+        ],
+        "preferred": false
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-rb-schedules",
+        "label": "Belmara rate base schedules RB-1 to RB-5 at 31 December 2026",
+        "audience": "Marc Beaulieu, Director Rate Case and Regulatory · BPUC data requests DR-07 and DR-09",
+        "purpose": "The rate base at the test year end by plant class, with the additions and adjustments behind it",
+        "template": "Your prior deliverables: Belmara rate base schedules, 2025 case",
+        "templateId": "t-prior-rb-2025",
+        "why": "Marc asked for the RB-1 to RB-5 structure from the 2025 case by 30 October."
+      },
+      {
+        "id": "sub-rb-memo",
+        "label": "Prudence and used-and-useful memo: Belmara additions to the test year",
+        "audience": "Marc Beaulieu, for the BPUC record",
+        "purpose": "Show the additions were prudent and are used and useful at 31 December 2026, with the two gaps and the seven taken out set out",
+        "template": "Regulatory filings: prudence and used-and-useful memo",
+        "templateId": "t-reg-prudence-uu",
+        "why": "Data request DR-09 asks for support for every addition above $2.5M."
+      },
+      {
+        "id": "sub-rb-deck",
+        "label": "Belmara rate base: working session with BPUC staff",
+        "audience": "BPUC staff, working session on Wednesday 4 November",
+        "purpose": "Walk staff through the rate base, what changed since 2025, and what is held for the next case",
+        "template": "Regulatory filings: rate base presentation",
+        "templateId": "t-reg-ratebase-deck",
+        "why": "Marc wants a few slides for the session on 4 November."
+      }
+    ],
+    "started": [],
+    "gaps": [
+      "Six project managers have not confirmed their 2027 dates; answers are due 6 November, and a corrected date brings a project back in.",
+      "The nine completed projects move from CWIP to plant at the 6 November close; until then the ledger shows them in CWIP.",
+      "Two of the 31 on-track projects (CZZF5042_645, CZZF5025_640) have no row in the 12 October in-service file; their dates come from the post-test-year schedule."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+        "files": [
+          {
+            "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+            "s": "420 KB"
+          },
+          {
+            "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+            "s": "280 KB"
+          }
+        ],
+        "id": "j5-mvfxquaw",
+        "at": "21:18"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "read Belmara_Rate_Base_Schedules_2025_case.xlsx",
+              "res": "Schedules RB-1 to RB-5; rate base $776.9M at 31 December 2024, allowed in full. The structure the BPUC accepted",
+              "live": false
+            },
+            {
+              "tool": "read BPUC_2026_Post-Test-Year_Schedule.xlsx",
+              "res": "38 projects, $214.6M, claimed in service by 31 December 2026 · update due 13 November",
+              "live": false
+            },
+            {
+              "tool": "scan psoft.asset · psoft.asset_depreciation",
+              "res": "Belmara plant in service $1,489.7M gross, $414.5M accumulated depreciation at 30 September, in five classes",
+              "live": false
+            },
+            {
+              "tool": "scan CWIP · WIN register · psoft.commitments",
+              "res": "$287.6M in CWIP · WIN approvals, awards and change orders for every addition above $2.5M",
+              "live": false
+            },
+            {
+              "tool": "read upload.inservice · 12 October file",
+              "res": "Seven of the 38 post-test-year projects now dated 2027, $41.3M · two of the 31 on track have no row",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "read Outlook: regulatory · Plant Accounting",
+              "res": "Marc: schedules by 30 October, approved rates · Plant Accounting: nine projects in service since May to July still in CWIP, $6.8M",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "search role memory",
+              "res": "Plant enters rate base only in service at the test year end · approved depreciation rates until a new order · additions above $2.5M need a prudence record",
+              "live": false
+            },
+            {
+              "tool": "search for PM confirmations on the seven in-service dates",
+              "res": "One PM confirms the slip (C23B361_658); six have not answered. Marc asked for answers by 6 November",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "6 steps · two side by side · one checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j6-mvfxquuq",
+        "at": "21:18"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Two things I could not find; one at a time.",
+        "id": "j7-mvfxqzns",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "four",
+          "done": "ask me at the checkpoint"
+        },
+        "id": "j8-mvfxqzxj",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Ask me again before the schedules",
+        "id": "j9-mvfxr09e",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "t3",
+          "done": "the seven out, listed for the next case"
+        },
+        "id": "j10-mvfxr0lx",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Take them out now and list them for the next case",
+        "id": "j11-mvfxr0z6",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+        "id": "j12-mvfxr1sl",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "What counts as success: RB-4 lists the seven by project manager",
+        "id": "j13-mvfxr2da",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Changed **What counts as success** in the plan. The recommendation is judged against it.",
+        "id": "j14-mvfxr2rg",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Add a what-if: the depreciation study rates",
+        "id": "j15-mvfxr3i0",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Here is what that changes in the plan. Nothing moves until you apply it.",
+        "card": {
+          "kind": "diff",
+          "key": "fork:rc",
+          "diff": {
+            "title": "What-if: the 2026 depreciation study rates",
+            "rows": [
+              {
+                "k": "add",
+                "text": "**What-if: the 2026 depreciation study rates** beside step 4, after the checkpoint. Accumulated depreciation re-run at the proposed composite 2.56%; shares steps 1 to 3."
+              },
+              {
+                "k": "chg",
+                "text": "Steps 5 and 6 read both and show them side by side; the schedules still use the approved rates."
+              }
+            ],
+            "apply": "Apply"
+          },
+          "done": "Applied"
+        },
+        "id": "j16-mvfxr3yx",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Added **What-if: the 2026 depreciation study rates** to the plan, beside the decisions page. It shares steps 1 to 3 and runs after the checkpoint.",
+        "id": "j17-mvfxr4gq",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Plan agreed · v3 · 21:19",
+        "id": "j18-mvfxr4vy",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Agreed, that is v3 of the plan, and the run has started. I stop before the prudence review to confirm how the nine completed projects in CWIP are treated. Findings land as steps finish, provisional until the end. Anything you change from here is logged against the plan.",
+        "id": "j19-mvfxr4vy",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Paused by you after step 0",
+        "id": "j20-mvfxr672",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Resumed",
+        "id": "j21-mvfxr6rw",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · plant $1,489.7M gross, $1,075.2M net at 30 September",
+        "id": "j22-mvfxr8h2",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · $1,489.7M of plant in service, $1,075.2M net of depreciation",
+        "id": "j23-mvfxr8h2",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · rate base $1,072.6M at 31 December, +$295.7M on the 2025 order",
+        "id": "j24-mvfxra0n",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · 31 in, 7 dated 2027 out, 9 completed projects still in CWIP",
+        "id": "j25-mvfxrbeo",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "cp",
+          "done": "Count them as completed construction"
+        },
+        "id": "j26-mvfxrbep",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Checkpoint · waits for you",
+        "id": "j27-mvfxrbep",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Count them as completed construction",
+        "id": "j28-mvfxrbxi",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Prudence review running",
+        "id": "j29-mvfxrc8q",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · 10 of the 12 largest additions complete; 2 gaps, $34.1M",
+        "id": "j30-mvfxrdxv",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 5 done · recommendation: present $1,072.6M with the seven out",
+        "id": "j31-mvfxrfbx",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Findings ready · 21:19",
+        "id": "j32-mvfxrgq1",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Findings ready. **Present $1,072.6M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case.** That is $295.7M above the rate base allowed in 2025. 2 caveats reached the recommendation; the two prudence gaps are the ones I would close first.\n\nFour findings are on the right. Accept each one, or challenge it, then choose the way forward.",
+        "card": {
+          "kind": "findings"
+        },
+        "id": "j33-mvfxrgq3",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Leave the nine in CWIP",
+        "id": "j34-mvfxrhjw",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Here is what that changes. Nothing re-runs until you apply it.",
+        "card": {
+          "kind": "diff",
+          "key": "steer",
+          "diff": {
+            "title": "Leave the nine in CWIP",
+            "rows": [
+              {
+                "k": "chg",
+                "text": "**Step 2:** the nine completed projects move from completed construction back to CWIP, as booked today. The rate base goes from $1,072.6M to **$1,065.8M**, about $0.7M a year less."
+              },
+              {
+                "k": "rerun",
+                "text": "Step 2 re-runs (about 40 s), then roll the rate base forward from the 2025 order, check the prudence record of the major additions, what to present, and how, draft the schedules, the memo and the slides because they read it. Findings 2 and 3 change."
+              },
+              {
+                "k": "add",
+                "text": "The treatment becomes your call and is logged as a change to the plan."
+              }
+            ],
+            "apply": "Apply"
+          },
+          "done": "Applied"
+        },
+        "id": "j35-mvfxrhya",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 re-run · rate base $1,065.8M with the nine left in CWIP",
+        "id": "j36-mvfxrjru",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Accept all findings",
+        "id": "j37-mvfxrn06",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Re-ran step 2 with your instruction. Findings 2 and 3 changed, and the plan now records leaving the nine in CWIP as your call.",
+        "id": "j38-mvfxrn66",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "All 4 findings accepted. Next, the decision: 3 ways forward, and I prefer option 1. \"Why this\" plays how I got there.",
+        "card": {
+          "kind": "decision"
+        },
+        "id": "j39-mvfxrnbt",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Choose option 1",
+        "id": "j40-mvfxrnzd",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Recommendation chosen · 21:19",
+        "id": "j41-mvfxrnzf",
+        "at": "21:19"
+      },
+      {
+        "who": "event",
+        "text": "Executed · decision recorded · 21:19",
+        "id": "j42-mvfxrnzf",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Recorded. **Present $1,065.8M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case.** The schedules, the memo and the slides are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+        "card": {
+          "kind": "send"
+        },
+        "id": "j43-mvfxrnzf",
+        "at": "21:19"
+      },
+      {
+        "who": "me",
+        "text": "Save this plan",
+        "id": "j44-mvfxroz2",
+        "at": "21:19"
+      },
+      {
+        "who": "agent",
+        "text": "Saved as **“Rate base: plant, used and useful, prudence”**, on the left under Saved plans. A new goal can start from it.",
+        "id": "j45-mvfxrpan",
+        "at": "21:19"
+      }
+    ],
+    "chips": [
+      "Build the schedules in Submissions",
+      "Make it standing"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Steer the run in plain words…"
+    },
+    "log": [
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Changed “What counts as success”"
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Forked a what-if: What-if: the 2026 depreciation study rates"
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Agreed the plan (v3) and started the run."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Paused the run."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Resumed the run."
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Step 1 done · plant $1,489.7M gross, $1,075.2M net at 30 September"
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Step 3 done · rate base $1,072.6M at 31 December, +$295.7M on the 2025 order"
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Step 2 done. 31 post-test-year projects in, seven dated 2027 out; nine completed projects still booked to CWIP."
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Reached the checkpoint; waiting for how the nine completed projects in CWIP are treated."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Answered the checkpoint: count them as completed construction."
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Step 4 done · 10 of the 12 largest additions complete; 2 gaps, $34.1M"
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Step 5 done · recommendation: present $1,072.6M with the seven out"
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Findings ready; the schedules, the memo and the slides are drafted."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "During the run: the nine completed projects are left in CWIP"
+      },
+      {
+        "t": "21:19",
+        "who": "Agent Compass",
+        "what": "Re-ran step 2 with your steer."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Accepted findings 1, 2, 3, 4."
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Chose the recommendation: Present $1,065.8M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case"
+      },
+      {
+        "t": "21:19",
+        "who": "You",
+        "what": "Saved the plan as “Rate base: plant, used and useful, prudence”."
+      }
+    ],
+    "runs": [],
+    "flags": {
+      "forked": true,
+      "steerAvail": true,
+      "cpAnswered": true,
+      "steered": true,
+      "saved": true
+    },
+    "doneCount": 6,
+    "paused": false,
+    "forkKind": "rc",
+    "agreedAt": "21:19",
+    "prevStatus": "running",
+    "chosen": "r1",
+    "executedAt": "21:19"
+  }
+}

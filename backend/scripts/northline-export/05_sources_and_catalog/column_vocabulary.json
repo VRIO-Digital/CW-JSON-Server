@@ -1,0 +1,302 @@
+[
+  {
+    "name": "project_code",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "line_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "vendor_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "po_number",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "line_no",
+    "type": "int64",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "contract_no",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "framework_agreement_no",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "win_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "initiative_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "asset_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "utility_code",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "co_number",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "docket",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "approved_budget_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "plan_amount_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "contingency_usd",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "actuals_to_date_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "committed_usd",
+    "type": "decimal",
+    "class": "measure_commitment",
+    "confidence": 0.9
+  },
+  {
+    "name": "uncommitted_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "forecast_at_completion_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "plan_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "forecast_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "amount_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "quantity",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "unit_price_usd",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "ordered_usd",
+    "type": "decimal",
+    "class": "measure_commitment",
+    "confidence": 0.9
+  },
+  {
+    "name": "received_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "cancelled_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "framework_unit_price_usd",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "lead_time_weeks",
+    "type": "int64",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "savings_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "cwip_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "afudc_ytd_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "depreciation_expense_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "accumulated_depreciation_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "award_value_usd",
+    "type": "decimal",
+    "class": "measure_commitment",
+    "confidence": 0.9
+  },
+  {
+    "name": "current_value_usd",
+    "type": "decimal",
+    "class": "measure_commitment",
+    "confidence": 0.9
+  },
+  {
+    "name": "cost_impact_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "time_impact_days",
+    "type": "int64",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "rate_base_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "fiscal_year",
+    "type": "int64",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "plan_vintage",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  },
+  {
+    "name": "budget_category",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  },
+  {
+    "name": "as_of_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "forecast_date",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "forecast_round",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  },
+  {
+    "name": "actuals_through",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "submitted_by",
+    "type": "string",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "period",
+    "type": "int64",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "vintage",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  }
+]

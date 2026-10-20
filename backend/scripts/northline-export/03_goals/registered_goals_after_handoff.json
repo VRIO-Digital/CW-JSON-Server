@@ -1,0 +1,21 @@
+{
+  "registeredGoals": [
+    {
+      "id": "g-belmara-rate-base",
+      "title": "Belmara rate base at 31 December 2026, for the BPUC",
+      "status": "accepted",
+      "agent": {
+        "name": "Agent Compass",
+        "icon": "compass",
+        "colour": "#0f5c7b"
+      },
+      "acceptedFindings": [
+        "f1",
+        "f3",
+        "f2",
+        "f4"
+      ],
+      "recommendation": "Present $1,065.8M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case"
+    }
+  ]
+}

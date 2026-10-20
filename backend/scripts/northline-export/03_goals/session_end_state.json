@@ -1,0 +1,194 @@
+{
+  "order": [
+    "g-quarterly-rate-base-refresh-after-ev-mvfxtwif",
+    "g-is-quarrydown-wtp-pfas-treatment-sti-mvfxtj8o",
+    "g-off-framework-orders-in-the-20-octob-mvfxt38o",
+    "g-procurement-spend-2-5-lower-check-ev-mvfxst9x",
+    "g-belmara-rate-base-at-31-december-202-mvfxrtag",
+    "g-belmara-rate-base-at-31-december-202-mvfxquaw",
+    "g-rule-framework"
+  ],
+  "saved": [
+    {
+      "id": "ap-rate-base-plant-used-and-useful-prud-mvfxrpam",
+      "name": "Rate base: plant, used and useful, prudence",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "s": "420 KB"
+        },
+        {
+          "id": "seed",
+          "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "s": "280 KB"
+        }
+      ],
+      "steps": [
+        "State plant in service and depreciation by class",
+        "Test what is used and useful at 31 December",
+        "Roll the rate base forward from the 2025 order",
+        "Check the prudence record of the major additions",
+        "What to present, and how",
+        "Draft the schedules, the memo and the slides"
+      ],
+      "from": "Belmara rate base at 31 December 2026, for the BPUC",
+      "by": "You",
+      "at": "19 Oct 2026",
+      "case": "once"
+    },
+    {
+      "id": "ap-q3",
+      "name": "Rate base: plant, used and useful, prudence",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "s": "420 KB"
+        },
+        {
+          "id": "seed",
+          "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "s": "280 KB"
+        }
+      ],
+      "steps": [
+        "State plant in service and depreciation by class",
+        "Test what is used and useful at 31 December",
+        "Roll the rate base forward from the 2025 order",
+        "Check the prudence record of the major additions",
+        "What to present, and how",
+        "Draft the schedules, the memo and the slides"
+      ],
+      "from": "Belmara rate base, 2025 case",
+      "by": "Marc Beaulieu",
+      "at": "30 Jun 2025",
+      "case": "once"
+    },
+    {
+      "id": "ap-overrun",
+      "name": "Off-framework orders: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the order load flagged, and size it",
+        "Why it happened, and whether anyone raised it",
+        "Trace each line against its framework price",
+        "What can still be done, including nothing",
+        "Note to the people you chose"
+      ],
+      "from": "Order line off-framework or above benchmark",
+      "by": "Tolu Adeyemi",
+      "at": "16 Oct 2026",
+      "case": "watch"
+    }
+  ],
+  "goals": {
+    "g-rule-framework": {
+      "id": "g-rule-framework",
+      "title": "Procurement spend 2.5% lower: check every new order against the frameworks",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "executed",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "runs": [
+        {
+          "id": "r1",
+          "at": "20 Oct, 02:10",
+          "label": "Order load, 20 October · 14 lines off-framework",
+          "status": "executed"
+        }
+      ]
+    },
+    "g-belmara-rate-base-at-31-december-202-mvfxquaw": {
+      "id": "g-belmara-rate-base-at-31-december-202-mvfxquaw",
+      "title": "Belmara rate base at 31 December 2026, for the BPUC",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "accepted",
+      "agent": "Agent Compass",
+      "chosen": "r1",
+      "runs": []
+    },
+    "g-belmara-rate-base-at-31-december-202-mvfxrtag": {
+      "id": "g-belmara-rate-base-at-31-december-202-mvfxrtag",
+      "title": "Belmara rate base at 31 December 2026, for the BPUC",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "ready",
+      "agent": "Agent Beacon",
+      "chosen": null,
+      "runs": []
+    },
+    "g-procurement-spend-2-5-lower-check-ev-mvfxst9x": {
+      "id": "g-procurement-spend-2-5-lower-check-ev-mvfxst9x",
+      "title": "Procurement spend 2.5% lower: check every new order against the frameworks",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "armed",
+      "agent": "Agent Keel",
+      "chosen": null,
+      "runs": []
+    },
+    "g-off-framework-orders-in-the-20-octob-mvfxt38o": {
+      "id": "g-off-framework-orders-in-the-20-octob-mvfxt38o",
+      "title": "Off-framework orders in the 20 October load: 14 lines $0.55M above framework prices",
+      "mode": "once",
+      "kind": "once",
+      "case": "overrun-once",
+      "stage": "running",
+      "status": "accepted",
+      "agent": "Agent Sentinel",
+      "chosen": "r2",
+      "runs": []
+    },
+    "g-is-quarrydown-wtp-pfas-treatment-sti-mvfxtj8o": {
+      "id": "g-is-quarrydown-wtp-pfas-treatment-sti-mvfxtj8o",
+      "title": "Is Quarrydown WTP PFAS Treatment still on budget for the December star…",
+      "mode": "once",
+      "kind": "once",
+      "case": "generic",
+      "stage": "running",
+      "status": "ready",
+      "agent": "Agent Harbour",
+      "chosen": null,
+      "runs": []
+    },
+    "g-quarterly-rate-base-refresh-after-ev-mvfxtwif": {
+      "id": "g-quarterly-rate-base-refresh-after-ev-mvfxtwif",
+      "title": "Quarterly rate base refresh: after every close",
+      "mode": "watch",
+      "kind": "schedule",
+      "case": "schedule",
+      "stage": "armed",
+      "status": "ready",
+      "agent": "Agent Ledger",
+      "chosen": null,
+      "runs": [
+        {
+          "id": "r1",
+          "at": "19 Oct, 21:21",
+          "label": "Scheduled run · after the 6 November close",
+          "status": "ready"
+        }
+      ]
+    }
+  }
+}

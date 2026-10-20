@@ -1,0 +1,680 @@
+[
+  {
+    "metric_id": "forecast-variance",
+    "name": "Forecast variance",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "forecast",
+      "variance",
+      "overrun",
+      "budget"
+    ],
+    "definition": "Forecast at completion minus approved budget, per project, from the latest working forecast. Positive means overrun; a large project above 10% needs a WIN budget revision.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Capital Controller"
+    ],
+    "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+  },
+  {
+    "metric_id": "large-over-10",
+    "name": "Large projects above 10%",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "large project",
+      "10%",
+      "overrun",
+      "WIN"
+    ],
+    "definition": "Large projects in delivery whose forecast at completion is more than 10% above the approved budget, with whether a WIN budget revision is raised.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Capital Controller"
+    ],
+    "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+  },
+  {
+    "metric_id": "spend-vs-plan-ytd",
+    "name": "Spend vs plan, year to date",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "spend",
+      "plan",
+      "year to date",
+      "posted"
+    ],
+    "definition": "Posted actuals in the fiscal year to date divided by the calendarized plan for the same months.",
+    "personas": [
+      "Capital Controller",
+      "SVP Capital Delivery (committee chair)",
+      "Treasury and Funding"
+    ],
+    "sql": "SELECT SUM(g.amount_usd) AS posted_ytd_usd,\n       (SELECT SUM(m.plan_usd) FROM epbcs.monthly_spread m\n        WHERE m.fiscal_year = 2026 AND m.vintage = 'Jan Calendarization' AND m.period <= 9) AS plan_ytd_usd\nFROM gl.project_costing_line g\nWHERE g.fiscal_period BETWEEN '2026-01' AND '2026-09'"
+  },
+  {
+    "metric_id": "annual-plan-delivery",
+    "name": "Annual plan delivery",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "annual plan",
+      "December",
+      "re-phase",
+      "spend"
+    ],
+    "definition": "Posted to date plus the working forecast to year end, divided by the annual plan. Below 95% means capital moves into next year.",
+    "personas": [
+      "Capital Controller",
+      "Treasury and Funding",
+      "SVP Capital Delivery (committee chair)"
+    ],
+    "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+  },
+  {
+    "metric_id": "forecast-freshness",
+    "name": "Forecast freshness",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "stale",
+      "refresh",
+      "45 days",
+      "forecast"
+    ],
+    "definition": "Active projects whose latest working forecast is older than 45 days, by region and cost tool.",
+    "personas": [
+      "Project Controls Manager",
+      "Capital Controller"
+    ],
+    "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+  },
+  {
+    "metric_id": "open-commitments",
+    "name": "Open commitments",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "commitment",
+      "open",
+      "order",
+      "contract"
+    ],
+    "definition": "Ordered minus received minus cancelled, on open PO lines. Unpaid invoices are not open commitment.",
+    "personas": [
+      "Capital Controller",
+      "Treasury and Funding"
+    ],
+    "sql": "SELECT l.project_code, SUM(l.ordered_usd - l.received_usd - l.cancelled_usd) AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open'\nGROUP BY l.project_code"
+  },
+  {
+    "metric_id": "change-order-rate",
+    "name": "Change order rate",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "change order",
+      "contract",
+      "growth"
+    ],
+    "definition": "Approved change orders divided by original contract value, per contract and project.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Director, Rate Case and Regulatory"
+    ],
+    "sql": "SELECT c.project_code, c.contract_no, c.award_value_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) AS approved_co_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) / NULLIF(c.award_value_usd, 0) AS co_rate\nFROM pmo.contract c\nLEFT JOIN pmo.change_order o ON o.contract_no = c.contract_no\nGROUP BY c.project_code, c.contract_no, c.award_value_usd"
+  },
+  {
+    "metric_id": "contingency-remaining",
+    "name": "Contingency remaining",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "contingency",
+      "remaining",
+      "drawn"
+    ],
+    "definition": "Contingency still held in the latest forecast divided by contingency at authorization.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Capital Controller"
+    ],
+    "sql": "WITH latest AS (\n  SELECT project_code, contingency_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT b.project_code, b.contingency_usd AS contingency_at_approval_usd, l.contingency_usd AS contingency_left_usd\nFROM epbcs.plan b\nJOIN latest l ON l.project_code = b.project_code AND l.rn = 1\nWHERE b.plan_vintage = 'Working' AND b.fiscal_year = 2026"
+  },
+  {
+    "metric_id": "win-queue",
+    "name": "Budget revisions waiting",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "WIN",
+      "revision",
+      "Level 03",
+      "queue"
+    ],
+    "definition": "WIN budget revisions requested and not yet approved, by approval level and age.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Capital Controller"
+    ],
+    "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+  },
+  {
+    "metric_id": "test-year-at-risk",
+    "name": "Test-year in-service at risk",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "test year",
+      "in service",
+      "rate base",
+      "claim"
+    ],
+    "definition": "Projects claimed in service inside a test year whose expected in-service date is now after the test year ends, with the rate base at stake.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Utility President"
+    ],
+    "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+  },
+  {
+    "metric_id": "plant-vs-order",
+    "name": "Plant additions vs rate order",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "plant in service",
+      "rate order",
+      "additions"
+    ],
+    "definition": "Plant placed in service in the period divided by the capital additions the last order assumed.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Utility President"
+    ],
+    "sql": "SELECT p.utility_code, SUM(s.amount_usd) AS placed_in_service_usd\nFROM assets.plant_in_service s\nJOIN pmo.project p ON p.project_code = s.project_code\nWHERE s.in_service_date BETWEEN '2025-01-01' AND '2026-09-30'\nGROUP BY p.utility_code"
+  },
+  {
+    "metric_id": "cwip-not-moved",
+    "name": "In service, still in CWIP",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "CWIP",
+      "in service",
+      "unitized",
+      "AFUDC"
+    ],
+    "definition": "Projects past their in-service date that still carry an open CWIP balance.",
+    "personas": [
+      "Capital Controller",
+      "Director, Rate Case and Regulatory"
+    ],
+    "sql": "SELECT c.project_code, c.cwip_usd, i.forecast_in_service_date\nFROM assets.cwip_balance c\nJOIN upload.inservice i ON i.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0 AND i.forecast_in_service_date < '2026-08-01'"
+  },
+  {
+    "metric_id": "program-health",
+    "name": "Program health",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "program",
+      "within 10%",
+      "large projects"
+    ],
+    "definition": "Large projects in delivery within 10% of approved budget divided by all large projects in delivery.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Utility President"
+    ],
+    "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT SUM(CASE WHEN l.forecast_at_completion_usd <= 1.10 * b.approved_budget_usd THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS health\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'"
+  },
+  {
+    "metric_id": "mandated-share",
+    "name": "Mandated share of the plan",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "mandate",
+      "PFAS",
+      "lead",
+      "consent order"
+    ],
+    "definition": "Planned spend on projects with a compliance driver divided by total planned spend, by vintage.",
+    "personas": [
+      "Compliance Manager",
+      "SVP Capital Delivery (committee chair)"
+    ],
+    "sql": "SELECT b.plan_vintage,\n       SUM(CASE WHEN p.compliance_driver <> 'None' THEN b.plan_amount_usd ELSE 0 END) / SUM(b.plan_amount_usd) AS mandated_share\nFROM epbcs.plan b\nJOIN pmo.project p ON p.project_code = b.project_code\nWHERE b.fiscal_year BETWEEN 2027 AND 2031\nGROUP BY b.plan_vintage"
+  },
+  {
+    "metric_id": "net-plant",
+    "name": "Net plant in service",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "net plant",
+      "rate base",
+      "depreciation"
+    ],
+    "definition": "Utility plant in service less accumulated depreciation, by plant class and utility, at a period end.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Chief Financial Officer",
+      "Utility President"
+    ],
+    "sql": "SELECT s.utility_code, s.plant_class, SUM(s.amount_usd) AS gross_plant_usd, SUM(d.accumulated_depreciation_usd) AS accumulated_depreciation_usd,\n       SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\nFROM assets.plant_in_service s\nJOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\nWHERE s.retired_on IS NULL\nGROUP BY s.utility_code, s.plant_class"
+  },
+  {
+    "metric_id": "rate-base",
+    "name": "Rate base",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "rate base",
+      "CIAC",
+      "ADIT",
+      "working capital"
+    ],
+    "definition": "Net plant in service less contributions in aid of construction, accumulated deferred income taxes and customer advances, plus cash working capital and materials and supplies. CWIP is excluded.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Chief Financial Officer",
+      "Commission staff (data requests)"
+    ],
+    "sql": "WITH plant AS (\n  SELECT s.utility_code, SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\n  FROM assets.plant_in_service s\n  JOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\n  WHERE s.retired_on IS NULL GROUP BY s.utility_code\n)\nSELECT p.utility_code, p.net_plant_usd,\n       SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS adjustments_usd,\n       p.net_plant_usd + SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS rate_base_usd\nFROM plant p\nJOIN assets.rate_base_component c ON c.utility_code = p.utility_code AND c.fiscal_period = '2026-09'\nGROUP BY p.utility_code, p.net_plant_usd"
+  },
+  {
+    "metric_id": "rate-base-change",
+    "name": "Rate base change since the last order",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "rate base",
+      "since the order",
+      "growth"
+    ],
+    "definition": "Rate base now against the rate base the last order allowed, with the plant additions that explain the change.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Chief Financial Officer",
+      "Board Finance Committee"
+    ],
+    "sql": "SELECT s.utility_code, SUM(s.amount_usd) AS additions_since_order_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date > '2022-12-31' AND s.retired_on IS NULL\nGROUP BY s.utility_code"
+  },
+  {
+    "metric_id": "plant-additions",
+    "name": "Plant additions in the period",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "additions",
+      "in service",
+      "placed"
+    ],
+    "definition": "Cost placed in service in the period, by utility, plant class and project.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Director, Rate Case and Regulatory",
+      "Regional Operations Director"
+    ],
+    "sql": "SELECT s.utility_code, s.plant_class, s.project_code, SUM(s.amount_usd) AS added_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY s.utility_code, s.plant_class, s.project_code"
+  },
+  {
+    "metric_id": "cwip-balance",
+    "name": "CWIP balance",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "CWIP",
+      "construction work in progress"
+    ],
+    "definition": "Open construction work in progress at period end, by utility and project, excluded from rate base.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Capital Controller"
+    ],
+    "sql": "SELECT p.utility_code, c.project_code, c.cwip_usd\nFROM assets.cwip_balance c\nJOIN pmo.project p ON p.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0"
+  },
+  {
+    "metric_id": "cwip-aging",
+    "name": "CWIP aging",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "CWIP",
+      "age",
+      "months"
+    ],
+    "definition": "CWIP balance by months since the first charge; balances older than 24 months are reviewed.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Capital Controller"
+    ],
+    "sql": "SELECT CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END AS age_band,\n       SUM(c.cwip_usd) AS cwip_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09'\nGROUP BY CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END"
+  },
+  {
+    "metric_id": "afudc",
+    "name": "AFUDC accrued",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "AFUDC",
+      "interest during construction"
+    ],
+    "definition": "AFUDC posted in the fiscal year to date, by project.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Chief Financial Officer"
+    ],
+    "sql": "SELECT c.project_code, c.afudc_ytd_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09' AND c.afudc_ytd_usd > 0"
+  },
+  {
+    "metric_id": "depreciation-expense",
+    "name": "Depreciation expense",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "depreciation",
+      "expense",
+      "rate"
+    ],
+    "definition": "Depreciation booked in the period, by plant class, at the rates the last order approved.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Chief Financial Officer"
+    ],
+    "sql": "SELECT d.plant_class, d.depreciation_rate, SUM(d.depreciation_expense_usd) AS expense_usd\nFROM assets.depreciation_reserve d\nWHERE d.fiscal_period BETWEEN '2026-01' AND '2026-09'\nGROUP BY d.plant_class, d.depreciation_rate"
+  },
+  {
+    "metric_id": "in-service-not-unitized",
+    "name": "In service, not yet unitized",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "unitized",
+      "in service",
+      "used and useful"
+    ],
+    "definition": "Assets placed in service whose cost Plant Accounting has not yet unitized, by project and age.",
+    "personas": [
+      "Plant Accounting Manager",
+      "Director, Rate Case and Regulatory"
+    ],
+    "sql": "SELECT s.utility_code, s.project_code, COUNT(*) AS assets, SUM(s.amount_usd) AS amount_usd, MIN(s.in_service_date) AS earliest_in_service\nFROM assets.plant_in_service s\nWHERE s.unitized = 0\nGROUP BY s.utility_code, s.project_code"
+  },
+  {
+    "metric_id": "framework-compliance",
+    "name": "Framework compliance",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "framework",
+      "compliance",
+      "off-framework"
+    ],
+    "definition": "Spend on catalogue items ordered under a framework agreement divided by all spend on items a framework covers.",
+    "personas": [
+      "Category Manager, Capital Works",
+      "Capital Controller"
+    ],
+    "sql": "SELECT a.category,\n       SUM(CASE WHEN l.framework_agreement_no IS NOT NULL THEN l.ordered_usd ELSE 0 END) / SUM(l.ordered_usd) AS framework_share\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.ordered_on >= '2026-04-01'\nGROUP BY a.category"
+  },
+  {
+    "metric_id": "off-framework-premium",
+    "name": "Off-framework price premium",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "premium",
+      "framework price",
+      "spot buy"
+    ],
+    "definition": "What off-framework order lines cost above the framework price for the same item: (unit price minus framework price) times quantity.",
+    "personas": [
+      "Category Manager, Capital Works",
+      "SVP Capital Delivery (committee chair)"
+    ],
+    "sql": "SELECT l.po_number, l.line_no, l.project_code, l.item_code, l.quantity, l.unit_price_usd, a.framework_unit_price_usd,\n       (l.unit_price_usd - a.framework_unit_price_usd) * l.quantity AS premium_usd, l.confirmation_status\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.framework_agreement_no IS NULL AND l.unit_price_usd > a.framework_unit_price_usd"
+  },
+  {
+    "metric_id": "savings-vs-target",
+    "name": "Savings secured against target",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "savings",
+      "target",
+      "2.5%"
+    ],
+    "definition": "Savings secured since 1 July 2026 against the target of 2.5% of addressable capital procurement spend.",
+    "personas": [
+      "Category Manager, Capital Works",
+      "Chief Financial Officer",
+      "SVP Capital Delivery (committee chair)"
+    ],
+    "sql": "SELECT s.lever, SUM(s.savings_usd) AS secured_usd\nFROM commitments.savings_register s\nWHERE s.secured_on >= '2026-07-01'\nGROUP BY s.lever"
+  },
+  {
+    "metric_id": "supplier-lead-time",
+    "name": "Framework supplier lead time",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "lead time",
+      "weeks",
+      "supplier"
+    ],
+    "definition": "Lead time each framework supplier currently confirms, by category.",
+    "personas": [
+      "Category Manager, Capital Works",
+      "Project Manager"
+    ],
+    "sql": "SELECT a.framework_agreement_no, a.category, a.vendor_id, MAX(a.lead_time_weeks) AS lead_time_weeks\nFROM commitments.framework_agreement a\nGROUP BY a.framework_agreement_no, a.category, a.vendor_id"
+  },
+  {
+    "metric_id": "contract-growth",
+    "name": "Contract growth since award",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "contract",
+      "award",
+      "growth"
+    ],
+    "definition": "Current contract value against value at award, per contract.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Category Manager, Capital Works",
+      "Project Manager"
+    ],
+    "sql": "SELECT c.contract_no, c.project_code, c.award_value_usd, c.current_value_usd, (c.current_value_usd - c.award_value_usd) / NULLIF(c.award_value_usd, 0) AS growth\nFROM pmo.contract c"
+  },
+  {
+    "metric_id": "revision-cycle-time",
+    "name": "Budget revision cycle time",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "WIN",
+      "cycle time",
+      "days"
+    ],
+    "definition": "Days from a WIN budget revision request to its approval, by approval level.",
+    "personas": [
+      "SVP Capital Delivery (committee chair)",
+      "Capital Controller"
+    ],
+    "sql": "SELECT w.approval_level, AVG(DATEDIFF(day, w.requested_on, w.approved_on)) AS avg_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.approved_on IS NOT NULL\nGROUP BY w.approval_level"
+  },
+  {
+    "metric_id": "in-service-slippage",
+    "name": "In-service date slippage",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "in service",
+      "slip",
+      "date"
+    ],
+    "definition": "Expected in-service date against the date at approval, per project.",
+    "personas": [
+      "Director, Rate Case and Regulatory",
+      "Regional Operations Director",
+      "Project Controls Manager"
+    ],
+    "sql": "SELECT p.project_code, p.project_name, p.planned_in_service_date, i.forecast_in_service_date,\n       DATEDIFF(day, p.planned_in_service_date, i.forecast_in_service_date) AS slip_days\nFROM pmo.project p\nJOIN upload.inservice i ON i.project_code = p.project_code\nWHERE i.forecast_in_service_date > p.planned_in_service_date"
+  },
+  {
+    "metric_id": "open-commitment-age",
+    "name": "Aged open commitments",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "open",
+      "aged",
+      "commitment"
+    ],
+    "definition": "Open order lines with no receipt for more than 90 days.",
+    "personas": [
+      "Capital Controller",
+      "Category Manager, Capital Works"
+    ],
+    "sql": "SELECT l.project_code, l.po_number, l.line_no, l.ordered_on, l.ordered_usd - l.received_usd - l.cancelled_usd AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open' AND l.ordered_on < DATEADD(day, -90, '2026-10-19')"
+  },
+  {
+    "metric_id": "pfas-spend",
+    "name": "PFAS program spend against plan",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "PFAS",
+      "program",
+      "plan"
+    ],
+    "definition": "Posted spend on PFAS projects against the FY26 plan for them.",
+    "personas": [
+      "Compliance Manager",
+      "SVP Capital Delivery (committee chair)"
+    ],
+    "sql": "SELECT p.utility_code, SUM(g.amount_usd) AS posted_usd\nFROM gl.project_costing_line g\nJOIN pmo.project p ON p.project_code = g.project_code\nWHERE p.compliance_driver = 'PFAS rule' AND g.fiscal_period LIKE '2026-%'\nGROUP BY p.utility_code"
+  },
+  {
+    "metric_id": "forecast-movement",
+    "name": "Forecast movement since last month",
+    "domains": [
+      "capital-program",
+      "rate-case-recovery",
+      "contract-change"
+    ],
+    "keywords": [
+      "moved",
+      "since last month",
+      "forecast"
+    ],
+    "definition": "Change in forecast at completion between the last two working forecasts, per project.",
+    "personas": [
+      "Project Controls Manager",
+      "Capital Controller"
+    ],
+    "sql": "WITH f AS (\n  SELECT project_code, forecast_date, forecast_at_completion_usd,\n         LAG(forecast_at_completion_usd) OVER (PARTITION BY project_code ORDER BY forecast_date) AS previous_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT project_code, forecast_date, previous_usd, forecast_at_completion_usd, forecast_at_completion_usd - previous_usd AS moved_usd\nFROM f WHERE rn = 1 AND previous_usd IS NOT NULL"
+  }
+]

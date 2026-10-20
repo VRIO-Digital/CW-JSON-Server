@@ -1377,8 +1377,11 @@ const DB_SHAPE = {
        * can be recorded must not weaken what is required of each record.
        */
       const rows = Array.isArray(entry) ? entry : [entry]
+      /* A list may be empty: a document the extractor read and resolved nothing from is a recorded
+         finding (the Northline export has five), and every reader already answers it with no
+         resolution (`found[0] ?? null`, `extractionsFor` returning []). A lone object may not be. */
       return (
-        rows.length > 0 &&
+        (Array.isArray(entry) || rows.length > 0) &&
         rows.every(
           (e) =>
             isObject(e) &&
@@ -2474,13 +2477,17 @@ async function writeSplitFiles(merged, dataset) {
      * dataset's declarations clobbered every other's at the next boot — moved here when KEOLIS
      * arrived shipping 26 declared entities of its own.
      */
-    { file: `${dsLower}_catalogue.json`, keys: ['document_vocabulary', 'data_model', 'change_signals'] },
+    { file: `${dsLower}_catalogue.json`, keys: ['document_vocabulary', 'data_model', 'change_signals', '_meta', '_provenance'] },
     { file: `${dsLower}_new_graph.json`, keys: ['graph_domains', 'graph_personas', 'graph_hero_questions', 'graph_use_cases', 'graph_use_case_templates', 'graph_metrics', 'graph_answer_formats', 'graph_kpis'] },
     { file: `${dsLower}_graph_studio.json`, keys: ['graph_studio', 'studio_graph'] },
     { file: `${dsLower}_reports.json`, keys: ['reports', 'reports_prototype', 'report_defaults', 'report_permissions'] },
     { file: `${dsLower}_ask.json`, keys: ['ask_answers'] },
     { file: `${dsLower}_whatif.json`, keys: ['whatif'] },
     { file: `${dsLower}_audit_governance.json`, keys: ['audit', 'traces', 'evals'] },
+    /* CAPEX's Northline export: the New Role wizard's library, and the Goals and Submissions builds. */
+    { file: `${dsLower}_new_role.json`, keys: ['new_role', 'document_readings'] },
+    { file: `${dsLower}_goals.json`, keys: ['goals'] },
+    { file: `${dsLower}_submissions.json`, keys: ['submissions'] },
   ]
 
   const writePromises = []
@@ -6437,6 +6444,57 @@ const savedUseCase = (u) => ({
   step_total: WIZARD_STEPS.length,
   updated_at: u.updated_at ?? null,
 })
+
+/**
+ * What the New Role wizard drafts, read from the dataset's own `new_role` library — never from the
+ * `graph_*` pools, which belong to the New Graph wizard's business domains. A role carries its own:
+ * the people it works for, a metric sheet per responsibility area and the questions it is asked.
+ *
+ * Returns `null` when the dataset ships no library or does not know the role, so the caller falls
+ * back to the pools exactly as before. `areaIds` is what the reader kept in scope on the
+ * Responsibilities step: a metric or question belongs to one area, and offering one for an area the
+ * reader took out would put back what they had just removed.
+ */
+function roleSuggestions(kind, roleId, areaIds) {
+  const lib = db.new_role
+  const role = lib?.roles?.find((r) => r.id === roleId)
+  if (!role) return null
+  const inScope = (item) =>
+    !Array.isArray(areaIds) || areaIds.length === 0 || !item.area || areaIds.includes(item.area)
+  const areaName = (id) => role.areas?.find((a) => a.id === id)?.name ?? id
+  const people = lib.people ?? []
+  const personName = (id) => people.find((p) => p.id === id)?.name ?? id
+
+  if (kind === 'personas') {
+    const serves = role.defaults?.worksFor ?? []
+    return [...people]
+      .sort((a, b) => Number(serves.includes(b.id)) - Number(serves.includes(a.id)))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        detail: p.title ?? '',
+        why: serves.includes(p.id)
+          ? `the ${role.name} works for them, per the role library`
+          : 'someone in the organisation the role could serve',
+      }))
+  }
+  if (kind === 'metrics') {
+    return (role.metrics ?? []).filter(inScope).map((m) => ({
+      id: m.id,
+      name: m.name,
+      detail: [m.def, m.unit && `Unit: ${m.unit}`, m.cadence && `Cadence: ${m.cadence}`, m.threshold && `Flags: ${m.threshold}`]
+        .filter(Boolean)
+        .join(' · '),
+      why: `measures ${areaName(m.area)}`,
+    }))
+  }
+  return (role.questions ?? []).filter(inScope).map((q) => ({
+    id: q.id,
+    name: q.q,
+    detail: q.area ? areaName(q.area) : '',
+    why: q.who ? `asked by ${personName(q.who)}` : `a question for ${areaName(q.area)}`,
+  }))
+}
 
 /**
  * The suggester behind "Suggest personas (LLM)" and "Suggest KPIs (LLM)".
@@ -13332,6 +13390,18 @@ const routes = [
    */
   {
     method: 'GET',
+    match: (p) => p === '/role-library',
+    /*
+     * The New Role wizard's library — roles with their responsibilities, the industries, what a scan
+     * of the connected data finds for each, and which domain a role works in. A dataset that ships
+     * one (CAPEX's Northline export) serves it whole; `library: null` is the honest answer for one
+     * that does not, and the wizard then uses the library it carries itself rather than a made-up one.
+     */
+    handle: (_req, res) => send(res, 200, { library: db.new_role ?? null }),
+  },
+
+  {
+    method: 'GET',
     match: (p) => p === '/graph-domains',
     handle: (_req, res) => {
       const connected = connectedSources()
@@ -13418,14 +13488,21 @@ const routes = [
     method: 'POST',
     match: (p) => p === path,
     handle: async (req, res) => {
-      const { domain_id, business_need } = await readJson(req)
-      if (domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
+      const { domain_id, business_need, role_id, areas } = await readJson(req)
+      /* A role brief drafts from the role's own library; its domain is that library's, so it is not
+         held against the graph pools' domain list. */
+      const fromRole = role_id
+        ? roleSuggestions(pool.replace('graph_', '').replace('hero_questions', 'questions'), role_id, areas)
+        : null
+      if (!fromRole && domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
         return send(res, 400, { error: `unknown domain ${domain_id}` })
       }
       // A brief that names a known use case gets that use case's own list; a
       // brief describing something new gets the keyword ranking.
-      const template = memberKey ? matchTemplate(business_need) : null
-      const suggestions = template
+      const template = !fromRole && memberKey ? matchTemplate(business_need) : null
+      const suggestions = fromRole
+        ? fromRole
+        : template
         ? bundleFrom(template, db[pool], idKey, memberKey)
         : suggestFrom(
           db[pool],
@@ -13457,10 +13534,17 @@ const routes = [
            * Why there are none, when there are none — `null` otherwise, so the step prints a
            * reason only where there is one to give. A list that is merely empty is not a message.
            */
-          empty_reason:
-            suggestions.length === 0 ? emptyDraftReason(pool, domain_id ?? null) : null,
+          empty_reason: fromRole
+            ? suggestions.length === 0
+              ? 'The role library holds none for the responsibilities kept in scope — go back and keep more, or add your own below.'
+              : null
+            : suggestions.length === 0
+              ? emptyDraftReason(pool, domain_id ?? null)
+              : null,
           // Says plainly where these came from — there is no model behind them.
-          derived_from: template
+          derived_from: fromRole
+            ? 'the role library'
+            : template
             ? `the ${template.name} use case`
             : business_need
               ? 'business need + domain'
@@ -15000,7 +15084,10 @@ const routes = [
           error: 'name is required — it is what the saved use cases list shows',
         })
       }
-      if (domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
+      /* A role's domain is the one its own library names (`domain_of_role`), not necessarily one of the
+         graph pools' — so a use case with a role is held against the library, not against them. */
+      const roleDomain = db.new_role?.domain_of_role?.[normalizeRole(role)?.role_id ?? '']
+      if (domain_id && domain_id !== roleDomain && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
         return send(res, 400, { error: `unknown domain ${domain_id}` })
       }
       if (status && status !== 'draft' && status !== 'committed') {

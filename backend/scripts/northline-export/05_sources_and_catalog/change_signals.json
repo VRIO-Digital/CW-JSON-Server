@@ -1,0 +1,16 @@
+[
+  {
+    "signal_id": "cs1",
+    "kind": "gap",
+    "title": "Primavera P6 is not connected",
+    "detail": "Milestones and critical path float cannot be read; schedule questions are declined.",
+    "do_not": "Do not infer schedule slip from spend."
+  },
+  {
+    "signal_id": "cs2",
+    "kind": "partial",
+    "title": "In-service file does not cover every project",
+    "detail": "990 of 4,500 projects have no row; 260 rows name codes that do not exist.",
+    "do_not": "Do not treat a missing row as in service."
+  }
+]

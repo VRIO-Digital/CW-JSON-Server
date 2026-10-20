@@ -2,6 +2,7 @@ import type { RoleBrief } from '../api/client'
 import {
   INDUSTRIES,
   ROLES,
+  ROLE_DOMAIN_OF,
   UTILITIES,
   type JdFinding,
   type RoleArea,
@@ -45,8 +46,11 @@ const ROLE_DOMAINS: Record<string, string[]> = {
 }
 
 export function domainForRole(roleId: string | null, domainIds: string[]): string | null {
-  if (!roleId || domainIds.length === 0) return null
-  return ROLE_DOMAINS[roleId]?.find((d) => domainIds.includes(d)) ?? domainIds[0]
+  if (!roleId) return null
+  /* The shipped library's own answer first, then this app's preferences, then the strongest-ranked. */
+  const served = ROLE_DOMAIN_OF[roleId]
+  if (served) return served
+  return ROLE_DOMAINS[roleId]?.find((d) => domainIds.includes(d)) ?? domainIds[0] ?? null
 }
 
 /** The role name, then the places it covers — what the use case is called until the reader renames it. */

@@ -1,0 +1,952 @@
+{
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (fictional; the Veolia CAPEX demo world)",
+    "dataset": "NORTHLINE",
+    "asOf": "2026-10-15",
+    "today": "2026-10-19",
+    "exported_from": "ContextWeave_Veolia_CPA_offline.html source (veolia_cpa_prototype_2026-10-19): src/data/*.ts, src/store/*.ts",
+    "note": "Pictures a section earns: from its goal, its role, its heading and the format. Slides and dashboard panels always carry one; documents stay text-first."
+  },
+  "palette": {
+    "plan": "#1f5fa8",
+    "actual": "#d97706",
+    "status_critical": "#b42318",
+    "ink": "#0f1729",
+    "muted": "#5c6b84",
+    "grid": "#e3e6ec"
+  },
+  "kinds": {
+    "waterfall": "the rate base from the 2025 order to 31 December 2026, step by step",
+    "hbar-pairs": "gross and net plant by class",
+    "table": "rows the reader scans (used and useful, prudence record, order lines, options)",
+    "progress": "savings secured against the 2.5% target, with the path to date and what option 1 adds",
+    "hbar": "premium paid off-framework by category",
+    "kpis": "headline figures as tiles",
+    "diagram": "the recommendation story, the evidence by source, open items, the timeline to the decision"
+  },
+  "rules": [
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "summary",
+      "visual": "waterfall (rate base from the 2025 order)"
+    },
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "findings",
+      "heading_words": "prudence | prudent | award | change order",
+      "visual": "table (prudence record of the twelve largest additions)"
+    },
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "findings",
+      "heading_words": "used and useful | in service | test year | 2027 | cwip | post-test",
+      "visual": "table (what comes out, what is counted)"
+    },
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "findings",
+      "heading_words": "roll | moved | since 2025 | rate base at | adjust",
+      "visual": "waterfall"
+    },
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "findings",
+      "heading_words": "plant | class | depreciation | invest | pipes | treatment (and the default)",
+      "visual": "hbar-pairs (plant by class)"
+    },
+    {
+      "goal": "g-belmara-rate-base",
+      "role": "assumptions",
+      "heading_words": "held | next case | open",
+      "visual": "table (used and useful)"
+    },
+    {
+      "goal": "g-procurement-framework",
+      "role": "summary",
+      "visual": "progress (savings against the target)"
+    },
+    {
+      "goal": "g-procurement-framework",
+      "role": "findings",
+      "heading_words": "why | since april | category | cause | happen | cost",
+      "visual": "hbar (premium by category)"
+    },
+    {
+      "goal": "g-procurement-framework",
+      "role": "findings",
+      "visual": "table (the 14 off-framework lines)"
+    },
+    {
+      "goal": "*",
+      "role": "options",
+      "visual": "table (the options side by side)"
+    },
+    {
+      "goal": "*",
+      "role": "summary",
+      "visual": "kpis (the preferred recommendation figures)"
+    },
+    {
+      "goal": "*",
+      "format": "Slide pack | Dashboard",
+      "role": "why | evidence | assumptions | next",
+      "visual": "diagram (story, evidence by source, open items, timeline)"
+    }
+  ],
+  "lineage": {
+    "note": "Where each kind of picture reads its rows. Shown in the information card under \"Data lineage\".",
+    "by_kind": {
+      "bullet": {
+        "tables": [
+          "epbcs.plan (Active Budget Plan)",
+          "epbcs.forecast (latest working forecast: committed, uncommitted, contingency)",
+          "psoft.gl (posted actuals)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "hbar": {
+        "tables": [
+          "epbcs.plan",
+          "epbcs.forecast",
+          "pmo.project (phase, large project flag)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "bars-by-month": {
+        "tables": [
+          "epbcs.plan (FY26 Jan Calendarization, by month)",
+          "psoft.gl (posted by month)",
+          "epbcs.forecast, 15 October refresh (forecast tail)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "line-snapshots": {
+        "tables": [
+          "epbcs.forecast (every working forecast)",
+          "epbcs.plan"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "hbar-pairs": {
+        "tables": [
+          "psoft.asset (gross and net by class)",
+          "psoft.commitments (contracts as adjusted, invoiced)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "table": {
+        "tables": [
+          "WIN register, upload.inservice, psoft.po_line or the Plant Accounting list, depending on the table",
+          "pmo.project"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "kpis": {
+        "tables": [
+          "the goal’s preferred recommendation (figures computed in the analysis)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "waterfall": {
+        "tables": [
+          "psoft.asset (plant in service, by class)",
+          "psoft.asset_depreciation",
+          "the 2025 rate base schedules (RB-1)"
+        ],
+        "asOf": "2026-09-30"
+      },
+      "progress": {
+        "tables": [
+          "Savings tracker (secured by initiative)",
+          "psoft.po_line (the order load)"
+        ],
+        "asOf": "2026-10-20"
+      },
+      "diagram": {
+        "tables": [
+          "the goal’s findings, evidence lines, recommendation story and open items (each citing its rows)"
+        ],
+        "asOf": "2026-09-30"
+      }
+    }
+  },
+  "catalogue": [
+    {
+      "goalId": "g-procurement-framework",
+      "role": "summary",
+      "headingExample": "Savings against the target",
+      "visual": {
+        "kind": "progress",
+        "title": "Procurement savings against the 2.5% target",
+        "note": "$8.7M secured of $24.2M, ahead of the $7.3M path; re-placing the nine unconfirmed lines adds $0.3M.",
+        "data": {
+          "target": 24200000,
+          "secured": 8700000,
+          "path": 7300000,
+          "option1": 296964.93
+        }
+      }
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "role": "findings",
+      "headingExample": "The lines and their premium",
+      "visual": {
+        "kind": "table",
+        "title": "Off-framework lines in the 20 October order load",
+        "note": "14 lines, $3.86M ordered, $0.55M above framework prices; 9 not yet confirmed.",
+        "data": {
+          "rows": [
+            [
+              "PO-48813-02",
+              "CZZF50316_651 Main Replacement, Ashcombe",
+              "Ductile iron pipe, 12 in, class 350",
+              "Northgate Supply Co.",
+              "$71.48",
+              "$61.20",
+              "$105k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48814-02",
+              "CZZF50113_658 Main Replacement, Draycott",
+              "Ductile iron pipe, 16 in, class 250",
+              "Northgate Supply Co.",
+              "$104.80",
+              "$89.50",
+              "$90k",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48811-02",
+              "CZZF501_698 Main Replacement, Selby Point",
+              "Ductile iron pipe, 12 in, class 350",
+              "Northgate Supply Co.",
+              "$70.87",
+              "$61.20",
+              "$85k",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48813-01",
+              "CZZF5043_694 Main Replacement, Harrowgate",
+              "Ductile iron pipe, 8 in, class 350",
+              "Northgate Supply Co.",
+              "$44.58",
+              "$38.40",
+              "$50k",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48811-01",
+              "CZZF5018_694 Hydrant Renewals, Harrowgate",
+              "Fire hydrant, 5.25 in main valve",
+              "Ridgeline Waterworks Supply",
+              "$4664.95",
+              "$3950.00",
+              "$42k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48816-02",
+              "CZZF5012_645 Valve Replacement Blanket, Thornbury",
+              "Fire hydrant, 5.25 in main valve",
+              "Ridgeline Waterworks Supply",
+              "$4664.95",
+              "$3950.00",
+              "$29k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48810-02",
+              "CZZF50317_694 Valve Replacement Blanket, Harrowgate",
+              "Gate valve, 8 in, resilient wedge",
+              "Ridgeline Waterworks Supply",
+              "$2143.60",
+              "$1840.00",
+              "$27k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48816-01",
+              "CZZF50415_651 Valve Replacement Blanket, Ashcombe",
+              "Fire hydrant, 5.25 in main valve",
+              "Ridgeline Waterworks Supply",
+              "$4664.95",
+              "$3950.00",
+              "$26k",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48815-02",
+              "CZZF50415_651 Valve Replacement Blanket, Ashcombe",
+              "Gate valve, 12 in, resilient wedge",
+              "Ridgeline Waterworks Supply",
+              "$3807.68",
+              "$3260.00",
+              "$26k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48810-01",
+              "CZZF50317_694 Valve Replacement Blanket, Harrowgate",
+              "Gate valve, 12 in, resilient wedge",
+              "Ridgeline Waterworks Supply",
+              "$3820.72",
+              "$3260.00",
+              "$25k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48812-02",
+              "CZZF50310_690 Valve Replacement Blanket, Dunmoor East",
+              "Gate valve, 8 in, resilient wedge",
+              "Ridgeline Waterworks Supply",
+              "$2143.60",
+              "$1840.00",
+              "$20k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48815-01",
+              "CZZF50113_658 Main Replacement, Draycott",
+              "Gate valve, 12 in, resilient wedge",
+              "Ridgeline Waterworks Supply",
+              "$3820.72",
+              "$3260.00",
+              "$15k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48814-01",
+              "CZZF50316_651 Main Replacement, Ashcombe",
+              "Fittings set, 12 in (bends, tees)",
+              "Northgate Supply Co.",
+              "$473.39",
+              "$412.00",
+              "$8k",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48812-01",
+              "CZZF501_698 Main Replacement, Selby Point",
+              "Fittings set, 12 in (bends, tees)",
+              "Northgate Supply Co.",
+              "$473.39",
+              "$412.00",
+              "$7k",
+              "Confirmed by supplier"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "role": "findings",
+      "headingExample": "Why it happened",
+      "visual": {
+        "kind": "hbar",
+        "title": "Premium paid off-framework, by category, April to September",
+        "note": "Pipe and valves carry most of it: the two categories where the catalogue still defaults to spot suppliers.",
+        "data": {
+          "rows": [
+            {
+              "code": "Ductile iron pipe and fittings",
+              "name": "Ductile iron pipe and fittings",
+              "budget": 5900000,
+              "forecast": 6640000.000000001,
+              "pct": 12.5
+            },
+            {
+              "code": "Valves and hydrants",
+              "name": "Valves and hydrants",
+              "budget": 4099999.9999999995,
+              "forecast": 4619999.999999999,
+              "pct": 12.7
+            },
+            {
+              "code": "Meters",
+              "name": "Meters",
+              "budget": 900000,
+              "forecast": 960000,
+              "pct": 6.7
+            },
+            {
+              "code": "Pumps and motors",
+              "name": "Pumps and motors",
+              "budget": 500000,
+              "forecast": 550000,
+              "pct": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-procurement-framework",
+      "role": "options",
+      "headingExample": "Three options with the saving each keeps",
+      "visual": {
+        "kind": "table",
+        "title": "The options side by side",
+        "note": "3 options from Agent Ledger; the preferred one first.",
+        "data": {
+          "rows": [
+            [
+              "Re-place the nine unconfirmed lines on the frameworks, and fix the catalogue default (preferred)",
+              "$0.30M",
+              "$9.0M · 37.2%",
+              "≈ $2.6M a year",
+              "none"
+            ],
+            [
+              "Re-place all 14, including the five confirmed lines",
+              "$0.46M after restocking",
+              "$9.16M · 37.9%",
+              "up to $0.09M",
+              "5 lines"
+            ],
+            [
+              "Let this batch stand and fix the catalogue only",
+              "$0",
+              "$0.55M",
+              "≈ $2.6M a year",
+              "none"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "summary",
+      "headingExample": "The rate base at a glance",
+      "visual": {
+        "kind": "waterfall",
+        "title": "Belmara rate base: from the 2025 order to 31 December 2026 ($M)",
+        "note": "From $776.9M allowed at the 2024 test year end to $1,072.6M at 31 December 2026, +$295.7M. The axis starts at $660.4M.",
+        "data": {
+          "steps": [
+            {
+              "step": "Allowed 2025",
+              "amount": 776900000
+            },
+            {
+              "step": "Additions to Sep 26",
+              "amount": 196100000
+            },
+            {
+              "step": "Depreciation to Sep 26",
+              "amount": -58800000
+            },
+            {
+              "step": "Q4 additions",
+              "amount": 173300000
+            },
+            {
+              "step": "Completed in CWIP",
+              "amount": 6800000
+            },
+            {
+              "step": "Q4 depreciation",
+              "amount": -9300000
+            },
+            {
+              "step": "Deductions",
+              "amount": -14300000
+            },
+            {
+              "step": "Working capital",
+              "amount": 1900000
+            },
+            {
+              "step": "Rate base 31 Dec 26",
+              "amount": 1072600000
+            }
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "findings",
+      "headingExample": "Plant in service by class",
+      "visual": {
+        "kind": "table",
+        "title": "Used and useful at 31 December 2026: what comes out, what is counted",
+        "note": "Seven post-test-year projects dated 2027 ($41.3M) come out; nine in service but still in CWIP ($6.8M) are counted as completed construction. The other 31 post-test-year projects ($173.3M) come in.",
+        "data": {
+          "rows": [
+            [
+              "C25B341_640",
+              "Filter Media Renewal, Belmara Central",
+              "$23.57M",
+              "2026-12-04",
+              "2027-03-31",
+              "Out: held for the next case"
+            ],
+            [
+              "C26B260_658",
+              "PFAS Elmsworth 2, Draycott",
+              "$10.47M",
+              "2026-10-30",
+              "2027-03-15",
+              "Out: held for the next case"
+            ],
+            [
+              "C23B361_658",
+              "Clearwell Replacement, Draycott",
+              "$4.69M",
+              "2026-11-30",
+              "2027-01-29",
+              "Out: held for the next case"
+            ],
+            [
+              "C23B255_658",
+              "Booster Station Upgrade, Draycott",
+              "$1.47M",
+              "2026-11-20",
+              "2027-04-30",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5048_651",
+              "Meter Replacement, Ashcombe",
+              "$471k",
+              "2026-12-18",
+              "2027-01-15",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5013_640",
+              "Valve Replacement Blanket, Belmara Central",
+              "$385k",
+              "2026-12-15",
+              "2027-02-26",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF50315_645",
+              "Valve Replacement Blanket, Thornbury",
+              "$245k",
+              "2026-12-31",
+              "2027-02-12",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5036_651",
+              "Valve Replacement Blanket, Ashcombe",
+              "$1.12M",
+              "",
+              "2026-05-10",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5016_651",
+              "Hydrant Renewals, Ashcombe",
+              "$1.21M",
+              "",
+              "2026-06-12",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5044_658",
+              "Hydrant Renewals, Draycott",
+              "$1.04M",
+              "",
+              "2026-07-14",
+              "In: completed construction"
+            ],
+            [
+              "CZZF50411_640",
+              "Hydrant Renewals, Belmara Central",
+              "$960k",
+              "",
+              "2026-05-16",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5031_658",
+              "Hydrant Renewals, Draycott",
+              "$880k",
+              "",
+              "2026-06-18",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5041_640",
+              "Hydrant Renewals, Belmara Central",
+              "$620k",
+              "",
+              "2026-07-20",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5019_658",
+              "Valve Replacement Blanket, Draycott",
+              "$410k",
+              "",
+              "2026-05-22",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5049_651",
+              "Valve Replacement Blanket, Ashcombe",
+              "$330k",
+              "",
+              "2026-06-24",
+              "In: completed construction"
+            ],
+            [
+              "CZZF50310_640",
+              "Main Replacement, Belmara Central",
+              "$230k",
+              "",
+              "2026-07-26",
+              "In: completed construction"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "findings",
+      "headingExample": "How the rate base moved since the 2025 order",
+      "visual": {
+        "kind": "waterfall",
+        "title": "Belmara rate base: from the 2025 order to 31 December 2026 ($M)",
+        "note": "From $776.9M allowed at the 2024 test year end to $1,072.6M at 31 December 2026, +$295.7M. The axis starts at $660.4M.",
+        "data": {
+          "steps": [
+            {
+              "step": "Allowed 2025",
+              "amount": 776900000
+            },
+            {
+              "step": "Additions to Sep 26",
+              "amount": 196100000
+            },
+            {
+              "step": "Depreciation to Sep 26",
+              "amount": -58800000
+            },
+            {
+              "step": "Q4 additions",
+              "amount": 173300000
+            },
+            {
+              "step": "Completed in CWIP",
+              "amount": 6800000
+            },
+            {
+              "step": "Q4 depreciation",
+              "amount": -9300000
+            },
+            {
+              "step": "Deductions",
+              "amount": -14300000
+            },
+            {
+              "step": "Working capital",
+              "amount": 1900000
+            },
+            {
+              "step": "Rate base 31 Dec 26",
+              "amount": 1072600000
+            }
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "findings",
+      "headingExample": "Used and useful at 31 December",
+      "visual": {
+        "kind": "table",
+        "title": "Used and useful at 31 December 2026: what comes out, what is counted",
+        "note": "Seven post-test-year projects dated 2027 ($41.3M) come out; nine in service but still in CWIP ($6.8M) are counted as completed construction. The other 31 post-test-year projects ($173.3M) come in.",
+        "data": {
+          "rows": [
+            [
+              "C25B341_640",
+              "Filter Media Renewal, Belmara Central",
+              "$23.57M",
+              "2026-12-04",
+              "2027-03-31",
+              "Out: held for the next case"
+            ],
+            [
+              "C26B260_658",
+              "PFAS Elmsworth 2, Draycott",
+              "$10.47M",
+              "2026-10-30",
+              "2027-03-15",
+              "Out: held for the next case"
+            ],
+            [
+              "C23B361_658",
+              "Clearwell Replacement, Draycott",
+              "$4.69M",
+              "2026-11-30",
+              "2027-01-29",
+              "Out: held for the next case"
+            ],
+            [
+              "C23B255_658",
+              "Booster Station Upgrade, Draycott",
+              "$1.47M",
+              "2026-11-20",
+              "2027-04-30",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5048_651",
+              "Meter Replacement, Ashcombe",
+              "$471k",
+              "2026-12-18",
+              "2027-01-15",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5013_640",
+              "Valve Replacement Blanket, Belmara Central",
+              "$385k",
+              "2026-12-15",
+              "2027-02-26",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF50315_645",
+              "Valve Replacement Blanket, Thornbury",
+              "$245k",
+              "2026-12-31",
+              "2027-02-12",
+              "Out: held for the next case"
+            ],
+            [
+              "CZZF5036_651",
+              "Valve Replacement Blanket, Ashcombe",
+              "$1.12M",
+              "",
+              "2026-05-10",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5016_651",
+              "Hydrant Renewals, Ashcombe",
+              "$1.21M",
+              "",
+              "2026-06-12",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5044_658",
+              "Hydrant Renewals, Draycott",
+              "$1.04M",
+              "",
+              "2026-07-14",
+              "In: completed construction"
+            ],
+            [
+              "CZZF50411_640",
+              "Hydrant Renewals, Belmara Central",
+              "$960k",
+              "",
+              "2026-05-16",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5031_658",
+              "Hydrant Renewals, Draycott",
+              "$880k",
+              "",
+              "2026-06-18",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5041_640",
+              "Hydrant Renewals, Belmara Central",
+              "$620k",
+              "",
+              "2026-07-20",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5019_658",
+              "Valve Replacement Blanket, Draycott",
+              "$410k",
+              "",
+              "2026-05-22",
+              "In: completed construction"
+            ],
+            [
+              "CZZF5049_651",
+              "Valve Replacement Blanket, Ashcombe",
+              "$330k",
+              "",
+              "2026-06-24",
+              "In: completed construction"
+            ],
+            [
+              "CZZF50310_640",
+              "Main Replacement, Belmara Central",
+              "$230k",
+              "",
+              "2026-07-26",
+              "In: completed construction"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "findings",
+      "headingExample": "Prudence of the major additions",
+      "visual": {
+        "kind": "table",
+        "title": "Prudence record of the twelve largest additions",
+        "note": "10 of 12 complete; 2 gaps, $34.1M together, to close before staff see the file.",
+        "data": {
+          "rows": [
+            [
+              "C24B199_640",
+              "PFAS GAC Install, Ashfen",
+              "$35.86M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B283_645",
+              "PFAS GAC Install, Brookmere",
+              "$28.94M",
+              "4 bids",
+              "$1.22M, no cost comparison on file",
+              "Gap: Amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000; neither file shows a re-bid or an independent estimate."
+            ],
+            [
+              "C23B250_640",
+              "Kembleton WTP, Belmara Central",
+              "$15.43M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B285_645",
+              "PFAS GAC Install, Brookmere",
+              "$12.91M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B188_645",
+              "Filter Media Renewal, Thornbury",
+              "$10.62M",
+              "4 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B545_651",
+              "Well Field Expansion, Ashcombe",
+              "$8.98M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "OVERHEAD6_651",
+              "Overhead Projects, Ashcombe",
+              "$8.07M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B206_640",
+              "Booster Station Upgrade, Belmara Central",
+              "$5.20M",
+              "sole source",
+              "approved at their level",
+              "Gap: The electrical and controls package PO-467906-03 ($675,000, Brackenridge Program Services) was placed sole source; the justification the policy requires is not on file."
+            ],
+            [
+              "C23B411_645",
+              "Reservoir Rehabilitation, Thornbury",
+              "$4.64M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B115_640",
+              "Pump Station Rebuild, Belmara Central",
+              "$4.27M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B473_658",
+              "Well Field Expansion, Draycott",
+              "$3.95M",
+              "4 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "CZZF50224_645",
+              "Lead Service Lines Replacement, Thornbury",
+              "$2.79M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "goalId": "g-belmara-rate-base",
+      "role": "options",
+      "headingExample": "Three options and the one we recommend",
+      "visual": {
+        "kind": "table",
+        "title": "The options side by side",
+        "note": "3 options from Agent Compass; the preferred one first.",
+        "data": {
+          "rows": [
+            [
+              "Present $1,072.6M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case (preferred)",
+              "$1,072.6M",
+              "+$295.7M · 38.1%",
+              "$41.3M · 7 projects",
+              "2 · $34.1M"
+            ],
+            [
+              "Present all 38 as filed, $1,113.9M, and update when the project managers confirm",
+              "$1,113.9M",
+              "6 unconfirmed dates",
+              "likely",
+              "$4.4M a year"
+            ],
+            [
+              "Hold the schedules until the 6 November close and the confirmations",
+              "booked and confirmed",
+              "~9 Nov",
+              "30 Oct missed",
+              "4 days"
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "_about": "What each job description in uploads/01_new_role actually says, as the New Role step 2 shows it. The prototype reads the same content from src/data/roleLibrary.ts by file name; it is not in the merged db.",
+  "readings": [
+    {
+      "file": "Northline_Job_Description_Capital_Program_Analyst.pdf",
+      "role_id": "cpa",
+      "role": "Capital Program Analyst",
+      "pages": 4,
+      "findings": [
+        {
+          "id": "j1",
+          "kind": "confirm",
+          "text": "Confirms 8 of your 9 areas: plan, prioritization, budgets, cost and forecast, schedule, rate cases, close-out and reporting.",
+          "quote": "“Maintains the capital plan, tracks cost and forecast for every project and supports rate case filings with capital schedules.”"
+        },
+        {
+          "id": "j2",
+          "kind": "task",
+          "area": "cost",
+          "text": "Add a task to Cost tracking and forecasting: review contractor claims and change order requests before WIN approval.",
+          "quote": "“Reviews contractor claims and change order requests against the contract before they go to WIN approval.”",
+          "value": "Review contractor claims and change order requests before WIN approval"
+        },
+        {
+          "id": "j3",
+          "kind": "scope",
+          "area": "comp",
+          "text": "Take Grant and loan compliance out of scope. Treasury prepares SRF and WIFIA draws and keeps the compliance records.",
+          "quote": "“SRF and WIFIA draws and their compliance records are prepared by Treasury; the analyst supplies eligible spend on request.”",
+          "reason": "Done by another team"
+        },
+        {
+          "id": "j4",
+          "kind": "threshold",
+          "metric": "m9",
+          "area": "cost",
+          "text": "Set the threshold on Forecast variance: over 10% on a large project, or over $250,000, needs a written explanation.",
+          "quote": "§4.2 “A large project whose forecast exceeds its approved budget by more than 10%, or by more than $250,000, needs a written variance explanation.”",
+          "value": "Over 10% on a large project, or over $250,000"
+        },
+        {
+          "id": "j5",
+          "kind": "routine",
+          "area": "reg",
+          "text": "Add a routine: monthly test-year in-service check for Marc Beaulieu while a rate case is open.",
+          "quote": "“While a rate case is open, confirms each month that projects claimed in the test year remain on track to be in service.”",
+          "routine": {
+            "id": "r_jd1",
+            "area": "reg",
+            "name": "Test-year in-service check",
+            "cadence": "Monthly, while a rate case is open",
+            "to": "beaulieu",
+            "output": "At-risk list with rate base"
+          }
+        },
+        {
+          "id": "j6",
+          "kind": "people",
+          "text": "Add Sofia Lindqvist to the people it works for. The description says the analyst hands the plan workbook to Capital Planning.",
+          "quote": "“Works with the Senior Analyst, Capital Planning on each plan vintage.”",
+          "person": "lindqvist"
+        }
+      ],
+      "source": "uploads/01_new_role/Northline_Job_Description_Capital_Program_Analyst.pdf"
+    },
+    {
+      "file": "Northline_Job_Description_Regulatory_Analyst.pdf",
+      "role_id": "reg",
+      "role": "Regulatory Analyst",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "rj1",
+          "kind": "confirm",
+          "text": "Confirms 4 of your areas: rate cases, data requests, compliance filings and riders.",
+          "quote": "“Prepares revenue requirement schedules and responds to data requests.”"
+        },
+        {
+          "id": "rj2",
+          "kind": "task",
+          "area": "filings",
+          "text": "Add a task to Compliance filings: prepare the annual service quality report.",
+          "quote": "“Prepares the annual service quality report for each commission.”",
+          "value": "Prepare the annual service quality report"
+        }
+      ],
+      "source": "uploads/01_new_role/Northline_Job_Description_Regulatory_Analyst.pdf"
+    },
+    {
+      "file": "Northline_Job_Description_Supply_Chain_Analyst.pdf",
+      "role_id": "sca",
+      "role": "Supply Chain Analyst",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "sj1",
+          "kind": "confirm",
+          "text": "Confirms all 5 of your areas.",
+          "quote": "“Monitors inventory, supplier performance and chemical supply.”"
+        },
+        {
+          "id": "sj2",
+          "kind": "task",
+          "area": "supplier",
+          "text": "Add a task to Supplier performance: collect Build America, Buy America certifications for funded orders.",
+          "quote": "“Collects BABA certifications from suppliers on SRF-funded orders.”",
+          "value": "Collect BABA certifications for funded orders"
+        }
+      ],
+      "source": "uploads/01_new_role/Northline_Job_Description_Supply_Chain_Analyst.pdf"
+    },
+    {
+      "file": "Northline_Job_Description_Financial_Analyst.pdf",
+      "role_id": "fa",
+      "role": "Financial Analyst",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "fj1",
+          "kind": "confirm",
+          "text": "Confirms all 4 of your areas.",
+          "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+        },
+        {
+          "id": "fj2",
+          "kind": "task",
+          "area": "close",
+          "text": "Add a task to Month-end variance analysis: reconcile chemical and power costs to plant usage.",
+          "quote": "“Reconciles chemical and power costs to plant usage monthly.”",
+          "value": "Reconcile chemical and power costs to usage"
+        }
+      ],
+      "source": "uploads/01_new_role/Northline_Job_Description_Financial_Analyst.pdf"
+    }
+  ]
+}

@@ -5306,6 +5306,20 @@ const toUseCase = (u: RawUseCase): GraphUseCase => ({
   updatedAt: u.updated_at,
 })
 
+/**
+ * The New Role wizard's library as the dataset ships it, or `null` where it ships none. Its inside is
+ * the reference build's own shape (roles, industries, discovery, domain_of_role…), which the wizard's
+ * adapter reads defensively — the combinators cannot describe maps keyed by role and industry.
+ */
+export async function getRoleLibrary(): Promise<unknown | null> {
+  const raw = validate<{ library: unknown }>(
+    'The role library',
+    await request<unknown>('/role-library'),
+    shape({ library: nullable(anyCheck) }),
+  )
+  return raw.library ?? null
+}
+
 export async function listGraphDomains(): Promise<GraphDomainsPayload> {
   const raw = validate<{
     domains: RawGraphDomain[]
@@ -5361,7 +5375,7 @@ export async function listUseCases(): Promise<UseCasesPayload> {
 async function fetchSuggestions(
   path: string,
   what: string,
-  input: { domainId: string | null; businessNeed: string },
+  input: { domainId: string | null; businessNeed: string; roleId?: string | null; areas?: string[] },
 ): Promise<Suggestions> {
   const raw = validate<{
     suggestions: Suggestion[]
@@ -5373,7 +5387,13 @@ async function fetchSuggestions(
     what,
     await request<unknown>(path, {
       method: 'POST',
-      body: { domain_id: input.domainId, business_need: input.businessNeed },
+      body: {
+        domain_id: input.domainId,
+        business_need: input.businessNeed,
+        /* A New Role brief drafts from its role's own library; both absent leaves the pools. */
+        role_id: input.roleId ?? undefined,
+        areas: input.areas ?? undefined,
+      },
     }),
     SUGGESTIONS_PAYLOAD,
   )
@@ -5396,6 +5416,8 @@ async function fetchSuggestions(
 export const suggestPersonas = (input: {
   domainId: string | null
   businessNeed: string
+  roleId?: string | null
+  areas?: string[]
 }) =>
   fetchSuggestions('/graph-personas/suggest', 'The persona suggestions', input)
 
@@ -5479,6 +5501,8 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
 export const suggestMetrics = (input: {
   domainId: string | null
   businessNeed: string
+  roleId?: string | null
+  areas?: string[]
 }) => fetchSuggestions('/graph-metrics/suggest', 'The metric suggestions', input)
 
 /**
@@ -5655,6 +5679,8 @@ export async function getDerivation(derivationId: string): Promise<DerivationRun
 export const suggestQuestions = (input: {
   domainId: string | null
   businessNeed: string
+  roleId?: string | null
+  areas?: string[]
 }) =>
   fetchSuggestions(
     '/graph-questions/suggest',

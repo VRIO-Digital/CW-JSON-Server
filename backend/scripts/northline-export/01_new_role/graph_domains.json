@@ -1,0 +1,58 @@
+[
+  {
+    "domain_id": "capital-program",
+    "name": "Capital Program Management (regulated water)",
+    "expected_sources": [
+      "EPBCS plan and forecast",
+      "PeopleSoft ledger and commitments",
+      "PMO project master",
+      "Capital Program documents",
+      "Capital program mailbox"
+    ],
+    "fit": "strong",
+    "note": "Plan, forecast, ledger, commitments and the project master are connected and profiled; contracts, decks and rate case schedules are in OneDrive.",
+    "unmet_note": "No plan, ledger or project master connected.",
+    "rank": 1
+  },
+  {
+    "domain_id": "rate-case-recovery",
+    "name": "Rate Case and Regulatory Recovery",
+    "expected_sources": [
+      "Rate case claims",
+      "In-service date file",
+      "Plant in service",
+      "Commission orders"
+    ],
+    "fit": "partial",
+    "note": "Claims, in-service dates and plant in service resolve. 990 projects have no in-service row, so their dates come from the forecast phase only.",
+    "unmet_note": "No rate case register or in-service source connected.",
+    "rank": 2
+  },
+  {
+    "domain_id": "contract-change",
+    "name": "Contract and Change Control",
+    "expected_sources": [
+      "Contract register",
+      "Change orders",
+      "PO lines",
+      "Contractor correspondence"
+    ],
+    "fit": "partial",
+    "note": "Contracts, change orders and orders resolve. Pay applications and retainage are only in documents.",
+    "unmet_note": "No contract register connected.",
+    "rank": 3
+  },
+  {
+    "domain_id": "schedule-critical-path",
+    "name": "Schedule and Critical Path",
+    "expected_sources": [
+      "Primavera P6 schedules",
+      "Milestones",
+      "Critical path float"
+    ],
+    "fit": "none",
+    "note": "Primavera P6 is not connected, so milestones and critical path float cannot be read. Schedule questions are declined.",
+    "unmet_note": "No scheduling source connected.",
+    "rank": 4
+  }
+]

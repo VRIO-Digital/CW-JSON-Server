@@ -1,0 +1,387 @@
+{
+  "goals": {
+    "g-rule-framework": {
+      "id": "g-rule-framework",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "title": "Procurement spend 2.5% lower: check every new order against the frameworks",
+      "agent": {
+        "name": "Agent Ledger",
+        "icon": "radar",
+        "colour": "#9e3819"
+      },
+      "prompt": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "files": [],
+      "stage": "armed",
+      "status": "armed",
+      "rv": [
+        "against",
+        "memory",
+        "watch",
+        "src:fin",
+        "src:proc",
+        "where",
+        "src:cal",
+        "prior",
+        "until",
+        "steps",
+        "fixed"
+      ],
+      "reads": [
+        {
+          "tool": "search role memory",
+          "res": "Frameworks are mandatory above $25k per line where one covers the item · a saving counts once it is in an order or a signed contract",
+          "rv": [
+            "against",
+            "memory"
+          ]
+        },
+        {
+          "tool": "read Procurement_Savings_Program_2026-27.pdf",
+          "res": "Target 2.5% of $968.0M addressable capital spend: $24.2M by 30 June 2027",
+          "rv": [
+            "watch",
+            "src:fin"
+          ]
+        },
+        {
+          "tool": "scan psoft.po_line · framework price schedules",
+          "res": "Every order line with its item, supplier and unit price · 4 frameworks, 9 priced items · category benchmarks",
+          "rv": [
+            "src:proc"
+          ]
+        },
+        {
+          "tool": "read the order calendar",
+          "res": "New order lines load nightly at 02:00. Next: tonight, Tuesday 20 October, with Monday’s orders",
+          "rv": [
+            "where",
+            "src:cal"
+          ]
+        },
+        {
+          "tool": "check open goals",
+          "res": "“Belmara rate base” reads the same awards for its prudence check; I read it whenever this fires",
+          "rv": [
+            "prior"
+          ]
+        },
+        {
+          "tool": "search for a project-manager list",
+          "res": "No distribution list is connected; I need to know who to tell",
+          "warn": true,
+          "rv": [
+            "miss:tell"
+          ]
+        },
+        {
+          "tool": "read the latest position",
+          "res": "Savings tracker: $8.7M secured · off-framework buying about $1.4M above framework since April · the catalogue still defaults to the spot suppliers",
+          "warn": true,
+          "rv": [
+            "until"
+          ]
+        }
+      ],
+      "questions": [
+        {
+          "key": "fires",
+          "title": "What should count as a breach?",
+          "text": "Four frameworks cover pipe, fittings, valves, hydrants, meters and GAC media. Items no framework covers can still be checked against the category benchmark, which fires more often.",
+          "tiles": [
+            {
+              "v": "breach",
+              "t": "Any line above $25k off a framework that covers it",
+              "s": "The policy line"
+            },
+            {
+              "v": "early",
+              "t": "Also any line more than 5% above the category benchmark",
+              "s": "Catches items no framework covers",
+              "rec": true
+            },
+            {
+              "v": "always",
+              "t": "A digest of every load, flagged or not",
+              "s": "A short reading each morning"
+            }
+          ]
+        },
+        {
+          "key": "tell",
+          "title": "Who is told when it fires?",
+          "text": "No project-manager list is connected. The note goes out without waiting for you, so pick who should see it.",
+          "tiles": [
+            {
+              "v": "me",
+              "t": "Just me",
+              "s": "I decide who hears"
+            },
+            {
+              "v": "pm",
+              "t": "Me and the project managers",
+              "s": "Whoever raised the orders"
+            },
+            {
+              "v": "controller",
+              "t": "Me, the project managers and Procurement",
+              "s": "Everyone who can change an order"
+            }
+          ]
+        }
+      ],
+      "answers": {
+        "fires": "early",
+        "tell": "controller"
+      },
+      "over": {},
+      "extraDocs": [],
+      "web": false,
+      "fixedExtra": [],
+      "version": 1,
+      "agreedV": 1,
+      "history": [],
+      "autonomy": "blocked",
+      "nodes": [
+        {
+          "id": "w1",
+          "col": 0,
+          "row": 1,
+          "type": "gather",
+          "title": "Confirm what the order load flagged, and size it",
+          "purpose": "Which lines are off-framework or above benchmark, and by how much.",
+          "how": "Every new order line against the framework price schedules and the category benchmarks: the unit price paid, the framework price, the premium, and whether the supplier has confirmed the line. Limited to the lines in the load that fired the rule.",
+          "draws": [
+            "psoft.po_line",
+            "Framework price schedules",
+            "psoft.supplier"
+          ],
+          "check": "Every flagged line recomputes from its quantity, unit price and framework price."
+        },
+        {
+          "id": "w2",
+          "col": 1,
+          "row": 0,
+          "type": "gather",
+          "title": "Why it happened, and whether anyone raised it",
+          "purpose": "Is this new, and is someone already on it.",
+          "how": "Off-framework buying by category since April, the framework lead times, the ordering catalogue, and what Procurement and the project managers have said.",
+          "draws": [
+            "psoft.po_line (since April)",
+            "Outlook: Procurement and project managers (S1, S2, S3)",
+            "Savings_tracker_2026-10.xlsx"
+          ],
+          "check": "Every figure since April recomputes from the order lines."
+        },
+        {
+          "id": "w3",
+          "col": 1,
+          "row": 2,
+          "type": "gather",
+          "title": "Trace each line against its framework price",
+          "purpose": "The premium item by item, and whether the policy allowed it.",
+          "how": "For each flagged line: the framework that covers the item, its price, the premium, and the Procurement exception the policy requires on the order.",
+          "draws": [
+            "psoft.po_line",
+            "FA-2025-PIPE-01, FA-2025-VLV-02 (Schedule A)",
+            "Capital_Procurement_Policy_2025.pdf"
+          ],
+          "check": "The line premiums sum to the batch premium."
+        },
+        {
+          "id": "w4",
+          "col": 2,
+          "row": 1,
+          "type": "synthesize",
+          "title": "What can still be done, including nothing",
+          "purpose": "Each course of action with the saving it keeps, checked against open goals.",
+          "how": "Each option with the saving it keeps against the 2.5% target, what it costs (restocking, delay), who has to agree, and an honest statement if nothing can be recovered; read the open goals on this role.",
+          "draws": [
+            "Steps 1 to 3",
+            "Goal: Belmara rate base",
+            "Capital_Procurement_Policy_2025.pdf"
+          ],
+          "check": "Every option states the saving it keeps and what it costs."
+        },
+        {
+          "id": "w5",
+          "col": 3,
+          "row": 1,
+          "type": "deliver",
+          "title": "Note to the people you chose",
+          "purpose": "One page, sent without waiting for you.",
+          "how": "The lines, why they went off-framework, the premium, the options, and the catalogue fix; on the off-framework order note template.",
+          "draws": [
+            "Steps 1 to 4",
+            "Template: off-framework order note"
+          ],
+          "check": "Every figure in the note links back to its step."
+        }
+      ],
+      "edges": [
+        [
+          "w1",
+          "w2"
+        ],
+        [
+          "w1",
+          "w3"
+        ],
+        [
+          "w2",
+          "w4"
+        ],
+        [
+          "w3",
+          "w4"
+        ],
+        [
+          "w4",
+          "w5"
+        ]
+      ],
+      "removed": [],
+      "ns": {
+        "w1": {
+          "state": "pending"
+        },
+        "w2": {
+          "state": "pending"
+        },
+        "w3": {
+          "state": "pending"
+        },
+        "w4": {
+          "state": "pending"
+        },
+        "w5": {
+          "state": "pending"
+        }
+      },
+      "findings": [],
+      "recs": [],
+      "outputs": [],
+      "started": [],
+      "gaps": [],
+      "chat": [
+        {
+          "id": "j1-mvfxqs0a",
+          "who": "me",
+          "text": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+          "at": "16 Oct, 15:02"
+        },
+        {
+          "id": "j2-mvfxqs0a",
+          "who": "event",
+          "text": "Watch armed · v1 · 16 Oct, 15:10 · Tolu Adeyemi",
+          "at": "16 Oct, 15:10"
+        },
+        {
+          "id": "j3-mvfxqs0a",
+          "who": "agent",
+          "text": "Armed. I check every new order line at the nightly load (02:00) against the four frameworks and the category benchmarks. Nothing runs until a line above $25k goes off a framework that covers it, or more than 5% above benchmark.\n\nThe plan on the right is what runs when it fires: five steps, no checkpoint, and a note to you, the project managers and Procurement. It waits for you under Needs you when it is done.",
+          "at": "16 Oct, 15:10"
+        },
+        {
+          "id": "j4-mvfxqs0a",
+          "who": "event",
+          "text": "19 Oct · order load checked · 6 lines, all on framework · next: tonight, 02:00",
+          "at": "19 Oct, 02:05"
+        }
+      ],
+      "chips": [
+        "Simulate tonight’s order load (20 October)",
+        "What will it look like when it fires?",
+        "Open the rate base goal"
+      ],
+      "typing": false,
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      },
+      "log": [
+        {
+          "t": "16 Oct, 15:10",
+          "who": "Tolu Adeyemi",
+          "what": "Armed the watch (v1). Checks every order line at the nightly load."
+        },
+        {
+          "t": "19 Oct, 02:05",
+          "who": "Agent Ledger",
+          "what": "Checked the 19 October load: 6 lines, all on framework or within 5% of benchmark."
+        }
+      ],
+      "runs": [],
+      "flags": {},
+      "doneCount": 0,
+      "paused": false,
+      "agreedAt": "16 Oct, 15:10",
+      "armedAt": "16 Oct 2026, 15:10",
+      "armedBy": "Tolu Adeyemi",
+      "nextCheck": "tonight’s order load, 02:00 on 20 October"
+    }
+  },
+  "order": [
+    "g-rule-framework"
+  ],
+  "saved": [
+    {
+      "id": "ap-q3",
+      "name": "Rate base: plant, used and useful, prudence",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "s": "420 KB"
+        },
+        {
+          "id": "seed",
+          "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "s": "280 KB"
+        }
+      ],
+      "steps": [
+        "State plant in service and depreciation by class",
+        "Test what is used and useful at 31 December",
+        "Roll the rate base forward from the 2025 order",
+        "Check the prudence record of the major additions",
+        "What to present, and how",
+        "Draft the schedules, the memo and the slides"
+      ],
+      "from": "Belmara rate base, 2025 case",
+      "by": "Marc Beaulieu",
+      "at": "30 Jun 2025",
+      "case": "once"
+    },
+    {
+      "id": "ap-overrun",
+      "name": "Off-framework orders: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the order load flagged, and size it",
+        "Why it happened, and whether anyone raised it",
+        "Trace each line against its framework price",
+        "What can still be done, including nothing",
+        "Note to the people you chose"
+      ],
+      "from": "Order line off-framework or above benchmark",
+      "by": "Tolu Adeyemi",
+      "at": "16 Oct 2026",
+      "case": "watch"
+    }
+  ],
+  "start": {
+    "mode": "once",
+    "prompt": "",
+    "files": [],
+    "web": false
+  },
+  "notices": []
+}

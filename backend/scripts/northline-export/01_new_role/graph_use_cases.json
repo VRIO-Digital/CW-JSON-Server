@@ -1,0 +1,201 @@
+[
+  {
+    "use_case_id": "uc-capital-program-analyst-nw26a01",
+    "name": "Capital Program Analyst · Northline Water",
+    "status": "committed",
+    "domain_id": "capital-program",
+    "business_need": "Capital Program Analyst for Northline Water Group's four regulated water utilities (Ardenia, Belmara, Corvale, Dunmoor). Keeps the capital plan, budgets, forecasts and commitments current for 4,500 projects, explains variances above threshold, supports rate cases with in-service evidence, and reports the program to the Capital Steering Committee. Reports to priya.raman@vriodigital.com.",
+    "personas": [
+      {
+        "name": "SVP Capital Delivery (committee chair)",
+        "description": "Chairs the Capital Steering Committee. Asks where the program stands, which large projects need a decision, and what goes in the quarterly pack.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Capital Controller",
+        "description": "Asks whether forecasts reconcile to the ledger, whether the year's plan will be spent by December, and what moved since last month.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Director, Rate Case and Regulatory",
+        "description": "Asks which claimed projects will be in service inside the test year, how plant additions compare with the order, and what evidence backs a cost increase.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Project Controls Manager",
+        "description": "Asks which forecasts are stale, which project managers to chase, and which projects moved most since the last round.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Treasury and Funding",
+        "description": "Asks how much cash the program needs by month and how much of it is covered by loans and grants.",
+        "source": "ai",
+        "origin": null
+      }
+    ],
+    "metrics": [
+      {
+        "name": "Forecast variance",
+        "description": "Forecast at completion minus approved budget, per project, from the latest working forecast. Positive means overrun; a large project above 10% needs a WIN budget revision.",
+        "source": "ai",
+        "origin": null,
+        "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+      },
+      {
+        "name": "Large projects above 10%",
+        "description": "Large projects in delivery whose forecast at completion is more than 10% above the approved budget, with whether a WIN budget revision is raised.",
+        "source": "ai",
+        "origin": null,
+        "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+      },
+      {
+        "name": "Annual plan delivery",
+        "description": "Posted to date plus the working forecast to year end, divided by the annual plan. Below 95% means capital moves into next year.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+      },
+      {
+        "name": "Spend vs plan, year to date",
+        "description": "Posted actuals in the fiscal year to date divided by the calendarized plan for the same months.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT SUM(g.amount_usd) AS posted_ytd_usd,\n       (SELECT SUM(m.plan_usd) FROM epbcs.monthly_spread m\n        WHERE m.fiscal_year = 2026 AND m.vintage = 'Jan Calendarization' AND m.period <= 9) AS plan_ytd_usd\nFROM gl.project_costing_line g\nWHERE g.fiscal_period BETWEEN '2026-01' AND '2026-09'"
+      },
+      {
+        "name": "Forecast freshness",
+        "description": "Active projects whose latest working forecast is older than 45 days, by region and cost tool.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+      },
+      {
+        "name": "Open commitments",
+        "description": "Ordered minus received minus cancelled, on open PO lines. Unpaid invoices are not open commitment.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT l.project_code, SUM(l.ordered_usd - l.received_usd - l.cancelled_usd) AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open'\nGROUP BY l.project_code"
+      },
+      {
+        "name": "Contingency remaining",
+        "description": "Contingency still held in the latest forecast divided by contingency at authorization.",
+        "source": "ai",
+        "origin": null,
+        "sql": "WITH latest AS (\n  SELECT project_code, contingency_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT b.project_code, b.contingency_usd AS contingency_at_approval_usd, l.contingency_usd AS contingency_left_usd\nFROM epbcs.plan b\nJOIN latest l ON l.project_code = b.project_code AND l.rn = 1\nWHERE b.plan_vintage = 'Working' AND b.fiscal_year = 2026"
+      },
+      {
+        "name": "Budget revisions waiting",
+        "description": "WIN budget revisions requested and not yet approved, by approval level and age.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+      },
+      {
+        "name": "Test-year in-service at risk",
+        "description": "Projects claimed in service inside a test year whose expected in-service date is now after the test year ends, with the rate base at stake.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "azuresql:northline_epbcs",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "azuresql:northline_psoft",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "azuresql:northline_pmo",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "onedrive:northline-capital-program",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "outlook:nishant.srivastav@vriodigital.com",
+        "mode": "all",
+        "objects": []
+      }
+    ],
+    "hero_questions": [
+      {
+        "text": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+      },
+      {
+        "text": "Are we on track to spend the FY26 plan by December?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+      },
+      {
+        "text": "Where does the program stand against its approved budget, and is it inside the 5% tolerance?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+      },
+      {
+        "text": "Which projects have not been re-forecast for more than 45 days?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+      },
+      {
+        "text": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+      },
+      {
+        "text": "Why is Dunmoor East Filter Media Renewal over budget?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT o.co_number, o.reason_category, o.cost_impact_usd, o.co_status, o.approved_on\nFROM pmo.change_order o\nWHERE o.project_code = 'C23B225_690'\nORDER BY o.co_number"
+      },
+      {
+        "text": "Which WIN budget revisions are waiting at Level 03, and for how long?",
+        "priority": "normal",
+        "source": "ai",
+        "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+      }
+    ],
+    "gap_decisions": [],
+    "golden_query_files": [],
+    "step": 6,
+    "updated_at": "2026-10-13T16:22:40.118Z",
+    "role": {
+      "role_id": "cpa",
+      "role_name": "Capital Program Analyst",
+      "industry": "water",
+      "utilities": [
+        "ARD",
+        "BEL",
+        "COR",
+        "DUN"
+      ],
+      "reports_to": "priya.raman@vriodigital.com",
+      "responsibilities": [
+        "cip",
+        "budget",
+        "cost",
+        "reg",
+        "acct",
+        "report"
+      ]
+    }
+  }
+]

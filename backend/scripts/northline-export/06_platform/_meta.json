@@ -1,0 +1,10 @@
+{
+  "package": "veolia_capex_demo_data_package_2026-10-19",
+  "tenant": "Northline Water Group (invented - four regulated US water utilities standing in for the prospect; no figure is Veolia’s)",
+  "schema_source": "the development team’s db.CAPEX.json key set and field shapes, as carried by the reference packages of 2026-09-24 and 2026-10-12",
+  "generated_by": "_build/build_platform.py",
+  "as_of": "2026-10-15",
+  "today": "2026-10-19",
+  "note": "Every value is generated from the datasets in datasets/ and the scripts in _build/. Never hand-edit this file - change the generator and rebuild.",
+  "keys_carried_from_capex_schema": 31
+}

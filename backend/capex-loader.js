@@ -23,6 +23,11 @@ const CAPEX_FILES = [
   'capex_ask.json',
   'capex_whatif.json',
   'capex_audit_governance.json',
+  /* The Northline export's three fragments: the New Role wizard's library, and the Goals and
+     Submissions builds' scripted state. Loaded last; none of their keys collides with another file's. */
+  'capex_new_role.json',
+  'capex_goals.json',
+  'capex_submissions.json',
 ]
 
 /**

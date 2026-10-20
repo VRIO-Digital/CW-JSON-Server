@@ -1,0 +1,280 @@
+{
+  "kinds": {
+    "once": {
+      "label": "Answer once",
+      "journeyBar": [
+        "Brief",
+        "Plan",
+        "Run",
+        "Findings",
+        "Decision",
+        "Send"
+      ],
+      "panelTabs": {
+        "reading": [
+          "plan",
+          "data"
+        ],
+        "questions": [
+          "plan",
+          "workflow",
+          "data",
+          "log"
+        ],
+        "plan": [
+          "plan",
+          "workflow",
+          "data",
+          "log"
+        ],
+        "running": [
+          "plan",
+          "workflow",
+          "findings",
+          "outputs",
+          "data",
+          "log"
+        ]
+      }
+    },
+    "watch": {
+      "label": "Keep watching",
+      "kinds": [
+        "rule",
+        "schedule"
+      ],
+      "journeyBar": [
+        "Watch",
+        "Plan",
+        "Armed",
+        "Run",
+        "Findings",
+        "Decision",
+        "Execute"
+      ],
+      "panelTabs": {
+        "reading": [
+          "plan",
+          "data"
+        ],
+        "questions": [
+          "plan",
+          "workflow",
+          "data",
+          "log"
+        ],
+        "plan": [
+          "plan",
+          "workflow",
+          "data",
+          "log"
+        ],
+        "armed": [
+          "plan",
+          "workflow",
+          "runs",
+          "outputs",
+          "data",
+          "log"
+        ]
+      }
+    }
+  },
+  "stages": {
+    "reading": "The agent reads what it was given and what is connected. The feed in the chat shows one tool call per line; each line reveals plan rows (Read.rv keys). The composer is off ('Reading…'). Ends with 'draft the plan' and the steps appear.",
+    "questions": "Only what the reads could not find, one card at a time (kind 'q'). A card folds to one line when answered: by tile, by text, by Edit on the plan row, or by a document from a connector that answers it.",
+    "plan": "No open question. Status pill 'Ready to agree' / 'Ready to arm'. Chips offer the main changes; free text that matches no chip is added to 'What I'm taking as given'. Changes that touch a step show a diff card first (Apply / Leave it). Every change bumps the version and lands in Changes and the Log. Footer button: 'Agree and run' or 'Arm the watch'.",
+    "running": "(once) The plan is agreed. Steps run on the run script; each completion writes an event line; findings land as steps finish, provisional until 'ready'. A checkpoint stops the run ('wait'): for the rate base, how the nine completed projects in CWIP are treated. Pause and resume; steer (diff, stale, re-run); fork (one at a time). Then 'ready', accept findings, choose ('accepted'): the goal moves to Executed; outputs are built in Submissions.",
+    "armed": "(watch) The plan is armed (armedAt, armedBy, nextCheck). Nothing runs until the rule fires or the schedule is due ('Simulate tonight’s order load (20 October)' or 'Simulate: run now' in the demo). On firing: a notification (toast and bell) says it fired; status 'fired' while the five steps run by themselves; 'ready' when the note is sent, with a second notification carrying what it found and what it recommends. The run waits under Needs you. Choose shows an execute card ('confirm'); nothing happens until Execute ('executing', then 'executed'); a third notification; the run moves to Executed and the watch stays armed."
+  },
+  "statuses": [
+    "draft",
+    "running",
+    "wait",
+    "paused",
+    "ready",
+    "accepted",
+    "sent",
+    "armed",
+    "fired",
+    "executing",
+    "executed"
+  ],
+  "nodeStates": [
+    "pending",
+    "running",
+    "wait",
+    "done",
+    "stale"
+  ],
+  "journeyBarRule": {
+    "brief": "stage reading or questions (sub: answered of total)",
+    "plan": "stage plan (sub: version)",
+    "armed": "watch: stage armed and status armed",
+    "run": "stage running and status running/wait/paused, or status fired (sub: done of N, checkpoint, or paused)",
+    "findings": "findings exist and not all accepted (sub: accepted of total)",
+    "decision": "all accepted and nothing chosen",
+    "send": "(once) chosen; done once an output is started in Submissions or marked sent",
+    "execute": "(watch) chosen; done once executed"
+  },
+  "notifications": {
+    "kinds": [
+      "fired",
+      "findings",
+      "executed"
+    ],
+    "toast": "Top right, with a call to action (Watch it run, Review it, Open the goal)",
+    "bell": "Every notice stays in the bell drawer; unread count on the bell",
+    "fields": [
+      "title",
+      "text",
+      "found",
+      "rec",
+      "cta"
+    ],
+    "recorded": "notifications_after_watch.json"
+  },
+  "execute": {
+    "note": "A standing goal’s recommendation is executed only after Execute; each option has its own four steps.",
+    "byOption": "Recorded for option 1 in transcripts/watch_rule_03_executed.json (exec.steps); options 2 and 3 follow the same four-step shape.",
+    "WATCH_EXECUTE": {
+      "r1": {
+        "title": "Re-place the nine unconfirmed lines and fix the catalogue",
+        "steps": [
+          "Draft the off-framework order note and the list of affected orders, from the findings",
+          "Send them to Tolu Adeyemi and the nine project managers, asking Procurement to cancel and re-order the nine lines on the frameworks",
+          "Raise the catalogue change: pipe, fittings, valves and hydrants default to FA-2025-PIPE-01 and FA-2025-VLV-02",
+          "Update the savings tracker: $9.0M secured of $24.2M (37.2%), pending the re-orders"
+        ],
+        "done": "Note and order list sent; catalogue change raised; tracker updated to $9.0M, pending the re-orders."
+      }
+    }
+  },
+  "dock": "While the card waiting for you is scrolled out of sight, a bar docks above the message box: 'Waiting for you: <step>' (or 'In progress'), with 'Go to it'.",
+  "resumeLine": "Reopening a goal with history shows one line: 'Back on this. Step n of N, <label>. Next: <what it needs>.'",
+  "listGroups": {
+    "Needs you": "once goals in reading/questions/plan or waiting/paused; watch goals being briefed; every standing-goal run that fired and waits for your review (titled with the run label, e.g. Order load, 20 October · 14 lines off-framework)",
+    "Findings ready": "once goals running and not waiting, not yet chosen",
+    "Standing goals": "every armed watch; an armed one carries 'Simulate tonight’s load' / 'Simulate: run now'; one with a fired run reads 'Armed · 1 run waits for you'",
+    "Executed": "once goals with a chosen recommendation; standing-goal runs once executed",
+    "Saved plans": "saved plans with 'new goal from it'; the start screen shows them as 'Or start from a saved plan' cards"
+  },
+  "startScreen": {
+    "toggle": [
+      "Answer once",
+      "Keep watching"
+    ],
+    "composer": "Textarea, attachments, a + menu (Upload from your computer; Connected: Web search toggle, OneDrive, Outlook, Azure SQL), the web-search pill, Send.",
+    "examples": {
+      "once": [
+        "Use the Belmara rate base example",
+        "14 off-framework lines in the 20 October load: what can still be done?"
+      ],
+      "watch": [
+        "Use the 2.5% procurement example",
+        "Rate base refresh after every close"
+      ]
+    },
+    "caseDetection": {
+      "once": "'rate base', 'belmara', 'used and useful', 'prudent', 'prudence', 'depreciation', 'bpuc', 'test year' → case once; 'off-framework', 'framework', 'order load', 'order line(s)', 'spot supplier' → case overrun-once (the watch analysis run once); otherwise generic",
+      "watch": "'each quarter', 'every quarter', 'after every quarterly close' style words or the schedule example → kind schedule; 'procure', 'framework', '2.5%', 'benchmark', 'order line', 'off-framework', 'spend' → case watch (rule); otherwise generic rule"
+    }
+  },
+  "timings": {
+    "readLine": "520 to 780 ms per read line; 600 ms per attached document; 650 ms for draft the plan; typing dots 600 to 800 ms",
+    "onceRun": [
+      [
+        "n1 running",
+        400
+      ],
+      [
+        "n1 done, n2 and n3 running, F1 lands",
+        2200
+      ],
+      [
+        "n3 done, F3 lands",
+        2000
+      ],
+      [
+        "n2 done, F2 (or F2b) lands; checkpoint or straight on",
+        1800
+      ],
+      [
+        "after the checkpoint: n4 running (and f1)",
+        400
+      ],
+      [
+        "n4 done, F4 lands, n5 running",
+        2200
+      ],
+      [
+        "n5 done (recommendations), n6 running",
+        1800
+      ],
+      [
+        "n6 done, findings ready",
+        1800
+      ]
+    ],
+    "watchRun": [
+      [
+        "w1 running",
+        400
+      ],
+      [
+        "w1 done, W1 lands, w2 and w3 running",
+        1800
+      ],
+      [
+        "w2 done, W2 lands",
+        1700
+      ],
+      [
+        "w3 done, W3 and W4 land, w4 running",
+        1500
+      ],
+      [
+        "w4 done (options), w5 running",
+        1600
+      ],
+      [
+        "w5 done, note sent",
+        1500
+      ]
+    ],
+    "execute": [
+      [
+        "first action",
+        500
+      ],
+      [
+        "each further action",
+        900
+      ]
+    ],
+    "steerRerun": [
+      [
+        "n2 done again (contentKey n2b), F2 → F2b",
+        1500
+      ],
+      [
+        "each downstream step re-done",
+        1100
+      ]
+    ]
+  },
+  "controls": {
+    "Edit on a plan row": "prefills the composer with '<Label>: ' and marks the row; a message that starts with a row label changes that row (four, t3, fires and tell are parsed into the canonical choice)",
+    "Pause after this step / Resume": "pauses the run between steps",
+    "Fork a what-if": "three assumptions: the 2026 depreciation study rates (rc), the seven make 31 December (t3), the nine stay in CWIP (four); the fork sits beside the prudence step and shares steps 1 to 3",
+    "Checkpoint tiles": "Count them as completed construction (june) / Leave them in CWIP, as booked (standin: steps 2 and 3 re-run with contentKey n2b) / Run both (adds the fork four)",
+    "Steer chip": "'Leave the nine in CWIP' → diff card → Apply: steps 2 and 3 stale then done, F2 → F2b, the rate base and the recommendations move to $1,065.8M",
+    "Accept / Challenge": "per finding or Accept all; a challenge takes one sentence and keeps the finding open",
+    "Why this / Choose / Prefer this instead": "on the recommendation cards; Choose is enabled once all findings are accepted",
+    "Execute / Not now": "(watch) after Choose; Execute runs the option’s four actions; the first drafts the output in Submissions",
+    "Build the schedules in Submissions": "starts the submission from the output’s library template with the goal attached (registered under the base goal id g-belmara-rate-base)",
+    "Save this plan": "adds a saved plan to the list",
+    "Make it standing": "prefills Keep watching with the quarterly rate base refresh",
+    "Simulate": "fires the rule (order load of 20 October 02:00) or runs the schedule now"
+  }
+}

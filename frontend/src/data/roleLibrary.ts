@@ -55,7 +55,7 @@ export interface UtilityScan {
   none?: string
 }
 
-export const ROLES: RoleDef[] = [
+export let ROLES: RoleDef[] = [
   {
     "id": "cpa",
     "name": "Capital Program Analyst",
@@ -408,7 +408,7 @@ export const ROLES: RoleDef[] = [
   }
 ]
 
-export const INDUSTRIES: IndustryDef[] = [
+export let INDUSTRIES: IndustryDef[] = [
   {
     "id": "water",
     "name": "Water",
@@ -436,7 +436,7 @@ export const INDUSTRIES: IndustryDef[] = [
   }
 ]
 
-export const UTILITIES: Record<string, UtilityScan> = {
+export let UTILITIES: Record<string, UtilityScan> = {
   "water": {
     "steps": [
       "Reading pmo.project in the PMO project master: 4,500 projects, 5 utility codes",
@@ -527,4 +527,61 @@ export const UTILITIES: Record<string, UtilityScan> = {
 }
 
 /** Why a responsibility is taken out of scope — the chips under an unticked area. */
-export const OUT_REASONS: string[] = ["Done by another team","Not something we do here","Later, not now"]
+export let OUT_REASONS: string[] = ["Done by another team","Not something we do here","Later, not now"]
+
+/*
+ * **The bundled library above is the default; a dataset that ships its own replaces it.** CAPEX's
+ * Northline export carries a `new_role` block (roles, industries, what a scan finds, which domain each
+ * role works in) and the server serves it on `GET /role-library`. `hydrateRoleLibrary` swaps it in.
+ *
+ * The four exports above are `let` for that: ES module bindings are live, so one assignment reaches
+ * every importer — the same arrangement the report prototype's dataset has — and it holds only
+ * because nothing reads them at module scope, which was checked before the change.
+ */
+
+/** Role id → the business domain it works in, as the shipped library names it. */
+export let ROLE_DOMAIN_OF: Record<string, string> = {}
+
+const FINDING_KINDS = ['confirm', 'task', 'scope']
+
+/**
+ * Take a served library into use. Read defensively and all-or-nothing: a library missing its roles or
+ * industries is ignored rather than half-applied, because a half-replaced one would offer roles whose
+ * industries are the bundled library's.
+ */
+export function hydrateRoleLibrary(raw: unknown): boolean {
+  const lib = raw as {
+    roles?: Array<Partial<RoleDef> & { jd?: { file?: string; pages?: number; findings?: JdFinding[] } }>
+    industries?: IndustryDef[]
+    discovery?: Record<string, UtilityScan>
+    domain_of_role?: Record<string, string>
+    steps?: Array<{ key?: string; out_reasons?: string[] }>
+  } | null
+  if (!lib || !Array.isArray(lib.roles) || !lib.roles.length) return false
+  if (!Array.isArray(lib.industries) || !lib.industries.length || !lib.discovery) return false
+
+  const roles: RoleDef[] = []
+  for (const r of lib.roles) {
+    if (!r.id || !r.name || !Array.isArray(r.areas)) return false
+    roles.push({
+      id: r.id,
+      name: r.name,
+      blurb: r.blurb ?? '',
+      areas: r.areas,
+      jd: {
+        file: r.jd?.file ?? 'job-description.pdf',
+        pages: r.jd?.pages,
+        /* Only the kinds the Responsibilities step can act on; the export's other kinds belong to
+           Graph Studio's side of the same build. */
+        findings: (r.jd?.findings ?? []).filter((f) => FINDING_KINDS.includes(f.kind)),
+      },
+    })
+  }
+  ROLES = roles
+  INDUSTRIES = lib.industries
+  UTILITIES = lib.discovery
+  ROLE_DOMAIN_OF = lib.domain_of_role ?? {}
+  const reasons = lib.steps?.find((s) => s.key === 'responsibilities')?.out_reasons
+  if (reasons?.length) OUT_REASONS = reasons
+  return true
+}

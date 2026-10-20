@@ -1,1185 +1,2346 @@
 {
   "graph_domains": [
     {
-      "domain_id": "capital-projects",
-      "name": "Capital Projects",
+      "domain_id": "capital-program",
+      "name": "Capital Program Management (regulated water)",
       "expected_sources": [
-        "EPBCS plan cube",
-        "PeopleSoft GL",
-        "PeopleSoft approvals",
-        "PMO attributes"
+        "EPBCS plan and forecast",
+        "PeopleSoft ledger and commitments",
+        "PMO project master",
+        "Capital Program documents",
+        "Capital program mailbox"
       ],
       "fit": "strong",
-      "note": "All four expected sources are connected and profiled (Pack capital-projects v1.3.0).",
-      "unmet_note": "No plan cube, ledger or approval source connected.",
+      "note": "Plan, forecast, ledger, commitments and the project master are connected and profiled; contracts, decks and rate case schedules are in OneDrive.",
+      "unmet_note": "No plan, ledger or project master connected.",
       "rank": 1
     },
     {
-      "domain_id": "water-wastewater",
-      "name": "Water & Wastewater",
+      "domain_id": "rate-case-recovery",
+      "name": "Rate Case and Regulatory Recovery",
       "expected_sources": [
-        "Rate-case register",
-        "In-service register",
-        "Compliance driver dimension"
+        "Rate case claims",
+        "In-service date file",
+        "Plant in service",
+        "Commission orders"
       ],
-      "fit": "strong",
-      "note": "Overlay water-wastewater v0.9.1 is bound; rate jurisdictions and compliance drivers resolve.",
-      "unmet_note": "No rate-case or in-service source connected.",
+      "fit": "partial",
+      "note": "Claims, in-service dates and plant in service resolve. 990 projects have no in-service row, so their dates come from the forecast phase only.",
+      "unmet_note": "No rate case register or in-service source connected.",
       "rank": 2
     },
     {
-      "domain_id": "schedule-delivery",
-      "name": "Schedule & Delivery",
+      "domain_id": "contract-change",
+      "name": "Contract and Change Control",
       "expected_sources": [
-        "Primavera P6",
-        "Field progress claims"
+        "Contract register",
+        "Change orders",
+        "PO lines",
+        "Contractor correspondence"
       ],
       "fit": "partial",
-      "note": "Dates resolve from the plan extract only — no schedule source is connected, so schedule variance is a date arithmetic, not a critical-path answer.",
-      "unmet_note": "No P6 or progress-claim source connected.",
+      "note": "Contracts, change orders and orders resolve. Pay applications and retainage are only in documents.",
+      "unmet_note": "No contract register connected.",
       "rank": 3
     },
     {
-      "domain_id": "commitments",
-      "name": "Commitments & Procurement",
+      "domain_id": "schedule-critical-path",
+      "name": "Schedule and Critical Path",
       "expected_sources": [
-        "Purchase orders",
-        "Encumbrance ledger"
+        "Primavera P6 schedules",
+        "Milestones",
+        "Critical path float"
       ],
       "fit": "none",
-      "note": "The commitment link of the value chain is a schema type with zero members, so 'what is committed but not yet spent' is not answerable from this demo package.",
-      "unmet_note": "The shipped extract carries no PO table.",
+      "note": "Primavera P6 is not connected, so milestones and critical path float cannot be read. Schedule questions are declined.",
+      "unmet_note": "No scheduling source connected.",
       "rank": 4
     }
   ],
   "graph_personas": [
     {
-      "persona_id": "finance-exec",
-      "name": "Finance Executive",
+      "persona_id": "csc-chair",
+      "name": "SVP Capital Delivery (committee chair)",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "contract-change"
       ],
       "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
+        "program",
+        "committee",
+        "decision",
+        "large project",
+        "tolerance"
       ],
-      "focus": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+      "focus": "Chairs the Capital Steering Committee. Asks where the program stands, which large projects need a decision, and what goes in the quarterly pack.",
+      "top_questions": [
+        "hq3",
+        "hq6",
+        "hq7",
+        "hq8",
+        "hq12",
+        "hq16"
+      ]
+    },
+    {
+      "persona_id": "capital-controller",
+      "name": "Capital Controller",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "forecast",
+        "variance",
+        "ledger",
+        "plan",
+        "accrual",
+        "commitment"
+      ],
+      "focus": "Asks whether forecasts reconcile to the ledger, whether the year's plan will be spent by December, and what moved since last month.",
       "top_questions": [
         "hq1",
-        "hq5",
-        "hq7",
+        "hq2",
         "hq11",
-        "hq12",
+        "hq30",
+        "hq32"
+      ]
+    },
+    {
+      "persona_id": "rate-case-director",
+      "name": "Director, Rate Case and Regulatory",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "rate case",
+        "test year",
+        "in service",
+        "rate base",
+        "prudence",
+        "order"
+      ],
+      "focus": "Asks which claimed projects will be in service inside the test year, how plant additions compare with the order, and what evidence backs a cost increase.",
+      "top_questions": [
+        "hq5",
+        "hq9",
+        "hq10",
+        "hq18",
+        "hq19"
+      ]
+    },
+    {
+      "persona_id": "project-controls",
+      "name": "Project Controls Manager",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "stale",
+        "refresh",
+        "forecast round",
+        "project manager",
+        "slip"
+      ],
+      "focus": "Asks which forecasts are stale, which project managers to chase, and which projects moved most since the last round.",
+      "top_questions": [
+        "hq4",
+        "hq17",
+        "hq34",
+        "hq44"
+      ]
+    },
+    {
+      "persona_id": "treasury",
+      "name": "Treasury and Funding",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "cash",
+        "month",
+        "funding",
+        "SRF",
+        "WIFIA",
+        "grant"
+      ],
+      "focus": "Asks how much cash the program needs by month and how much of it is covered by loans and grants.",
+      "top_questions": [
+        "hq13"
+      ]
+    },
+    {
+      "persona_id": "utility-president",
+      "name": "Utility President",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "utility",
+        "plan",
+        "spend",
+        "rate base",
+        "commission"
+      ],
+      "focus": "Asks how their utility's plan, spend and rate base additions compare with what the commission was told.",
+      "top_questions": [
+        "hq15"
+      ]
+    },
+    {
+      "persona_id": "compliance",
+      "name": "Compliance Manager",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "PFAS",
+        "lead service line",
+        "consent order",
+        "mandate",
+        "deadline"
+      ],
+      "focus": "Asks whether mandated work (PFAS treatment, lead service lines, consent orders) is on pace for its deadline.",
+      "top_questions": [
+        "hq14",
         "hq33"
       ]
     },
     {
-      "persona_id": "programme-director",
-      "name": "Programme Director",
+      "persona_id": "category-manager",
+      "name": "Category Manager, Capital Works",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "contract-change"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "framework",
+        "supplier",
+        "price",
+        "savings",
+        "off-framework"
       ],
-      "focus": "Asks which projects are slipping and what that does to the programme envelope.",
+      "focus": "Asks how much capital spend goes through framework agreements, what the program is saving against its target, and which orders went off-framework.",
       "top_questions": [
-        "hq14"
+        "hq25",
+        "hq26",
+        "hq27",
+        "hq29"
       ]
     },
     {
-      "persona_id": "procurement-lead",
-      "name": "Procurement Lead",
+      "persona_id": "plant-accounting",
+      "name": "Plant Accounting Manager",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "contract",
-        "vendor",
-        "change order",
-        "award",
-        "commitment"
+        "CWIP",
+        "unitize",
+        "in service",
+        "retirement",
+        "depreciation"
       ],
-      "focus": "Asks what has been awarded, what has changed since award, and to whom."
-    },
-    {
-      "persona_id": "controller",
-      "name": "Controller",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
-      ],
-      "focus": "Asks whether the ledger and the plan agree, and where they do not.",
+      "focus": "Asks which projects are in service but still in CWIP, what has been unitized, and what depreciation and retirements the month booked.",
       "top_questions": [
-        "hq9"
+        "hq20",
+        "hq22",
+        "hq24"
       ]
     },
     {
       "persona_id": "project-manager",
       "name": "Project Manager",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "contract-change"
       ],
       "keywords": [
-        "project",
-        "progress",
-        "in-service",
-        "milestone",
-        "scope"
+        "my project",
+        "change order",
+        "contingency",
+        "forecast",
+        "commitments"
       ],
-      "focus": "Asks where a single project stands against its own plan."
-    },
-    {
-      "persona_id": "rate-case-lead",
-      "name": "Rate-Case Lead",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
-      ],
-      "focus": "Asks which assets will be in service in time for the next filing.",
+      "focus": "Asks where a single project stands against its approved budget, what is committed, and how much contingency is left.",
       "top_questions": [
         "hq28",
-        "hq29",
         "hq35"
       ]
     },
     {
-      "persona_id": "compliance-lead",
-      "name": "Compliance Lead",
+      "persona_id": "engineering-director",
+      "name": "Director, Engineering and Asset Management",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program"
       ],
       "keywords": [
-        "compliance",
-        "driver",
-        "PFAS",
-        "lead service line",
-        "regulatory"
+        "asset risk",
+        "priority",
+        "renewal",
+        "backlog",
+        "condition"
       ],
-      "focus": "Asks what the regulatory drivers oblige and what they cost.",
+      "focus": "Asks which high-risk renewals are unfunded, how the plan ranks projects, and what moved between plan vintages.",
       "top_questions": [
-        "hqW1",
-        "hqW2"
+        "hq40",
+        "hq45"
+      ]
+    },
+    {
+      "persona_id": "cfo",
+      "name": "Chief Financial Officer",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "rate base",
+        "financing",
+        "capex",
+        "plan",
+        "return"
+      ],
+      "focus": "Asks what the program adds to rate base, how much it needs financed, and whether the year's capital will be spent.",
+      "top_questions": [
+        "hq21",
+        "hq36",
+        "hq37",
+        "hq42"
+      ]
+    },
+    {
+      "persona_id": "board-finance",
+      "name": "Board Finance Committee",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "five-year plan",
+        "envelope",
+        "rate impact",
+        "approval"
+      ],
+      "focus": "Asks whether the five-year plan stays inside its envelope and what it means for customer rates.",
+      "top_questions": [
+        "hq39"
+      ]
+    },
+    {
+      "persona_id": "commission-staff",
+      "name": "Commission staff (data requests)",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "data request",
+        "used and useful",
+        "prudent",
+        "test year"
+      ],
+      "focus": "Asks for the evidence behind the rate base: what is in service, what it cost, and why the cost was prudent.",
+      "top_questions": [
+        "hq23",
+        "hq43"
+      ]
+    },
+    {
+      "persona_id": "lender-liaison",
+      "name": "Lender and funding agency liaison",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "SRF",
+        "WIFIA",
+        "draw",
+        "eligible spend",
+        "compliance records"
+      ],
+      "focus": "Asks how much eligible spend can be drawn this month and whether the compliance records are complete.",
+      "top_questions": [
+        "hq41"
+      ]
+    },
+    {
+      "persona_id": "operations-director",
+      "name": "Regional Operations Director",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "in service",
+        "outage",
+        "disruption",
+        "region"
+      ],
+      "focus": "Asks when new plant comes into service in the region and which projects will disrupt operations.",
+      "top_questions": [
+        "hq31",
+        "hq38"
       ]
     }
   ],
   "graph_hero_questions": [
     {
       "question_id": "hq1",
-      "text": "Are we going to spend the authorized capital this fiscal year?",
+      "text": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
-      ],
-      "persona": "Finance Executive",
-      "answer_id": "Q01",
-      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.gl at high confidence (0.91)."
-    },
-    {
-      "question_id": "hq5",
-      "text": "What is the burn rate against current approved, by programme?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
-      ],
-      "persona": "Finance Executive",
-      "answer_id": "Q05",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl at high confidence (0.90)."
-    },
-    {
-      "question_id": "hq7",
-      "text": "Where is forecast diverging from budget, by programme and category?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
-      ],
-      "persona": "Finance Executive",
-      "answer_id": "Q07",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.90)."
-    },
-    {
-      "question_id": "hq9",
-      "text": "How far has the approved baseline moved since original approval, and who approved each move?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
-      ],
-      "persona": "Controller",
-      "answer_id": "Q09",
-      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr + — at medium confidence (0.72)."
-    },
-    {
-      "question_id": "hq11",
-      "text": "Which projects show no variance against current approved but material variance against original?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
-      ],
-      "persona": "Finance Executive",
-      "answer_id": "Q11",
-      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr at high confidence (0.88)."
-    },
-    {
-      "question_id": "hq12",
-      "text": "How does the forward plan compare with the sum of project-life forecasts?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
-      ],
-      "persona": "Finance Executive",
-      "answer_id": "Q12",
-      "rationale": "Resolves across northline_epbcs.plan + — at medium confidence (0.79)."
-    },
-    {
-      "question_id": "hq14",
-      "text": "Which projects are trending to overrun, and by how much?",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "programme",
+        "large",
+        "projects",
         "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
-      ],
-      "persona": "Programme Director",
-      "answer_id": "Q14",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + — at high confidence (0.89)."
-    },
-    {
-      "question_id": "hq28",
-      "text": "What in-service value lands inside the current test year?",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
-      ],
-      "persona": "Rate-Case Lead",
-      "answer_id": "Q27",
-      "rationale": "Resolves across configuration + northline_pmo.attributes + — at medium confidence (0.77)."
-    },
-    {
-      "question_id": "hq29",
-      "text": "What capital is at risk of missing the filing window, and what is it worth?",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
-      ],
-      "persona": "Rate-Case Lead",
-      "answer_id": "Q28",
-      "rationale": "Resolves across configuration + northline_epbcs.plan + northline_pmo.attributes at medium confidence (0.75)."
-    },
-    {
-      "question_id": "hq33",
-      "text": "For every figure on this page, tell me where it came from and how old it is.",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
         "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
+        "overrun",
+        "approved"
       ],
-      "persona": "Finance Executive",
-      "answer_id": "Q33",
-      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.appr + northline_psoft.gl + src_drive at high confidence (0.94)."
-    },
-    {
-      "question_id": "hq35",
-      "text": "What happens to FY26 if we defer the second half of the programme by two quarters?",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
-      ],
-      "persona": "Rate-Case Lead",
-      "answer_id": "Q35",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + — at high confidence (0.88)."
-    },
-    {
-      "question_id": "hqW1",
-      "text": "Is our PFAS spend on track against the compliance deadline?",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "compliance",
-        "driver",
-        "PFAS",
-        "lead service line",
-        "regulatory"
-      ],
-      "persona": "Compliance Lead",
-      "answer_id": "Q39",
-      "rationale": "Resolves across configuration + northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl at medium confidence (0.79)."
-    },
-    {
-      "question_id": "hqW2",
-      "text": "Are we replacing lead service lines fast enough to meet the mandated rate?",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "compliance",
-        "driver",
-        "PFAS",
-        "lead service line",
-        "regulatory"
-      ],
-      "persona": "Compliance Lead",
-      "answer_id": "Q40",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes + northline_psoft.gl + — at low confidence (0.42)."
+      "persona": "Capital Controller",
+      "answer_id": "HQ1",
+      "rationale": "Resolves across epbcs.forecast + epbcs.plan + pmo.project + commitments.win_authorization at high confidence (0.93).",
+      "priority": "high",
+      "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
     },
     {
       "question_id": "hq2",
-      "text": "Where is authorized capital stalling — which stage of the chain is it stuck at?",
+      "text": "Are we on track to spend the FY26 plan by December?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "track",
+        "spend",
+        "plan",
+        "december"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q02",
-      "rationale": "Resolves across northline_epbcs.plan + northline_psoft.gl at high confidence (0.93)."
+      "persona": "Capital Controller",
+      "answer_id": "HQ2",
+      "rationale": "Resolves across epbcs.monthly_spread + gl.project_costing_line at high confidence (0.91).",
+      "priority": "high",
+      "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+    },
+    {
+      "question_id": "hq3",
+      "text": "Where does the program stand against its approved budget, and is it inside the 5% tolerance?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "where",
+        "program",
+        "stand",
+        "against",
+        "approved",
+        "budget"
+      ],
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ3",
+      "rationale": "Resolves across epbcs.plan + epbcs.forecast at high confidence (0.92); the tolerance is read from the Capital Program Policy.",
+      "priority": "high",
+      "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
     },
     {
       "question_id": "hq4",
-      "text": "Which projects hold authorization but show no activity this year?",
+      "text": "Which projects have not been re-forecast for more than 45 days?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "projects",
+        "been",
+        "re-forecast",
+        "days"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q04",
-      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan + northline_pmo.attributes at high confidence (0.89)."
+      "persona": "Project Controls Manager",
+      "answer_id": "HQ4",
+      "rationale": "Resolves across epbcs.forecast + pmo.project at high confidence (0.95).",
+      "priority": "high",
+      "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+    },
+    {
+      "question_id": "hq5",
+      "text": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "projects",
+        "claimed",
+        "belmara",
+        "test",
+        "year",
+        "risk"
+      ],
+      "persona": "Director, Rate Case and Regulatory",
+      "answer_id": "HQ5",
+      "rationale": "Resolves across pmo.rate_case_claim + upload.inservice at medium confidence (0.81): two claimed projects have no in-service row.",
+      "priority": "high",
+      "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
     },
     {
       "question_id": "hq6",
-      "text": "If spend continues at the current rate, where does the year land?",
+      "text": "Why is Dunmoor East Filter Media Renewal over budget?",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "contract-change"
       ],
       "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
+        "dunmoor",
+        "east",
+        "filter",
+        "media",
+        "renewal",
+        "over"
       ],
-      "persona": "Finance Executive",
-      "answer_id": "Q06",
-      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan at medium confidence (0.74)."
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ6",
+      "rationale": "Resolves across epbcs.forecast + pmo.change_order + the project's documents + mailbox at question time at high confidence (0.88).",
+      "priority": "high",
+      "sql": "SELECT o.co_number, o.reason_category, o.cost_impact_usd, o.co_status, o.approved_on\nFROM pmo.change_order o\nWHERE o.project_code = 'C23B225_690'\nORDER BY o.co_number"
+    },
+    {
+      "question_id": "hq7",
+      "text": "How much contingency is left across the program, and where is it going?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "much",
+        "contingency",
+        "left",
+        "across",
+        "program",
+        "where"
+      ],
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ7",
+      "rationale": "Resolves across epbcs.plan + epbcs.forecast at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "WITH latest AS (\n  SELECT project_code, contingency_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT b.project_code, b.contingency_usd AS contingency_at_approval_usd, l.contingency_usd AS contingency_left_usd\nFROM epbcs.plan b\nJOIN latest l ON l.project_code = b.project_code AND l.rn = 1\nWHERE b.plan_vintage = 'Working' AND b.fiscal_year = 2026"
     },
     {
       "question_id": "hq8",
-      "text": "What is the variance against the current approved baseline, and against the original?",
+      "text": "Which WIN budget revisions are waiting at Level 03, and for how long?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "budget",
+        "revisions",
+        "waiting",
+        "level",
+        "long"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q08",
-      "rationale": "Resolves across northline_psoft.gl + northline_epbcs.plan + northline_psoft.appr at high confidence (0.87)."
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ8",
+      "rationale": "Resolves across commitments.win_authorization at high confidence (0.96).",
+      "priority": "normal",
+      "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+    },
+    {
+      "question_id": "hq9",
+      "text": "How does plant placed in service compare with what the last Belmara rate order assumed?",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "plant",
+        "placed",
+        "service",
+        "compare",
+        "last",
+        "belmara"
+      ],
+      "persona": "Director, Rate Case and Regulatory",
+      "answer_id": "HQ9",
+      "rationale": "Resolves across assets.plant_in_service + the BPUC order excerpt at medium confidence (0.84).",
+      "priority": "normal",
+      "sql": "SELECT p.utility_code, SUM(s.amount_usd) AS placed_in_service_usd\nFROM assets.plant_in_service s\nJOIN pmo.project p ON p.project_code = s.project_code\nWHERE s.in_service_date BETWEEN '2025-01-01' AND '2026-09-30'\nGROUP BY p.utility_code"
+    },
+    {
+      "question_id": "hq10",
+      "text": "What evidence do we have that the Dunmoor East cost increase was prudent?",
+      "domains": [
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "evidence",
+        "dunmoor",
+        "east",
+        "cost",
+        "increase",
+        "prudent"
+      ],
+      "persona": "Director, Rate Case and Regulatory",
+      "answer_id": "HQ10",
+      "rationale": "Resolves across pmo.change_order + commitments.win_authorization + committee minutes at medium confidence (0.79).",
+      "priority": "normal",
+      "sql": "SELECT w.win_id, w.request_type, w.approval_level, w.amount_usd, w.win_status, w.approved_on, w.reason\nFROM commitments.win_authorization w\nWHERE w.project_code = 'C23B225_690'\nORDER BY w.requested_on"
+    },
+    {
+      "question_id": "hq11",
+      "text": "Which projects are in service but still sitting in CWIP?",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "projects",
+        "service",
+        "sitting",
+        "cwip"
+      ],
+      "persona": "Capital Controller",
+      "answer_id": "HQ11",
+      "rationale": "Resolves across assets.cwip_balance + upload.inservice at high confidence (0.87).",
+      "priority": "normal",
+      "sql": "SELECT c.project_code, c.cwip_usd, i.forecast_in_service_date\nFROM assets.cwip_balance c\nJOIN upload.inservice i ON i.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0 AND i.forecast_in_service_date < '2026-08-01'"
+    },
+    {
+      "question_id": "hq12",
+      "text": "Which contracts have change orders above 8% of their original value?",
+      "domains": [
+        "contract-change"
+      ],
+      "keywords": [
+        "contracts",
+        "change",
+        "orders",
+        "above",
+        "original",
+        "value"
+      ],
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ12",
+      "rationale": "Resolves across pmo.contract + pmo.change_order at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT c.project_code, c.contract_no, c.award_value_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) AS approved_co_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) / NULLIF(c.award_value_usd, 0) AS co_rate\nFROM pmo.contract c\nLEFT JOIN pmo.change_order o ON o.contract_no = c.contract_no\nGROUP BY c.project_code, c.contract_no, c.award_value_usd"
     },
     {
       "question_id": "hq13",
-      "text": "What share of the total gap is attributable to a single programme or driver?",
+      "text": "How much open commitment does each utility carry into Q4?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
+        "much",
+        "open",
+        "commitment",
+        "each",
+        "utility",
+        "carry"
       ],
-      "persona": "Finance Executive",
-      "answer_id": "Q13",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.86)."
+      "persona": "Treasury and Funding",
+      "answer_id": "HQ13",
+      "rationale": "Resolves across commitments.po_line + pmo.project at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT l.project_code, SUM(l.ordered_usd - l.received_usd - l.cancelled_usd) AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open'\nGROUP BY l.project_code"
+    },
+    {
+      "question_id": "hq14",
+      "text": "How much of the 5-year plan is driven by mandates rather than discretionary renewal?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "much",
+        "year",
+        "plan",
+        "driven",
+        "mandates",
+        "rather"
+      ],
+      "persona": "Compliance Manager",
+      "answer_id": "HQ14",
+      "rationale": "Resolves across epbcs.plan + pmo.project at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT b.plan_vintage,\n       SUM(CASE WHEN p.compliance_driver <> 'None' THEN b.plan_amount_usd ELSE 0 END) / SUM(b.plan_amount_usd) AS mandated_share\nFROM epbcs.plan b\nJOIN pmo.project p ON p.project_code = b.project_code\nWHERE b.fiscal_year BETWEEN 2027 AND 2031\nGROUP BY b.plan_vintage"
     },
     {
       "question_id": "hq15",
-      "text": "Why did the estimate at completion move on Quarrydown WTP?",
+      "text": "How does my utility's FY26 spend compare with its plan?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "project",
-        "progress",
-        "in-service",
-        "milestone",
-        "scope"
+        "utility",
+        "spend",
+        "compare",
+        "plan"
       ],
-      "persona": "Project Manager",
-      "answer_id": "Q15",
-      "rationale": "Resolves across northline_epbcs.plan + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + Email — Kelso Ridge Constructors, 2026-01-04 + Email — Kelso Ridge Constructors, 2026-04-12 + Email — Kelso Ridge Constructors, 2026-05-31 + Email — Marchetti & Vance Engineers, 2026-04-18 + PRJ:C25B315_658 → CON:QDN-2025-C01 → CO:* at medium confidence (0.78)."
+      "persona": "Utility President",
+      "answer_id": "HQ15",
+      "rationale": "Resolves across gl.project_costing_line + epbcs.monthly_spread at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT SUM(g.amount_usd) AS posted_ytd_usd,\n       (SELECT SUM(m.plan_usd) FROM epbcs.monthly_spread m\n        WHERE m.fiscal_year = 2026 AND m.vintage = 'Jan Calendarization' AND m.period <= 9) AS plan_ytd_usd\nFROM gl.project_costing_line g\nWHERE g.fiscal_period BETWEEN '2026-01' AND '2026-09'"
     },
     {
       "question_id": "hq16",
-      "text": "Which movements have an explanation on record, and which are unexplained?",
+      "text": "What share of large projects in delivery are within 10% of their budget?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
+        "share",
+        "large",
+        "projects",
         "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "within",
+        "budget"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q16",
-      "rationale": "Resolves across northline_epbcs.plan + Email — Vasquez Heritage Builders, 2024-04-26 + Not connected + Project ← resolved ← observation at high confidence (0.90)."
+      "persona": "SVP Capital Delivery (committee chair)",
+      "answer_id": "HQ16",
+      "rationale": "Resolves across epbcs.plan + epbcs.forecast + pmo.project at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT SUM(CASE WHEN l.forecast_at_completion_usd <= 1.10 * b.approved_budget_usd THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS health\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'"
     },
     {
       "question_id": "hq17",
-      "text": "Is this overrun scope, escalation, schedule, or estimate error?",
+      "text": "Which large projects slipped on their critical path this month?",
       "domains": [
-        "capital-projects"
+        "schedule-critical-path"
       ],
       "keywords": [
-        "project",
-        "progress",
-        "in-service",
-        "milestone",
-        "scope"
+        "large",
+        "projects",
+        "slipped",
+        "critical",
+        "path",
+        "month"
       ],
-      "persona": "Project Manager",
-      "answer_id": "Q17",
-      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-01-04 + Email — Amberline Civil Works, 2026-07-10 + Email — Vasquez Heritage Builders, 2024-04-26 + Email — Priya Novaczek, 2026-04-23 + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + Not connected at medium confidence (0.71)."
+      "persona": "Project Controls Manager",
+      "answer_id": "HQ17",
+      "rationale": "Declined: Primavera P6 is not connected, so milestones and float cannot be read.",
+      "priority": "normal",
+      "sql": null
     },
     {
       "question_id": "hq18",
-      "text": "Which contractors' projects overrun most often?",
+      "text": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
       "domains": [
-        "capital-projects"
+        "rate-case-recovery"
       ],
       "keywords": [
-        "contract",
-        "vendor",
-        "change order",
-        "award",
-        "commitment"
+        "belmara",
+        "rate",
+        "base",
+        "test",
+        "year",
+        "compare"
       ],
-      "persona": "Procurement Lead",
-      "answer_id": "Q18",
-      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-05-31 + Email — Halloway Underground, 2025-08-01 + Contract document set + northline_pmo.attributes + Not connected at low confidence (0.48)."
+      "persona": "Director, Rate Case and Regulatory",
+      "answer_id": "HQ18",
+      "rationale": "Resolves across assets.plant_in_service + assets.depreciation_reserve + assets.rate_base_component at high confidence (0.9).",
+      "priority": "high",
+      "sql": "WITH plant AS (\n  SELECT s.utility_code, SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\n  FROM assets.plant_in_service s\n  JOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\n  WHERE s.retired_on IS NULL GROUP BY s.utility_code\n)\nSELECT p.utility_code, p.net_plant_usd,\n       SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS adjustments_usd,\n       p.net_plant_usd + SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS rate_base_usd\nFROM plant p\nJOIN assets.rate_base_component c ON c.utility_code = p.utility_code AND c.fiscal_period = '2026-09'\nGROUP BY p.utility_code, p.net_plant_usd"
     },
     {
       "question_id": "hq19",
-      "text": "Which explanations came from correspondence rather than from a person?",
+      "text": "What have we invested in plant, pipes and treatment since the last rate order, net of depreciation?",
       "domains": [
-        "capital-projects"
+        "rate-case-recovery"
       ],
       "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
+        "invested",
+        "plant",
+        "pipes",
+        "treatment",
+        "since",
+        "last"
       ],
-      "persona": "Controller",
-      "answer_id": "Q19",
-      "rationale": "Resolves across Edge method distribution + Email — Tomas Marchetti, 2026-04-17 + Email — Thorne & Dain Drilling Company, 2026-05-25 + Not connected at high confidence (0.89)."
+      "persona": "Director, Rate Case and Regulatory",
+      "answer_id": "HQ19",
+      "rationale": "Resolves across assets.plant_in_service + assets.depreciation_reserve at high confidence (0.89).",
+      "priority": "high",
+      "sql": "SELECT s.utility_code, SUM(s.amount_usd) AS additions_since_order_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date > '2022-12-31' AND s.retired_on IS NULL\nGROUP BY s.utility_code"
+    },
+    {
+      "question_id": "hq20",
+      "text": "Which projects are in service but not yet unitized, and how much do they hold?",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "projects",
+        "service",
+        "unitized",
+        "much",
+        "they",
+        "hold"
+      ],
+      "persona": "Plant Accounting Manager",
+      "answer_id": "HQ20",
+      "rationale": "Resolves across assets.plant_in_service at high confidence (0.94).",
+      "priority": "high",
+      "sql": "SELECT s.utility_code, s.project_code, COUNT(*) AS assets, SUM(s.amount_usd) AS amount_usd, MIN(s.in_service_date) AS earliest_in_service\nFROM assets.plant_in_service s\nWHERE s.unitized = 0\nGROUP BY s.utility_code, s.project_code"
     },
     {
       "question_id": "hq21",
-      "text": "Which commitments exceed their authorization?",
+      "text": "What is the net plant in service by plant class for each utility?",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "contract",
-        "vendor",
-        "change order",
-        "award",
-        "commitment"
+        "plant",
+        "service",
+        "plant",
+        "class",
+        "each",
+        "utility"
       ],
-      "persona": "Procurement Lead",
-      "answer_id": "Q21",
-      "rationale": "Resolves across Drive: contract documents + northline_epbcs.plan at medium confidence (0.71)."
+      "persona": "Chief Financial Officer",
+      "answer_id": "HQ21",
+      "rationale": "Resolves across assets.plant_in_service + assets.depreciation_reserve at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT s.utility_code, s.plant_class, SUM(s.amount_usd) AS gross_plant_usd, SUM(d.accumulated_depreciation_usd) AS accumulated_depreciation_usd,\n       SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\nFROM assets.plant_in_service s\nJOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\nWHERE s.retired_on IS NULL\nGROUP BY s.utility_code, s.plant_class"
     },
     {
       "question_id": "hq22",
-      "text": "What is committed but not yet incurred, by project and by vendor?",
+      "text": "How much CWIP is older than 24 months, and on which projects?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "project",
-        "progress",
-        "in-service",
-        "milestone",
-        "scope"
+        "much",
+        "cwip",
+        "older",
+        "months",
+        "projects"
       ],
-      "persona": "Project Manager",
-      "answer_id": "Q22",
-      "rationale": "Resolves across Drive: contract documents + northline_psoft.gl at medium confidence (0.66)."
+      "persona": "Plant Accounting Manager",
+      "answer_id": "HQ22",
+      "rationale": "Resolves across assets.cwip_balance at high confidence (0.93).",
+      "priority": "normal",
+      "sql": "SELECT CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END AS age_band,\n       SUM(c.cwip_usd) AS cwip_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09'\nGROUP BY CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END"
+    },
+    {
+      "question_id": "hq23",
+      "text": "Which major additions are missing part of their prudence record?",
+      "domains": [
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "major",
+        "additions",
+        "missing",
+        "part",
+        "prudence",
+        "record"
+      ],
+      "persona": "Commission staff (data requests)",
+      "answer_id": "HQ23",
+      "rationale": "Resolves across commitments.win_authorization + pmo.contract + pmo.change_order + committee minutes at medium confidence (0.8).",
+      "priority": "high",
+      "sql": "SELECT p.project_code, p.project_name, s.amount_usd,\n       MAX(CASE WHEN w.request_type = 'Original authorization' AND w.win_status = 'Approved' THEN 1 ELSE 0 END) AS has_approval,\n       COUNT(DISTINCT c.contract_no) AS contracts, SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) AS approved_change_orders_usd\nFROM assets.plant_in_service s\nJOIN pmo.project p ON p.project_code = s.project_code\nLEFT JOIN commitments.win_authorization w ON w.project_code = p.project_code\nLEFT JOIN pmo.contract c ON c.project_code = p.project_code\nLEFT JOIN pmo.change_order o ON o.contract_no = c.contract_no\nWHERE p.utility_code = 'BEL' AND s.in_service_date > '2022-12-31'\nGROUP BY p.project_code, p.project_name, s.amount_usd"
+    },
+    {
+      "question_id": "hq24",
+      "text": "How much depreciation did we book this year, by plant class and rate?",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "much",
+        "depreciation",
+        "book",
+        "year",
+        "plant",
+        "class"
+      ],
+      "persona": "Plant Accounting Manager",
+      "answer_id": "HQ24",
+      "rationale": "Resolves across assets.depreciation_reserve at high confidence (0.93).",
+      "priority": "normal",
+      "sql": "SELECT d.plant_class, d.depreciation_rate, SUM(d.depreciation_expense_usd) AS expense_usd\nFROM assets.depreciation_reserve d\nWHERE d.fiscal_period BETWEEN '2026-01' AND '2026-09'\nGROUP BY d.plant_class, d.depreciation_rate"
     },
     {
       "question_id": "hq25",
-      "text": "What is sitting in CWIP past its in-service date?",
+      "text": "What share of pipe, valve and hydrant spend went through framework agreements this year?",
       "domains": [
-        "capital-projects"
+        "contract-change"
       ],
       "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
+        "share",
+        "pipe",
+        "valve",
+        "hydrant",
+        "spend",
+        "went"
       ],
-      "persona": "Controller",
-      "answer_id": "Q25",
-      "rationale": "Resolves across northline_pmo.attributes + northline_psoft.gl at low confidence (0.55)."
+      "persona": "Category Manager, Capital Works",
+      "answer_id": "HQ25",
+      "rationale": "Resolves across commitments.po_line + commitments.framework_agreement at high confidence (0.91).",
+      "priority": "high",
+      "sql": "SELECT a.category,\n       SUM(CASE WHEN l.framework_agreement_no IS NOT NULL THEN l.ordered_usd ELSE 0 END) / SUM(l.ordered_usd) AS framework_share\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.ordered_on >= '2026-04-01'\nGROUP BY a.category"
+    },
+    {
+      "question_id": "hq26",
+      "text": "Which order lines were placed off-framework above the framework price, and what did that cost?",
+      "domains": [
+        "contract-change"
+      ],
+      "keywords": [
+        "order",
+        "lines",
+        "were",
+        "placed",
+        "off-framework",
+        "above"
+      ],
+      "persona": "Category Manager, Capital Works",
+      "answer_id": "HQ26",
+      "rationale": "Resolves across commitments.po_line + commitments.framework_agreement at high confidence (0.92).",
+      "priority": "high",
+      "sql": "SELECT l.po_number, l.line_no, l.project_code, l.item_code, l.quantity, l.unit_price_usd, a.framework_unit_price_usd,\n       (l.unit_price_usd - a.framework_unit_price_usd) * l.quantity AS premium_usd, l.confirmation_status\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.framework_agreement_no IS NULL AND l.unit_price_usd > a.framework_unit_price_usd"
     },
     {
       "question_id": "hq27",
-      "text": "Which completed projects are not yet unitized?",
+      "text": "How much has the procurement savings program secured against its 2.5% target?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
+        "much",
+        "procurement",
+        "savings",
+        "program",
+        "secured",
+        "against"
       ],
-      "persona": "Controller",
-      "answer_id": "Q26",
-      "rationale": "Resolves across 05_knowledge_graph/knowledge_graph.json at high confidence (0.91)."
+      "persona": "Category Manager, Capital Works",
+      "answer_id": "HQ27",
+      "rationale": "Resolves across commitments.savings_register at high confidence (0.95).",
+      "priority": "high",
+      "sql": "SELECT s.lever, SUM(s.savings_usd) AS secured_usd\nFROM commitments.savings_register s\nWHERE s.secured_on >= '2026-07-01'\nGROUP BY s.lever"
     },
     {
-      "question_id": "hqW5",
-      "text": "Which mandated work is at risk of missing its consent-order milestone?",
+      "question_id": "hq28",
+      "text": "What lead times are framework suppliers confirming now?",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "contract-change"
       ],
       "keywords": [
-        "compliance",
-        "driver",
-        "PFAS",
-        "lead service line",
-        "regulatory"
+        "lead",
+        "times",
+        "framework",
+        "suppliers",
+        "confirming"
       ],
-      "persona": "Compliance Lead",
-      "answer_id": "Q29",
-      "rationale": "Resolves across northline_pmo.attributes + northline_epbcs.plan at medium confidence (0.69)."
+      "persona": "Project Manager",
+      "answer_id": "HQ28",
+      "rationale": "Resolves across commitments.framework_agreement + supplier mail at question time at medium confidence (0.83).",
+      "priority": "normal",
+      "sql": "SELECT a.framework_agreement_no, a.category, a.vendor_id, MAX(a.lead_time_weeks) AS lead_time_weeks\nFROM commitments.framework_agreement a\nGROUP BY a.framework_agreement_no, a.category, a.vendor_id"
+    },
+    {
+      "question_id": "hq29",
+      "text": "Which contracts have grown most since award?",
+      "domains": [
+        "contract-change"
+      ],
+      "keywords": [
+        "contracts",
+        "grown",
+        "most",
+        "since",
+        "award"
+      ],
+      "persona": "Category Manager, Capital Works",
+      "answer_id": "HQ29",
+      "rationale": "Resolves across pmo.contract at high confidence (0.94).",
+      "priority": "normal",
+      "sql": "SELECT c.contract_no, c.project_code, c.award_value_usd, c.current_value_usd, (c.current_value_usd - c.award_value_usd) / NULLIF(c.award_value_usd, 0) AS growth\nFROM pmo.contract c"
     },
     {
       "question_id": "hq30",
-      "text": "Show me the path from a purchase order through the budget line to the asset it builds.",
+      "text": "How long do WIN budget revisions take to approve at each level?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "project",
-        "progress",
-        "in-service",
-        "milestone",
-        "scope"
+        "long",
+        "budget",
+        "revisions",
+        "take",
+        "approve",
+        "each"
       ],
-      "persona": "Project Manager",
-      "answer_id": "Q30",
-      "rationale": "Resolves across graph gap register + src_drive + northline_epbcs.plan at high confidence (0.91)."
+      "persona": "Capital Controller",
+      "answer_id": "HQ30",
+      "rationale": "Resolves across commitments.win_authorization at high confidence (0.95).",
+      "priority": "normal",
+      "sql": "SELECT w.approval_level, AVG(DATEDIFF(day, w.requested_on, w.approved_on)) AS avg_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.approved_on IS NOT NULL\nGROUP BY w.approval_level"
     },
     {
       "question_id": "hq31",
-      "text": "Which vendors work across more than one project, and how sure are we they are the same firm?",
+      "text": "Which projects' in-service dates have slipped since approval, and by how long?",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "contract",
-        "vendor",
-        "change order",
-        "award",
-        "commitment"
+        "projects",
+        "in-service",
+        "dates",
+        "slipped",
+        "since",
+        "approval"
       ],
-      "persona": "Procurement Lead",
-      "answer_id": "Q31",
-      "rationale": "Resolves across src_drive + A-04 entity resolution at medium confidence (0.72)."
+      "persona": "Regional Operations Director",
+      "answer_id": "HQ31",
+      "rationale": "Resolves across pmo.project + upload.inservice at medium confidence (0.82): 990 projects have no in-service row.",
+      "priority": "normal",
+      "sql": "SELECT p.project_code, p.project_name, p.planned_in_service_date, i.forecast_in_service_date,\n       DATEDIFF(day, p.planned_in_service_date, i.forecast_in_service_date) AS slip_days\nFROM pmo.project p\nJOIN upload.inservice i ON i.project_code = p.project_code\nWHERE i.forecast_in_service_date > p.planned_in_service_date"
     },
     {
       "question_id": "hq32",
-      "text": "Where do our systems disagree about the same thing?",
+      "text": "Which open commitments have had no receipt for more than 90 days?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
+        "open",
+        "commitments",
+        "receipt",
+        "days"
       ],
-      "persona": "Controller",
-      "answer_id": "Q32",
-      "rationale": "Resolves across A-04 entity resolution register + entity_mapping_2026Q1.xlsx + northline_pmo.attributes at high confidence (0.90)."
+      "persona": "Capital Controller",
+      "answer_id": "HQ32",
+      "rationale": "Resolves across commitments.po_line at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT l.project_code, l.po_number, l.line_no, l.ordered_on, l.ordered_usd - l.received_usd - l.cancelled_usd AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open' AND l.ordered_on < DATEADD(day, -90, '2026-10-19')"
+    },
+    {
+      "question_id": "hq33",
+      "text": "Is the PFAS program spending to plan in each utility?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "pfas",
+        "program",
+        "spending",
+        "plan",
+        "each",
+        "utility"
+      ],
+      "persona": "Compliance Manager",
+      "answer_id": "HQ33",
+      "rationale": "Resolves across gl.project_costing_line + pmo.project at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT p.utility_code, SUM(g.amount_usd) AS posted_usd\nFROM gl.project_costing_line g\nJOIN pmo.project p ON p.project_code = g.project_code\nWHERE p.compliance_driver = 'PFAS rule' AND g.fiscal_period LIKE '2026-%'\nGROUP BY p.utility_code"
     },
     {
       "question_id": "hq34",
-      "text": "Which assets are these projects building, and how critical are those assets?",
+      "text": "Which forecasts moved most since last month, and why?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "forecasts",
+        "moved",
+        "most",
+        "since",
+        "last",
+        "month"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q34",
-      "rationale": "Resolves across northline_pmo.attributes + graph gap register at medium confidence (0.68)."
+      "persona": "Project Controls Manager",
+      "answer_id": "HQ34",
+      "rationale": "Resolves across epbcs.forecast + mailbox at question time at medium confidence (0.84).",
+      "priority": "normal",
+      "sql": "WITH f AS (\n  SELECT project_code, forecast_date, forecast_at_completion_usd,\n         LAG(forecast_at_completion_usd) OVER (PARTITION BY project_code ORDER BY forecast_date) AS previous_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT project_code, forecast_date, previous_usd, forecast_at_completion_usd, forecast_at_completion_usd - previous_usd AS moved_usd\nFROM f WHERE rn = 1 AND previous_usd IS NOT NULL"
+    },
+    {
+      "question_id": "hq35",
+      "text": "Where does my project stand: approved, committed, forecast and contingency left?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "where",
+        "project",
+        "stand",
+        "approved",
+        "committed",
+        "forecast"
+      ],
+      "persona": "Project Manager",
+      "answer_id": "HQ35",
+      "rationale": "Resolves across epbcs.plan + epbcs.forecast + commitments.po_line at high confidence (0.93).",
+      "priority": "high",
+      "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
     },
     {
       "question_id": "hq36",
-      "text": "What if materials escalation runs three points above our assumption?",
+      "text": "How much AFUDC have we accrued this year, by project?",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "budget",
-        "forecast",
-        "spend",
-        "authorized",
-        "underspend",
-        "variance"
+        "much",
+        "afudc",
+        "accrued",
+        "year",
+        "project"
       ],
-      "persona": "Finance Executive",
-      "answer_id": "Q36",
-      "rationale": "Resolves across src_drive + northline_epbcs.plan at medium confidence (0.66)."
+      "persona": "Chief Financial Officer",
+      "answer_id": "HQ36",
+      "rationale": "Resolves across assets.cwip_balance at high confidence (0.93).",
+      "priority": "normal",
+      "sql": "SELECT c.project_code, c.afudc_ytd_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09' AND c.afudc_ytd_usd > 0"
     },
     {
       "question_id": "hq37",
-      "text": "Can we accelerate FY27 work into FY26, and what does that collide with?",
+      "text": "How much CWIP sits outside rate base in each utility?",
       "domains": [
-        "capital-projects"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "much",
+        "cwip",
+        "sits",
+        "outside",
+        "rate",
+        "base"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q37",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at medium confidence (0.71)."
+      "persona": "Chief Financial Officer",
+      "answer_id": "HQ37",
+      "rationale": "Resolves across assets.cwip_balance + pmo.project at high confidence (0.93).",
+      "priority": "normal",
+      "sql": "SELECT p.utility_code, c.project_code, c.cwip_usd\nFROM assets.cwip_balance c\nJOIN pmo.project p ON p.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0"
     },
     {
       "question_id": "hq38",
-      "text": "What is the smallest set of projects we could defer to take $0 out of FY26?",
+      "text": "What plant did each region place in service this year?",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery"
       ],
       "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
+        "plant",
+        "each",
+        "region",
+        "place",
+        "service",
+        "year"
       ],
-      "persona": "Rate-Case Lead",
-      "answer_id": "Q38",
-      "rationale": "Resolves across northline_epbcs.plan + northline_pmo.attributes at high confidence (0.86)."
+      "persona": "Regional Operations Director",
+      "answer_id": "HQ38",
+      "rationale": "Resolves across assets.plant_in_service at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT s.utility_code, s.plant_class, s.project_code, SUM(s.amount_usd) AS added_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY s.utility_code, s.plant_class, s.project_code"
     },
     {
-      "question_id": "hqM1",
-      "text": "What has the contractor told us about Quarrydown that isn't in the numbers?",
+      "question_id": "hq39",
+      "text": "Does the five-year plan stay inside each utility's envelope?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "programme",
-        "delivery",
-        "schedule",
-        "phase",
-        "portfolio"
+        "five-year",
+        "plan",
+        "stay",
+        "inside",
+        "each",
+        "utility"
       ],
-      "persona": "Programme Director",
-      "answer_id": "Q41",
-      "rationale": "Resolves across Email — Kelso Ridge Constructors, 2026-01-04 + Email — Kelso Ridge Constructors, 2026-04-12 + Email — Kelso Ridge Constructors, 2026-05-31 + Email — Marchetti & Vance Engineers, 2026-04-18 + QDN-2025-C01_Construction_Agreement_Kelso_Ridge.pdf + northline_epbcs.plan at medium confidence (0.79)."
+      "persona": "Board Finance Committee",
+      "answer_id": "HQ39",
+      "rationale": "Resolves across epbcs.plan + pmo.project at high confidence (0.88).",
+      "priority": "high",
+      "sql": "SELECT b.plan_vintage,\n       SUM(CASE WHEN p.compliance_driver <> 'None' THEN b.plan_amount_usd ELSE 0 END) / SUM(b.plan_amount_usd) AS mandated_share\nFROM epbcs.plan b\nJOIN pmo.project p ON p.project_code = b.project_code\nWHERE b.fiscal_year BETWEEN 2027 AND 2031\nGROUP BY b.plan_vintage"
     },
     {
-      "question_id": "hqM2",
-      "text": "Which projects will not be in service before the rate case filing?",
+      "question_id": "hq40",
+      "text": "Which unfunded high-risk renewals would we fund first, and what would they cost?",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program"
       ],
       "keywords": [
-        "rate case",
-        "jurisdiction",
-        "in-service",
-        "rate base",
-        "filing"
+        "unfunded",
+        "high-risk",
+        "renewals",
+        "would",
+        "fund",
+        "first"
       ],
-      "persona": "Rate-Case Lead",
-      "answer_id": "Q42",
-      "rationale": "Resolves across Email — Florian Lundqvist, 2026-04-24 + Email — Dorothea Halloran, 2026-04-25 + Email — Jasper Tarnowski, 2026-04-21 + Email — Marcus Estergard, 2026-04-20 + Email — Kiran Novaczek, 2026-04-14 + northline_epbcs.plan + Not connected at medium confidence (0.76)."
+      "persona": "Director, Engineering and Asset Management",
+      "answer_id": "HQ40",
+      "rationale": "Resolves across pmo.project (priority, risk) + epbcs.plan at medium confidence (0.78): risk is rated per project, not per asset.",
+      "priority": "normal",
+      "sql": "SELECT p.project_code, p.project_name, p.priority_level, b.plan_amount_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'MTP'\nWHERE p.priority_level = 1 AND b.approved_budget_usd = 0\nORDER BY b.plan_amount_usd DESC"
     },
     {
-      "question_id": "hqM3",
-      "text": "Show me the change orders with the message that explains each one.",
+      "question_id": "hq41",
+      "text": "How much eligible spend can we draw from SRF and WIFIA loans this month?",
       "domains": [
-        "capital-projects"
+        "capital-program"
       ],
       "keywords": [
-        "actual",
-        "ledger",
-        "close",
-        "accrual",
-        "reconciliation",
-        "cwip"
+        "much",
+        "eligible",
+        "spend",
+        "draw",
+        "wifia",
+        "loans"
       ],
-      "persona": "Controller",
-      "answer_id": "Q43",
-      "rationale": "Resolves across Change Order Log exhibits, 5 conformed agreements + Email — Kelso Ridge Constructors, 2026-03-08 + Email — Delmar Sinclair Construction Co., 2026-01-24 + Email — Delmar Sinclair Construction Co., 2026-06-12 + CO:* ← references ← observation at high confidence (0.87)."
+      "persona": "Lender and funding agency liaison",
+      "answer_id": "HQ41",
+      "rationale": "Resolves across gl.project_costing_line + the funding tracker documents at medium confidence (0.76).",
+      "priority": "normal",
+      "sql": "SELECT p.utility_code, SUM(g.amount_usd) AS eligible_spend_usd\nFROM gl.project_costing_line g\nJOIN pmo.project p ON p.project_code = g.project_code\nWHERE p.compliance_driver IN ('PFAS rule', 'Lead and Copper Rule Improvements') AND g.fiscal_period = '2026-09'\nGROUP BY p.utility_code"
+    },
+    {
+      "question_id": "hq42",
+      "text": "What will the program add to rate base across the four utilities next year?",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "will",
+        "program",
+        "rate",
+        "base",
+        "across",
+        "four"
+      ],
+      "persona": "Chief Financial Officer",
+      "answer_id": "HQ42",
+      "rationale": "Resolves across epbcs.plan + upload.inservice + assets.plant_in_service at medium confidence (0.8).",
+      "priority": "high",
+      "sql": "SELECT s.utility_code, s.plant_class, s.project_code, SUM(s.amount_usd) AS added_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY s.utility_code, s.plant_class, s.project_code"
+    },
+    {
+      "question_id": "hq43",
+      "text": "Which data requests on the rate base are still open, and what evidence answers them?",
+      "domains": [
+        "rate-case-recovery"
+      ],
+      "keywords": [
+        "data",
+        "requests",
+        "rate",
+        "base",
+        "open",
+        "evidence"
+      ],
+      "persona": "Commission staff (data requests)",
+      "answer_id": "HQ43",
+      "rationale": "Resolves across the rate case documents + mailbox at question time at medium confidence (0.77).",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq44",
+      "text": "How many approved projects have no project manager assigned?",
+      "domains": [
+        "capital-program"
+      ],
+      "keywords": [
+        "many",
+        "approved",
+        "projects",
+        "project",
+        "manager",
+        "assigned"
+      ],
+      "persona": "Project Controls Manager",
+      "answer_id": "HQ44",
+      "rationale": "Resolves across pmo.project at high confidence (0.96).",
+      "priority": "normal",
+      "sql": "SELECT p.utility_code, COUNT(*) AS projects_without_pm\nFROM pmo.project p\nWHERE p.phase IN ('In Development', 'In Delivery') AND p.project_manager IS NULL\nGROUP BY p.utility_code"
+    },
+    {
+      "question_id": "hq45",
+      "text": "Predict which mains will fail next year.",
+      "domains": [
+        "schedule-critical-path"
+      ],
+      "keywords": [
+        "predict",
+        "mains",
+        "will",
+        "fail",
+        "next",
+        "year"
+      ],
+      "persona": "Director, Engineering and Asset Management",
+      "answer_id": "HQ45",
+      "rationale": "Declined: the GIS asset layer and break history are not connected, so failure cannot be predicted.",
+      "priority": "normal",
+      "sql": null
     }
   ],
-  "graph_use_cases": [],
-  "graph_use_case_templates": [
+  "graph_use_cases": [
     {
-      "template_id": "capital-programme-intelligence",
-      "use_case_id": "uc_capital_programs",
-      "name": "Capital Programme Intelligence",
-      "description": "One model over the budget cube, the ledger, the approval chain and the project attribute registry, so a capital question resolves once and states which vintage, which basis and which scope it was answered at.",
-      "match_phrases": [
-        "capital programme",
-        "forecast vintage",
-        "working forecast",
-        "in-service date",
-        "rate case",
-        "change order",
-        "authorized capital"
-      ],
+      "use_case_id": "uc-capital-program-analyst-nw26a01",
+      "name": "Capital Program Analyst · Northline Water",
+      "status": "committed",
+      "domain_id": "capital-program",
+      "business_need": "Capital Program Analyst for Northline Water Group's four regulated water utilities (Ardenia, Belmara, Corvale, Dunmoor). Keeps the capital plan, budgets, forecasts and commitments current for 4,500 projects, explains variances above threshold, supports rate cases with in-service evidence, and reports the program to the Capital Steering Committee. Reports to priya.raman@vriodigital.com.",
       "personas": [
-        "finance-exec",
-        "programme-director",
-        "procurement-lead",
-        "controller",
-        "project-manager",
-        "rate-case-lead",
-        "compliance-lead"
+        {
+          "name": "SVP Capital Delivery (committee chair)",
+          "description": "Chairs the Capital Steering Committee. Asks where the program stands, which large projects need a decision, and what goes in the quarterly pack.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Capital Controller",
+          "description": "Asks whether forecasts reconcile to the ledger, whether the year's plan will be spent by December, and what moved since last month.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Director, Rate Case and Regulatory",
+          "description": "Asks which claimed projects will be in service inside the test year, how plant additions compare with the order, and what evidence backs a cost increase.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Project Controls Manager",
+          "description": "Asks which forecasts are stale, which project managers to chase, and which projects moved most since the last round.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Treasury and Funding",
+          "description": "Asks how much cash the program needs by month and how much of it is covered by loans and grants.",
+          "source": "ai",
+          "origin": null
+        }
       ],
       "metrics": [
-        "total-forecast-remaining-large-proj",
-        "total-anticipated-cost",
-        "budget-consumed-to-date",
-        "forecast-bud-consumed-at-completion",
-        "full-year-budget-variance",
-        "year-to-date-ytd-budget-variance",
-        "current-month-budget-variance",
-        "overrun-amount"
+        {
+          "name": "Forecast variance",
+          "description": "Forecast at completion minus approved budget, per project, from the latest working forecast. Positive means overrun; a large project above 10% needs a WIN budget revision.",
+          "source": "ai",
+          "origin": null,
+          "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+        },
+        {
+          "name": "Large projects above 10%",
+          "description": "Large projects in delivery whose forecast at completion is more than 10% above the approved budget, with whether a WIN budget revision is raised.",
+          "source": "ai",
+          "origin": null,
+          "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+        },
+        {
+          "name": "Annual plan delivery",
+          "description": "Posted to date plus the working forecast to year end, divided by the annual plan. Below 95% means capital moves into next year.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+        },
+        {
+          "name": "Spend vs plan, year to date",
+          "description": "Posted actuals in the fiscal year to date divided by the calendarized plan for the same months.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT SUM(g.amount_usd) AS posted_ytd_usd,\n       (SELECT SUM(m.plan_usd) FROM epbcs.monthly_spread m\n        WHERE m.fiscal_year = 2026 AND m.vintage = 'Jan Calendarization' AND m.period <= 9) AS plan_ytd_usd\nFROM gl.project_costing_line g\nWHERE g.fiscal_period BETWEEN '2026-01' AND '2026-09'"
+        },
+        {
+          "name": "Forecast freshness",
+          "description": "Active projects whose latest working forecast is older than 45 days, by region and cost tool.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+        },
+        {
+          "name": "Open commitments",
+          "description": "Ordered minus received minus cancelled, on open PO lines. Unpaid invoices are not open commitment.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT l.project_code, SUM(l.ordered_usd - l.received_usd - l.cancelled_usd) AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open'\nGROUP BY l.project_code"
+        },
+        {
+          "name": "Contingency remaining",
+          "description": "Contingency still held in the latest forecast divided by contingency at authorization.",
+          "source": "ai",
+          "origin": null,
+          "sql": "WITH latest AS (\n  SELECT project_code, contingency_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT b.project_code, b.contingency_usd AS contingency_at_approval_usd, l.contingency_usd AS contingency_left_usd\nFROM epbcs.plan b\nJOIN latest l ON l.project_code = b.project_code AND l.rn = 1\nWHERE b.plan_vintage = 'Working' AND b.fiscal_year = 2026"
+        },
+        {
+          "name": "Budget revisions waiting",
+          "description": "WIN budget revisions requested and not yet approved, by approval level and age.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+        },
+        {
+          "name": "Test-year in-service at risk",
+          "description": "Projects claimed in service inside a test year whose expected in-service date is now after the test year ends, with the rate base at stake.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "azuresql:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "azuresql:northline_psoft",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "azuresql:northline_pmo",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "onedrive:northline-capital-program",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "outlook:nishant.srivastav@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+        },
+        {
+          "text": "Are we on track to spend the FY26 plan by December?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+        },
+        {
+          "text": "Where does the program stand against its approved budget, and is it inside the 5% tolerance?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+        },
+        {
+          "text": "Which projects have not been re-forecast for more than 45 days?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+        },
+        {
+          "text": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+        },
+        {
+          "text": "Why is Dunmoor East Filter Media Renewal over budget?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT o.co_number, o.reason_category, o.cost_impact_usd, o.co_status, o.approved_on\nFROM pmo.change_order o\nWHERE o.project_code = 'C23B225_690'\nORDER BY o.co_number"
+        },
+        {
+          "text": "Which WIN budget revisions are waiting at Level 03, and for how long?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 6,
+      "updated_at": "2026-10-13T16:22:40.118Z",
+      "role": {
+        "role_id": "cpa",
+        "role_name": "Capital Program Analyst",
+        "industry": "water",
+        "utilities": [
+          "ARD",
+          "BEL",
+          "COR",
+          "DUN"
+        ],
+        "reports_to": "priya.raman@vriodigital.com",
+        "responsibilities": [
+          "cip",
+          "budget",
+          "cost",
+          "reg",
+          "acct",
+          "report"
+        ]
+      }
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "capital-program-analyst",
+      "use_case_id": "uc_capital_program_analyst",
+      "name": "Capital Program Analyst",
+      "description": "One graph over plan, forecast, ledger, commitments, approvals, contracts and rate case claims, so a capital question resolves once and states which vintage and which forecast it read.",
+      "match_phrases": [
+        "capital program",
+        "forecast variance",
+        "WIN",
+        "test year",
+        "in service",
+        "rate base",
+        "change order"
+      ],
+      "personas": [
+        "csc-chair",
+        "capital-controller",
+        "rate-case-director",
+        "project-controls",
+        "treasury",
+        "utility-president",
+        "compliance",
+        "category-manager",
+        "plant-accounting",
+        "project-manager",
+        "engineering-director",
+        "cfo",
+        "board-finance",
+        "commission-staff",
+        "lender-liaison",
+        "operations-director"
+      ],
+      "metrics": [
+        "forecast-variance",
+        "large-over-10",
+        "spend-vs-plan-ytd",
+        "annual-plan-delivery",
+        "forecast-freshness",
+        "open-commitments",
+        "change-order-rate",
+        "contingency-remaining",
+        "win-queue",
+        "test-year-at-risk"
       ],
       "hero_questions": [
         "hq1",
+        "hq2",
+        "hq3",
+        "hq4",
         "hq5",
+        "hq6",
         "hq7",
+        "hq8",
         "hq9",
+        "hq10",
         "hq11",
-        "hq12",
-        "hq14",
-        "hq28",
-        "hq29",
-        "hq33",
-        "hq35",
-        "hqW1",
-        "hqW2"
+        "hq12"
       ]
     }
   ],
   "graph_metrics": [
     {
-      "metric_id": "total-forecast-remaining-large-proj",
-      "name": "Total_Forecast_Remaining_Large_Proj",
+      "metric_id": "forecast-variance",
+      "name": "Forecast variance",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "total",
         "forecast",
+        "variance",
+        "overrun",
+        "budget"
+      ],
+      "definition": "Forecast at completion minus approved budget, per project, from the latest working forecast. Positive means overrun; a large project above 10% needs a WIN budget revision.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Capital Controller"
+      ],
+      "sql": "WITH latest AS (\n  SELECT f.project_code, f.forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY f.project_code ORDER BY f.forecast_date DESC) AS rn\n  FROM epbcs.forecast f\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       l.forecast_at_completion_usd - b.approved_budget_usd AS variance_usd,\n       (l.forecast_at_completion_usd - b.approved_budget_usd) / NULLIF(b.approved_budget_usd, 0) AS variance_pct\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.phase <> 'Closed'"
+    },
+    {
+      "metric_id": "large-over-10",
+      "name": "Large projects above 10%",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "large project",
+        "10%",
+        "overrun",
+        "WIN"
+      ],
+      "definition": "Large projects in delivery whose forecast at completion is more than 10% above the approved budget, with whether a WIN budget revision is raised.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Capital Controller"
+      ],
+      "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT p.project_code, p.project_name, b.approved_budget_usd, l.forecast_at_completion_usd,\n       CASE WHEN EXISTS (SELECT 1 FROM commitments.win_authorization w\n                         WHERE w.project_code = p.project_code AND w.request_type = 'Budget revision' AND w.win_status = 'Pending')\n            THEN 'Revision raised' ELSE 'No revision' END AS win_state\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'\n  AND l.forecast_at_completion_usd > 1.10 * b.approved_budget_usd"
+    },
+    {
+      "metric_id": "spend-vs-plan-ytd",
+      "name": "Spend vs plan, year to date",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "spend",
+        "plan",
+        "year to date",
+        "posted"
+      ],
+      "definition": "Posted actuals in the fiscal year to date divided by the calendarized plan for the same months.",
+      "personas": [
+        "Capital Controller",
+        "SVP Capital Delivery (committee chair)",
+        "Treasury and Funding"
+      ],
+      "sql": "SELECT SUM(g.amount_usd) AS posted_ytd_usd,\n       (SELECT SUM(m.plan_usd) FROM epbcs.monthly_spread m\n        WHERE m.fiscal_year = 2026 AND m.vintage = 'Jan Calendarization' AND m.period <= 9) AS plan_ytd_usd\nFROM gl.project_costing_line g\nWHERE g.fiscal_period BETWEEN '2026-01' AND '2026-09'"
+    },
+    {
+      "metric_id": "annual-plan-delivery",
+      "name": "Annual plan delivery",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "annual plan",
+        "December",
+        "re-phase",
+        "spend"
+      ],
+      "definition": "Posted to date plus the working forecast to year end, divided by the annual plan. Below 95% means capital moves into next year.",
+      "personas": [
+        "Capital Controller",
+        "Treasury and Funding",
+        "SVP Capital Delivery (committee chair)"
+      ],
+      "sql": "SELECT SUM(CASE WHEN m.period <= 9 THEN g.posted_usd ELSE m.forecast_usd END) AS expected_fy_usd,\n       SUM(m.plan_usd) AS plan_fy_usd\nFROM epbcs.monthly_spread m\nLEFT JOIN (SELECT project_code, CAST(RIGHT(fiscal_period, 2) AS INT) AS period, SUM(amount_usd) AS posted_usd\n           FROM gl.project_costing_line WHERE fiscal_period LIKE '2026-%' GROUP BY project_code, RIGHT(fiscal_period, 2)) g\n  ON g.project_code = m.project_code AND g.period = m.period\nWHERE m.fiscal_year = 2026 AND m.vintage = 'Working'"
+    },
+    {
+      "metric_id": "forecast-freshness",
+      "name": "Forecast freshness",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "stale",
+        "refresh",
+        "45 days",
+        "forecast"
+      ],
+      "definition": "Active projects whose latest working forecast is older than 45 days, by region and cost tool.",
+      "personas": [
+        "Project Controls Manager",
+        "Capital Controller"
+      ],
+      "sql": "SELECT p.region, p.cost_tool, COUNT(*) AS stale_projects, SUM(b.approved_budget_usd) AS budget_usd\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nWHERE p.phase IN ('In Development', 'In Delivery')\n  AND (SELECT MAX(f.forecast_date) FROM epbcs.forecast f WHERE f.project_code = p.project_code) < DATEADD(day, -45, '2026-10-15')\nGROUP BY p.region, p.cost_tool"
+    },
+    {
+      "metric_id": "open-commitments",
+      "name": "Open commitments",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "commitment",
+        "open",
+        "order",
+        "contract"
+      ],
+      "definition": "Ordered minus received minus cancelled, on open PO lines. Unpaid invoices are not open commitment.",
+      "personas": [
+        "Capital Controller",
+        "Treasury and Funding"
+      ],
+      "sql": "SELECT l.project_code, SUM(l.ordered_usd - l.received_usd - l.cancelled_usd) AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open'\nGROUP BY l.project_code"
+    },
+    {
+      "metric_id": "change-order-rate",
+      "name": "Change order rate",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "change order",
+        "contract",
+        "growth"
+      ],
+      "definition": "Approved change orders divided by original contract value, per contract and project.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Director, Rate Case and Regulatory"
+      ],
+      "sql": "SELECT c.project_code, c.contract_no, c.award_value_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) AS approved_co_usd,\n       SUM(CASE WHEN o.co_status = 'Approved' THEN o.cost_impact_usd ELSE 0 END) / NULLIF(c.award_value_usd, 0) AS co_rate\nFROM pmo.contract c\nLEFT JOIN pmo.change_order o ON o.contract_no = c.contract_no\nGROUP BY c.project_code, c.contract_no, c.award_value_usd"
+    },
+    {
+      "metric_id": "contingency-remaining",
+      "name": "Contingency remaining",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "contingency",
         "remaining",
-        "large",
-        "proj"
+        "drawn"
       ],
-      "definition": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]+[Sum of FY28 Working Budget]+[Sum of FY29 Working Budget]+[Sum of FY30 Working Budget]+[Sum of FY31 Working Budget]+[Sum of FY32 Working Budget]"
+      "definition": "Contingency still held in the latest forecast divided by contingency at authorization.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Capital Controller"
+      ],
+      "sql": "WITH latest AS (\n  SELECT project_code, contingency_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT b.project_code, b.contingency_usd AS contingency_at_approval_usd, l.contingency_usd AS contingency_left_usd\nFROM epbcs.plan b\nJOIN latest l ON l.project_code = b.project_code AND l.rn = 1\nWHERE b.plan_vintage = 'Working' AND b.fiscal_year = 2026"
     },
     {
-      "metric_id": "total-anticipated-cost",
-      "name": "Total_Anticipated_Cost",
+      "metric_id": "win-queue",
+      "name": "Budget revisions waiting",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "total",
-        "anticipated",
-        "cost"
+        "WIN",
+        "revision",
+        "Level 03",
+        "queue"
       ],
-      "definition": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]"
+      "definition": "WIN budget revisions requested and not yet approved, by approval level and age.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Capital Controller"
+      ],
+      "sql": "SELECT w.approval_level, COUNT(*) AS pending, SUM(w.amount_usd) AS amount_usd,\n       MAX(DATEDIFF(day, w.requested_on, '2026-10-19')) AS oldest_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.win_status = 'Pending'\nGROUP BY w.approval_level"
     },
     {
-      "metric_id": "budget-consumed-to-date",
-      "name": "Budget_Consumed_to_Date",
+      "metric_id": "test-year-at-risk",
+      "name": "Test-year in-service at risk",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "budget",
-        "consumed",
+        "test year",
+        "in service",
+        "rate base",
+        "claim"
+      ],
+      "definition": "Projects claimed in service inside a test year whose expected in-service date is now after the test year ends, with the rate base at stake.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Utility President"
+      ],
+      "sql": "SELECT r.docket, r.project_code, p.project_name, r.claimed_in_service_by, i.forecast_in_service_date, r.rate_base_usd\nFROM pmo.rate_case_claim r\nJOIN pmo.project p ON p.project_code = r.project_code\nLEFT JOIN upload.inservice i ON i.project_code = r.project_code\nWHERE r.claim_status IN ('Claimed', 'Updated')\n  AND (i.forecast_in_service_date > r.test_year_end OR i.project_code IS NULL)"
+    },
+    {
+      "metric_id": "plant-vs-order",
+      "name": "Plant additions vs rate order",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "plant in service",
+        "rate order",
+        "additions"
+      ],
+      "definition": "Plant placed in service in the period divided by the capital additions the last order assumed.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Utility President"
+      ],
+      "sql": "SELECT p.utility_code, SUM(s.amount_usd) AS placed_in_service_usd\nFROM assets.plant_in_service s\nJOIN pmo.project p ON p.project_code = s.project_code\nWHERE s.in_service_date BETWEEN '2025-01-01' AND '2026-09-30'\nGROUP BY p.utility_code"
+    },
+    {
+      "metric_id": "cwip-not-moved",
+      "name": "In service, still in CWIP",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "CWIP",
+        "in service",
+        "unitized",
+        "AFUDC"
+      ],
+      "definition": "Projects past their in-service date that still carry an open CWIP balance.",
+      "personas": [
+        "Capital Controller",
+        "Director, Rate Case and Regulatory"
+      ],
+      "sql": "SELECT c.project_code, c.cwip_usd, i.forecast_in_service_date\nFROM assets.cwip_balance c\nJOIN upload.inservice i ON i.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0 AND i.forecast_in_service_date < '2026-08-01'"
+    },
+    {
+      "metric_id": "program-health",
+      "name": "Program health",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "program",
+        "within 10%",
+        "large projects"
+      ],
+      "definition": "Large projects in delivery within 10% of approved budget divided by all large projects in delivery.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Utility President"
+      ],
+      "sql": "WITH latest AS (\n  SELECT project_code, forecast_at_completion_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT SUM(CASE WHEN l.forecast_at_completion_usd <= 1.10 * b.approved_budget_usd THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS health\nFROM pmo.project p\nJOIN epbcs.plan b ON b.project_code = p.project_code AND b.plan_vintage = 'Working' AND b.fiscal_year = 2026\nJOIN latest l ON l.project_code = p.project_code AND l.rn = 1\nWHERE p.large_project = 1 AND p.phase = 'In Delivery'"
+    },
+    {
+      "metric_id": "mandated-share",
+      "name": "Mandated share of the plan",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "mandate",
+        "PFAS",
+        "lead",
+        "consent order"
+      ],
+      "definition": "Planned spend on projects with a compliance driver divided by total planned spend, by vintage.",
+      "personas": [
+        "Compliance Manager",
+        "SVP Capital Delivery (committee chair)"
+      ],
+      "sql": "SELECT b.plan_vintage,\n       SUM(CASE WHEN p.compliance_driver <> 'None' THEN b.plan_amount_usd ELSE 0 END) / SUM(b.plan_amount_usd) AS mandated_share\nFROM epbcs.plan b\nJOIN pmo.project p ON p.project_code = b.project_code\nWHERE b.fiscal_year BETWEEN 2027 AND 2031\nGROUP BY b.plan_vintage"
+    },
+    {
+      "metric_id": "net-plant",
+      "name": "Net plant in service",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "net plant",
+        "rate base",
+        "depreciation"
+      ],
+      "definition": "Utility plant in service less accumulated depreciation, by plant class and utility, at a period end.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Chief Financial Officer",
+        "Utility President"
+      ],
+      "sql": "SELECT s.utility_code, s.plant_class, SUM(s.amount_usd) AS gross_plant_usd, SUM(d.accumulated_depreciation_usd) AS accumulated_depreciation_usd,\n       SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\nFROM assets.plant_in_service s\nJOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\nWHERE s.retired_on IS NULL\nGROUP BY s.utility_code, s.plant_class"
+    },
+    {
+      "metric_id": "rate-base",
+      "name": "Rate base",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "rate base",
+        "CIAC",
+        "ADIT",
+        "working capital"
+      ],
+      "definition": "Net plant in service less contributions in aid of construction, accumulated deferred income taxes and customer advances, plus cash working capital and materials and supplies. CWIP is excluded.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Chief Financial Officer",
+        "Commission staff (data requests)"
+      ],
+      "sql": "WITH plant AS (\n  SELECT s.utility_code, SUM(s.amount_usd) - SUM(d.accumulated_depreciation_usd) AS net_plant_usd\n  FROM assets.plant_in_service s\n  JOIN assets.depreciation_reserve d ON d.asset_id = s.asset_id AND d.fiscal_period = '2026-09'\n  WHERE s.retired_on IS NULL GROUP BY s.utility_code\n)\nSELECT p.utility_code, p.net_plant_usd,\n       SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS adjustments_usd,\n       p.net_plant_usd + SUM(CASE WHEN c.treatment = 'Deduct' THEN -c.amount_usd ELSE c.amount_usd END) AS rate_base_usd\nFROM plant p\nJOIN assets.rate_base_component c ON c.utility_code = p.utility_code AND c.fiscal_period = '2026-09'\nGROUP BY p.utility_code, p.net_plant_usd"
+    },
+    {
+      "metric_id": "rate-base-change",
+      "name": "Rate base change since the last order",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "rate base",
+        "since the order",
+        "growth"
+      ],
+      "definition": "Rate base now against the rate base the last order allowed, with the plant additions that explain the change.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Chief Financial Officer",
+        "Board Finance Committee"
+      ],
+      "sql": "SELECT s.utility_code, SUM(s.amount_usd) AS additions_since_order_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date > '2022-12-31' AND s.retired_on IS NULL\nGROUP BY s.utility_code"
+    },
+    {
+      "metric_id": "plant-additions",
+      "name": "Plant additions in the period",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "additions",
+        "in service",
+        "placed"
+      ],
+      "definition": "Cost placed in service in the period, by utility, plant class and project.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Director, Rate Case and Regulatory",
+        "Regional Operations Director"
+      ],
+      "sql": "SELECT s.utility_code, s.plant_class, s.project_code, SUM(s.amount_usd) AS added_usd\nFROM assets.plant_in_service s\nWHERE s.in_service_date BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY s.utility_code, s.plant_class, s.project_code"
+    },
+    {
+      "metric_id": "cwip-balance",
+      "name": "CWIP balance",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "CWIP",
+        "construction work in progress"
+      ],
+      "definition": "Open construction work in progress at period end, by utility and project, excluded from rate base.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Capital Controller"
+      ],
+      "sql": "SELECT p.utility_code, c.project_code, c.cwip_usd\nFROM assets.cwip_balance c\nJOIN pmo.project p ON p.project_code = c.project_code\nWHERE c.fiscal_period = '2026-09' AND c.cwip_usd > 0"
+    },
+    {
+      "metric_id": "cwip-aging",
+      "name": "CWIP aging",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "CWIP",
+        "age",
+        "months"
+      ],
+      "definition": "CWIP balance by months since the first charge; balances older than 24 months are reviewed.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Capital Controller"
+      ],
+      "sql": "SELECT CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END AS age_band,\n       SUM(c.cwip_usd) AS cwip_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09'\nGROUP BY CASE WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 24 THEN 'Over 24 months' WHEN DATEDIFF(month, c.first_charge_date, '2026-09-30') > 12 THEN '12 to 24 months' ELSE 'Under 12 months' END"
+    },
+    {
+      "metric_id": "afudc",
+      "name": "AFUDC accrued",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "AFUDC",
+        "interest during construction"
+      ],
+      "definition": "AFUDC posted in the fiscal year to date, by project.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Chief Financial Officer"
+      ],
+      "sql": "SELECT c.project_code, c.afudc_ytd_usd\nFROM assets.cwip_balance c\nWHERE c.fiscal_period = '2026-09' AND c.afudc_ytd_usd > 0"
+    },
+    {
+      "metric_id": "depreciation-expense",
+      "name": "Depreciation expense",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "depreciation",
+        "expense",
+        "rate"
+      ],
+      "definition": "Depreciation booked in the period, by plant class, at the rates the last order approved.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Chief Financial Officer"
+      ],
+      "sql": "SELECT d.plant_class, d.depreciation_rate, SUM(d.depreciation_expense_usd) AS expense_usd\nFROM assets.depreciation_reserve d\nWHERE d.fiscal_period BETWEEN '2026-01' AND '2026-09'\nGROUP BY d.plant_class, d.depreciation_rate"
+    },
+    {
+      "metric_id": "in-service-not-unitized",
+      "name": "In service, not yet unitized",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "unitized",
+        "in service",
+        "used and useful"
+      ],
+      "definition": "Assets placed in service whose cost Plant Accounting has not yet unitized, by project and age.",
+      "personas": [
+        "Plant Accounting Manager",
+        "Director, Rate Case and Regulatory"
+      ],
+      "sql": "SELECT s.utility_code, s.project_code, COUNT(*) AS assets, SUM(s.amount_usd) AS amount_usd, MIN(s.in_service_date) AS earliest_in_service\nFROM assets.plant_in_service s\nWHERE s.unitized = 0\nGROUP BY s.utility_code, s.project_code"
+    },
+    {
+      "metric_id": "framework-compliance",
+      "name": "Framework compliance",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "framework",
+        "compliance",
+        "off-framework"
+      ],
+      "definition": "Spend on catalogue items ordered under a framework agreement divided by all spend on items a framework covers.",
+      "personas": [
+        "Category Manager, Capital Works",
+        "Capital Controller"
+      ],
+      "sql": "SELECT a.category,\n       SUM(CASE WHEN l.framework_agreement_no IS NOT NULL THEN l.ordered_usd ELSE 0 END) / SUM(l.ordered_usd) AS framework_share\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.ordered_on >= '2026-04-01'\nGROUP BY a.category"
+    },
+    {
+      "metric_id": "off-framework-premium",
+      "name": "Off-framework price premium",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "premium",
+        "framework price",
+        "spot buy"
+      ],
+      "definition": "What off-framework order lines cost above the framework price for the same item: (unit price minus framework price) times quantity.",
+      "personas": [
+        "Category Manager, Capital Works",
+        "SVP Capital Delivery (committee chair)"
+      ],
+      "sql": "SELECT l.po_number, l.line_no, l.project_code, l.item_code, l.quantity, l.unit_price_usd, a.framework_unit_price_usd,\n       (l.unit_price_usd - a.framework_unit_price_usd) * l.quantity AS premium_usd, l.confirmation_status\nFROM commitments.po_line l\nJOIN commitments.framework_agreement a ON a.item_code = l.item_code\nWHERE l.framework_agreement_no IS NULL AND l.unit_price_usd > a.framework_unit_price_usd"
+    },
+    {
+      "metric_id": "savings-vs-target",
+      "name": "Savings secured against target",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "savings",
+        "target",
+        "2.5%"
+      ],
+      "definition": "Savings secured since 1 July 2026 against the target of 2.5% of addressable capital procurement spend.",
+      "personas": [
+        "Category Manager, Capital Works",
+        "Chief Financial Officer",
+        "SVP Capital Delivery (committee chair)"
+      ],
+      "sql": "SELECT s.lever, SUM(s.savings_usd) AS secured_usd\nFROM commitments.savings_register s\nWHERE s.secured_on >= '2026-07-01'\nGROUP BY s.lever"
+    },
+    {
+      "metric_id": "supplier-lead-time",
+      "name": "Framework supplier lead time",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "lead time",
+        "weeks",
+        "supplier"
+      ],
+      "definition": "Lead time each framework supplier currently confirms, by category.",
+      "personas": [
+        "Category Manager, Capital Works",
+        "Project Manager"
+      ],
+      "sql": "SELECT a.framework_agreement_no, a.category, a.vendor_id, MAX(a.lead_time_weeks) AS lead_time_weeks\nFROM commitments.framework_agreement a\nGROUP BY a.framework_agreement_no, a.category, a.vendor_id"
+    },
+    {
+      "metric_id": "contract-growth",
+      "name": "Contract growth since award",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "contract",
+        "award",
+        "growth"
+      ],
+      "definition": "Current contract value against value at award, per contract.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Category Manager, Capital Works",
+        "Project Manager"
+      ],
+      "sql": "SELECT c.contract_no, c.project_code, c.award_value_usd, c.current_value_usd, (c.current_value_usd - c.award_value_usd) / NULLIF(c.award_value_usd, 0) AS growth\nFROM pmo.contract c"
+    },
+    {
+      "metric_id": "revision-cycle-time",
+      "name": "Budget revision cycle time",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "WIN",
+        "cycle time",
+        "days"
+      ],
+      "definition": "Days from a WIN budget revision request to its approval, by approval level.",
+      "personas": [
+        "SVP Capital Delivery (committee chair)",
+        "Capital Controller"
+      ],
+      "sql": "SELECT w.approval_level, AVG(DATEDIFF(day, w.requested_on, w.approved_on)) AS avg_days\nFROM commitments.win_authorization w\nWHERE w.request_type = 'Budget revision' AND w.approved_on IS NOT NULL\nGROUP BY w.approval_level"
+    },
+    {
+      "metric_id": "in-service-slippage",
+      "name": "In-service date slippage",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "in service",
+        "slip",
         "date"
       ],
-      "definition": "Budget_Consumed_to_Date = [Inception to Date (ITD) Actuals] / [Most Recent Budget Plan in PeopleSoft (Value)]"
+      "definition": "Expected in-service date against the date at approval, per project.",
+      "personas": [
+        "Director, Rate Case and Regulatory",
+        "Regional Operations Director",
+        "Project Controls Manager"
+      ],
+      "sql": "SELECT p.project_code, p.project_name, p.planned_in_service_date, i.forecast_in_service_date,\n       DATEDIFF(day, p.planned_in_service_date, i.forecast_in_service_date) AS slip_days\nFROM pmo.project p\nJOIN upload.inservice i ON i.project_code = p.project_code\nWHERE i.forecast_in_service_date > p.planned_in_service_date"
     },
     {
-      "metric_id": "forecast-bud-consumed-at-completion",
-      "name": "Forecast Bud Consumed at Completion",
+      "metric_id": "open-commitment-age",
+      "name": "Aged open commitments",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "forecast",
-        "bud",
-        "consumed",
-        "completion"
+        "open",
+        "aged",
+        "commitment"
       ],
-      "definition": "Forecast Bud Consumed at Completion = [Total_Anticipated_Cost] / [Most Recent Budget Plan in PeopleSoft (Value)]"
+      "definition": "Open order lines with no receipt for more than 90 days.",
+      "personas": [
+        "Capital Controller",
+        "Category Manager, Capital Works"
+      ],
+      "sql": "SELECT l.project_code, l.po_number, l.line_no, l.ordered_on, l.ordered_usd - l.received_usd - l.cancelled_usd AS open_usd\nFROM commitments.po_line l\nWHERE l.line_status = 'Open' AND l.ordered_on < DATEADD(day, -90, '2026-10-19')"
     },
     {
-      "metric_id": "full-year-budget-variance",
-      "name": "Full Year Budget Variance",
+      "metric_id": "pfas-spend",
+      "name": "PFAS program spend against plan",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "full",
-        "year",
-        "budget",
-        "variance"
+        "PFAS",
+        "program",
+        "plan"
       ],
-      "definition": "Variance = [Forecast 6+6] - January_Calendarization Budget YTD"
+      "definition": "Posted spend on PFAS projects against the FY26 plan for them.",
+      "personas": [
+        "Compliance Manager",
+        "SVP Capital Delivery (committee chair)"
+      ],
+      "sql": "SELECT p.utility_code, SUM(g.amount_usd) AS posted_usd\nFROM gl.project_costing_line g\nJOIN pmo.project p ON p.project_code = g.project_code\nWHERE p.compliance_driver = 'PFAS rule' AND g.fiscal_period LIKE '2026-%'\nGROUP BY p.utility_code"
     },
     {
-      "metric_id": "year-to-date-ytd-budget-variance",
-      "name": "Year-to-Date (YTD) Budget Variance",
+      "metric_id": "forecast-movement",
+      "name": "Forecast movement since last month",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "year",
-        "date",
-        "ytd",
-        "budget",
-        "variance"
+        "moved",
+        "since last month",
+        "forecast"
       ],
-      "definition": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)"
-    },
-    {
-      "metric_id": "current-month-budget-variance",
-      "name": "Current Month Budget Variance",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
+      "definition": "Change in forecast at completion between the last two working forecasts, per project.",
+      "personas": [
+        "Project Controls Manager",
+        "Capital Controller"
       ],
-      "keywords": [
-        "current",
-        "month",
-        "budget",
-        "variance"
-      ],
-      "definition": "Variance = Actual(Current Month) − Budget(Current Month)"
-    },
-    {
-      "metric_id": "overrun-amount",
-      "name": "Overrun amount",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "overrun",
-        "amount"
-      ],
-      "definition": "Overrun Amount =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURN\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )"
+      "sql": "WITH f AS (\n  SELECT project_code, forecast_date, forecast_at_completion_usd,\n         LAG(forecast_at_completion_usd) OVER (PARTITION BY project_code ORDER BY forecast_date) AS previous_usd,\n         ROW_NUMBER() OVER (PARTITION BY project_code ORDER BY forecast_date DESC) AS rn\n  FROM epbcs.forecast\n)\nSELECT project_code, forecast_date, previous_usd, forecast_at_completion_usd, forecast_at_completion_usd - previous_usd AS moved_usd\nFROM f WHERE rn = 1 AND previous_usd IS NOT NULL"
     }
   ],
   "graph_answer_formats": [
     {
+      "format_id": "ranked-exception",
+      "name": "Ranked exception list",
+      "format": "table ranked by variance, factors visible, owner per row",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "overrun",
+        "above 10%",
+        "exceptions"
+      ]
+    },
+    {
       "format_id": "variance-explained",
       "name": "Variance explained",
-      "format": "narrative + metric row + signed bar",
+      "format": "narrative + metric row + drivers bar with evidence per driver",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
         "variance",
-        "overrun",
-        "underspend",
-        "against plan"
+        "why",
+        "over budget"
       ]
     },
     {
-      "format_id": "vintage-comparison",
-      "name": "Vintage comparison",
-      "format": "metric row + line, one series per vintage",
+      "format_id": "program-at-a-glance",
+      "name": "Program at a glance",
+      "format": "metric row + one table per utility",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "forecast",
-        "vintage",
-        "3+9",
-        "working",
-        "MTP"
+        "program",
+        "stand",
+        "tolerance"
       ]
     },
     {
-      "format_id": "project-detail",
-      "name": "Project 360",
-      "format": "narrative + fact table + contract lines",
+      "format_id": "year-delivery",
+      "name": "Year delivery",
+      "format": "monthly bars plan vs posted vs forecast + gap",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "project",
-        "single",
-        "detail",
-        "360"
+        "FY26",
+        "December",
+        "re-phase"
       ]
     },
     {
-      "format_id": "ranked-exception",
-      "name": "Ranked exception list",
-      "format": "table ranked by measure, with a declared floor",
+      "format_id": "test-year-check",
+      "name": "Test-year check",
+      "format": "claimed vs expected in-service table with rate base",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "ranking",
-        "worst",
-        "top",
-        "floor",
-        "materiality"
+        "test year",
+        "in service",
+        "claim"
       ]
     },
     {
-      "format_id": "calendar-forecast",
-      "name": "Calendar / filing view",
-      "format": "table by date + monthly bar",
+      "format_id": "prudence-record",
+      "name": "Prudence record",
+      "format": "evidence list with dates and approvals",
       "domains": [
-        "capital-projects",
-        "water-wastewater"
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
       ],
       "keywords": [
-        "in-service",
-        "filing",
-        "rate case",
-        "calendar"
-      ]
-    },
-    {
-      "format_id": "rollup",
-      "name": "Portfolio rollup",
-      "format": "metric row + grouped bar",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "portfolio",
-        "region",
-        "category",
-        "business unit"
-      ]
-    },
-    {
-      "format_id": "trend",
-      "name": "Trend",
-      "format": "line over periods with an actual/forecast break",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "monthly",
-        "trend",
-        "over time",
-        "phasing"
-      ]
-    },
-    {
-      "format_id": "composition",
-      "name": "Composition",
-      "format": "donut + share table",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "share",
-        "mix",
-        "composition",
-        "split"
-      ]
-    },
-    {
-      "format_id": "refusal",
-      "name": "Refusal",
-      "format": "narrative only, naming what is missing and why",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "cannot",
-        "refuse",
-        "not answerable",
-        "missing"
-      ]
-    },
-    {
-      "format_id": "provenance",
-      "name": "Provenance",
-      "format": "narrative + evidence table + traversal",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "how do you know",
+        "prudent",
         "evidence",
+        "approval"
+      ]
+    },
+    {
+      "format_id": "provenance-table",
+      "name": "Provenance table",
+      "format": "every figure with table, basis and as-of",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
         "source",
-        "resolution"
+        "provenance",
+        "as-of"
+      ]
+    },
+    {
+      "format_id": "decline-with-alternative",
+      "name": "Decline with alternative",
+      "format": "reason for declining + what can be answered instead",
+      "domains": [
+        "capital-program",
+        "rate-case-recovery",
+        "contract-change"
+      ],
+      "keywords": [
+        "predict",
+        "critical path",
+        "schedule"
       ]
     }
   ]

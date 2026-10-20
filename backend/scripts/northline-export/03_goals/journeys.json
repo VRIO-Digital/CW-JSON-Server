@@ -1,0 +1,3633 @@
+{
+  "figures": {
+    "rateBase": {
+      "nineIn": 1072600000,
+      "nineInCwip": 1065800000,
+      "netPlantDec": 1246000000,
+      "allowed2025": 776900000,
+      "increase": 295700000,
+      "increasePct": 0.38061526579997423,
+      "asFiled": 1113900000,
+      "prudenceGapAmount": 34144000,
+      "top12": 141666000
+    }
+  },
+  "once": {
+    "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+    "files": [
+      {
+        "id": "seed",
+        "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+        "s": "420 KB"
+      },
+      {
+        "id": "seed",
+        "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+        "s": "280 KB"
+      }
+    ],
+    "reads": [
+      {
+        "tool": "read Belmara_Rate_Base_Schedules_2025_case.xlsx",
+        "res": "Schedules RB-1 to RB-5; rate base $776.9M at 31 December 2024, allowed in full. The structure the BPUC accepted",
+        "rv": [
+          "doc:q2",
+          "deliver"
+        ]
+      },
+      {
+        "tool": "read BPUC_2026_Post-Test-Year_Schedule.xlsx",
+        "res": "38 projects, $214.6M, claimed in service by 31 December 2026 · update due 13 November",
+        "rv": [
+          "doc:deck",
+          "scope"
+        ]
+      },
+      {
+        "tool": "scan psoft.asset · psoft.asset_depreciation",
+        "res": "Belmara plant in service $1,489.7M gross, $414.5M accumulated depreciation at 30 September, in five classes",
+        "rv": [
+          "src:fin",
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan CWIP · WIN register · psoft.commitments",
+        "res": "$287.6M in CWIP · WIN approvals, awards and change orders for every addition above $2.5M",
+        "rv": [
+          "src:ppm"
+        ]
+      },
+      {
+        "tool": "read upload.inservice · 12 October file",
+        "res": "Seven of the 38 post-test-year projects now dated 2027, $41.3M · two of the 31 on track have no row",
+        "warn": true,
+        "rv": [
+          "as:t3",
+          "src:ins"
+        ]
+      },
+      {
+        "tool": "read Outlook: regulatory · Plant Accounting",
+        "res": "Marc: schedules by 30 October, approved rates · Plant Accounting: nine projects in service since May to July still in CWIP, $6.8M",
+        "warn": true,
+        "rv": [
+          "src:mail",
+          "as:four",
+          "miss:four"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Plant enters rate base only in service at the test year end · approved depreciation rates until a new order · additions above $2.5M need a prudence record",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "search for PM confirmations on the seven in-service dates",
+        "res": "One PM confirms the slip (C23B361_658); six have not answered. Marc asked for answers by 6 November",
+        "warn": true,
+        "rv": [
+          "as:t3",
+          "miss:t3"
+        ]
+      }
+    ],
+    "readWeb": {
+      "tool": "search the web · BPUC docket 2025-RC-118",
+      "res": "Public docket: the update is still due 13 November; staff data requests DR-07 and DR-09 are posted; no depreciation study filed",
+      "rv": [
+        "as:t3",
+        "miss:t3",
+        "web"
+      ]
+    },
+    "questions": [
+      {
+        "key": "four",
+        "title": "Nine projects are in service but still booked to CWIP ($6.8M): do they count?",
+        "text": "Plant Accounting says nine Belmara projects went into service between May and July, with certificates on file, but they stay in CWIP until the 6 November close. The order keeps CWIP out of rate base, but plant in service at the test year end counts.",
+        "tiles": [
+          {
+            "v": "june",
+            "t": "Count them as completed construction",
+            "s": "In service, certificates on file"
+          },
+          {
+            "v": "standin",
+            "t": "Leave them in CWIP, as booked today",
+            "s": "$6.8M lower; they move on 6 November anyway"
+          },
+          {
+            "v": "wait",
+            "t": "Wait for the 6 November close",
+            "s": "The plan waits for it"
+          },
+          {
+            "v": "ask",
+            "t": "Ask me again before the schedules",
+            "s": "I stop at a checkpoint",
+            "rec": true
+          }
+        ]
+      },
+      {
+        "key": "t3",
+        "title": "The seven post-test-year projects now dated 2027: how do the schedules treat them?",
+        "text": "The 12 October in-service file moves seven of the 38 into 2027 ($41.3M). The order removes anything not in service by 31 December, and the update is due 13 November. Only one project manager has confirmed so far.",
+        "tiles": [
+          {
+            "v": "out",
+            "t": "Take them out now and list them for the next case",
+            "s": "What the order says",
+            "rec": true
+          },
+          {
+            "v": "expected",
+            "t": "Out of the total, on a separate at-risk list",
+            "s": "Marc decides after 6 November"
+          },
+          {
+            "v": "approved",
+            "t": "Keep all 38 in, as filed",
+            "s": "Only if the PMs correct the dates"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "col": 0,
+        "row": 1,
+        "type": "compute",
+        "title": "State plant in service and depreciation by class",
+        "purpose": "What Belmara has invested in plant, pipes and treatment, and what is left after depreciation.",
+        "how": "Gross plant in service and accumulated depreciation by class at 30 September, from the fixed-asset ledger, at the approved depreciation rates; reconciled to the 2025 schedules.",
+        "draws": [
+          "psoft.asset (plant in service)",
+          "psoft.asset_depreciation",
+          "BPUC order 2025-RC-118, item 11"
+        ],
+        "check": "Classes sum to the fixed-asset ledger; depreciation at the approved rates."
+      },
+      {
+        "id": "n2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Test what is used and useful at 31 December",
+        "purpose": "Which additions are in service at the test year end, and which are not.",
+        "how": "The 38 post-test-year projects against the 12 October in-service file and the project managers’ replies; completed construction still in CWIP; the CWIP the order keeps out.",
+        "draws": [
+          "upload.inservice",
+          "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "Outlook: regulatory (R1), Plant Accounting (P1)",
+          "Plant_Accounting_unitization_status_2026-10.xlsx"
+        ],
+        "check": "Every project is in, out or held, with the reason."
+      },
+      {
+        "id": "n3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Roll the rate base forward from the 2025 order",
+        "purpose": "From $776.9M at the 2024 test year end to 31 December 2026.",
+        "how": "Additions and depreciation since the 2024 test year, the fourth-quarter additions and depreciation, then contributions, deferred taxes, advances, cash working capital and materials, in the RB-1 to RB-5 structure.",
+        "draws": [
+          "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "psoft.asset",
+          "Belmara_Depreciation_Study_2026.pdf",
+          "Outlook: regulatory (R2)"
+        ],
+        "check": "The roll-forward ties back to the $776.9M allowed and forward to the ledger."
+      },
+      {
+        "id": "cp",
+        "col": 2,
+        "row": 1,
+        "type": "checkpoint",
+        "title": "Confirm how the nine completed projects in CWIP are treated",
+        "purpose": "Stops here and asks you before the prudence review and the schedules.",
+        "how": "Plant Accounting has not moved the nine yet. The schedules and the memo rest on how they are treated, and only you can confirm it.",
+        "draws": [
+          "Your answer"
+        ],
+        "check": "Your answer is recorded on the plan before anything after it runs."
+      },
+      {
+        "id": "n4",
+        "col": 3,
+        "row": 1,
+        "type": "gather",
+        "title": "Check the prudence record of the major additions",
+        "purpose": "Whether each addition above $2.5M can show it was prudently incurred.",
+        "how": "For the twelve largest fourth-quarter additions: the WIN approval and its level, the business case, the award (bids, or a sole-source justification), and every change order with its approval.",
+        "draws": [
+          "WIN register",
+          "psoft.commitments",
+          "pmo.change_order",
+          "BPUC order 2025-RC-118, item 16",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every addition has a complete record, or its gap is named."
+      },
+      {
+        "id": "n5",
+        "col": 4,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What to present, and how",
+        "purpose": "One rate base to present, with what it trades off.",
+        "how": "Weigh presenting the seven out against keeping all 38 as filed, or holding for the close and the confirmations; state the trade-off and every caveat that reached it.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your answer at the checkpoint"
+        ],
+        "check": "The recommendation names its remaining caveats and the alternatives it rejected."
+      },
+      {
+        "id": "n6",
+        "col": 5,
+        "row": 1,
+        "type": "deliver",
+        "title": "Draft the schedules, the memo and the slides",
+        "purpose": "What Marc needs by 30 October.",
+        "how": "Schedules RB-1 to RB-5 on the 2025 structure; a prudence and used-and-useful memo; a short deck for the 4 November session. Every figure linked to the step that produced it.",
+        "draws": [
+          "Steps 1 to 5",
+          "Template: Belmara rate base schedules, 2025 case"
+        ],
+        "check": "Every figure links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "n1",
+        "n2"
+      ],
+      [
+        "n1",
+        "n3"
+      ],
+      [
+        "n2",
+        "cp"
+      ],
+      [
+        "n3",
+        "cp"
+      ],
+      [
+        "cp",
+        "n4"
+      ],
+      [
+        "n4",
+        "n5"
+      ],
+      [
+        "n5",
+        "n6"
+      ]
+    ],
+    "forks": {
+      "rc": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the 2026 depreciation study rates",
+        "purpose": "The rate base if the study’s proposed rates applied from 1 January 2026.",
+        "how": "Re-runs accumulated depreciation at the proposed composite 2.56% instead of the approved 2.40%; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "Belmara_Depreciation_Study_2026.pdf"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      },
+      "t3": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the seven make 31 December after all",
+        "purpose": "The rate base if all seven projects now dated 2027 are in service by the test year end.",
+        "how": "Adds the seven back to the fourth-quarter additions and re-reads the rate base; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "upload.inservice",
+          "BPUC schedule"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      },
+      "four": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the nine stay in CWIP",
+        "purpose": "The rate base if the nine completed projects are left in CWIP as booked today.",
+        "how": "Takes the nine out of plant in service and re-reads the rate base; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "Plant Accounting list"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      }
+    },
+    "content": {
+      "n1": {
+        "dur": "58 s",
+        "conf": "high",
+        "live": [
+          "read_table psoft.asset",
+          "Belmara · 5 plant classes"
+        ],
+        "summary": [
+          "Read plant in service and accumulated depreciation for Northline Water of Belmara at 30 September. <b>$1,489.7M gross, $414.5M depreciated, $1,075.2M net.</b> Transmission and distribution mains and water treatment are 71.4% of it.",
+          "Depreciation runs at the approved composite rate of 2.4%. The classes reconcile to the fixed-asset ledger and follow RB-2 and RB-3 of the 2025 case."
+        ],
+        "table": {
+          "cols": [
+            "Plant class",
+            "Gross",
+            "Accumulated depreciation",
+            "Net",
+            "Approved rate"
+          ],
+          "num": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "rows": [
+            [
+              "Source of supply and pumping",
+              "$171.6M",
+              "$52.3M",
+              "$119.3M",
+              "2.5%"
+            ],
+            [
+              "Water treatment",
+              "$438.9M",
+              "$121.4M",
+              "$317.5M",
+              "2.7%"
+            ],
+            [
+              "Transmission and distribution mains",
+              "$624.3M",
+              "$168.9M",
+              "$455.4M",
+              "1.8%"
+            ],
+            [
+              "Services, meters and hydrants",
+              "$196.2M",
+              "$47.1M",
+              "$149.1M",
+              "2.6%"
+            ],
+            [
+              "General plant",
+              "$58.7M",
+              "$24.8M",
+              "$33.9M",
+              "5.1%"
+            ]
+          ],
+          "tot": [
+            "Plant in service",
+            "$1,489.7M",
+            "$414.5M",
+            "$1,075.2M",
+            "2.4%"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "psoft.asset",
+            "mono": true,
+            "m": "Belmara plant in service · $1,489.7M at 30 Sep",
+            "drill": {
+              "view": "ratebase",
+              "note": ""
+            }
+          },
+          {
+            "n": "psoft.asset_depreciation",
+            "mono": true,
+            "m": "Accumulated depreciation · $414.5M",
+            "drill": {
+              "view": "ratebase",
+              "note": ""
+            }
+          },
+          {
+            "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+            "m": "RB-2 and RB-3: plant and depreciation by class",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:rb-2025-schedules"
+            }
+          },
+          {
+            "n": "BPUC_Order_2025-RC-118_excerpt.pdf",
+            "m": "Item 11: approved rates stay until a new order",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:bpuc-order"
+            }
+          }
+        ],
+        "checks": [
+          "The five classes sum to the fixed-asset ledger.",
+          "Depreciation recomputes at the approved rates."
+        ],
+        "caveats": [],
+        "trace": [
+          "read_table psoft.asset where utility = BEL  → 5 classes, $1,489,700,000",
+          "read_table psoft.asset_depreciation  → $414,500,000",
+          "reconcile to RB-2 and RB-3 of the 2025 case  → passed"
+        ],
+        "traceN": 6
+      },
+      "n2": {
+        "dur": "1 min 14 s",
+        "conf": "medium",
+        "live": [
+          "read upload.inservice",
+          "38 post-test-year projects"
+        ],
+        "summary": [
+          "<b>Of the 38 post-test-year projects, 31 are on track ($173.3M) and seven now show 2027 dates ($41.3M).</b> The largest of the seven is the Belmara Central filter media renewal at $23.57M; Elias Corvino has confirmed the slip on the Draycott clearwell, and six project managers have not answered.",
+          "<b>Nine more projects ($6.8M) are in service but still booked to CWIP.</b> They went into service between May and July and the certificates are on file; Plant Accounting moves them at the 6 November close. They are counted as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order."
+        ],
+        "table": {
+          "cols": [
+            "Group",
+            "Projects",
+            "Amount",
+            "Treatment"
+          ],
+          "num": [
+            1,
+            2
+          ],
+          "rows": [
+            [
+              "Post-test-year, on track",
+              "31",
+              "$173.3M",
+              "In: in service by 31 December"
+            ],
+            [
+              "Post-test-year, dated 2027",
+              "7",
+              "$41.3M",
+              "Out; listed for the next case"
+            ],
+            [
+              "In service, still booked to CWIP",
+              "9",
+              "$6.8M",
+              "In: completed construction"
+            ],
+            [
+              "Other construction work in progress",
+              "",
+              "$287.6M",
+              "Out: excluded by the order"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Inservice_dates_2026-10-12.xlsx",
+            "m": "Seven of the 38 dated 2027, $41.3M",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:inservice-file"
+            }
+          },
+          {
+            "n": "Thread R1 · BPUC post-test-year update",
+            "m": "One PM confirms the slip; answers due 6 November",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R1"
+            }
+          },
+          {
+            "n": "Thread P1 · Completed construction still in CWIP",
+            "m": "Nine projects, $6.8M, certificates on file",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "P1"
+            }
+          },
+          {
+            "n": "BPUC_Order_2025-RC-118_excerpt.pdf",
+            "m": "Items 9 and 14: in service at the test year end; CWIP excluded",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:bpuc-order"
+            }
+          }
+        ],
+        "checks": [
+          "Every one of the 38 is in, out or held, with the reason.",
+          "The nine have in-service certificates on file."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "The nine count on their certificates. Until the 6 November close the ledger still shows them in CWIP.",
+            "p": "Rate base · Schedules · Memo",
+            "assume": true,
+            "acts": [
+              "Leave the nine in CWIP"
+            ]
+          }
+        ],
+        "trace": [
+          "read upload.inservice[2026-10-12] where project in post_test_year  → 38 rows, 7 dated 2027",
+          "read_mail thread R1  → 13 Oct, 14 Oct",
+          "read_document Plant_Accounting_unitization_status_2026-10.xlsx  → 9 projects, $6,800,000"
+        ],
+        "traceN": 7
+      },
+      "n2b": {
+        "dur": "41 s · re-run",
+        "conf": "medium",
+        "live": [
+          "remove completed construction",
+          "9 projects"
+        ],
+        "summary": [
+          "Re-run after your steer: the nine completed projects are <b>left in CWIP as booked</b> instead of counted as completed construction. The rate base moves to <b>$1,065.8M</b>, $6.8M lower, about $0.72M a year of revenue requirement.",
+          "That is a judgement, not a reading: the nine are in service with certificates on file, and they move to plant at the 6 November close. Staff may ask why plant in service is left out."
+        ],
+        "table": {
+          "cols": [
+            "Treatment of the nine",
+            "Net plant at 31 Dec",
+            "Rate base"
+          ],
+          "num": [
+            1,
+            2
+          ],
+          "rows": [
+            [
+              "Counted as completed construction",
+              "$1,246.0M",
+              "$1,072.6M"
+            ],
+            [
+              "Left in CWIP (your steer)",
+              "$1,239.2M",
+              "$1,065.8M"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Plant_Accounting_unitization_status_2026-10.xlsx",
+            "m": "The nine, $6.8M, still in CWIP",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:plant-unitization"
+            }
+          },
+          {
+            "n": "Your steer",
+            "m": "“Leave the nine in CWIP”"
+          }
+        ],
+        "checks": [
+          "The rate base recomputes without the nine.",
+          "The 31 on-track additions are unchanged."
+        ],
+        "caveats": [
+          {
+            "k": "Judgement · from your steer",
+            "t": "Plant in service is left out of rate base until it is booked; the rate base is lower for that reason only.",
+            "p": "Rate base · Schedules · Memo"
+          }
+        ],
+        "trace": [
+          "remove 9 projects from completed construction  → −$6,800,000",
+          "recompute rate base  → $1,065.8M"
+        ],
+        "traceN": 4
+      },
+      "n3": {
+        "dur": "1 min 02 s",
+        "conf": "high",
+        "live": [
+          "roll forward from the 2025 order",
+          "$776.9M → 31 Dec 2026"
+        ],
+        "summary": [
+          "<b>The rate base is $1,072.6M at 31 December 2026, $295.7M (38.1%) above the $776.9M allowed in 2025.</b> Net plant rises to $1,246.0M with the fourth-quarter additions; contributions, deferred taxes and advances take off $192.9M, and cash working capital and materials add $19.5M.",
+          "At the allowed return that is about $31.3M a year more revenue requirement. Marc asked for the approved depreciation rates: the 2026 study proposes 2.6% against 2.4%, which would take $2.4M off the rate base and add the same a year to depreciation expense. It is not filed."
+        ],
+        "table": {
+          "cols": [
+            "Roll-forward",
+            "Amount"
+          ],
+          "num": [
+            1
+          ],
+          "rows": [
+            [
+              "Net plant at 31 December 2024 (2025 order)",
+              "$937.9M"
+            ],
+            [
+              "Additions, January 2025 to September 2026",
+              "+$196.1M"
+            ],
+            [
+              "Depreciation, January 2025 to September 2026",
+              "−$58.8M"
+            ],
+            [
+              "Net plant at 30 September 2026",
+              "$1,075.2M"
+            ],
+            [
+              "Fourth-quarter additions, 31 projects",
+              "+$173.3M"
+            ],
+            [
+              "Completed construction, 9 projects",
+              "+$6.8M"
+            ],
+            [
+              "Fourth-quarter depreciation",
+              "−$9.3M"
+            ],
+            [
+              "Net plant at 31 December 2026",
+              "$1,246.0M"
+            ],
+            [
+              "Contributions, deferred taxes, advances",
+              "−$192.9M"
+            ],
+            [
+              "Cash working capital, materials and supplies",
+              "+$19.5M"
+            ]
+          ],
+          "tot": [
+            "Rate base at 31 December 2026",
+            "$1,072.6M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+            "m": "RB-1: $776.9M at 31 December 2024",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:rb-2025-schedules"
+            }
+          },
+          {
+            "n": "psoft.asset",
+            "mono": true,
+            "m": "Additions and depreciation since the 2024 test year",
+            "drill": {
+              "view": "ratebase",
+              "note": ""
+            }
+          },
+          {
+            "n": "Thread R2 · Belmara rate base",
+            "m": "Use the approved rates; the study is not filed",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R2"
+            }
+          },
+          {
+            "n": "Belmara_Depreciation_Study_2026.pdf",
+            "m": "Composite 2.56% proposed; not filed",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:dep-study"
+            }
+          }
+        ],
+        "checks": [
+          "The roll-forward ties back to the $776.9M allowed.",
+          "Net plant at 30 September equals the ledger."
+        ],
+        "caveats": [],
+        "trace": [
+          "read RB-1 of the 2025 case  → $776,900,000",
+          "sum psoft.asset additions 2025-01..2026-09  → $196,100,000",
+          "compute rate base at 2026-12-31  → $1,072.6M"
+        ],
+        "traceN": 6
+      },
+      "n4": {
+        "dur": "1 min 21 s",
+        "conf": "medium",
+        "live": [
+          "read WIN register · psoft.commitments",
+          "12 additions above $2.5M"
+        ],
+        "summary": [
+          "<b>Ten of the twelve largest additions ($141.7M) have a complete prudence record; two, $34.1M together, have gaps.</b> Each of the ten has its WIN approval at the right level, a business case, a competitive award and change orders approved at their level.",
+          "The two: <b>PFAS GAC Install, Brookmere</b> ($28.94M), where amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000; and <b>Booster Station Upgrade, Belmara Central</b> ($5.20M), where the $675,000 electrical and controls package (PO-467906-03) was placed sole source without the justification the policy requires. Order item 16 puts the burden on the Company."
+        ],
+        "table": {
+          "cols": [
+            "Addition",
+            "In service",
+            "Amount",
+            "Award",
+            "Change orders",
+            "Record"
+          ],
+          "num": [
+            2
+          ],
+          "rows": [
+            [
+              "C24B199_640 PFAS GAC Install, Ashfen",
+              "2026-11-24",
+              "$35.86M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B283_645 PFAS GAC Install, Brookmere",
+              "2026-10-25",
+              "$28.94M",
+              "4 bids",
+              "$1.22M, no cost comparison on file",
+              "Gap"
+            ],
+            [
+              "C23B250_640 Kembleton WTP, Belmara Central",
+              "2026-10-10",
+              "$15.43M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B285_645 PFAS GAC Install, Brookmere",
+              "2026-11-12",
+              "$12.91M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B188_645 Filter Media Renewal, Thornbury",
+              "2026-11-06",
+              "$10.62M",
+              "4 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B545_651 Well Field Expansion, Ashcombe",
+              "2026-12-14",
+              "$8.98M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "OVERHEAD6_651 Overhead Projects, Ashcombe",
+              "2026-11-05",
+              "$8.07M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B206_640 Booster Station Upgrade, Belmara Central",
+              "2026-11-08",
+              "$5.20M",
+              "sole source",
+              "approved at their level",
+              "Gap"
+            ],
+            [
+              "C23B411_645 Reservoir Rehabilitation, Thornbury",
+              "2026-11-22",
+              "$4.64M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C25B115_640 Pump Station Rebuild, Belmara Central",
+              "2026-10-19",
+              "$4.27M",
+              "3 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "C26B473_658 Well Field Expansion, Draycott",
+              "2026-12-13",
+              "$3.95M",
+              "4 bids",
+              "approved at their level",
+              "Complete"
+            ],
+            [
+              "CZZF50224_645 Lead Service Lines Replacement, Thornbury",
+              "2026-10-11",
+              "$2.79M",
+              "5 bids",
+              "approved at their level",
+              "Complete"
+            ]
+          ],
+          "tot": [
+            "Twelve largest",
+            "",
+            "$141.7M",
+            "",
+            "",
+            "10 complete · 2 gaps"
+          ],
+          "warn": 1
+        },
+        "receipts": [
+          {
+            "n": "WIN register",
+            "mono": true,
+            "m": "Approval level and date for each of the twelve",
+            "drill": {
+              "view": "additions",
+              "note": ""
+            }
+          },
+          {
+            "n": "psoft.commitments · pmo.change_order",
+            "mono": true,
+            "m": "Awards and change orders per addition",
+            "drill": {
+              "view": "additions",
+              "note": ""
+            }
+          },
+          {
+            "n": "BPUC_Order_2025-RC-118_excerpt.pdf",
+            "m": "Item 16: the prudence record the Company must show",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:bpuc-order"
+            }
+          },
+          {
+            "n": "Capital_Procurement_Policy_2025.pdf",
+            "m": "Sole source needs a recorded justification",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:proc-policy"
+            }
+          }
+        ],
+        "checks": [
+          "Each addition has its approval, award and change orders, or the gap is named.",
+          "Nothing called prudent rests on a missing record."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "That the missing records exist and can be found before staff see the file, rather than never written.",
+            "p": "Recommendation · Memo",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "read_table WIN register where project in top 12  → 12 approvals",
+          "read_table psoft.commitments  → awards, 1 sole source",
+          "read_table pmo.change_order  → C26B283_645: two approvals above $250,000 without a cost comparison"
+        ],
+        "traceN": 6
+      },
+      "n5": {
+        "dur": "36 s",
+        "conf": "medium",
+        "live": [
+          "compare three ways to present",
+          "seven out · as filed · hold"
+        ],
+        "summary": [
+          "<b>Present $1,072.6M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case, at the approved depreciation rates.</b> About $4.4M a year waits for the next case, but nothing in the filing rests on a date the project managers have not confirmed.",
+          "The alternatives: keep all 38 as filed at $1,113.9M and take out what slips in the 13 November update (staff see a figure the order says will come down); or hold the schedules for the 6 November close and the confirmations (every figure booked, but Marc goes into the 4 November session without schedules)."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 4",
+            "m": "Plant, used and useful, roll-forward, prudence"
+          },
+          {
+            "n": "Your answer at the checkpoint",
+            "m": "How the nine completed projects are treated"
+          }
+        ],
+        "checks": [
+          "The recommendation names its remaining caveats.",
+          "Each alternative states what it loses."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited · 2",
+            "t": "The nine counted on their certificates; the two prudence gaps still open.",
+            "p": "Schedules · Memo · Deck",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "rank ways to present by: in time for Marc, rests on confirmed dates, prudence record",
+          "select seven out, listed for the next case"
+        ],
+        "traceN": 3
+      },
+      "n6": {
+        "dur": "49 s",
+        "conf": "medium",
+        "live": [
+          "compose from template Belmara rate base schedules, 2025 case",
+          "RB-4 of RB-5"
+        ],
+        "summary": [
+          "Drafted the three outputs: the schedules RB-1 to RB-5 on the 2025 structure, a prudence and used-and-useful memo, and a short deck for the 4 November session. Every figure is linked to the step that produced it, and the seven held for the next case and the two prudence gaps are set out where staff will read them.",
+          "They are in Outputs as drafts for your review. Nothing goes to Marc until you send it; each one is built and finished in Submissions."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 5",
+            "m": "Figures and the recommendation"
+          },
+          {
+            "n": "Template: Belmara rate base schedules, 2025 case",
+            "m": "RB-1 to RB-5 · the structure the BPUC accepted"
+          }
+        ],
+        "checks": [
+          "Every figure links back to its step."
+        ],
+        "caveats": [],
+        "trace": [
+          "compose schedules from template t-prior-rb-2025  → 5 schedules, 31 figures",
+          "compose memo from t-reg-prudence-uu  → 6 sections",
+          "compose deck from t-reg-ratebase-deck  → 6 slides"
+        ],
+        "traceN": 4
+      },
+      "f1": {
+        "dur": "39 s",
+        "conf": "medium",
+        "live": [
+          "re-run depreciation at the study rates",
+          "composite 2.56%"
+        ],
+        "summary": [
+          "<b>At the 2026 study’s rates</b> accumulated depreciation is $2.4M higher by 31 December and the rate base falls to $1,070.2M. Depreciation expense rises by about $2.4M a year, so the revenue requirement still goes up, by about $2.1M a year. The study is not filed, so the schedules use the approved rates."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "Belmara_Depreciation_Study_2026.pdf",
+            "m": "Composite 2.56% proposed",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:dep-study"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Schedules",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "re-run depreciation from 2026-01-01 at the study rates",
+          "recompute rate base"
+        ],
+        "traceN": 3
+      }
+    },
+    "contentNineLeftInCwip": {
+      "n2": {
+        "dur": "1 min 14 s",
+        "conf": "medium",
+        "live": [
+          "read upload.inservice",
+          "38 post-test-year projects"
+        ],
+        "summary": [
+          "<b>Of the 38 post-test-year projects, 31 are on track ($173.3M) and seven now show 2027 dates ($41.3M).</b> The largest of the seven is the Belmara Central filter media renewal at $23.57M; Elias Corvino has confirmed the slip on the Draycott clearwell, and six project managers have not answered.",
+          "<b>Nine more projects ($6.8M) are in service but still booked to CWIP.</b> They went into service between May and July and the certificates are on file; Plant Accounting moves them at the 6 November close. They are left in CWIP as booked. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order."
+        ],
+        "table": {
+          "cols": [
+            "Group",
+            "Projects",
+            "Amount",
+            "Treatment"
+          ],
+          "num": [
+            1,
+            2
+          ],
+          "rows": [
+            [
+              "Post-test-year, on track",
+              "31",
+              "$173.3M",
+              "In: in service by 31 December"
+            ],
+            [
+              "Post-test-year, dated 2027",
+              "7",
+              "$41.3M",
+              "Out; listed for the next case"
+            ],
+            [
+              "In service, still booked to CWIP",
+              "9",
+              "$6.8M",
+              "Out: left in CWIP"
+            ],
+            [
+              "Other construction work in progress",
+              "",
+              "$287.6M",
+              "Out: excluded by the order"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Inservice_dates_2026-10-12.xlsx",
+            "m": "Seven of the 38 dated 2027, $41.3M",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:inservice-file"
+            }
+          },
+          {
+            "n": "Thread R1 · BPUC post-test-year update",
+            "m": "One PM confirms the slip; answers due 6 November",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R1"
+            }
+          },
+          {
+            "n": "Thread P1 · Completed construction still in CWIP",
+            "m": "Nine projects, $6.8M, certificates on file",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "P1"
+            }
+          },
+          {
+            "n": "BPUC_Order_2025-RC-118_excerpt.pdf",
+            "m": "Items 9 and 14: in service at the test year end; CWIP excluded",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:bpuc-order"
+            }
+          }
+        ],
+        "checks": [
+          "Every one of the 38 is in, out or held, with the reason.",
+          "The nine have in-service certificates on file."
+        ],
+        "caveats": [
+          {
+            "k": "Judgement · your call",
+            "t": "The nine are left in CWIP although they are in service; the rate base is $6.8M lower for that reason only.",
+            "p": "Rate base · Schedules · Memo"
+          }
+        ],
+        "trace": [
+          "read upload.inservice[2026-10-12] where project in post_test_year  → 38 rows, 7 dated 2027",
+          "read_mail thread R1  → 13 Oct, 14 Oct",
+          "read_document Plant_Accounting_unitization_status_2026-10.xlsx  → 9 projects, $6,800,000"
+        ],
+        "traceN": 7
+      },
+      "n3": {
+        "dur": "1 min 02 s",
+        "conf": "high",
+        "live": [
+          "roll forward from the 2025 order",
+          "$776.9M → 31 Dec 2026"
+        ],
+        "summary": [
+          "<b>The rate base is $1,065.8M at 31 December 2026, $288.9M (37.2%) above the $776.9M allowed in 2025.</b> Net plant rises to $1,239.2M with the fourth-quarter additions; contributions, deferred taxes and advances take off $192.9M, and cash working capital and materials add $19.5M.",
+          "At the allowed return that is about $30.6M a year more revenue requirement. Marc asked for the approved depreciation rates: the 2026 study proposes 2.6% against 2.4%, which would take $2.4M off the rate base and add the same a year to depreciation expense. It is not filed."
+        ],
+        "table": {
+          "cols": [
+            "Roll-forward",
+            "Amount"
+          ],
+          "num": [
+            1
+          ],
+          "rows": [
+            [
+              "Net plant at 31 December 2024 (2025 order)",
+              "$937.9M"
+            ],
+            [
+              "Additions, January 2025 to September 2026",
+              "+$196.1M"
+            ],
+            [
+              "Depreciation, January 2025 to September 2026",
+              "−$58.8M"
+            ],
+            [
+              "Net plant at 30 September 2026",
+              "$1,075.2M"
+            ],
+            [
+              "Fourth-quarter additions, 31 projects",
+              "+$173.3M"
+            ],
+            [
+              "Fourth-quarter depreciation",
+              "−$9.3M"
+            ],
+            [
+              "Net plant at 31 December 2026",
+              "$1,239.2M"
+            ],
+            [
+              "Contributions, deferred taxes, advances",
+              "−$192.9M"
+            ],
+            [
+              "Cash working capital, materials and supplies",
+              "+$19.5M"
+            ]
+          ],
+          "tot": [
+            "Rate base at 31 December 2026",
+            "$1,065.8M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+            "m": "RB-1: $776.9M at 31 December 2024",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:rb-2025-schedules"
+            }
+          },
+          {
+            "n": "psoft.asset",
+            "mono": true,
+            "m": "Additions and depreciation since the 2024 test year",
+            "drill": {
+              "view": "ratebase",
+              "note": ""
+            }
+          },
+          {
+            "n": "Thread R2 · Belmara rate base",
+            "m": "Use the approved rates; the study is not filed",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R2"
+            }
+          },
+          {
+            "n": "Belmara_Depreciation_Study_2026.pdf",
+            "m": "Composite 2.56% proposed; not filed",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:dep-study"
+            }
+          }
+        ],
+        "checks": [
+          "The roll-forward ties back to the $776.9M allowed.",
+          "Net plant at 30 September equals the ledger."
+        ],
+        "caveats": [],
+        "trace": [
+          "read RB-1 of the 2025 case  → $776,900,000",
+          "sum psoft.asset additions 2025-01..2026-09  → $196,100,000",
+          "compute rate base at 2026-12-31  → $1,065.8M"
+        ],
+        "traceN": 6
+      }
+    },
+    "forkContent": {
+      "rc": {
+        "dur": "39 s",
+        "conf": "medium",
+        "live": [
+          "re-run depreciation at the study rates",
+          "composite 2.56%"
+        ],
+        "summary": [
+          "<b>At the 2026 study’s rates</b> accumulated depreciation is $2.4M higher by 31 December and the rate base falls to $1,070.2M. Depreciation expense rises by about $2.4M a year, so the revenue requirement still goes up, by about $2.1M a year. The study is not filed, so the schedules use the approved rates."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "Belmara_Depreciation_Study_2026.pdf",
+            "m": "Composite 2.56% proposed",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:dep-study"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Schedules",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "re-run depreciation from 2026-01-01 at the study rates",
+          "recompute rate base"
+        ],
+        "traceN": 3
+      },
+      "t3": {
+        "dur": "39 s",
+        "conf": "medium",
+        "live": [
+          "add the seven back to the test year",
+          "7 projects"
+        ],
+        "summary": [
+          "<b>If all seven make 31 December</b> the rate base rises by $41.3M to $1,113.9M, about $4.4M a year more revenue requirement. One project manager has already confirmed the slip on the Draycott clearwell ($4.69M), so the most this can bring back is $36.6M. The largest single item is the Belmara Central filter media renewal at $23.57M."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "upload.inservice",
+            "mono": true,
+            "m": "Seven of 38 dated 2027",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:inservice-file"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Schedules",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "add 7 projects to the fourth-quarter additions",
+          "recompute rate base"
+        ],
+        "traceN": 3
+      },
+      "four": {
+        "dur": "39 s",
+        "conf": "medium",
+        "live": [
+          "leave the nine in CWIP",
+          "9 projects"
+        ],
+        "summary": [
+          "<b>If the nine stay in CWIP</b> the rate base is $1,065.8M, $6.8M lower, about $0.72M a year. They are in service with certificates on file, so leaving them out is hard to explain to staff, and Plant Accounting moves them on 6 November anyway."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "Plant_Accounting_unitization_status_2026-10.xlsx",
+            "m": "The nine, $6.8M",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:plant-unitization"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Schedules",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "move 9 projects between CWIP and plant",
+          "recompute rate base"
+        ],
+        "traceN": 3
+      }
+    },
+    "findings": {
+      "F1": {
+        "id": "F1",
+        "h": "Belmara has $1,489.7M of plant in service at 30 September: $1,075.2M net of $414.5M depreciation, with mains and treatment 71% of it.",
+        "d": "Transmission and distribution mains $624.3M gross, water treatment $438.9M, services, meters and hydrants $196.2M, source of supply and pumping $171.6M, general plant $58.7M. The five classes reconcile to the fixed-asset ledger, and depreciation runs at the approved composite rate of 2.40%.",
+        "from": "n1",
+        "cav": [],
+        "drill": {
+          "view": "ratebase",
+          "note": "Plant by class with the roll-forward under it."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "Belmara has $1,489.7M of plant in service at 30 September: $1,075.2M net of $414.5M depreciation, with mains and treatment 71% of it.",
+          "detail": "Transmission and distribution mains $624.3M gross, water treatment $438.9M, services, meters and hydrants $196.2M, source of supply and pumping $171.6M, general plant $58.7M. The five classes reconcile to the fixed-asset ledger, and depreciation runs at the approved composite rate of 2.40%.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Plant in service and accumulated depreciation by class at 30 September 2026",
+              "source": "northline_psoft.asset",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "ratebase"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "2025 case, RB-2 and RB-3: plant and depreciation by class, at approved rates",
+              "source": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+              "asOf": "2025-06-30",
+              "ref": {
+                "doc": "DOC:rb-2025-schedules"
+              }
+            }
+          ],
+          "drill": {
+            "view": "ratebase",
+            "note": "Plant by class with the roll-forward under it."
+          }
+        }
+      },
+      "F2": {
+        "id": "F2",
+        "h": "Used and useful at 31 December: 31 of the 38 post-test-year projects ($173.3M) come in, and the seven dated 2027 ($41.3M) come out.",
+        "d": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+        "from": "n2",
+        "cav": [
+          "The nine count on their certificates until the 6 November close"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "Every addition with its in-service date and how it is treated."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "Used and useful at 31 December: 31 of the 38 post-test-year projects ($173.3M) come in, and the seven dated 2027 ($41.3M) come out.",
+          "detail": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "In-service file of 12 October: seven of the 38 dated 2027, $41.3M",
+              "source": "Inservice_dates_2026-10-12.xlsx",
+              "asOf": "2026-10-12",
+              "ref": {
+                "doc": "DOC:inservice-file"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant Accounting: nine projects in service still in CWIP, $6.8M, certificates on file",
+              "source": "Thread P1, Completed construction still in CWIP",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "P1"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order 2025-RC-118, items 9 and 14: in service at the test year end; CWIP excluded; projects that slip leave the adjustment",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "Every addition with its in-service date and how it is treated."
+          }
+        }
+      },
+      "F2b": {
+        "id": "F2b",
+        "h": "With the nine completed projects left in CWIP, 31 additions ($173.3M) come in and the seven dated 2027 come out; $6.8M of plant in service waits for the 6 November close.",
+        "d": "Changed after your steer. The nine are in service with certificates on file; leaving them in CWIP keeps the schedules to what is booked today, and lowers the rate base by $6.8M for that reason only.",
+        "from": "n2",
+        "cav": [
+          "Plant in service left out until it is booked · your call"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "The nine are marked as left in CWIP."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "With the nine left in CWIP, $6.8M of plant in service waits for the 6 November close.",
+          "detail": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "In-service file of 12 October: seven of the 38 dated 2027, $41.3M",
+              "source": "Inservice_dates_2026-10-12.xlsx",
+              "asOf": "2026-10-12",
+              "ref": {
+                "doc": "DOC:inservice-file"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant Accounting: nine projects in service still in CWIP, $6.8M, certificates on file",
+              "source": "Thread P1, Completed construction still in CWIP",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "P1"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order 2025-RC-118, items 9 and 14: in service at the test year end; CWIP excluded; projects that slip leave the adjustment",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "Every addition with its in-service date and how it is treated."
+          }
+        }
+      },
+      "F3": {
+        "id": "F3",
+        "h": "The rate base is $1,072.6M at 31 December 2026, $295.7M (38.1%) above the $776.9M allowed in 2025.",
+        "d": "Net plant of $1,075.2M at 30 September, plus $173.3M of fourth-quarter additions and $6.8M of completed construction, less $9.3M of fourth-quarter depreciation, gives $1,246.0M. Less contributions, deferred taxes and advances ($192.9M), plus cash working capital and materials ($19.5M). At the allowed return that is about $31.3M a year of revenue requirement. The 2026 depreciation study would lower the rate base by $2.4M, but it is not filed and the schedules use the approved rates.",
+        "from": "n3",
+        "cav": [],
+        "drill": {
+          "view": "ratebase",
+          "note": "The roll-forward, line by line."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "The rate base is $1,072.6M at 31 December 2026, $295.7M (38.1%) above the $776.9M allowed in 2025.",
+          "detail": "Net plant of $1,075.2M at 30 September, plus $173.3M of fourth-quarter additions and $6.8M of completed construction, less $9.3M of fourth-quarter depreciation, gives $1,246.0M. Less contributions, deferred taxes and advances ($192.9M), plus cash working capital and materials ($19.5M). At the allowed return that is about $31.3M a year of revenue requirement. The 2026 depreciation study would lower the rate base by $2.4M, but it is not filed and the schedules use the approved rates.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Roll-forward from 31 December 2024 to 31 December 2026",
+              "source": "northline_psoft.asset",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "ratebase"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order item 8: rate base of $776.9M allowed at the 2024 test year end",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Regulatory: use the approved rates; the study is not filed",
+              "source": "Thread R2, Belmara rate base",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "R2"
+              }
+            }
+          ],
+          "drill": {
+            "view": "ratebase",
+            "note": "The roll-forward, line by line."
+          }
+        }
+      },
+      "F4": {
+        "id": "F4",
+        "h": "Ten of the twelve largest additions ($141.7M) have a complete prudence record; two, $34.1M together, have gaps to close before filing.",
+        "d": "PFAS GAC Install, Brookmere ($28.94M): amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000. Booster Station Upgrade, Belmara Central ($5.20M): the $675,000 electrical and controls package (PO-467906-03) was placed sole source without the justification the policy requires. Order item 16 puts the burden of proof on the Company.",
+        "from": "n4",
+        "cav": [
+          "Two prudence gaps to close before the 4 November session"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "The twelve with their record; the two gaps are marked."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Ten of the twelve largest additions ($141.7M) have a complete prudence record; two, $34.1M together, have gaps to close before filing.",
+          "detail": "PFAS GAC Install, Brookmere ($28.94M): amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000. Booster Station Upgrade, Belmara Central ($5.20M): the $675,000 electrical and controls package (PO-467906-03) was placed sole source without the justification the policy requires. Order item 16 puts the burden of proof on the Company.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Twelve largest additions: WIN approval, award and change orders",
+              "source": "WIN register · northline_psoft.commitments",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "additions"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order item 16: additions above $2.5M need an approval, a competitive award or a documented sole source, and change orders approved at their level",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            },
+            {
+              "kind": "assumption",
+              "text": "That the missing records exist and can be found, rather than never written",
+              "source": "Agent Compass"
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "The twelve with their record; the two gaps are marked."
+          }
+        }
+      }
+    },
+    "findingsNineLeftInCwip": {
+      "F1": {
+        "id": "F1",
+        "h": "Belmara has $1,489.7M of plant in service at 30 September: $1,075.2M net of $414.5M depreciation, with mains and treatment 71% of it.",
+        "d": "Transmission and distribution mains $624.3M gross, water treatment $438.9M, services, meters and hydrants $196.2M, source of supply and pumping $171.6M, general plant $58.7M. The five classes reconcile to the fixed-asset ledger, and depreciation runs at the approved composite rate of 2.40%.",
+        "from": "n1",
+        "cav": [],
+        "drill": {
+          "view": "ratebase",
+          "note": "Plant by class with the roll-forward under it."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "Belmara has $1,489.7M of plant in service at 30 September: $1,075.2M net of $414.5M depreciation, with mains and treatment 71% of it.",
+          "detail": "Transmission and distribution mains $624.3M gross, water treatment $438.9M, services, meters and hydrants $196.2M, source of supply and pumping $171.6M, general plant $58.7M. The five classes reconcile to the fixed-asset ledger, and depreciation runs at the approved composite rate of 2.40%.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Plant in service and accumulated depreciation by class at 30 September 2026",
+              "source": "northline_psoft.asset",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "ratebase"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "2025 case, RB-2 and RB-3: plant and depreciation by class, at approved rates",
+              "source": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+              "asOf": "2025-06-30",
+              "ref": {
+                "doc": "DOC:rb-2025-schedules"
+              }
+            }
+          ],
+          "drill": {
+            "view": "ratebase",
+            "note": "Plant by class with the roll-forward under it."
+          }
+        }
+      },
+      "F2": {
+        "id": "F2",
+        "h": "Used and useful at 31 December: 31 of the 38 post-test-year projects ($173.3M) come in, and the seven dated 2027 ($41.3M) come out.",
+        "d": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+        "from": "n2",
+        "cav": [
+          "The nine count on their certificates until the 6 November close"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "Every addition with its in-service date and how it is treated."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "Used and useful at 31 December: 31 of the 38 post-test-year projects ($173.3M) come in, and the seven dated 2027 ($41.3M) come out.",
+          "detail": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "In-service file of 12 October: seven of the 38 dated 2027, $41.3M",
+              "source": "Inservice_dates_2026-10-12.xlsx",
+              "asOf": "2026-10-12",
+              "ref": {
+                "doc": "DOC:inservice-file"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant Accounting: nine projects in service still in CWIP, $6.8M, certificates on file",
+              "source": "Thread P1, Completed construction still in CWIP",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "P1"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order 2025-RC-118, items 9 and 14: in service at the test year end; CWIP excluded; projects that slip leave the adjustment",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "Every addition with its in-service date and how it is treated."
+          }
+        }
+      },
+      "F2b": {
+        "id": "F2b",
+        "h": "With the nine completed projects left in CWIP, 31 additions ($173.3M) come in and the seven dated 2027 come out; $6.8M of plant in service waits for the 6 November close.",
+        "d": "Changed after your steer. The nine are in service with certificates on file; leaving them in CWIP keeps the schedules to what is booked today, and lowers the rate base by $6.8M for that reason only.",
+        "from": "n2",
+        "cav": [
+          "Plant in service left out until it is booked · your call"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "The nine are marked as left in CWIP."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "With the nine left in CWIP, $6.8M of plant in service waits for the 6 November close.",
+          "detail": "The 12 October in-service file dates seven projects in 2027, the largest the Belmara Central filter media renewal at $23.57M; one project manager has already confirmed the slip. Nine more projects ($6.8M) have been in service since May to July but are still booked to CWIP; their certificates are on file, so they count as completed construction. The rest of CWIP, $287.6M with Quarrydown PFAS among it, stays out under the order.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "In-service file of 12 October: seven of the 38 dated 2027, $41.3M",
+              "source": "Inservice_dates_2026-10-12.xlsx",
+              "asOf": "2026-10-12",
+              "ref": {
+                "doc": "DOC:inservice-file"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant Accounting: nine projects in service still in CWIP, $6.8M, certificates on file",
+              "source": "Thread P1, Completed construction still in CWIP",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "P1"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order 2025-RC-118, items 9 and 14: in service at the test year end; CWIP excluded; projects that slip leave the adjustment",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "Every addition with its in-service date and how it is treated."
+          }
+        }
+      },
+      "F3": {
+        "id": "F3",
+        "h": "The rate base is $1,065.8M at 31 December 2026, $288.9M (37.2%) above the $776.9M allowed in 2025.",
+        "d": "Net plant of $1,075.2M at 30 September, plus $173.3M of fourth-quarter additions, less $9.3M of fourth-quarter depreciation, gives $1,239.2M; the nine completed projects are left in CWIP. Less contributions, deferred taxes and advances ($192.9M), plus cash working capital and materials ($19.5M). At the allowed return that is about $30.6M a year of revenue requirement.",
+        "from": "n3",
+        "cav": [],
+        "drill": {
+          "view": "ratebase",
+          "note": "The roll-forward, line by line."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "The rate base is $1,065.8M at 31 December 2026, $288.9M (37.2%) above the $776.9M allowed in 2025.",
+          "detail": "Net plant of $1,075.2M at 30 September, plus $173.3M of fourth-quarter additions, less $9.3M of fourth-quarter depreciation, gives $1,239.2M; the nine completed projects are left in CWIP. Less contributions, deferred taxes and advances ($192.9M), plus cash working capital and materials ($19.5M). At the allowed return that is about $30.6M a year of revenue requirement.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Roll-forward from 31 December 2024 to 31 December 2026",
+              "source": "northline_psoft.asset",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "ratebase"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order item 8: rate base of $776.9M allowed at the 2024 test year end",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Regulatory: use the approved rates; the study is not filed",
+              "source": "Thread R2, Belmara rate base",
+              "asOf": "2026-10-14",
+              "ref": {
+                "thread": "R2"
+              }
+            }
+          ],
+          "drill": {
+            "view": "ratebase",
+            "note": "The roll-forward, line by line."
+          }
+        }
+      },
+      "F4": {
+        "id": "F4",
+        "h": "Ten of the twelve largest additions ($141.7M) have a complete prudence record; two, $34.1M together, have gaps to close before filing.",
+        "d": "PFAS GAC Install, Brookmere ($28.94M): amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000. Booster Station Upgrade, Belmara Central ($5.20M): the $675,000 electrical and controls package (PO-467906-03) was placed sole source without the justification the policy requires. Order item 16 puts the burden of proof on the Company.",
+        "from": "n4",
+        "cav": [
+          "Two prudence gaps to close before the 4 November session"
+        ],
+        "drill": {
+          "view": "additions",
+          "note": "The twelve with their record; the two gaps are marked."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Ten of the twelve largest additions ($141.7M) have a complete prudence record; two, $34.1M together, have gaps to close before filing.",
+          "detail": "PFAS GAC Install, Brookmere ($28.94M): amendment CO-645-001 ($868,000) and change order CO-645-002 ($351,000) were approved without the cost comparison the policy asks for above $250,000. Booster Station Upgrade, Belmara Central ($5.20M): the $675,000 electrical and controls package (PO-467906-03) was placed sole source without the justification the policy requires. Order item 16 puts the burden of proof on the Company.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Twelve largest additions: WIN approval, award and change orders",
+              "source": "WIN register · northline_psoft.commitments",
+              "asOf": "2026-09-30",
+              "ref": {
+                "sheet": "additions"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Order item 16: additions above $2.5M need an approval, a competitive award or a documented sole source, and change orders approved at their level",
+              "source": "BPUC_Order_2025-RC-118_excerpt.pdf",
+              "asOf": "2025-11-20",
+              "ref": {
+                "doc": "DOC:bpuc-order"
+              }
+            },
+            {
+              "kind": "assumption",
+              "text": "That the missing records exist and can be found, rather than never written",
+              "source": "Agent Compass"
+            }
+          ],
+          "drill": {
+            "view": "additions",
+            "note": "The twelve with their record; the two gaps are marked."
+          }
+        }
+      }
+    },
+    "recommendations": [
+      {
+        "id": "r1",
+        "title": "Present $1,072.6M: the 31 on-track additions in, the seven dated 2027 out and listed for the next case",
+        "summary": "Schedules RB-1 to RB-5 at 31 December 2026 at the approved depreciation rates, with the nine completed projects counted as completed construction and the two prudence gaps closed before the 4 November session. The seven go on a separate list for the next case, each with the date it could come back in.",
+        "figures": [
+          {
+            "label": "Rate base",
+            "value": "$1,072.6M"
+          },
+          {
+            "label": "Since 2025",
+            "value": "+$295.7M · 38.1%",
+            "tone": "warn"
+          },
+          {
+            "label": "Held for next case",
+            "value": "$41.3M · 7 projects",
+            "tone": "warn"
+          },
+          {
+            "label": "Prudence gaps",
+            "value": "2 · $34.1M",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "About $4.4M a year of revenue waits for the next case, but nothing in the filing rests on a date the project managers have not confirmed.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Marc needs the Belmara rate base for DR-07 and DR-09 by 30 October."
+          },
+          {
+            "kind": "read",
+            "text": "Read plant in service and depreciation by class at 30 September.",
+            "figure": "$1,075.2M net",
+            "ref": {
+              "sheet": "ratebase"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Seven of the 38 post-test-year projects are dated 2027.",
+            "figure": "$41.3M",
+            "ref": {
+              "doc": "DOC:inservice-file"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the order: plant counts only when in service at the test year end.",
+            "ref": {
+              "doc": "DOC:bpuc-order"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Nine completed projects are still in CWIP with certificates on file; they count.",
+            "figure": "+$6.8M",
+            "ref": {
+              "thread": "P1"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Two of the twelve largest additions have prudence gaps.",
+            "figure": "$34.1M",
+            "ref": {
+              "sheet": "additions"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Present $1,072.6M with the seven out, and close the two gaps before staff see the file."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Present all 38 as filed, $1,113.9M, and update when the project managers confirm",
+        "summary": "Keep the seven in the schedules until the 6 November confirmations, then take out any still dated 2027 in the 13 November update.",
+        "figures": [
+          {
+            "label": "Rate base",
+            "value": "$1,113.9M"
+          },
+          {
+            "label": "Rests on",
+            "value": "6 unconfirmed dates",
+            "tone": "crit"
+          },
+          {
+            "label": "Revision after filing",
+            "value": "likely",
+            "tone": "warn"
+          },
+          {
+            "label": "Revenue at stake",
+            "value": "$4.4M a year"
+          }
+        ],
+        "tradeoff": "Keeps the revenue in the filing for now, but staff see a figure the order says will come down, and one project manager has already confirmed the slip.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the filing keep all 38 until the dates are confirmed?"
+          },
+          {
+            "kind": "read",
+            "text": "Six of the seven dates are not yet confirmed.",
+            "ref": {
+              "thread": "R1"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "The order removes anything not in service by 31 December.",
+            "figure": "$41.3M",
+            "ref": {
+              "doc": "DOC:bpuc-order"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it if the project managers correct their dates; otherwise the schedules come down on 13 November."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Hold the schedules until the 6 November close and the confirmations",
+        "summary": "Wait for Plant Accounting to move the nine and for the project managers to answer, then file schedules where every figure is booked and confirmed.",
+        "figures": [
+          {
+            "label": "Every figure",
+            "value": "booked and confirmed",
+            "tone": "good"
+          },
+          {
+            "label": "Schedules ready",
+            "value": "~9 Nov",
+            "tone": "crit"
+          },
+          {
+            "label": "Marc’s date",
+            "value": "30 Oct missed",
+            "tone": "crit"
+          },
+          {
+            "label": "Review before 13 Nov",
+            "value": "4 days",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "The cleanest record, but Marc goes into the 4 November session without schedules, and the update gets four days of review.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could staff be given only booked, confirmed figures?"
+          },
+          {
+            "kind": "read",
+            "text": "The close is 6 November; the confirmations are due the same day.",
+            "ref": {
+              "thread": "P1"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Marc needs the schedules on 30 October and meets staff on 4 November.",
+            "figure": "10 days late"
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it if the session moves; otherwise present now with the open items named."
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-rb-schedules",
+        "label": "Belmara rate base schedules RB-1 to RB-5 at 31 December 2026",
+        "audience": "Marc Beaulieu, Director Rate Case and Regulatory · BPUC data requests DR-07 and DR-09",
+        "purpose": "The rate base at the test year end by plant class, with the additions and adjustments behind it",
+        "template": "Your prior deliverables: Belmara rate base schedules, 2025 case",
+        "templateId": "t-prior-rb-2025",
+        "why": "Marc asked for the RB-1 to RB-5 structure from the 2025 case by 30 October."
+      },
+      {
+        "id": "sub-rb-memo",
+        "label": "Prudence and used-and-useful memo: Belmara additions to the test year",
+        "audience": "Marc Beaulieu, for the BPUC record",
+        "purpose": "Show the additions were prudent and are used and useful at 31 December 2026, with the two gaps and the seven taken out set out",
+        "template": "Regulatory filings: prudence and used-and-useful memo",
+        "templateId": "t-reg-prudence-uu",
+        "why": "Data request DR-09 asks for support for every addition above $2.5M."
+      },
+      {
+        "id": "sub-rb-deck",
+        "label": "Belmara rate base: working session with BPUC staff",
+        "audience": "BPUC staff, working session on Wednesday 4 November",
+        "purpose": "Walk staff through the rate base, what changed since 2025, and what is held for the next case",
+        "template": "Regulatory filings: rate base presentation",
+        "templateId": "t-reg-ratebase-deck",
+        "why": "Marc wants a few slides for the session on 4 November."
+      }
+    ],
+    "gaps": [
+      "Six project managers have not confirmed their 2027 dates; answers are due 6 November, and a corrected date brings a project back in.",
+      "The nine completed projects move from CWIP to plant at the 6 November close; until then the ledger shows them in CWIP.",
+      "Two of the 31 on-track projects (CZZF5042_645, CZZF5025_640) have no row in the 12 October in-service file; their dates come from the post-test-year schedule."
+    ]
+  },
+  "watch": {
+    "prompt": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "Frameworks are mandatory above $25k per line where one covers the item · a saving counts once it is in an order or a signed contract",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Procurement_Savings_Program_2026-27.pdf",
+        "res": "Target 2.5% of $968.0M addressable capital spend: $24.2M by 30 June 2027",
+        "rv": [
+          "watch",
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "scan psoft.po_line · framework price schedules",
+        "res": "Every order line with its item, supplier and unit price · 4 frameworks, 9 priced items · category benchmarks",
+        "rv": [
+          "src:proc"
+        ]
+      },
+      {
+        "tool": "read the order calendar",
+        "res": "New order lines load nightly at 02:00. Next: tonight, Tuesday 20 October, with Monday’s orders",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "“Belmara rate base” reads the same awards for its prudence check; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "search for a project-manager list",
+        "res": "No distribution list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Savings tracker: $8.7M secured · off-framework buying about $1.4M above framework since April · the catalogue still defaults to the spot suppliers",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "fires",
+        "title": "What should count as a breach?",
+        "text": "Four frameworks cover pipe, fittings, valves, hydrants, meters and GAC media. Items no framework covers can still be checked against the category benchmark, which fires more often.",
+        "tiles": [
+          {
+            "v": "breach",
+            "t": "Any line above $25k off a framework that covers it",
+            "s": "The policy line"
+          },
+          {
+            "v": "early",
+            "t": "Also any line more than 5% above the category benchmark",
+            "s": "Catches items no framework covers",
+            "rec": true
+          },
+          {
+            "v": "always",
+            "t": "A digest of every load, flagged or not",
+            "s": "A short reading each morning"
+          }
+        ]
+      },
+      {
+        "key": "tell",
+        "title": "Who is told when it fires?",
+        "text": "No project-manager list is connected. The note goes out without waiting for you, so pick who should see it.",
+        "tiles": [
+          {
+            "v": "me",
+            "t": "Just me",
+            "s": "I decide who hears"
+          },
+          {
+            "v": "pm",
+            "t": "Me and the project managers",
+            "s": "Whoever raised the orders"
+          },
+          {
+            "v": "controller",
+            "t": "Me, the project managers and Procurement",
+            "s": "Everyone who can change an order"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the order load flagged, and size it",
+        "purpose": "Which lines are off-framework or above benchmark, and by how much.",
+        "how": "Every new order line against the framework price schedules and the category benchmarks: the unit price paid, the framework price, the premium, and whether the supplier has confirmed the line. Limited to the lines in the load that fired the rule.",
+        "draws": [
+          "psoft.po_line",
+          "Framework price schedules",
+          "psoft.supplier"
+        ],
+        "check": "Every flagged line recomputes from its quantity, unit price and framework price."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone raised it",
+        "purpose": "Is this new, and is someone already on it.",
+        "how": "Off-framework buying by category since April, the framework lead times, the ordering catalogue, and what Procurement and the project managers have said.",
+        "draws": [
+          "psoft.po_line (since April)",
+          "Outlook: Procurement and project managers (S1, S2, S3)",
+          "Savings_tracker_2026-10.xlsx"
+        ],
+        "check": "Every figure since April recomputes from the order lines."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Trace each line against its framework price",
+        "purpose": "The premium item by item, and whether the policy allowed it.",
+        "how": "For each flagged line: the framework that covers the item, its price, the premium, and the Procurement exception the policy requires on the order.",
+        "draws": [
+          "psoft.po_line",
+          "FA-2025-PIPE-01, FA-2025-VLV-02 (Schedule A)",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "The line premiums sum to the batch premium."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with the saving it keeps, checked against open goals.",
+        "how": "Each option with the saving it keeps against the 2.5% target, what it costs (restocking, delay), who has to agree, and an honest statement if nothing can be recovered; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Belmara rate base",
+          "Capital_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every option states the saving it keeps and what it costs."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Note to the people you chose",
+        "purpose": "One page, sent without waiting for you.",
+        "how": "The lines, why they went off-framework, the premium, the options, and the catalogue fix; on the off-framework order note template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: off-framework order note"
+        ],
+        "check": "Every figure in the note links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "content": {
+      "w1": {
+        "dur": "19 s",
+        "conf": "high",
+        "live": [
+          "compare 31 lines to the framework prices",
+          "14 off-framework · $0.55M"
+        ],
+        "summary": [
+          "At the 02:00 order load of 20 October, <b>14 of the 31 new lines are off-framework: $3.86M ordered, $0.55M (16.8%) above framework prices.</b> All are ductile iron pipe, fittings, gate valves and hydrants on nine network blanket projects in Lakeshore and Eastmoor, from Northgate Supply Co. and Ridgeline Waterworks Supply.",
+          "<b>Nine lines are not yet confirmed by the supplier</b>: $2.04M ordered, $0.30M of the premium. Five are confirmed ($1.82M ordered, $0.26M premium)."
+        ],
+        "table": {
+          "cols": [
+            "Lines",
+            "Count",
+            "Ordered",
+            "At framework",
+            "Premium"
+          ],
+          "num": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "rows": [
+            [
+              "Unconfirmed",
+              "9",
+              "$2.04M",
+              "$1.74M",
+              "$0.30M"
+            ],
+            [
+              "Confirmed by supplier",
+              "5",
+              "$1.82M",
+              "$1.56M",
+              "$0.26M"
+            ]
+          ],
+          "tot": [
+            "Off-framework in the load",
+            "14",
+            "$3.86M",
+            "$3.31M",
+            "$0.55M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "psoft.po_line",
+            "mono": true,
+            "m": "31 lines loaded 20 Oct 02:00 · 14 off-framework",
+            "drill": {
+              "view": "procure",
+              "note": ""
+            }
+          },
+          {
+            "n": "FA-2025-PIPE-01 · Schedule A",
+            "m": "Ductile iron and fittings at fixed prices",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:fa-pipe"
+            }
+          },
+          {
+            "n": "FA-2025-VLV-02 · Schedule A",
+            "m": "Valves and hydrants at fixed prices",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:fa-vlv"
+            }
+          },
+          {
+            "n": "psoft.supplier",
+            "mono": true,
+            "m": "Confirmation status per line, refreshed 08:00",
+            "drill": {
+              "view": "procure",
+              "note": ""
+            }
+          }
+        ],
+        "checks": [
+          "Each premium equals quantity times the difference to the framework price.",
+          "All 14 items are on a framework."
+        ],
+        "caveats": [
+          {
+            "k": "As of 02:00",
+            "t": "The confirmation status refreshes at 08:00; a supplier may confirm a line before then.",
+            "p": "Options · Note",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "rule order_line_off_framework  → 31 lines loaded, 14 flagged",
+          "sum psoft.po_line where flagged  → $3,861,716.12",
+          "compare framework prices  → $554,736.02 above"
+        ],
+        "traceN": 6
+      },
+      "w2": {
+        "dur": "34 s",
+        "conf": "high",
+        "live": [
+          "group psoft.po_line by category",
+          "April to September"
+        ],
+        "summary": [
+          "<b>It started in April and never stopped.</b> Harbor Pipe’s lead time reached 11 weeks in the spring and project managers moved pipe and valve orders to spot suppliers. Since April $11.4M went off-framework or above benchmark at $1.37M over the framework and benchmark prices, a run rate of about $2.6M a year.",
+          "Harbor Pipe has been back to 4 weeks since 29 September, but the ordering catalogue still defaults to Northgate for pipe and to Ridgeline for valves, so orders land there unless someone changes the supplier by hand. Tolu Adeyemi has asked for the list of affected orders before IT will change the default."
+        ],
+        "table": {
+          "cols": [
+            "Category, April to September",
+            "Spend",
+            "Off-framework or above benchmark",
+            "Premium"
+          ],
+          "num": [
+            1,
+            2,
+            3
+          ],
+          "rows": [
+            [
+              "Ductile iron pipe and fittings",
+              "$15.1M",
+              "$5.9M",
+              "$0.74M"
+            ],
+            [
+              "Valves and hydrants",
+              "$9.8M",
+              "$4.1M",
+              "$0.52M"
+            ],
+            [
+              "Meters",
+              "$11.3M",
+              "$0.9M",
+              "$0.06M"
+            ],
+            [
+              "Pumps and motors",
+              "$3.1M",
+              "$0.5M",
+              "$0.05M"
+            ]
+          ],
+          "tot": [
+            "All categories",
+            "$45.5M",
+            "$11.4M",
+            "$1.37M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "psoft.po_line",
+            "mono": true,
+            "m": "Order lines by category since April",
+            "drill": {
+              "view": "procure",
+              "note": ""
+            }
+          },
+          {
+            "n": "Thread S1 · Harbor Pipe lead times",
+            "m": "Back to 4 weeks since 29 September",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "S1"
+            }
+          },
+          {
+            "n": "Thread S2 · Ductile iron orders still going to Northgate",
+            "m": "The catalogue default; Procurement needs the affected orders",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "S2"
+            }
+          },
+          {
+            "n": "Savings_tracker_2026-10.xlsx",
+            "m": "Leakage about $1.4M since April, not netted",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:sav-tracker"
+            }
+          }
+        ],
+        "checks": [
+          "Categories sum to the six-month totals.",
+          "Nothing attributed without a dated message."
+        ],
+        "caveats": [],
+        "trace": [
+          "group psoft.po_line by category where date >= 2026-04-01  → 5 categories",
+          "read_mail thread S1  → 29 Sep",
+          "read_mail thread S2  → 16 Oct"
+        ],
+        "traceN": 6
+      },
+      "w3": {
+        "dur": "27 s",
+        "conf": "high",
+        "live": [
+          "compare 14 lines to Schedule A",
+          "premiums 14.9% to 18.1%"
+        ],
+        "summary": [
+          "<b>Line by line the premium is 14.9% to 18.1%</b> on items with fixed framework prices: 12 in gate valves at $3,820.72 against $3,260.00, 12 in ductile iron at $70.87 and $71.48 a foot against $61.20, hydrants at $4,664.95 against $3,950.00.",
+          "<b>Every line is above $25k and none carries a Procurement exception</b>, which the policy requires for an order placed off a framework that covers the item."
+        ],
+        "table": {
+          "cols": [
+            "Order line",
+            "Project",
+            "Item",
+            "Paid",
+            "Framework",
+            "Premium",
+            "Status"
+          ],
+          "num": [
+            3,
+            4,
+            5
+          ],
+          "rows": [
+            [
+              "PO-48813-02",
+              "CZZF50316_651 Main Replacement, Ashcombe",
+              "Ductile iron pipe, 12 in, class 350",
+              "$71.48",
+              "$61.20",
+              "$0.11M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48814-02",
+              "CZZF50113_658 Main Replacement, Draycott",
+              "Ductile iron pipe, 16 in, class 250",
+              "$104.80",
+              "$89.50",
+              "$0.09M",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48811-02",
+              "CZZF501_698 Main Replacement, Selby Point",
+              "Ductile iron pipe, 12 in, class 350",
+              "$70.87",
+              "$61.20",
+              "$0.09M",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48813-01",
+              "CZZF5043_694 Main Replacement, Harrowgate",
+              "Ductile iron pipe, 8 in, class 350",
+              "$44.58",
+              "$38.40",
+              "$0.05M",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48811-01",
+              "CZZF5018_694 Hydrant Renewals, Harrowgate",
+              "Fire hydrant, 5.25 in main valve",
+              "$4,664.95",
+              "$3,950.00",
+              "$0.04M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48816-02",
+              "CZZF5012_645 Valve Replacement Blanket, Thornbury",
+              "Fire hydrant, 5.25 in main valve",
+              "$4,664.95",
+              "$3,950.00",
+              "$0.03M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48810-02",
+              "CZZF50317_694 Valve Replacement Blanket, Harrowgate",
+              "Gate valve, 8 in, resilient wedge",
+              "$2,143.60",
+              "$1,840.00",
+              "$0.03M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48816-01",
+              "CZZF50415_651 Valve Replacement Blanket, Ashcombe",
+              "Fire hydrant, 5.25 in main valve",
+              "$4,664.95",
+              "$3,950.00",
+              "$0.03M",
+              "Confirmed by supplier"
+            ],
+            [
+              "PO-48815-02",
+              "CZZF50415_651 Valve Replacement Blanket, Ashcombe",
+              "Gate valve, 12 in, resilient wedge",
+              "$3,807.68",
+              "$3,260.00",
+              "$0.03M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48810-01",
+              "CZZF50317_694 Valve Replacement Blanket, Harrowgate",
+              "Gate valve, 12 in, resilient wedge",
+              "$3,820.72",
+              "$3,260.00",
+              "$0.02M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48812-02",
+              "CZZF50310_690 Valve Replacement Blanket, Dunmoor East",
+              "Gate valve, 8 in, resilient wedge",
+              "$2,143.60",
+              "$1,840.00",
+              "$0.02M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48815-01",
+              "CZZF50113_658 Main Replacement, Draycott",
+              "Gate valve, 12 in, resilient wedge",
+              "$3,820.72",
+              "$3,260.00",
+              "$0.02M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48814-01",
+              "CZZF50316_651 Main Replacement, Ashcombe",
+              "Fittings set, 12 in (bends, tees)",
+              "$473.39",
+              "$412.00",
+              "$0.01M",
+              "Unconfirmed"
+            ],
+            [
+              "PO-48812-01",
+              "CZZF501_698 Main Replacement, Selby Point",
+              "Fittings set, 12 in (bends, tees)",
+              "$473.39",
+              "$412.00",
+              "$0.01M",
+              "Confirmed by supplier"
+            ]
+          ],
+          "tot": [
+            "14 lines",
+            "",
+            "",
+            "",
+            "",
+            "$0.55M",
+            "9 unconfirmed"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "psoft.po_line",
+            "mono": true,
+            "m": "Unit price per line",
+            "drill": {
+              "view": "procure",
+              "note": ""
+            }
+          },
+          {
+            "n": "Capital_Procurement_Policy_2025.pdf",
+            "m": "Item 3: frameworks above $25k; exceptions on the order",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:proc-policy"
+            }
+          }
+        ],
+        "checks": [
+          "The fourteen premiums sum to the batch premium.",
+          "No order carries an exception."
+        ],
+        "caveats": [],
+        "trace": [
+          "join psoft.po_line to Schedule A on item  → 14 matches",
+          "check exception flag  → 0 of 14"
+        ],
+        "traceN": 4
+      },
+      "w4": {
+        "dur": "22 s",
+        "conf": "medium",
+        "live": [
+          "read the policy and the open goals",
+          "3 options"
+        ],
+        "summary": [
+          "Three courses of action, each with the saving it keeps: <b>re-place the nine unconfirmed lines on the frameworks at no cost ($0.30M) and fix the catalogue default</b>; re-place all 14, with the suppliers’ agreement and up to $0.09M of restocking on the five confirmed ($0.46M); or let the batch stand and fix the catalogue only ($0 now).",
+          "The first takes the program to $9.0M of $24.2M (37.2%). Whichever is chosen, the catalogue fix is what stops the $2.6M a year. The open Belmara rate base goal is not affected: none of the nine blankets is a post-test-year addition."
+        ],
+        "table": {
+          "cols": [
+            "Option",
+            "Kept now",
+            "Secured after",
+            "Costs"
+          ],
+          "num": [
+            1,
+            2
+          ],
+          "rows": [
+            [
+              "Re-place the nine, fix the catalogue",
+              "$0.30M",
+              "$9.0M · 37.2%",
+              "nothing; 4-week lead time"
+            ],
+            [
+              "Re-place all 14, fix the catalogue",
+              "$0.46M",
+              "$9.16M · 37.9%",
+              "up to $0.09M restocking; suppliers must agree"
+            ],
+            [
+              "Fix the catalogue only",
+              "$0",
+              "$8.7M · 36.0%",
+              "$0.55M premium paid"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Lines, cause, premiums"
+          },
+          {
+            "n": "Capital_Procurement_Policy_2025.pdf",
+            "m": "Item 7: unconfirmed lines cancel at no cost; confirmed up to 5%",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "n": "Goal: Belmara rate base",
+            "m": "Reads the awards of the major additions; none of the nine blankets is among them"
+          }
+        ],
+        "checks": [
+          "Each option states the saving it keeps and what it costs.",
+          "Every open plan on the same projects is named or excluded."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "That Harbor Pipe and Kestrel hold their quoted lead times of 4 and 3 weeks; two blankets need pipe within four.",
+            "p": "Note",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "compose option: re-place 9  → $296,964.93",
+          "compose option: re-place 14  → $463,648.36",
+          "read_goal g-belmara-rate-base  → no overlap"
+        ],
+        "traceN": 4
+      },
+      "w5": {
+        "dur": "25 s",
+        "conf": "medium",
+        "live": [
+          "compose note from template off_framework_note",
+          "sending"
+        ],
+        "summary": [
+          "Note drafted on the template, one page: the fourteen lines and their premium, why they went off-framework, the catalogue default, the three options with the saving each keeps, and the list of affected orders Procurement asked for. The preferred option is to re-place the nine unconfirmed lines and fix the catalogue.",
+          "Sent to the people you chose. The note says plainly that the nine are only free to cancel until the suppliers confirm them."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 4",
+            "m": "Lines, cause, premiums, options"
+          },
+          {
+            "n": "Template: Off-framework order note",
+            "m": "Procurement · 1 page"
+          }
+        ],
+        "checks": [
+          "Every figure in the note links back to its step."
+        ],
+        "caveats": [],
+        "trace": [
+          "compose note from template off_framework_note_v1  → 1 page, 12 figures",
+          "send  → delivered"
+        ],
+        "traceN": 2
+      }
+    },
+    "findings": {
+      "W1": {
+        "id": "W1",
+        "h": "14 of the 31 lines in the 20 October load are off-framework: $3.86M ordered, $0.55M (16.8%) above framework prices.",
+        "d": "All 14 are ductile iron pipe, fittings, gate valves and hydrants on nine network blanket projects in Lakeshore and Eastmoor, ordered from two spot suppliers, Northgate Supply Co. and Ridgeline Waterworks Supply. Every item is on FA-2025-PIPE-01 or FA-2025-VLV-02. Nine lines ($2.04M ordered, $0.30M of the premium) are not yet confirmed by the supplier.",
+        "from": "w1",
+        "cav": [
+          "Confirmation status as of 02:00"
+        ],
+        "drill": {
+          "view": "procure",
+          "note": "The 14 lines against their framework prices; Documents holds the two frameworks."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "14 of the 31 lines in the 20 October load are off-framework: $3.86M ordered, $0.55M (16.8%) above framework prices.",
+          "detail": "All 14 are ductile iron pipe, fittings, gate valves and hydrants on nine network blanket projects in Lakeshore and Eastmoor, ordered from two spot suppliers, Northgate Supply Co. and Ridgeline Waterworks Supply. Every item is on FA-2025-PIPE-01 or FA-2025-VLV-02. Nine lines ($2.04M ordered, $0.30M of the premium) are not yet confirmed by the supplier.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "The 31 lines of the 20 October load, with supplier, unit price, framework price and confirmation",
+              "source": "northline_psoft.po_line",
+              "asOf": "2026-10-20",
+              "ref": {
+                "sheet": "procure"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "FA-2025-PIPE-01, Schedule A: ductile iron 12 in at $61.20 per ft; mandatory for listed items",
+              "source": "FA-2025-PIPE-01_Framework_Agreement_Harbor_Pipe.pdf",
+              "asOf": "2025-03-01",
+              "ref": {
+                "doc": "DOC:fa-pipe"
+              }
+            }
+          ],
+          "drill": {
+            "view": "procure",
+            "note": "The 14 lines against their framework prices; Documents holds the two frameworks."
+          }
+        }
+      },
+      "W2": {
+        "id": "W2",
+        "h": "It started in April, when Harbor Pipe’s lead time reached 11 weeks, and it did not stop when the lead time came back.",
+        "d": "Since April $11.4M of orders went off-framework or above benchmark, $1.37M over the framework and benchmark prices and most of it pipe and valves: a run rate of about $2.6M a year. Harbor Pipe has been back to 4 weeks since 29 September, but the ordering catalogue still defaults to the spot suppliers, so new orders land there unless someone changes the supplier by hand.",
+        "from": "w2",
+        "cav": [],
+        "drill": {
+          "view": "mail",
+          "thread": "S2",
+          "note": "The catalogue default; the Order lines sheet has the categories since April."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "It started in April, when Harbor Pipe’s lead time reached 11 weeks, and it did not stop when the lead time came back.",
+          "detail": "Since April $11.4M of orders went off-framework or above benchmark, $1.37M over the framework and benchmark prices and most of it pipe and valves: a run rate of about $2.6M a year. Harbor Pipe has been back to 4 weeks since 29 September, but the ordering catalogue still defaults to the spot suppliers, so new orders land there unless someone changes the supplier by hand.",
+          "evidence": [
+            {
+              "kind": "mail",
+              "text": "Procurement, 29 September: Harbor Pipe back to 4 weeks; order on the frameworks again",
+              "source": "Thread S1, Harbor Pipe lead times",
+              "asOf": "2026-09-29",
+              "ref": {
+                "thread": "S1"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Project manager, 16 October: the catalogue still defaults to Northgate and Ridgeline",
+              "source": "Thread S2, Ductile iron orders still going to Northgate",
+              "asOf": "2026-10-16",
+              "ref": {
+                "thread": "S2"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Savings tracker, 15 October: leakage about $1.4M since April, not netted from the secured figure",
+              "source": "Savings_tracker_2026-10.xlsx",
+              "asOf": "2026-10-15",
+              "ref": {
+                "doc": "DOC:sav-tracker"
+              }
+            }
+          ],
+          "drill": {
+            "view": "mail",
+            "thread": "S2",
+            "note": "The catalogue default; the Order lines sheet has the categories since April."
+          }
+        }
+      },
+      "W3": {
+        "id": "W3",
+        "h": "Line by line the premium is 15% to 18% on every item, and none of the 14 orders carries the exception the policy requires.",
+        "d": "Gate valves 12 in at $3,820.72 against $3,260.00 (17.2%); ductile iron 12 in at $70.87 and $71.48 per foot against $61.20; hydrants at $4,664.95 against $3,950.00 (18.1%). Every line is above $25k, so the policy puts it on the framework unless Procurement records an exception. None is recorded.",
+        "from": "w3",
+        "cav": [],
+        "drill": {
+          "view": "procure",
+          "note": "Each line with its premium."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "Line by line the premium is 15% to 18% on every item, and none of the 14 orders carries the exception the policy requires.",
+          "detail": "Gate valves 12 in at $3,820.72 against $3,260.00 (17.2%); ductile iron 12 in at $70.87 and $71.48 per foot against $61.20; hydrants at $4,664.95 against $3,950.00 (18.1%). Every line is above $25k, so the policy puts it on the framework unless Procurement records an exception. None is recorded.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Fourteen lines: unit price, framework price and premium",
+              "source": "northline_psoft.po_line",
+              "asOf": "2026-10-20",
+              "ref": {
+                "sheet": "procure"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Policy item 3: frameworks mandatory above $25k per line; exceptions recorded on the order",
+              "source": "Capital_Procurement_Policy_2025.pdf",
+              "asOf": "2025-02-01",
+              "ref": {
+                "doc": "DOC:proc-policy"
+              }
+            }
+          ],
+          "drill": {
+            "view": "procure",
+            "note": "Each line with its premium."
+          }
+        }
+      },
+      "W4": {
+        "id": "W4",
+        "h": "Nine lines can still be re-placed at no cost; the five confirmed lines would carry up to 5% restocking.",
+        "d": "The policy lets an unconfirmed line be cancelled at no cost. Re-placing the nine on the frameworks keeps $0.30M and brings the program to $9.0M of $24.2M (37.2%). The five confirmed lines ($1.82M ordered, $0.26M of premium) could come back only with the suppliers’ agreement, at up to $0.09M of restocking.",
+        "from": "w3",
+        "cav": [
+          "Whether the frameworks hold their lead times"
+        ],
+        "drill": {
+          "view": "procure",
+          "note": "The nine unconfirmed lines are marked."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Nine lines can still be re-placed at no cost; the five confirmed lines would carry up to 5% restocking.",
+          "detail": "The policy lets an unconfirmed line be cancelled at no cost. Re-placing the nine on the frameworks keeps $0.30M and brings the program to $9.0M of $24.2M (37.2%). The five confirmed lines ($1.82M ordered, $0.26M of premium) could come back only with the suppliers’ agreement, at up to $0.09M of restocking.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "Policy item 7: an unconfirmed line cancels at no cost; a confirmed one may carry up to 5% restocking",
+              "source": "Capital_Procurement_Policy_2025.pdf",
+              "asOf": "2025-02-01",
+              "ref": {
+                "doc": "DOC:proc-policy"
+              }
+            },
+            {
+              "kind": "assumption",
+              "text": "That Harbor Pipe and Kestrel hold their quoted lead times of 4 and 3 weeks",
+              "source": "Agent Ledger"
+            }
+          ],
+          "drill": {
+            "view": "procure",
+            "note": "The nine unconfirmed lines are marked."
+          }
+        }
+      }
+    },
+    "recommendations": [
+      {
+        "id": "r1",
+        "title": "Re-place the nine unconfirmed lines on the frameworks, and fix the catalogue default",
+        "summary": "Cancel the nine unconfirmed lines at no cost and re-order them on FA-2025-PIPE-01 and FA-2025-VLV-02 at framework prices; let the five confirmed lines ship. Ask Procurement to have the catalogue default set back to the framework suppliers, so the next load does not repeat it.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0.30M",
+            "tone": "good"
+          },
+          {
+            "label": "Secured after",
+            "value": "$9.0M · 37.2%"
+          },
+          {
+            "label": "Leak stopped",
+            "value": "≈ $2.6M a year",
+            "tone": "good"
+          },
+          {
+            "label": "Crews held up",
+            "value": "none",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "Leaves $0.26M of premium on the five confirmed lines, and rests on Harbor and Kestrel holding their quoted lead times.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The rule fired: 14 lines in the 20 October load are off-framework. What can still be done?"
+          },
+          {
+            "kind": "read",
+            "text": "Read the 31 new lines against the framework price schedules.",
+            "figure": "$0.55M premium",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Nine of the 14 are not yet confirmed by the supplier.",
+            "figure": "9 lines · $2.04M",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: an unconfirmed line cancels at no cost.",
+            "ref": {
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Harbor Pipe is back to 4 weeks, so re-placing does not hold up the crews.",
+            "figure": "4 weeks",
+            "ref": {
+              "thread": "S1"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "The catalogue still sends new orders to the spot suppliers.",
+            "ref": {
+              "thread": "S2"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Re-place the nine today and fix the catalogue, so the saving is kept and the leak stops."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Re-place all 14, including the five confirmed lines",
+        "summary": "Cancel the nine unconfirmed lines and ask Northgate and Ridgeline to take back the five confirmed ones at up to 5% restocking; re-order all 14 on the frameworks and fix the catalogue.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0.46M after restocking",
+            "tone": "good"
+          },
+          {
+            "label": "Secured after",
+            "value": "$9.16M · 37.9%"
+          },
+          {
+            "label": "Restocking",
+            "value": "up to $0.09M",
+            "tone": "warn"
+          },
+          {
+            "label": "Needs suppliers to agree",
+            "value": "5 lines",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "About $0.17M more, but it needs two spot suppliers to agree, and three of the confirmed pipe lines are already picked for delivery this week.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could all 14 lines come back to the frameworks?"
+          },
+          {
+            "kind": "read",
+            "text": "Five lines are confirmed by the supplier.",
+            "figure": "$1.82M ordered",
+            "ref": {
+              "sheet": "procure"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Their premium is $0.26M; restocking would be up to $0.09M.",
+            "figure": "$0.17M net"
+          },
+          {
+            "kind": "found",
+            "text": "Three of the five are already picked for delivery."
+          },
+          {
+            "kind": "therefore",
+            "text": "Possible, but the extra $0.17M depends on two suppliers agreeing and may delay deliveries."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Let this batch stand and fix the catalogue only",
+        "summary": "Keep the 14 orders as placed; change the catalogue default so the next orders go to the frameworks.",
+        "figures": [
+          {
+            "label": "Kept now",
+            "value": "$0",
+            "tone": "crit"
+          },
+          {
+            "label": "Premium paid",
+            "value": "$0.55M",
+            "tone": "crit"
+          },
+          {
+            "label": "Leak stopped",
+            "value": "≈ $2.6M a year",
+            "tone": "good"
+          },
+          {
+            "label": "Disruption",
+            "value": "none",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "No change for nine project teams, but the $0.55M is paid and the secured figure does not move.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "What if the orders are left alone?"
+          },
+          {
+            "kind": "read",
+            "text": "The catalogue default is what keeps sending orders off-framework.",
+            "ref": {
+              "thread": "S2"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Fixing it stops about $2.6M a year of premium; this batch still costs $0.55M.",
+            "figure": "$0.55M paid"
+          },
+          {
+            "kind": "therefore",
+            "text": "The cheapest to do, and the most expensive outcome for this batch."
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-proc-note",
+        "label": "Off-framework order note: the 20 October load",
+        "audience": "Tolu Adeyemi, Head of Capital Procurement, and the nine project managers",
+        "purpose": "Re-place the nine unconfirmed lines on the frameworks before the suppliers confirm them",
+        "template": "Procurement: off-framework order note",
+        "templateId": "t-proc-note",
+        "why": "The open lines cancel at no cost only until the suppliers confirm them."
+      },
+      {
+        "id": "sub-proc-change",
+        "label": "Catalogue change request: framework suppliers as the default",
+        "audience": "Procurement systems, through Tolu Adeyemi",
+        "purpose": "Set the ordering catalogue back to the framework suppliers for pipe, fittings, valves and hydrants",
+        "template": "Procurement: catalogue change request",
+        "templateId": "t-proc-change",
+        "why": "Tolu asked for the affected orders and what they cost before IT changes the default."
+      }
+    ],
+    "gaps": [
+      "Whether the suppliers confirm any of the nine open lines before the 08:00 status refresh.",
+      "Whether re-placing holds up any crew: two blankets (CZZF50316_651, CZZF50113_658) need pipe within four weeks, and Harbor quotes four.",
+      "Pumps and motors have no framework; their benchmark is last year’s average price, not refreshed since January."
+    ]
+  },
+  "schedule": {
+    "reads": [
+      {
+        "tool": "read the close calendar",
+        "res": "Each quarter closes on the fourth working day; the next is the 6 November close for Q3, then 5 February 2027 for Q4",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "reuse the agreed plan",
+        "res": "Six steps, one checkpoint, from the goal you just ran",
+        "rv": [
+          "watch",
+          "steps"
+        ]
+      },
+      {
+        "tool": "scan psoft.asset · upload.inservice",
+        "res": "Plant, depreciation and in-service dates, read fresh each run; the mailbox is read at run time",
+        "rv": [
+          "against",
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "search for a distribution list",
+        "res": "No regulatory list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      }
+    ]
+  },
+  "generic": {
+    "reads": [
+      {
+        "tool": "resolve the goal against the role graph",
+        "res": "“<the goal in the analyst’s words>” → 14 governed measures, the approved projects, documents and mail",
+        "rv": [
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan epbcs.plan · epbcs.forecast",
+        "res": "3,768 approved projects · $8.27B approved · $8.32B forecast at 15 Oct",
+        "rv": [
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "scan pmo.project · psoft.po_line",
+        "res": "4,500 projects · order lines checked against four frameworks",
+        "rv": [
+          "src:ppm"
+        ]
+      },
+      {
+        "tool": "read Outlook · OneDrive",
+        "res": "19 threads and 30 documents linked to the program",
+        "rv": [
+          "src:mail"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Plant enters rate base only in service · frameworks mandatory above $25k · provisional figures are marked",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "match the goal to a recorded analysis",
+        "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+        "warn": true,
+        "rv": [
+          "miss:generic"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "g1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Ground the goal in the role graph",
+        "purpose": "Which measures, projects and documents the goal names.",
+        "how": "Resolve every term in the goal to a governed measure, a project or a document; list anything that does not resolve.",
+        "draws": [
+          "Capital Program Analyst graph v1"
+        ],
+        "check": "Every term maps to something the graph holds, or is listed as unresolved."
+      },
+      {
+        "id": "g2",
+        "col": 1,
+        "row": 1,
+        "type": "compute",
+        "title": "State the current position with its components",
+        "purpose": "Budget, forecast and their parts for everything in scope.",
+        "how": "From the latest working forecast and the posted ledger.",
+        "draws": [
+          "epbcs.plan",
+          "epbcs.forecast",
+          "psoft.gl"
+        ],
+        "check": "Totals reconcile to the governed measures within rounding."
+      },
+      {
+        "id": "g3",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Read what the documents and the mailbox say that the tables do not",
+        "purpose": "Dated statements that differ from EPBCS or PeopleSoft.",
+        "how": "Contractor, regulator and internal statements with dates or amounts.",
+        "draws": [
+          "Outlook mailbox",
+          "OneDrive documents",
+          "WIN register"
+        ],
+        "check": "Nothing is attributed without a dated reference."
+      },
+      {
+        "id": "g4",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Set out the ways forward and test them against the constraints",
+        "purpose": "At least two courses of action and \"do nothing\".",
+        "how": "Each with the figure it produces and the approvals it needs.",
+        "draws": [
+          "Steps 1 to 3"
+        ],
+        "check": "No course of action breaks a stated constraint."
+      }
+    ],
+    "edges": [
+      [
+        "g1",
+        "g2"
+      ],
+      [
+        "g2",
+        "g3"
+      ],
+      [
+        "g3",
+        "g4"
+      ]
+    ],
+    "content": {
+      "g1": {
+        "dur": "30 s",
+        "conf": "low",
+        "live": [
+          "resolve terms",
+          "14 measures"
+        ],
+        "summary": [
+          "Resolved the goal’s terms against the 14 governed measures and the entity types in the graph. One or more terms do not resolve to anything the graph computes."
+        ],
+        "receipts": [
+          {
+            "n": "Capital Program Analyst graph v1",
+            "m": "resolve"
+          }
+        ],
+        "checks": [
+          "Passed, with unresolved terms listed."
+        ],
+        "caveats": [
+          {
+            "k": "No recorded analysis",
+            "t": "This copy carries recorded analyses for the Belmara rate base and the off-framework orders only. The figures here are the graph’s position, not an answer to the goal.",
+            "p": "Findings"
+          }
+        ],
+        "trace": [
+          "resolve  → matched measures and projects; unresolved terms listed"
+        ],
+        "traceN": 1
+      },
+      "g2": {
+        "dur": "30 s",
+        "conf": "low",
+        "live": [
+          "read_table epbcs.forecast",
+          "3,768 projects"
+        ],
+        "summary": [
+          "The program stands at $8.32B forecast against $8.27B approved, with $3.02B posted to 30 September."
+        ],
+        "receipts": [
+          {
+            "n": "Capital Program Analyst graph v1",
+            "m": "position"
+          }
+        ],
+        "checks": [
+          "Passed, with unresolved terms listed."
+        ],
+        "caveats": [
+          {
+            "k": "No recorded analysis",
+            "t": "This copy carries recorded analyses for the Belmara rate base and the off-framework orders only. The figures here are the graph’s position, not an answer to the goal.",
+            "p": "Findings"
+          }
+        ],
+        "trace": [
+          "read_table epbcs.plan  → 3,768 rows",
+          "read_table epbcs.forecast  → latest per project"
+        ],
+        "traceN": 2
+      },
+      "g3": {
+        "dur": "30 s",
+        "conf": "low",
+        "live": [
+          "read_mail outlook",
+          "19 threads"
+        ],
+        "summary": [
+          "Read 19 mail threads and 30 documents linked to the program; dated statements that differ from the tables are listed with their reference."
+        ],
+        "receipts": [
+          {
+            "n": "Capital Program Analyst graph v1",
+            "m": "read"
+          }
+        ],
+        "checks": [
+          "Passed, with unresolved terms listed."
+        ],
+        "caveats": [
+          {
+            "k": "No recorded analysis",
+            "t": "This copy carries recorded analyses for the Belmara rate base and the off-framework orders only. The figures here are the graph’s position, not an answer to the goal.",
+            "p": "Findings"
+          }
+        ],
+        "trace": [
+          "read_mail  → 19 threads",
+          "read_document  → 30 documents"
+        ],
+        "traceN": 2
+      },
+      "g4": {
+        "dur": "30 s",
+        "conf": "low",
+        "live": [
+          "compose options",
+          "2 + do nothing"
+        ],
+        "summary": [
+          "No recorded analysis in this copy matches the goal, so I can only set out the position. The two example goals carry full findings and recommendations."
+        ],
+        "receipts": [
+          {
+            "n": "Capital Program Analyst graph v1",
+            "m": "compose"
+          }
+        ],
+        "checks": [
+          "Passed, with unresolved terms listed."
+        ],
+        "caveats": [
+          {
+            "k": "No recorded analysis",
+            "t": "This copy carries recorded analyses for the Belmara rate base and the off-framework orders only. The figures here are the graph’s position, not an answer to the goal.",
+            "p": "Findings"
+          }
+        ],
+        "trace": [
+          "compose  → 2 courses of action and do nothing"
+        ],
+        "traceN": 1
+      }
+    }
+  },
+  "library": {
+    "deck": {
+      "id": "deck",
+      "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+      "ext": "Excel · 420 KB",
+      "from": "onedrive",
+      "icon": "sheet",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:rb-2025-schedules"
+      }
+    },
+    "q2min": {
+      "id": "q2min",
+      "n": "BPUC_Order_2025-RC-118_excerpt.pdf",
+      "ext": "PDF · 310 KB",
+      "from": "onedrive",
+      "icon": "doc",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:bpuc-order"
+      }
+    },
+    "fcwork": {
+      "id": "fcwork",
+      "n": "Rate_base_working_2026-10.xlsx",
+      "ext": "Excel · 64 KB",
+      "from": "onedrive",
+      "icon": "sheet",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:my-rb-working"
+      }
+    },
+    "rc": {
+      "id": "rc",
+      "n": "Belmara_Depreciation_Study_2026.pdf",
+      "ext": "PDF · 2.2 MB",
+      "from": "onedrive",
+      "icon": "doc",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:dep-study"
+      }
+    },
+    "p5": {
+      "id": "p5",
+      "n": "Completed construction still in CWIP: Belmara",
+      "ext": "Thread P1 · Plant Accounting · 14 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "P1"
+      }
+    },
+    "c3": {
+      "id": "c3",
+      "n": "BPUC post-test-year update: in-service confirmations",
+      "ext": "Thread R1 · regulatory · 13 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "R1"
+      }
+    },
+    "p2": {
+      "id": "p2",
+      "n": "Belmara rate base: schedules for the November update",
+      "ext": "Thread R2 · regulatory · 14 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "R2"
+      }
+    }
+  },
+  "savedPlans": [
+    {
+      "id": "ap-q3",
+      "name": "Rate base: plant, used and useful, prudence",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Marc needs the Belmara rate base for the BPUC by Friday 30 October. Work out what we have invested in plant, pipes and treatment, net of depreciation, at the 31 December 2026 test year end; show that the additions were prudent and are used and useful; and draft the rate base schedules in the 2025 structure, a prudence and used-and-useful memo, and a few slides for the working session with BPUC staff on 4 November. Attached: the 2025 rate base schedules and the BPUC post-test-year schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Belmara_Rate_Base_Schedules_2025_case.xlsx",
+          "s": "420 KB"
+        },
+        {
+          "id": "seed",
+          "n": "BPUC_2026_Post-Test-Year_Schedule.xlsx",
+          "s": "280 KB"
+        }
+      ],
+      "steps": [
+        "State plant in service and depreciation by class",
+        "Test what is used and useful at 31 December",
+        "Roll the rate base forward from the 2025 order",
+        "Check the prudence record of the major additions",
+        "What to present, and how",
+        "Draft the schedules, the memo and the slides"
+      ],
+      "from": "Belmara rate base, 2025 case",
+      "by": "Marc Beaulieu",
+      "at": "30 Jun 2025",
+      "case": "once"
+    },
+    {
+      "id": "ap-overrun",
+      "name": "Off-framework orders: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Help me take 2.5% off procurement spend across all our capital projects. Check every new order line against the framework agreements and benchmark prices, tell me when something goes off-framework or above benchmark, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the order load flagged, and size it",
+        "Why it happened, and whether anyone raised it",
+        "Trace each line against its framework price",
+        "What can still be done, including nothing",
+        "Note to the people you chose"
+      ],
+      "from": "Order line off-framework or above benchmark",
+      "by": "Tolu Adeyemi",
+      "at": "16 Oct 2026",
+      "case": "watch"
+    }
+  ]
+}

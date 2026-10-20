@@ -1,0 +1,142 @@
+{
+  "stats": [
+    {
+      "label": "Suites",
+      "value": "6",
+      "note": "all derived from package artifacts"
+    },
+    {
+      "label": "Hero questions answerable",
+      "value": "4 of 5",
+      "note": "graph sanity checks",
+      "tone": "warn"
+    },
+    {
+      "label": "High-confidence answers",
+      "value": "37 of 49",
+      "note": "12 medium, 0 low"
+    },
+    {
+      "label": "Must-review graph items",
+      "value": "8",
+      "note": "0 resolved · 1 pivot",
+      "tone": "crit"
+    }
+  ],
+  "runs": [
+    {
+      "suite": "hero-question-answerability",
+      "target": "g_nwg_capital_program_analyst · 5 checks",
+      "checks": 5,
+      "pass_rate": 80,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-15"
+    },
+    {
+      "suite": "answer-confidence",
+      "target": "query set · 49 questions",
+      "checks": 49,
+      "pass_rate": 75.5,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-15"
+    },
+    {
+      "suite": "refusal-correctness",
+      "target": "11 declines",
+      "checks": 11,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-15"
+    },
+    {
+      "suite": "statement-not-promoted",
+      "target": "notes, drafts, emails, studies not filed",
+      "checks": 7,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-15"
+    },
+    {
+      "suite": "citation-validity",
+      "target": "133 citations",
+      "checks": 133,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-15"
+    },
+    {
+      "suite": "ledger-reconciliation",
+      "target": "project posted actuals vs the monthly ledger",
+      "checks": 12,
+      "pass_rate": 91.7,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-15"
+    }
+  ],
+  "checks": [
+    {
+      "name": "sc1 · Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+      "dataset": "g_nwg_capital_program_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - at the 15 October forecast, Lakeshore marked provisional"
+    },
+    {
+      "name": "sc2 · What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+      "dataset": "g_nwg_capital_program_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - approved rates, the seven out, the nine shown as completed construction"
+    },
+    {
+      "name": "sc3 · Which order lines were placed off-framework above the framework price, and what did that cost?",
+      "dataset": "g_nwg_capital_program_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - order line grain, against Schedule A"
+    },
+    {
+      "name": "sc4 · Which projects claimed in the Belmara test year are now at risk of missing it?",
+      "dataset": "g_nwg_capital_program_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - the 12 October in-service file wins over the September schedule"
+    },
+    {
+      "name": "sc5 · Which large projects slipped on their critical path this month?",
+      "dataset": "g_nwg_capital_program_analyst",
+      "result": "Refused",
+      "tone": "crit",
+      "detail": "Declined - the schedule source is not connected"
+    },
+    {
+      "name": "Study rates not promoted to approved rates",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq6 held; approved 2.40% used"
+    },
+    {
+      "name": "June forecasts not read as current",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq3 held; 63 Lakeshore rows marked provisional"
+    },
+    {
+      "name": "Avoided premium not counted as a saving",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq7 held; secured stays $8.7M"
+    }
+  ],
+  "run_trigger": "On graph build and on query-set regeneration",
+  "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (project posted $818.1M vs ledger $812.0M, timing of reclasses) open with the controller"
+}

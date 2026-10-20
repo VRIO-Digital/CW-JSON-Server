@@ -1,0 +1,374 @@
+[
+  {
+    "project_id": "northline_epbcs",
+    "display_name": "Northline EPBCS (plan and forecast)",
+    "location": "US",
+    "datasets": [
+      {
+        "dataset_id": "epbcs",
+        "dataset_ref": "ds_epbcs",
+        "location": "US",
+        "description": "Oracle EPBCS extract: the approved capital plan by vintage and the monthly working forecast. Refreshed on the 15th of each month after the forecast round closes.",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "plan",
+            "label": "Approved budget and planned spend by project, fiscal year and plan vintage",
+            "type": "TABLE",
+            "grain": "one project x fiscal year x plan vintage",
+            "rows": 94500,
+            "columns": 9,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.008,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Approved budget and planned spend per project, year and vintage.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "forecast",
+            "label": "Working forecast per project, one row per forecast round",
+            "type": "TABLE",
+            "grain": "one project x forecast date",
+            "rows": 41210,
+            "columns": 10,
+            "pii_columns": 1,
+            "to_review": 0,
+            "size_gb": 0.004,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Working forecasts with their components.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "monthly_spread",
+            "label": "FY26 plan and forecast by month (Jan Calendarization)",
+            "type": "TABLE",
+            "grain": "one project x fiscal year x period x vintage",
+            "rows": 1356000,
+            "columns": 6,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.073,
+            "partitioned": true,
+            "profiled_in_full": false,
+            "carries": "Monthly plan and forecast.",
+            "rows_basis": "sampled: 100,000 rows"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project_id": "northline_psoft",
+    "display_name": "Northline PeopleSoft Financials",
+    "location": "US",
+    "datasets": [
+      {
+        "dataset_id": "gl",
+        "dataset_ref": "ds_gl",
+        "location": "US",
+        "description": "PeopleSoft general ledger, project costing lines. Posted nightly; the month closes on business day 5.",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "project_costing_line",
+            "label": "Posted cost lines charged to capital projects",
+            "type": "TABLE",
+            "grain": "one posted ledger line",
+            "rows": 6204118,
+            "columns": 9,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.503,
+            "partitioned": true,
+            "profiled_in_full": false,
+            "carries": "Posted actuals.",
+            "rows_basis": "sampled: 100,000 rows"
+          },
+          {
+            "table_id": "vendor",
+            "label": "Vendor master",
+            "type": "TABLE",
+            "grain": "one vendor",
+            "rows": 2210,
+            "columns": 3,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Vendors.",
+            "rows_basis": "profiled in full"
+          }
+        ]
+      },
+      {
+        "dataset_id": "commitments",
+        "dataset_ref": "ds_commitments",
+        "location": "US",
+        "description": "PeopleSoft purchasing and WIN authorizations (Work Initiation Notice, the capital approval workflow).",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "po_line",
+            "label": "Purchase order and contract release lines on capital projects",
+            "type": "TABLE",
+            "grain": "one PO line",
+            "rows": 211480,
+            "columns": 17,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.032,
+            "partitioned": true,
+            "profiled_in_full": false,
+            "carries": "Commitments.",
+            "rows_basis": "sampled: 100,000 rows"
+          },
+          {
+            "table_id": "win_authorization",
+            "label": "WIN register: authorizations, budget revisions and transfers",
+            "type": "TABLE",
+            "grain": "one WIN request",
+            "rows": 18940,
+            "columns": 9,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.002,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Budget approvals.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "framework_agreement",
+            "label": "Framework agreements and their catalogue prices",
+            "type": "TABLE",
+            "grain": "one agreement x catalogue item",
+            "rows": 1846,
+            "columns": 9,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Framework prices.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "savings_register",
+            "label": "Procurement savings program: savings secured by initiative",
+            "type": "TABLE",
+            "grain": "one initiative",
+            "rows": 64,
+            "columns": 6,
+            "pii_columns": 1,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Savings secured.",
+            "rows_basis": "profiled in full"
+          }
+        ]
+      },
+      {
+        "dataset_id": "assets",
+        "dataset_ref": "ds_assets",
+        "location": "US",
+        "description": "PeopleSoft asset accounting: CWIP, AFUDC and plant placed in service.",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "cwip_balance",
+            "label": "CWIP and AFUDC per project per month",
+            "type": "TABLE",
+            "grain": "one project x fiscal period",
+            "rows": 248112,
+            "columns": 5,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.011,
+            "partitioned": true,
+            "profiled_in_full": false,
+            "carries": "Construction work in progress.",
+            "rows_basis": "sampled: 100,000 rows"
+          },
+          {
+            "table_id": "plant_in_service",
+            "label": "Plant placed in service, by asset",
+            "type": "TABLE",
+            "grain": "one asset placed in service",
+            "rows": 61420,
+            "columns": 8,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.004,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Plant in service.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "depreciation_reserve",
+            "label": "Accumulated depreciation and depreciation expense, by asset and month",
+            "type": "TABLE",
+            "grain": "one asset x fiscal period",
+            "rows": 4422240,
+            "columns": 6,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.239,
+            "partitioned": true,
+            "profiled_in_full": false,
+            "carries": "Depreciation.",
+            "rows_basis": "sampled: 100,000 rows"
+          },
+          {
+            "table_id": "rate_base_component",
+            "label": "Rate base deductions and additions by utility",
+            "type": "TABLE",
+            "grain": "one utility x component x period",
+            "rows": 1080,
+            "columns": 5,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Rate base components.",
+            "rows_basis": "profiled in full"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project_id": "northline_pmo",
+    "display_name": "Northline PMO project master",
+    "location": "US",
+    "datasets": [
+      {
+        "dataset_id": "pmo",
+        "dataset_ref": "ds_pmo",
+        "location": "US",
+        "description": "PMO project master and the contract, change order and rate case registers kept by Capital Planning.",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "project",
+            "label": "Project master: one row per capital project",
+            "type": "TABLE",
+            "grain": "one project (current attributes)",
+            "rows": 4500,
+            "columns": 15,
+            "pii_columns": 1,
+            "to_review": 0,
+            "size_gb": 0.001,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Project attributes.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "utility",
+            "label": "The four regulated utilities and the shared services division",
+            "type": "TABLE",
+            "grain": "one utility",
+            "rows": 5,
+            "columns": 5,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Utilities.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "contract",
+            "label": "Contract register for capital works",
+            "type": "TABLE",
+            "grain": "one contract",
+            "rows": 1264,
+            "columns": 7,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Contracts.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "change_order",
+            "label": "Change orders against capital contracts",
+            "type": "TABLE",
+            "grain": "one change order",
+            "rows": 3960,
+            "columns": 8,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Change orders.",
+            "rows_basis": "profiled in full"
+          },
+          {
+            "table_id": "rate_case_claim",
+            "label": "Projects claimed in rate cases and surcharge filings",
+            "type": "TABLE",
+            "grain": "one project x docket",
+            "rows": 412,
+            "columns": 7,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Rate case claims.",
+            "rows_basis": "profiled in full"
+          }
+        ]
+      },
+      {
+        "dataset_id": "upload",
+        "dataset_ref": "ds_upload",
+        "location": "US",
+        "description": "Governed uploads: files Capital Planning loads by hand on a schedule.",
+        "semantic_layer": "Silver (source-shaped)",
+        "as_of": "2026-10-15",
+        "freshness": "1 day",
+        "tables": [
+          {
+            "table_id": "inservice",
+            "label": "In-service date file (12 October 2026 load)",
+            "type": "TABLE",
+            "grain": "one row per project in the file",
+            "rows": 3770,
+            "columns": 5,
+            "pii_columns": 0,
+            "to_review": 0,
+            "size_gb": 0.0,
+            "partitioned": false,
+            "profiled_in_full": true,
+            "carries": "Forecast in-service dates.",
+            "rows_basis": "profiled in full"
+          }
+        ]
+      }
+    ]
+  }
+]

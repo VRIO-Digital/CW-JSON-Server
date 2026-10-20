@@ -1,0 +1,213 @@
+{
+  "documents": [
+    {
+      "document_id": "410b1389-6bbf-5d81-9d3d-8d2c6b97e494",
+      "label_id": "INBOX",
+      "name": "L1-1 Lakeshore forecasts: 63 projects still on June figures.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 378,
+      "chunks": 1,
+      "snippet": "Lakeshore forecasts: 63 projects still on June figures\nPriya Raman\n2026-10-16 08:12:40\nRei,\n\nThe 15 October refresh is in, and the 63 Lakeshore large projects are still on their June 6+6 figures. That is $612.4M of approved budget I cannot call. W",
+      "entities": 4
+    },
+    {
+      "document_id": "f1978d5f-d85e-5ee3-8495-d9b2f5cc0731",
+      "label_id": "INBOX",
+      "name": "L1-2 Re: Lakeshore forecasts: 63 projects still on June figures.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 642,
+      "chunks": 1,
+      "snippet": "Re: Lakeshore forecasts: 63 projects still on June figures\nRei Nakamura\n2026-10-16 10:47:05\nPriya,\n\nThe new tool is reconciled. All 63 re-forecasts load to EPBCS in one batch on Friday 23 October. Dunmoor East (C23B225_690) is first in the batch and Gr",
+      "entities": 8
+    },
+    {
+      "document_id": "96900497-4462-5ca2-84ca-7c45257057a6",
+      "label_id": "INBOX",
+      "name": "L2-1 Dunmoor East filters: Phase 2 floors.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 578,
+      "chunks": 1,
+      "snippet": "Dunmoor East filters: Phase 2 floors\nGrace Okafor\n2026-10-02 16:20:11\nRei, Priya,\n\nCO-003 (floors in Filters 8, 9 and 11, $1.21M) and CO-004 (the 214-day extension, $0.85M) are both executed. Contingency is gone. Filters 10 and 12",
+      "entities": 12
+    },
+    {
+      "document_id": "d77bce17-fd3b-58ef-9ec0-256027683e8a",
+      "label_id": "INBOX",
+      "name": "L2-2 Re: Dunmoor East filters: Phase 2 floors.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 769,
+      "chunks": 1,
+      "snippet": "Re: Dunmoor East filters: Phase 2 floors\nPriya Raman\n2026-10-02 17:05:44\nGrace, agreed. Raise it at Level 03 once the forecast is in EPBCS so the numbers match. Copying the capital program team.\n\nPriya\n\n--\nPriya Raman\nCapital Control",
+      "entities": 13
+    },
+    {
+      "document_id": "d09dc8d2-cfc8-5369-8a46-f861664a0ff8",
+      "label_id": "INBOX",
+      "name": "R1-1 BPUC post-test-year update: in-service confirmations.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 836,
+      "chunks": 1,
+      "snippet": "BPUC post-test-year update: in-service confirmations\nMarc Beaulieu\n2026-10-13 09:30:00\nAll,\n\nThe 12 October in-service file shows seven of our 38 Belmara post-test-year projects with 2027 dates ($41.3M). The BPUC update is due 13 November and the ",
+      "entities": 17
+    },
+    {
+      "document_id": "a5d26b76-cd58-5baa-8023-7e7adbbd2446",
+      "label_id": "INBOX",
+      "name": "R1-2 Re: BPUC post-test-year update: in-service confirmations.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 1022,
+      "chunks": 1,
+      "snippet": "Re: BPUC post-test-year update: in-service confirmations\nElias Corvino\n2026-10-14 15:12:09\nMarc, the January date on C23B361_658 is right. Commissioning slipped with the chemical feed skid. We will not make 31 December.\n\nElias\n\n--\nElias Corvino\nProjec",
+      "entities": 18
+    },
+    {
+      "document_id": "ddb29411-37c9-5802-bd36-ed61ee0377d7",
+      "label_id": "INBOX",
+      "name": "R2-1 Belmara rate base: schedules for the November update.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 620,
+      "chunks": 1,
+      "snippet": "Belmara rate base: schedules for the November update\nMarc Beaulieu\n2026-10-14 08:45:10\nNishant,\n\nBPUC staff have sent data requests DR-07 (rate base at the test year end, by plant class) and DR-09 (support for every addition above $2.5M). I need t",
+      "entities": 5
+    },
+    {
+      "document_id": "2c12f01b-7900-561e-9368-fd101f792faf",
+      "label_id": "INBOX",
+      "name": "R2-2 Re: Belmara rate base: schedules for the November update.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 841,
+      "chunks": 1,
+      "snippet": "Re: Belmara rate base: schedules for the November update\nPriya Raman\n2026-10-14 09:20:33\nMarc, agreed on the rates. Nishant, check the Plant Accounting list before you finalise: some completed work is still sitting in CWIP.\n\nPriya\n\n--\nPriya Raman\nCa",
+      "entities": 7
+    },
+    {
+      "document_id": "9e6c17ca-d17b-5a13-b0a4-680d142c97bc",
+      "label_id": "INBOX",
+      "name": "P1-1 Completed construction still in CWIP: Belmara.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 371,
+      "chunks": 1,
+      "snippet": "Completed construction still in CWIP: Belmara\nHannah Osei\n2026-10-14 16:02:47\nNishant,\n\nNine Belmara projects went into service between May and July and are still booked to CWIP, $6.8M in total. The certificates are all on file; we are be",
+      "entities": 3
+    },
+    {
+      "document_id": "d1a9df3a-a254-5f6f-a4b8-2c635721349b",
+      "label_id": "INBOX",
+      "name": "S1-1 Harbor Pipe lead times back to 4 weeks.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 336,
+      "chunks": 1,
+      "snippet": "Harbor Pipe lead times back to 4 weeks\nTolu Adeyemi\n2026-09-29 10:14:00\nAll project managers,\n\nHarbor Pipe & Supply has cleared its backlog. Lead time for ductile iron on FA-2025-PIPE-01 is back to 4 weeks (it was 11 weeks in the sp",
+      "entities": 2
+    },
+    {
+      "document_id": "035a1ffe-abd0-5262-8d45-6581a49ee592",
+      "label_id": "INBOX",
+      "name": "S2-1 Ductile iron orders still going to Northgate.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 375,
+      "chunks": 1,
+      "snippet": "Ductile iron orders still going to Northgate\nLena Novaczek\n2026-10-16 11:32:18\nTolu,\n\nWe moved our ductile iron to Northgate Supply in April, when Harbor was at 11 weeks. The catalogue in the ordering tool still defaults to Northgate for D",
+      "entities": 2
+    },
+    {
+      "document_id": "5f5590d9-b685-55f8-a290-01ba9efc86aa",
+      "label_id": "INBOX",
+      "name": "S2-2 Re: Ductile iron orders still going to Northgate.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 521,
+      "chunks": 1,
+      "snippet": "Re: Ductile iron orders still going to Northgate\nTolu Adeyemi\n2026-10-16 14:05:51\nThanks Lena. To get IT to change the default I need the list of the orders it affects and what it is costing us.\n\nTolu\n\n--\nTolu Adeyemi\nHead of Capital Procurem",
+      "entities": 2
+    },
+    {
+      "document_id": "a954cb71-0e2e-52aa-a88f-793bf4bbbd81",
+      "label_id": "INBOX",
+      "name": "S3-1 Savings program: October position.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 323,
+      "chunks": 1,
+      "snippet": "Savings program: October position\nTolu Adeyemi\n2026-10-15 17:20:00\nEllis, Priya,\n\n$8.7M secured of the $24.2M target, ahead of the straight-line path ($7.3M). The leak I worry about is off-framework buying: about $1.4M above fr",
+      "entities": 6
+    },
+    {
+      "document_id": "723f7b07-c979-5cba-b9e9-fd0550fbdfc0",
+      "label_id": "INBOX",
+      "name": "T1-1 FY26 cash: year forecast $1.11B.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 299,
+      "chunks": 1,
+      "snippet": "FY26 cash: year forecast $1.11B\nOwen Pryce\n2026-10-15 17:40:22\nPriya,\n\nThe 15 October refresh puts FY26 at $1,109.8M against the $1,180.0M plan. For the financing plan I need to know by mid-November how much of the $70.2M y",
+      "entities": 6
+    },
+    {
+      "document_id": "20e5593a-dd83-5854-912d-49529abe1e63",
+      "label_id": "INBOX",
+      "name": "C1-1 Q2 committee deck.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 209,
+      "chunks": 1,
+      "snippet": "Q2 committee deck\nSofia Lindqvist\n2026-07-23 18:02:31\nEllis,\n\nThe Q2 review is attached: program at a glance, the year, exceptions, the rate case, decisions, sources.\n\nSofia\n\n--\nSofia Lindqvist\nSenior Analyst, Capi",
+      "entities": 3
+    },
+    {
+      "document_id": "e8deb727-781b-5d9a-b5b4-4084c9ba7af0",
+      "label_id": "INBOX",
+      "name": "C1-2 Re: Q2 committee deck.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 318,
+      "chunks": 1,
+      "snippet": "Re: Q2 committee deck\nEllis Hargrove\n2026-07-24 07:15:48\nThanks Sofia. Same structure next quarter please, and keep the rate case page.\n\nEllis\n\n--\nEllis Hargrove\nSVP Capital Delivery\nNorthline Water Group\n\n> On 2026-0",
+      "entities": 3
+    },
+    {
+      "document_id": "50183f99-9ca6-5a36-99f4-47d4f607e55e",
+      "label_id": "INBOX",
+      "name": "C2-1 Q3 Capital Steering Committee: date and pack.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 166,
+      "chunks": 1,
+      "snippet": "Q3 Capital Steering Committee: date and pack\nEllis Hargrove\n2026-10-12 11:00:00\nAll,\n\nThe Q3 committee is Thursday 5 November, 10:00. I would like the pack by Friday 30 October.\n\nEllis\n\n--\nEllis Hargrove\nSVP Capital Delivery\nNorthline Water",
+      "entities": 2
+    },
+    {
+      "document_id": "a6171b5e-1094-52cf-9585-2a530968b728",
+      "label_id": "INBOX",
+      "name": "W1-1 WIN budget revisions in flight.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 458,
+      "chunks": 1,
+      "snippet": "WIN budget revisions in flight\nPriya Raman\n2026-10-09 13:25:17\nFor the Q3 pack: nine large projects in delivery are above 10%. Six have a WIN budget revision in the Level 03 queue ($4.31M): C23B300_651, C23B438_694, C23B539",
+      "entities": 17
+    },
+    {
+      "document_id": "cc982486-6803-56e1-affa-8dff4c1f8cf9",
+      "label_id": "INBOX",
+      "name": "Q1-1 Quarrydown: transfer pump station CO-003.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 374,
+      "chunks": 1,
+      "snippet": "Quarrydown: transfer pump station CO-003\nClio Baptiste\n2026-09-24 10:41:52\nPriya,\n\nCO-003 for the transfer pump station is executed ($2.21M). With CO-002 the forecast is $66.95M against $64.2M approved, 4.3% over. Inside the 10% line, ",
+      "entities": 11
+    }
+  ]
+}

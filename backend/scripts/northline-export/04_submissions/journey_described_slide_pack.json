@@ -1,0 +1,159 @@
+{
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (fictional; the Veolia CAPEX demo world)",
+    "dataset": "NORTHLINE",
+    "asOf": "2026-10-15",
+    "today": "2026-10-19",
+    "exported_from": "ContextWeave_Veolia_CPA_offline.html source (veolia_cpa_prototype_2026-10-19): src/data/*.ts, src/store/*.ts",
+    "note": "A slide pack described in the author’s words for the rate base goal, read into an outline the author edits."
+  },
+  "steps": [
+    {
+      "step": 1,
+      "screen": "Goal › Outputs, or Submissions › New submission › From a goal",
+      "action": "Pick the goal and \"Describe a new output\"",
+      "goalId": "g-belmara-rate-base",
+      "goal": "Belmara rate base at 31 December 2026, for the BPUC",
+      "agent": "Agent Compass"
+    },
+    {
+      "step": 2,
+      "screen": "New submission › Describe a new output",
+      "action": "Pick the format",
+      "format": "Slide pack",
+      "formats_offered": [
+        "Slide pack",
+        "Dashboard",
+        "Document",
+        "Memo",
+        "Workbook",
+        "Email"
+      ]
+    },
+    {
+      "step": 3,
+      "screen": "New submission › Describe a new output",
+      "action": "Describe what it should cover (or use the example)",
+      "description": "A slide pack for the working session with BPUC staff on 4 November. One slide with the rate base at 31 December 2026 and how it compares with 2025. One slide on plant in service by class, gross and net of depreciation. One slide on how the rate base moved since the 2025 order. One slide on what is used and useful at the test year end, with the seven projects dated 2027. One slide on the prudence record of the major additions and the two gaps. Close with the sources and as-of dates."
+    },
+    {
+      "step": 4,
+      "screen": "New submission › Describe a new output",
+      "action": "Propose the structure (about 1.4 s)",
+      "agent_reading": [
+        "\"A slide pack for the working session with BPUC staff on 4 November\" → who it is for: The working session with BPUC staff.",
+        "\"One slide on how the rate base moved since the 2025 order\" → one slide: findings and figures from the analysis.",
+        "\"One slide on the prudence record of the major additions and the two gaps\" → one slide: what is not established.",
+        "\"Close with the sources and as-of dates\" → one slide: the evidence lines.",
+        "Added what a slide pack always needs: title and position in one line, decisions asked.",
+        "Could not place: \"One slide with the rate base at 31 December 2026 and how it compares with 2025\", \"One slide on plant in service by class, gross and net of depreciation\", \"One slide on what is used and useful at the test year end, with the seven projects dated 2027\". Add a section for it below if it matters.",
+        "Content comes from \"Belmara rate base at 31 December 2026, for the BPUC\" (Agent Compass): 4 findings, 3 recommendations."
+      ],
+      "unread_phrases": [
+        "One slide with the rate base at 31 December 2026 and how it compares with 2025",
+        "One slide on plant in service by class, gross and net of depreciation",
+        "One slide on what is used and useful at the test year end, with the seven projects dated 2027"
+      ]
+    },
+    {
+      "step": 5,
+      "screen": "Outline",
+      "action": "Edit the outline, then build",
+      "sections": [
+        {
+          "heading": "Title and position in one line",
+          "role": "summary",
+          "visual": {
+            "kind": "waterfall",
+            "title": "Belmara rate base: from the 2025 order to 31 December 2026 ($M)"
+          }
+        },
+        {
+          "heading": "How the rate base moved since the 2025 order",
+          "role": "findings",
+          "because": "One slide on how the rate base moved since the 2025 order",
+          "visual": {
+            "kind": "waterfall",
+            "title": "Belmara rate base: from the 2025 order to 31 December 2026 ($M)"
+          }
+        },
+        {
+          "heading": "Prudence record of the major additions and the two gaps",
+          "role": "assumptions",
+          "because": "One slide on the prudence record of the major additions and the two gaps",
+          "visual": {
+            "kind": "diagram",
+            "title": "Not established yet"
+          }
+        },
+        {
+          "heading": "Sources and as-of dates",
+          "role": "evidence",
+          "because": "Close with the sources and as-of dates",
+          "visual": {
+            "kind": "diagram",
+            "title": "What the findings rest on"
+          }
+        },
+        {
+          "heading": "Decisions asked",
+          "role": "purpose",
+          "visual": {
+            "kind": "waterfall",
+            "title": "Belmara rate base: from the 2025 order to 31 December 2026 ($M)"
+          }
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "screen": "Outline",
+      "action": "Save as template (optional)",
+      "note": "The outline goes into the library as a \"Described for a goal\" template; the next recommendation can rest on it."
+    }
+  ],
+  "proposal": {
+    "format": "Slide pack",
+    "audience": "The working session with BPUC staff",
+    "sections": [
+      {
+        "heading": "Title and position in one line",
+        "role": "summary"
+      },
+      {
+        "heading": "How the rate base moved since the 2025 order",
+        "role": "findings",
+        "because": "One slide on how the rate base moved since the 2025 order"
+      },
+      {
+        "heading": "Prudence record of the major additions and the two gaps",
+        "role": "assumptions",
+        "because": "One slide on the prudence record of the major additions and the two gaps"
+      },
+      {
+        "heading": "Sources and as-of dates",
+        "role": "evidence",
+        "because": "Close with the sources and as-of dates"
+      },
+      {
+        "heading": "Decisions asked",
+        "role": "purpose"
+      }
+    ],
+    "reading": [
+      "\"A slide pack for the working session with BPUC staff on 4 November\" → who it is for: The working session with BPUC staff.",
+      "\"One slide on how the rate base moved since the 2025 order\" → one slide: findings and figures from the analysis.",
+      "\"One slide on the prudence record of the major additions and the two gaps\" → one slide: what is not established.",
+      "\"Close with the sources and as-of dates\" → one slide: the evidence lines.",
+      "Added what a slide pack always needs: title and position in one line, decisions asked.",
+      "Could not place: \"One slide with the rate base at 31 December 2026 and how it compares with 2025\", \"One slide on plant in service by class, gross and net of depreciation\", \"One slide on what is used and useful at the test year end, with the seven projects dated 2027\". Add a section for it below if it matters.",
+      "Content comes from \"Belmara rate base at 31 December 2026, for the BPUC\" (Agent Compass): 4 findings, 3 recommendations."
+    ],
+    "unreadPhrases": [
+      "One slide with the rate base at 31 December 2026 and how it compares with 2025",
+      "One slide on plant in service by class, gross and net of depreciation",
+      "One slide on what is used and useful at the test year end, with the seven projects dated 2027"
+    ]
+  }
+}

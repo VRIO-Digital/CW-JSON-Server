@@ -1,0 +1,314 @@
+{
+  "suggestions": [
+    {
+      "suggestion_id": "sg_nw_inservice_unmatched",
+      "from_table_key": "upload.inservice",
+      "from_column": "project_code",
+      "to_table_key": "pmo.project",
+      "to_column": "project_code",
+      "relationship_type": "HAS_IN_SERVICE_DATE",
+      "relationship_type_alternatives": [
+        "DATES"
+      ],
+      "cardinality_hint": "1:1",
+      "rationale": "260 of 3,770 rows name codes that do not exist in pmo.project. Keep them as unmatched rather than forcing a join.",
+      "confidence": 0.71
+    }
+  ],
+  "entities": [
+    {
+      "entity_id": "ent-pmo-project-nw60c7b",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "pmo.project",
+      "entity_name": "project",
+      "description": "Entity for project, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "epbcs.plan",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_PLAN_LINE",
+          "cardinality_hint": "1:N",
+          "rationale": "Both carry project_code; a project has one plan line per fiscal year and vintage.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "epbcs.forecast",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_FORECAST",
+          "cardinality_hint": "1:N",
+          "rationale": "A project has one working forecast per forecast date.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "epbcs.monthly_spread",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_MONTHLY_PLAN",
+          "cardinality_hint": "1:N",
+          "rationale": "Monthly plan and forecast per project.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "gl.project_costing_line",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_COST_LINE",
+          "cardinality_hint": "1:N",
+          "rationale": "Ledger lines carry the project code. Lines without one stay unallocated rather than being attributed.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "commitments.po_line",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "COMMITS",
+          "cardinality_hint": "1:N",
+          "rationale": "Order lines name the project they commit.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "commitments.win_authorization",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_AUTHORIZATION",
+          "cardinality_hint": "1:N",
+          "rationale": "Every approval and budget revision is raised against one project.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "pmo.contract",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "DELIVERED_UNDER",
+          "cardinality_hint": "1:N",
+          "rationale": "A contract delivers one project; a project can have several contracts.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "pmo.utility",
+          "from_columns": [
+            "utility_code"
+          ],
+          "to_columns": [
+            "utility_code"
+          ],
+          "relationship_type": "OWNED_BY",
+          "cardinality_hint": "N:1",
+          "rationale": "Each project belongs to one utility.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "pmo.rate_case_claim",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "CLAIMED_IN",
+          "cardinality_hint": "1:N",
+          "rationale": "A project can be claimed in more than one docket.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "upload.inservice",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_IN_SERVICE_DATE",
+          "cardinality_hint": "1:1",
+          "rationale": "The in-service file has one row per project; 260 rows match no project and are kept as unmatched.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "assets.plant_in_service",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "PLACED_IN_SERVICE_AS",
+          "cardinality_hint": "1:N",
+          "rationale": "Assets placed in service carry the project they came from.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "assets.cwip_balance",
+          "from_columns": [
+            "project_code"
+          ],
+          "to_columns": [
+            "project_code"
+          ],
+          "relationship_type": "HAS_CWIP",
+          "cardinality_hint": "1:N",
+          "rationale": "One CWIP balance per project per period.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ]
+    },
+    {
+      "entity_id": "ent-pmo-contract-nwb6fd2",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "pmo.contract",
+      "entity_name": "contract",
+      "description": "Entity for contract, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "pmo.change_order",
+          "from_columns": [
+            "contract_no"
+          ],
+          "to_columns": [
+            "contract_no"
+          ],
+          "relationship_type": "CHANGED_BY",
+          "cardinality_hint": "1:N",
+          "rationale": "Change orders are numbered within their contract.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "commitments.po_line",
+          "from_columns": [
+            "contract_no"
+          ],
+          "to_columns": [
+            "contract_no"
+          ],
+          "relationship_type": "RELEASED_BY",
+          "cardinality_hint": "1:N",
+          "rationale": "Orders release against a contract; stand-alone orders carry no contract.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ]
+    },
+    {
+      "entity_id": "ent-assets-plant-in-service-nwb8082",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "assets.plant_in_service",
+      "entity_name": "plant_in_service",
+      "description": "Entity for plant_in_service, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "assets.depreciation_reserve",
+          "from_columns": [
+            "asset_id"
+          ],
+          "to_columns": [
+            "asset_id"
+          ],
+          "relationship_type": "DEPRECIATED_BY",
+          "cardinality_hint": "1:N",
+          "rationale": "One depreciation row per asset per month.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ]
+    },
+    {
+      "entity_id": "ent-pmo-utility-nw45cc8",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "pmo.utility",
+      "entity_name": "utility",
+      "description": "Entity for utility, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "assets.rate_base_component",
+          "from_columns": [
+            "utility_code"
+          ],
+          "to_columns": [
+            "utility_code"
+          ],
+          "relationship_type": "HAS_RATE_BASE_COMPONENT",
+          "cardinality_hint": "1:N",
+          "rationale": "Deductions and additions are kept per utility.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ]
+    },
+    {
+      "entity_id": "ent-commitments-po-line-nwbf7ab",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "commitments.po_line",
+      "entity_name": "po_line",
+      "description": "Entity for po_line, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "commitments.framework_agreement",
+          "from_columns": [
+            "item_code"
+          ],
+          "to_columns": [
+            "item_code"
+          ],
+          "relationship_type": "PRICED_UNDER",
+          "cardinality_hint": "N:1",
+          "rationale": "A catalogue item has one framework price while the agreement is valid; an off-framework line still matches its item.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "gl.vendor",
+          "from_columns": [
+            "vendor_id"
+          ],
+          "to_columns": [
+            "vendor_id"
+          ],
+          "relationship_type": "ORDERED_FROM",
+          "cardinality_hint": "N:1",
+          "rationale": "Vendor on the order.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ]
+    }
+  ]
+}
