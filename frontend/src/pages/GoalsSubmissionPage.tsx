@@ -310,11 +310,11 @@ function notifyOnSimulate(inner: Document) {
  * treated as history. The build's own typing bubble is left alone. A held message that React removes
  * (the reader opened another goal) is dropped from the queue rather than waited on.
  */
-const PARAGRAPH_MS = 10_000
-const PANEL_TOTAL_MS = 30_000
+const PARAGRAPH_MS = 5_000
+const PANEL_TOTAL_MS = 5_000
 const PANEL_MAX_GAP_MS = 3_000
-const PACK_DELAY_MS = 30_000
-const TAB_FALLBACK_MS = 10_000
+const PACK_DELAY_MS = 5_000
+const TAB_FALLBACK_MS = 5_000
 const ACT_WINDOW_MS = 10_000
 const MAX_BATCH = 3
 const STATUS_STEP_MS = 3_500
