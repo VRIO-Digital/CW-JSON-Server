@@ -95,7 +95,7 @@ const CAPEX_PREFIX = /^EM-\d+/i
  * whole corpus; scattering ten documents across six labels would have made most of them invisible
  * to a reader who connected the obvious one.
  */
-const LABEL = 'INBOX'
+const LABEL = 'Inbox' // Outlook's own folder name — CAPEX is a Microsoft-brand dataset, so a corpus filed under Gmail's INBOX would be invisible
 
 const problems = []
 

@@ -24,6 +24,7 @@ export type ProviderBrand = 'google' | 'microsoft'
 /** Datasets whose tenant runs on Microsoft. A dataset with no entry is Google. */
 export const PROVIDER_BRANDS: Record<string, ProviderBrand> = {
   KEOLIS: 'microsoft',
+  CAPEX: 'microsoft',
   SIMPSON: 'microsoft',
 }
 

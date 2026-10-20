@@ -64,7 +64,9 @@ export const BOTH = 'both'
  * skin and the Google one is the one every dataset has always had. The client holds the same map
  * in `frontend/src/data/providerBrand.ts`; `check-docs` holds the two against each other.
  */
-export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', SIMPSON: 'microsoft' }
+/* CAPEX joined the Microsoft tenants on request: its connectors are Azure SQL Database, OneDrive and
+   Outlook, so its mail corpus is filed under Outlook's folders (`Inbox`, not Gmail's `INBOX`). */
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', SIMPSON: 'microsoft', CAPEX: 'microsoft' }
 export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
 
 /**

@@ -374,6 +374,68 @@ export const CONNECTORS: Connector[] = [
       secretField('secret://snowflake/contextweave-keypair'),
     ],
   },
+  /*
+   * **The four enterprise systems a capital programme runs on — PowerPlan, Oracle EPBCS, PeopleSoft
+   * and SAP — are credentials connectors, like the three databases above them.** Each registers a
+   * source from a form of connection details and profiles nothing: the tenant's own documents
+   * already name them as where its figures come from (`epbcs.plan`, the PMO project master, the
+   * PeopleSoft ledger), and a card that lets a reader register one is the honest half of that.
+   * Their fields are the ones each system actually addresses a connection by — a PeopleSoft one is a
+   * database name and a business unit, an EPBCS one a service URL and an application — rather than
+   * one form behind a system dropdown, for the reason the database cards are three and not one.
+   * Credentials are by reference, as everywhere here.
+   */
+  {
+    key: 'powerplan',
+    name: 'PowerPlan',
+    blurb: 'registers a connection — no profiler yet',
+    typeLabel: 'PowerPlan',
+    available: true,
+    profiles: false,
+    accountField: 'host',
+    scopeField: 'company',
+    fields: [
+      nameField,
+      { name: 'host', label: 'Application server', kind: 'text', placeholder: 'powerplan-prd.internal', required: true },
+      { name: 'database', label: 'Database', kind: 'text', placeholder: 'PWRPLANT', required: true },
+      { name: 'company', label: 'Company', kind: 'text', placeholder: 'Northline Water Group', help: 'The company the continuing property records belong to.', required: true },
+      secretField('secret://powerplan/cpr-reader'),
+    ],
+  },
+  {
+    key: 'epbcs',
+    name: 'Oracle EPBCS',
+    blurb: 'registers a connection — no profiler yet',
+    typeLabel: 'EPBCS',
+    available: true,
+    profiles: false,
+    accountField: 'serviceUrl',
+    scopeField: 'application',
+    fields: [
+      nameField,
+      { name: 'serviceUrl', label: 'Service URL', kind: 'text', placeholder: 'https://northline-test.pbcs.us2.oraclecloud.com', required: true },
+      { name: 'application', label: 'Application', kind: 'text', placeholder: 'CapPlan', required: true },
+      { name: 'plan', label: 'Plan type', kind: 'text', placeholder: 'Plan1', help: 'The cube the capital plan is held in.', required: true },
+      secretField('secret://oracle/epbcs-reader'),
+    ],
+  },
+  {
+    key: 'peoplesoft',
+    name: 'PeopleSoft',
+    blurb: 'registers a connection — no profiler yet',
+    typeLabel: 'PeopleSoft',
+    available: true,
+    profiles: false,
+    accountField: 'host',
+    scopeField: 'businessUnit',
+    fields: [
+      nameField,
+      { name: 'host', label: 'Application server', kind: 'text', placeholder: 'peoplesoft-prd.internal', required: true },
+      { name: 'database', label: 'Database name', kind: 'text', placeholder: 'PSFIN', required: true },
+      { name: 'businessUnit', label: 'Business unit', kind: 'text', placeholder: 'US001', help: 'The business unit whose ledger and projects are read.', required: true },
+      secretField('secret://peoplesoft/ledger-reader'),
+    ],
+  },
   {
     /**
      * **Outlook is product vision, and the reason is the corpus rather than the API.**
@@ -428,13 +490,15 @@ export const CONNECTORS: Connector[] = [
   {
     key: 'sap',
     name: 'SAP PM / S4HANA',
-    blurb: 'asset & work-order master',
+    blurb: 'registers a connection — no profiler yet',
     typeLabel: 'SAP',
-    available: false,
+    /* Was product vision, waiting on the IDoc/OData bridge; now one of the enterprise systems that
+       registers a connection (see PowerPlan above). Reading its work-order and functional-location
+       master data is still that bridge's job, which is why it profiles nothing. */
+    available: true,
     profiles: false,
-    reason:
-      'Work-order and functional-location master data needs the IDoc/OData bridge, which is on the ' +
-      'roadmap behind the two Google connectors. Registration is stubbed until then.',
+    accountField: 'host',
+    scopeField: 'client',
     fields: [
       nameField,
       { name: 'host', label: 'Application server', kind: 'text', placeholder: 'sap-prd.internal', required: true },

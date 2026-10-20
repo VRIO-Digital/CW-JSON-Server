@@ -291,6 +291,26 @@ export function OneDriveIcon({ size = 20 }: { size?: number }) {
   )
 }
 
+/**
+ * A monogram tile for a system whose own mark this repo does not draw — a rounded square in the
+ * system's colour with its initials. Plainer than the vendor's logo and says only what it is; a
+ * hand-copied logo would be a trademark drawn badly.
+ */
+const monogram =
+  (label: string, text: string, fill: string) =>
+  ({ size = 20 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={label}>
+      <rect x="2" y="2" width="20" height="20" rx="5" fill={fill} />
+      <text x="12" y="15.6" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fff" fontFamily="system-ui, sans-serif">
+        {text}
+      </text>
+    </svg>
+  )
+
+const PowerPlanIcon = monogram('PowerPlan', 'PP', '#6B4FBB')
+const EpbcsIcon = monogram('Oracle EPBCS', 'EP', '#C74634')
+const PeopleSoftIcon = monogram('PeopleSoft', 'PS', '#1F6FB5')
+
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
@@ -305,6 +325,9 @@ const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   azuresql: AzureSqlIcon,
   onedrive: OneDriveIcon,
   sap: SapIcon,
+  powerplan: PowerPlanIcon,
+  epbcs: EpbcsIcon,
+  peoplesoft: PeopleSoftIcon,
   osipi: OsiPiIcon,
   sharepoint: SharePointIcon,
   sql: SqlDatabaseIcon,
