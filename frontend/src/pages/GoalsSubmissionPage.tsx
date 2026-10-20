@@ -764,7 +764,15 @@ function holdAgentMessages(inner: Document) {
  * node React still tracks throws on its next render. Remembered per goal and box, so the panel
  * remounting (a tab switch) does not bring the amber box back.
  */
-const MISSING_ADD_LABELS = ['Add your working forecast', 'Add the Q2 minutes']
+/* KEOLIS's two, then CAPEX's: its Missing boxes carry *Add your working notes* (the nine completed
+   projects) and *Add Marc’s thread* (the seven in-service confirmations). Same build, same `.miss`
+   box and same sub-menu, so naming the buttons is all a dataset needs. */
+const MISSING_ADD_LABELS = [
+  'Add your working forecast',
+  'Add the Q2 minutes',
+  'Add your working notes',
+  'Add Marc’s thread',
+]
 
 const ADDED_BOX_CSS =
   ' .cw-added-box { background: #ecfdf3; border: 1px solid #abefc6; border-radius: 10px; padding: 10px 12px;' +
