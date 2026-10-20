@@ -19,7 +19,7 @@
  */
 
 /** The value sent when nothing has been chosen — the server's primary, and its own default. */
-export const DEFAULT_DATASET = 'EPA'
+export const DEFAULT_DATASET = 'CAPEX'
 
 /** The merged reading view. Named here because the UI has to know it is read-only. */
 export const BOTH_DATASET = 'both'
@@ -28,14 +28,15 @@ const KEY = 'contextweave.dataset'
 
 let current = read()
 
+/* Pinned to CAPEX on request: a stored selection (a browser left on KEOLIS, say) no longer survives a
+   reload. `setCurrentDataset` still applies for the session it is called in. */
 function read(): string {
   try {
-    const stored = window.localStorage.getItem(KEY)
-    return stored && stored.trim() ? stored : DEFAULT_DATASET
+    window.localStorage.removeItem(KEY)
   } catch {
-    /* Private-mode or a blocked store — an in-memory selection is still a working app. */
-    return DEFAULT_DATASET
+    /* Private-mode or a blocked store — nothing to clear. */
   }
+  return DEFAULT_DATASET
 }
 
 /** The dataset every request carries. Read by `client.ts`, never by a component. */

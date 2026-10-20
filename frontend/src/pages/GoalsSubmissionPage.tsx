@@ -507,7 +507,6 @@ function holdAgentMessages(inner: Document) {
    * the previous one; the build's own pending beat beneath them is the shimmer. Chained off a running
    * release time rather than a queue so a Replay, which remounts the lines, plays out the same way.
    */
-  let beatAt = 0
   /*
    * A story ("Why this") is played once per recommendation. Its card remounts whenever the reader
    * leaves the Findings tab and comes back, and the story would replay from line one, progress bar
@@ -570,12 +569,6 @@ function holdAgentMessages(inner: Document) {
       }
     }
   }
-  const holdBeat = (beat: HTMLElement) => {
-    if (beat.closest('[data-cw-restored]')) return
-    beat.setAttribute('data-cw-hold', '')
-    beatAt = Math.max(Date.now(), beatAt) + PARAGRAPH_MS
-    win.setTimeout(() => beat.removeAttribute('data-cw-hold'), beatAt - Date.now())
-  }
 
   /*
    * The right-hand plan panel (`.pd`: "The brief", "What I'm working from", …) paints every section at
@@ -621,7 +614,7 @@ function holdAgentMessages(inner: Document) {
     }
     const gap = Math.min(PANEL_TOTAL_MS / todo.length, PANEL_MAX_GAP_MS)
     /* One shimmer per panel, however many sections React adds one at a time. */
-    const box = pd.querySelector<HTMLElement>(':scope > .cw-shimmer') ?? makeShimmer('Filling in the plan…').box
+    const box = pd.querySelector<HTMLElement>(':scope > .cw-shimmer') ?? makeShimmer('Working on it and analyzing the data…').box
     for (const st of todo) {
       st.el.setAttribute('data-cw-hold', '')
       panelAt = Math.min(Math.max(Date.now(), panelAt) + gap, panelStart + PANEL_TOTAL_MS)
@@ -721,11 +714,7 @@ function holdAgentMessages(inner: Document) {
         for (const st of node.matches('.st') ? [node] : [...node.querySelectorAll<HTMLElement>('.st')]) {
           settleStory(st)
         }
-        const beats = node.matches('.st-beat') ? [node] : [...node.querySelectorAll<HTMLElement>('.st-beat')]
-        for (const b of beats) {
-          if (b.classList.contains('is-pending') || b.hasAttribute('data-cw-hold')) continue
-          holdBeat(b)
-        }
+        /* Story beats are not held: "Why this" shows every step at once (asked for). */
       }
     }
     for (const rec of records) {
@@ -1134,6 +1123,7 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           document={{ file: entry.file, title }}
           seamless
           fillWindow
+          noHold
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')

@@ -100,7 +100,13 @@ export default function DocumentViewer({
   fillWindow = false,
   fragment,
   enhance,
+  noHold = false,
 }: {
+  /**
+   * Show the frame as soon as it mounts, with no "Opening …" panel over it. For a document that is a
+   * page of its own rather than the prototype app with a report on top — it has no shell to flash.
+   */
+  noHold?: boolean
   document: FramedDocument
   /** Absent where the frame *is* the page — the What-if lens has nothing to go back to. */
   onBack?: () => void
@@ -191,7 +197,7 @@ export default function DocumentViewer({
    * under the new document's name.
    */
   const [openedUrl, setOpenedUrl] = useState<string | null>(null)
-  const ready = url !== null && openedUrl === url
+  const ready = noHold || (url !== null && openedUrl === url)
 
   /*
    * **The frame is held until the document has opened its report, and this watches for it.**
@@ -222,7 +228,7 @@ export default function DocumentViewer({
    * true thing to say about it; there would be nothing to reveal in any case.
    */
   useEffect(() => {
-    if (!url) return
+    if (!url || noHold) return
     const el = frameRef.current
     if (!el) return
 
@@ -254,7 +260,7 @@ export default function DocumentViewer({
       }
     }, POLL_MS)
     return () => window.clearInterval(timer)
-  }, [url])
+  }, [url, noHold])
 
   return (
     <div className={seamless ? 'dvw dvw--seamless' : 'dvw'}>
