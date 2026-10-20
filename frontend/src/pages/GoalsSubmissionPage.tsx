@@ -1,7 +1,7 @@
 import { Spin } from 'antd'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { appPath } from '../api/dataset'
+import { appPath, currentDataset } from '../api/dataset'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
@@ -50,12 +50,21 @@ import './GoalsSubmissionPage.css'
  * Both resolve through `reportDocuments.ts`'s `goals-submission` glob, so a missing or renamed file
  * is named by the viewer rather than guessed at.
  */
+/* Each dataset ships its own build of the prototype (`src/<Dataset>/goals-submission/`). The dataset is
+   fixed per page load — switching it reloads the document — so it is read once. A dataset with no
+   build of its own gets KEOLIS's, as every dataset did before the second one arrived. */
+const DATASET_FILES: Record<string, { goals: string; submission: string }> = {
+  KEOLIS: { goals: 'Keolis_Goals.html', submission: 'Keolis_Submissions.html' },
+  CAPEX: { goals: 'Capex-Goals.html', submission: 'Capex-Submission.html' },
+}
+const FILES = DATASET_FILES[currentDataset().toUpperCase()] ?? DATASET_FILES.KEOLIS
+
 const VIEWS = {
   goals: {
     title: '',
     subtitle:
       '',
-    file: 'Keolis_Goals.html',
+    file: FILES.goals,
     fragment: '#/K/goals',
     /* The `detail` sentence on the gate — per view, because the title, action and numbered path are
        `NoPublishedGraph`'s own and must not be, or one gate comes to be called two things. */
@@ -66,7 +75,7 @@ const VIEWS = {
     title: '',
     subtitle:
       '',
-    file: 'Keolis_Submissions.html',
+    file: FILES.submission,
     fragment: '#/K/submissions',
     gateDetail:
       'A submission draws on goals tracked against the published graph — the submissions and their templates open once one is live.',
@@ -203,7 +212,9 @@ function dropChipAttachments(inner: Document) {
  * and its bottom-right toast then follow from the build's own code). Applied from the frame, never by
  * editing the generated file.
  */
-const SIM_NOTICES: [number, string, string, string][] = [
+type SimNotice = [number, string, string, string]
+
+const KEOLIS_NOTICES: SimNotice[] = [
   [1200, 'Acknowledge the breach note', 'P-VM-046 is 12.4% over its approved budget. Review the note and acknowledge it.', 'plan'],
   [1500, 'Action needed: connect the directory', 'Connect the directory so the project manager can be told by name.', 'plan'],
   [3000, 'Add your working forecast', 'Four projects have no September forecast, so their figures are not checked yet. Add the forecast to include them.', 'plan'],
@@ -211,6 +222,16 @@ const SIM_NOTICES: [number, string, string, string][] = [
   [22000, 'Choose a recommendation', 'Findings are ready, with one preferred option. Review them and choose before anything is sent.', 'findings'],
   [24000, 'Approve the note before it goes out', 'The note to the project manager is drafted and waits for your approval. Nothing is sent until you approve it.', 'findings'],
 ]
+
+const CAPEX_NOTICES: SimNotice[] = [
+  [1200, 'Review the off-framework orders', '14 of 31 new lines are off a framework that covers the item: $3.86M ordered, $0.55M above framework prices.', 'plan'],
+  [2500, 'Decide on the nine unconfirmed lines', 'Nine of the 14 lines are not yet confirmed by the supplier and can still be cancelled at no cost. Decide whether to re-place them on the frameworks.', 'plan'],
+  [4000, 'Review the catalogue change request', 'The catalogue default that sent these orders off-framework needs a change request to IT. Review it before it is raised.', 'plan'],
+  [22000, 'Choose a recommendation', 'Findings are ready, with one preferred option. Review them and choose before anything is sent.', 'findings'],
+  [24000, 'Review the note before it goes out', 'The note to the controller is drafted and waits for your review. Nothing is sent until you do.', 'findings'],
+]
+
+const SIM_NOTICES = currentDataset().toUpperCase() === 'CAPEX' ? CAPEX_NOTICES : KEOLIS_NOTICES
 
 /* The bell's own antd badge never drew, so this frame paints a count of its own. It is a fixed element
    on the document body, placed from the bell's bounding box, rather than a child of the button: the
@@ -255,7 +276,7 @@ function notifyOnSimulate(inner: Document) {
   if (!win) return
   inner.addEventListener('click', (ev) => {
     const btn = (ev.target as Element | null)?.closest?.('button, a, [role="button"]')
-    if (!/Simulate( the (22 September )?snapshot|: run now)/.test(btn?.textContent ?? '')) return
+    if (!/Simulate( the (22 September )?snapshot|: run now| tonight’s order load)/.test(btn?.textContent ?? '')) return
     SIM_NOTICES.forEach(([delay, title, text, tab], n) => {
       win.setTimeout(() => {
         const store = win.__cwJourney?.useGoalStore

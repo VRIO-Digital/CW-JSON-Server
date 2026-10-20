@@ -857,7 +857,56 @@
       "rationale": "Resolves across Change Order Log exhibits, 5 conformed agreements + Email — Kelso Ridge Constructors, 2026-03-08 + Email — Delmar Sinclair Construction Co., 2026-01-24 + Email — Delmar Sinclair Construction Co., 2026-06-12 + CO:* ← references ← observation at high confidence (0.87)."
     }
   ],
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mvg4241ja",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "dsfdsf",
+      "personas": [
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Year-to-Date (YTD) Budget Variance",
+          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gdrive:capital-delivery-docs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Show me the path from a purchase order through the budget line to the asset it builds.",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `Asset Class`, `Total Budget (Working)`, `Budget YTD`, `Budget Category`, `Active Budget Plan`, `Most Recent Budget Plan`\nFROM `plan`.`vw_project_plan_capex`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-10-20T03:16:02.833Z"
+    }
+  ],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",
