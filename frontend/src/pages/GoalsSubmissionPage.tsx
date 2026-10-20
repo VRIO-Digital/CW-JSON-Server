@@ -1120,10 +1120,10 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
         />
       ) : (
         <DocumentViewer
-          document={{ file: entry.file, title }}
+          document={{ file: entry.file, title: title || (view === 'goals' ? 'Goals' : 'Submission') }}
           seamless
           fillWindow
-          noHold
+          noHold={view !== 'goals'}
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
