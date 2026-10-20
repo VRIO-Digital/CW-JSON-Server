@@ -20,6 +20,7 @@ import {
   type GraphDomainsPayload,
   type GraphSourcesPayload,
   type GraphUseCase,
+  type RoleBrief,
   type HeroQuestion,
   type SourcePick,
   type Suggestion,
@@ -329,6 +330,7 @@ interface UseCasesState {
     useCaseId?: string | null
     name: string
     domainId: string | null
+    role?: RoleBrief | null
     businessNeed: string
     personas: DraftedItem[]
     metrics: DraftedItem[]

@@ -4,24 +4,22 @@ import {
   FolderOpenOutlined,
   LockOutlined,
   SaveOutlined,
-  UploadOutlined,
 } from '@ant-design/icons'
 import {
+  Alert,
   App,
   Button,
   Col,
   Collapse,
   Flex,
-  Input,
   Popconfirm,
   Row,
   Space,
   Spin,
   Tag,
   Typography,
-  Upload,
 } from 'antd'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type {
   GapChoice,
@@ -35,6 +33,9 @@ import { useStudioStore } from '../store/studioStore'
 import DraftedStep from '../components/graph/DraftedStep'
 import FoundInDocuments from '../components/graph/FoundInDocuments'
 import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
+import ResponsibilitiesStep from '../components/graph/ResponsibilitiesStep'
+import RoleStep from '../components/graph/RoleStep'
+import { useRoleDraft } from '../components/graph/useRoleDraft'
 import SourcesStep from '../components/graph/SourcesStep'
 import PageHeader from '../components/common/PageHeader'
 import StatusTag from '../components/common/StatusTag'
@@ -51,16 +52,13 @@ import {
 } from '../store/graphStore'
 import {
   documentMetrics,
-  documentReadings,
   foundMetricsCopy,
   metricFoundItems,
-  readingFootnote,
-  readingsTitle,
 } from '../data/documentReadings'
+import { domainForRole } from '../data/roleBrief'
 import { questionSql as questionSqlRequest } from '../api/client'
 import { toMessage } from '../store/asyncState'
 import {
-  draftableCount,
   firstIncompleteStep,
   stepIssue,
   type WizardDraft,
@@ -80,21 +78,18 @@ import { appPath } from '../api/dataset'
  * fallback, and `savedUseCase` clamps a brief saved on an old step so it opens here rather than
  * pointing at a step the API would reject.
  */
-const LAST_STEP = 5
+const LAST_STEP = 6
 
-/**
- * How long attaching a document (or a batch of them) holds before it lands — the client-side
- * exception `STEP_HOLD_MS` is, for the same reason: nothing here parses a file, so there is no
- * request whose return could pace it. One hold per batch, not per file.
- */
-const DOCUMENT_UPLOAD_MS = 10_000
+/** Documents the wizard no longer attaches — a module constant so the derived measures below keep a stable input. */
+const attachedFiles: string[] = []
 
 /*
- * What each step after Domain will collect. Step 1 is built; the rest are
+ * What each step after Role will collect. Steps 1 and 2 are built; the rest are
  * placeholders so the stepper is navigable and a draft can be saved from any
  * step without losing the answers already given.
  */
 const STEP_INTENT: Record<string, string> = {
+  Responsibilities: 'what the role owns, and the tasks under each',
   Personas: 'who asks these questions, and what they already know',
   Metrics: 'the measures the graph has to be able to compute',
   Sources: 'which connected sources may feed this graph',
@@ -270,38 +265,16 @@ export default function NewGraphPage() {
   const [domainId, setDomainId] = useState<string | null>(null)
   const [businessNeed, setBusinessNeed] = useState('')
   /*
-   * Names only — nothing here is parsed or sent anywhere. There is no endpoint that reads a
-   * document into a brief, so this is the honest version of the sentence beside it: a real
-   * control for attaching a file, kept as a client-side list rather than a promise the mock
-   * server cannot keep. Not part of the saved draft for the same reason: `GraphUseCase` has no
-   * field for it, and inventing one here would silently drop on the next save.
+   * **Step 1 no longer attaches documents.** It asked for a free-text business need and took
+   * uploads to fold into it; a role defines its own brief now (the business need is composed from the
+   * role, its places and its responsibilities), and the one upload left — a job description — lives
+   * on Responsibilities, where it changes the responsibilities rather than a paragraph. So nothing
+   * here reads a document, and the measures a document defines (below) are an empty list.
    */
-  const [attachedFiles, setAttachedFiles] = useState<string[]>([])
-  /*
-   * **Attaching is paced, not instant.** Nothing here parses a file or sends one anywhere — see
-   * above — so there is no request whose return could advance it, the one client-side exception
-   * this repo documents (the report prototype's Authoring steps keep the same reasoning): the
-   * alternative to a hold is a control that completes before the reader has seen it start.
-   * `DOCUMENT_UPLOAD_MS` covers the whole batch antd hands `beforeUpload` in one call, never one
-   * hold per file, so five documents dropped together still take one ten-second read rather than
-   * fifty seconds of them. The timer is cleared on unmount, so leaving the step mid-read cannot
-   * fire the attach into a component that is gone.
-   */
-  const [attaching, setAttaching] = useState(false)
-  const attachTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(
-    () => () => {
-      if (attachTimer.current) clearTimeout(attachTimer.current)
-    },
-    [],
-  )
-  /*
-   * What the step says it read out of those documents. Synthesised from the filename — nothing
-   * opens the file, exactly as nothing parses a dictionary on the schema upload — so this is
-   * derived rather than held: a document removed takes its readings with it, and one attached
-   * again reads the same way it did before.
-   */
-  const readings = useMemo(() => documentReadings(attachedFiles), [attachedFiles])
+  /* The role, its industry and utilities, and what it is responsible for — steps 1 and 2. */
+  const roleDraft = useRoleDraft()
+  /* The reader's own name for the use case, until they type one the role's default stops filling in. */
+  const [nameTouched, setNameTouched] = useState(false)
   /*
    * The measures those documents define, and the ones a reader has turned down.
    *
@@ -314,7 +287,7 @@ export default function NewGraphPage() {
   const [rejectedFoundIds, setRejectedFoundIds] = useState<string[]>([])
   const foundMetrics = useMemo(
     () => documentMetrics(attachedFiles).filter((m) => !rejectedFoundIds.includes(m.id)),
-    [attachedFiles, rejectedFoundIds],
+    [rejectedFoundIds],
   )
   /*
    * And the questions those same documents state — step 5's half of the one pass. A measure and
@@ -340,16 +313,41 @@ export default function NewGraphPage() {
     void loadGraphSources()
   }, [load, loadDomains, loadGraphSources])
 
+  /* The use case is called after the role until the reader names it themselves. */
+  useEffect(() => {
+    if (!nameTouched && roleDraft.defaultName) setName(roleDraft.defaultName)
+  }, [nameTouched, roleDraft.defaultName])
+
+  /* Every later step drafts from this, so it follows the responsibilities as they are edited. */
+  useEffect(() => {
+    if (roleDraft.businessNeed) setBusinessNeed(roleDraft.businessNeed)
+  }, [roleDraft.businessNeed])
+
   const steps = useMemo(() => data?.steps ?? [], [data])
   const stepTotal = steps.length || LAST_STEP
   const stepLabel = steps[step - 1] ?? ''
   const domains = domainsData?.domains ?? []
+
+  /* The role settles the business domain (`domainForRole`): the one answer step 1 used to ask for. */
+  useEffect(() => {
+    if (!roleDraft.roleId || domains.length === 0) return
+    const next = domainForRole(roleDraft.roleId, domains.map((d) => d.domainId))
+    if (next && next !== domainId) setDomainId(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleDraft.roleId, domains])
   const graphSources = sourcesData?.sources ?? []
 
   /** What `stepIssue` judges every step on. */
   const draft: WizardDraft = {
     name,
     domainId,
+    roleId: roleDraft.roleId,
+    industry: roleDraft.industry,
+    utilitiesFound: roleDraft.utilitiesFound,
+    utilities: roleDraft.utilities,
+    reportsTo: roleDraft.reportsTo,
+    responsibilitiesReady: roleDraft.ready,
+    inScope: roleDraft.inScopeCount,
     personas,
     metrics,
     graphSources,
@@ -362,8 +360,8 @@ export default function NewGraphPage() {
     setName(u.name)
     setDomainId(u.domainId)
     setBusinessNeed(u.businessNeed)
-    // A saved draft never carried an attachment list — nothing here to restore.
-    setAttachedFiles([])
+    roleDraft.hydrate(u.role)
+    setNameTouched(true)
     setPersonas(u.personas)
     setMetrics(u.metrics)
     setSourcePicks(u.sources)
@@ -492,7 +490,8 @@ export default function NewGraphPage() {
     setName('')
     setDomainId(null)
     setBusinessNeed('')
-    setAttachedFiles([])
+    roleDraft.reset()
+    setNameTouched(false)
     setPersonas([])
     setMetrics([])
     setSourcePicks([])
@@ -524,6 +523,7 @@ export default function NewGraphPage() {
       useCaseId,
       name,
       domainId,
+      role: roleDraft.toBrief(),
       businessNeed,
       personas,
       metrics,
@@ -548,6 +548,7 @@ export default function NewGraphPage() {
       useCaseId,
       name,
       domainId,
+      role: roleDraft.toBrief(),
       businessNeed,
       personas,
       metrics,
@@ -661,6 +662,19 @@ export default function NewGraphPage() {
         your answers stay editable, and you can save the draft any time.
       </Typography.Paragraph>
 
+      {/* The step list is the server's, so a server older than the Role and Responsibilities steps
+          answers with five labels over a page that draws six steps — the stepper then names the
+          wrong screen. Said plainly, because a stale server cannot warn about itself. */}
+      {steps.length > 0 && steps.length !== LAST_STEP ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: SP.md }}
+          title="The mock server is running an older version of this app"
+          description={`It reports ${steps.length} wizard steps but this page has ${LAST_STEP} (Role, Responsibilities, Sources, Personas, Metrics, Hero questions). Restart it with npm run mock and reload — nothing you entered is lost.`}
+        />
+      ) : null}
+
       {loading && !data ? (
         <Spin />
       ) : (
@@ -704,132 +718,37 @@ export default function NewGraphPage() {
 
       <div className="ng-form">
         {step === 1 ? (
+          /*
+           * Role, first — it replaced Domain. Which role this analyst plays, the industry it works in
+           * and the utilities found in the connected data; the business domain follows from the role
+           * rather than being asked for, and the free-text business need and its document upload are
+           * gone with it (the brief is composed from the role and its responsibilities).
+           */
           <Row gutter={[SP.lg, SP.lg]}>
-            <Col xs={24} xl={16}>
-              <div className="ng-field">
-                <label className="ng-label" htmlFor="ng-name">
-                  Use case name (shown in your drafts list)
-                </label>
-                <Input
-                  id="ng-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Hazardous waste compliance"
-                  style={{ maxWidth: 360 }}
-                />
-              </div>
-
-              <div className="ng-field">
-                <span className="ng-label">Business domain</span>
-                {domainsError ? (
-                  <ApiErrorAlert error={domainsError} onRetry={() => void loadDomains()} />
-                ) : (
-                  <Row gutter={[SP.md, SP.md]}>
-                    {domains.map((d) => (
-                      <Col key={d.domainId} xs={24} sm={8}>
-                        <button
-                          type="button"
-                          className={`ng-domain${domainId === d.domainId ? ' is-active' : ''}`}
-                          onClick={() => setDomainId(d.domainId)}
-                          aria-pressed={domainId === d.domainId}
-                        >
-                          <span className="ng-domain-name">{d.name}</span>
-                          <span className="ng-domain-note">{d.note}</span>
-                          {/*
-                            What the later steps could draft here, so a domain the tenant has
-                            written nothing against is visible where it is chosen rather than
-                            discovered as three steps that draft nothing. Stated on the card that
-                            has it, never as a shorter list of domains: this one is still
-                            selectable, because typing your own personas and metrics is a real
-                            path and the note beside it says so.
-                          */}
-                          <span className="ng-domain-drafts">
-                            {draftableCount(d) === 0
-                              ? 'Nothing to draft from — you would write the personas, metrics and questions yourself'
-                              : `${d.drafts.personas} personas · ${d.drafts.metrics} metrics · ${d.drafts.heroQuestions} questions to draft from`}
-                          </span>
-                        </button>
-                      </Col>
-                    ))}
-                  </Row>
-                )}
-
-                <div className="ng-hint">
-                  <span aria-hidden="true">✦</span>
-                  <span>
-                    Domains are ranked by what your connected data can actually
-                    support — not alphabetically. A domain with no backing data would
-                    produce a graph that can’t answer anything.
-                  </span>
-                </div>
-              </div>
-
-              <div className="ng-field">
-                <label className="ng-label" htmlFor="ng-need">
-                  Describe the business need (free text — the AI reads this)
-                </label>
-                <Input.TextArea
-                  id="ng-need"
-                  rows={3}
-                  value={businessNeed}
-                  onChange={(e) => setBusinessNeed(e.target.value)}
-                  placeholder="Maintenance spend on our generation fleet keeps surprising us. We need to understand what drives cost spikes per unit — work orders, contract escalations, outage-driven repairs — and catch them before quarter close."
-                />
-                <span className="ng-help">
-                  {/* One upload control for the step, on the footer below — not a second
-                      button here that would leave a reader picking between two identical
-                      ones with no way to tell them apart. */}
-                  Upload documents below — the AI folds them into the brief.
-                </span>
-              </div>
-
-              {/*
-                What was read out of the attached documents, as an accordion rather than a
-                paragraph: it is the longest thing on the step and the reader has already told
-                the AI what they want in words above it. Open by default, because a panel that
-                appeared shut the moment a document landed would read as an upload that did
-                nothing; drawn only where something is attached, since an empty one would be a
-                heading over blank space.
-              */}
-              {readings.length > 0 ? (
-                <div className="ng-field">
-                  <Collapse
-                    className="ng-read"
-                    defaultActiveKey={['read']}
-                    items={[
-                      {
-                        key: 'read',
-                        label: (
-                          <span className="ng-read-title">
-                            <span className="ng-read-mark" aria-hidden="true">
-                              ✦
-                            </span>
-                            <strong>{readingsTitle(readings.length)}</strong>
-                          </span>
-                        ),
-                        children: (
-                          <div>
-                            {readings.map((r) => (
-                              <div key={r.id} className="ng-read-row">
-                                <div className="ng-read-headline">{r.headline}</div>
-                                {/* One expression: the passage and the document it is
-                                    attributed to are composed in `src/data/`, so the
-                                    sentence is one string rather than three text nodes. */}
-                                <div className="ng-read-extract">{readingFootnote(r)}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
-                </div>
+            <Col xs={24} xl={18}>
+              {domainsError ? (
+                <ApiErrorAlert error={domainsError} onRetry={() => void loadDomains()} />
               ) : null}
+              <RoleStep
+                draft={roleDraft}
+                name={name}
+                onName={(value) => {
+                  setName(value)
+                  setNameTouched(true)
+                }}
+              />
             </Col>
           </Row>
         ) : step === 2 ? (
+          /* Responsibilities, new — what the role owns and the tasks under each. */
+          <Row gutter={[SP.lg, SP.lg]}>
+            <Col xs={24} xl={18}>
+              <ResponsibilitiesStep draft={roleDraft} />
+            </Col>
+          </Row>
+        ) : step === 3 ? (
           /*
-           * Sources, second — moved here on request, so the data the graph draws on is settled
+           * Sources, third — moved here on request, so the data the graph draws on is settled
            * before the people who will ask of it. The branches are kept in the order a reader
            * meets them, rather than left at their old numbers with the chain reading 1, 3, 4, 2.
            *
@@ -848,7 +767,7 @@ export default function NewGraphPage() {
               />
             </Col>
           </Row>
-        ) : step === 3 ? (
+        ) : step === 4 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={16}>
               <DraftedStep
@@ -897,7 +816,7 @@ export default function NewGraphPage() {
               />
             </Col>
           </Row>
-        ) : step === 4 ? (
+        ) : step === 5 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={16}>
               <DraftedStep
@@ -953,7 +872,7 @@ export default function NewGraphPage() {
               />
             </Col>
           </Row>
-        ) : step === 5 ? (
+        ) : step === 6 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={18}>
               <HeroQuestionsStep
@@ -1000,54 +919,9 @@ export default function NewGraphPage() {
         )}
 
         <div className="ng-foot">
-          {/* Left is for leaving the wizard, not for moving in it. Replaced "Start a new
-              one" with the attachment control on request — the same client-side list the
-              business-need field's own Upload button feeds, so a document picked from
-              either spot lands in one list rather than two disconnected ones. */}
-          {step === 1 ? (
-            <Flex align="center" gap={SP.sm} wrap>
-              <Upload
-                multiple
-                showUploadList={false}
-                disabled={attaching}
-                beforeUpload={(file, fileList) => {
-                  /* antd calls this once per file in the batch, all sharing the same
-                     `fileList` — firing the hold on the last call is what makes five
-                     documents dropped together one ten-second read, not five. */
-                  if (file === fileList[fileList.length - 1]) {
-                    const names = fileList.map((f) => f.name)
-                    setAttaching(true)
-                    attachTimer.current = setTimeout(() => {
-                      setAttachedFiles((prev) => [
-                        ...prev,
-                        ...names.filter((n) => !prev.includes(n)),
-                      ])
-                      setAttaching(false)
-                      attachTimer.current = null
-                    }, DOCUMENT_UPLOAD_MS)
-                  }
-                  return Upload.LIST_IGNORE
-                }}
-              >
-                <Button icon={<UploadOutlined />} loading={attaching}>
-                  {attaching ? 'Reading documents…' : 'Upload documents'}
-                </Button>
-              </Upload>
-              {attachedFiles.map((fileName) => (
-                <Tag
-                  key={fileName}
-                  closable
-                  onClose={() =>
-                    setAttachedFiles((prev) => prev.filter((f) => f !== fileName))
-                  }
-                >
-                  {fileName}
-                </Tag>
-              ))}
-            </Flex>
-          ) : (
-            <span />
-          )}
+          {/* Left is for leaving the wizard, not for moving in it — the document upload that sat here
+              went with the business-need box; a job description is added on Responsibilities. */}
+          <span />
 
           <Space size={SP.sm}>
             {step > 1 ? (

@@ -4201,7 +4201,8 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
 /* Kept one label per line: check-docs parses this array with a regex that ends at a newline
    before the closing bracket, so a one-line form makes it read on past the array. */
 const WIZARD_STEPS = [
-  'Domain',
+  'Role',
+  'Responsibilities',
   'Sources',
   'Personas',
   'Metrics',
@@ -6372,12 +6373,43 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
   }
 }
 
+/**
+ * The role a New Role brief is for — which role, where it works, who it reports to and what it is
+ * responsible for. The server does not hold the role library (it is the wizard's), so this checks
+ * the *shape* and nothing about which ids exist: a role id the library lacks is the client's to
+ * explain. `null` is a real answer — a brief written before the wizard asked has no role.
+ */
+function normalizeRole(role) {
+  if (role === null || role === undefined) return null
+  if (typeof role !== 'object' || Array.isArray(role)) return undefined
+  const strings = (list) =>
+    Array.isArray(list) ? [...new Set(list.map((x) => String(x).trim()).filter(Boolean))] : []
+  const mapOf = (obj, each) =>
+    obj && typeof obj === 'object' && !Array.isArray(obj)
+      ? Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, each(v)]))
+      : {}
+  const roleId = String(role.role_id ?? '').trim()
+  if (!roleId) return undefined
+  return {
+    role_id: roleId,
+    role_name: String(role.role_name ?? roleId).trim(),
+    industry: String(role.industry ?? '').trim(),
+    utilities: strings(role.utilities),
+    reports_to: String(role.reports_to ?? '').trim(),
+    responsibilities: strings(role.responsibilities),
+    tasks: mapOf(role.tasks, strings),
+    out: mapOf(role.out, (v) => String(v).trim()),
+    job_description: role.job_description ? String(role.job_description) : null,
+  }
+}
+
 /** A saved use case, with the defaults a hand-edited db.json might omit. */
 const savedUseCase = (u) => ({
   use_case_id: u.use_case_id,
   name: u.name,
   status: u.status === 'committed' ? 'committed' : 'draft',
   domain_id: u.domain_id ?? null,
+  role: normalizeRole(u.role) ?? null,
   business_need: u.business_need ?? '',
   personas: normalizeDrafted(u.personas),
   /* `withSql`, so a query written on the Playground survives the wizard reading the brief and
@@ -6393,7 +6425,15 @@ const savedUseCase = (u) => ({
    * a step that does not exist. `citations` and `answer_formats` may still sit on an
    * older record in db.json; they are simply not read, and the next save drops them.
    */
-  step: Math.min(Math.max(Number(u.step ?? 1), 1), WIZARD_STEPS.length),
+  /*
+   * A brief saved before the wizard asked for a role has no `role` key at all, and its step numbers
+   * are the old five: Sources was 2, so it moves up by the one step that was put in front of it.
+   * A brief saved since carries the key (null when nobody answered), so it is never shifted twice.
+   */
+  step: Math.min(
+    Math.max(Number(u.step ?? 1) + (Object.hasOwn(u, 'role') ? 0 : 1), 1),
+    WIZARD_STEPS.length,
+  ),
   step_total: WIZARD_STEPS.length,
   updated_at: u.updated_at ?? null,
 })
@@ -14940,6 +14980,7 @@ const routes = [
         use_case_id,
         name,
         domain_id,
+        role,
         business_need,
         personas,
         metrics,
@@ -14964,6 +15005,12 @@ const routes = [
       }
       if (status && status !== 'draft' && status !== 'committed') {
         return send(res, 400, { error: 'status must be "draft" or "committed"' })
+      }
+      const roleRecord = role === undefined ? undefined : normalizeRole(role)
+      if (roleRecord === undefined && role !== undefined) {
+        return send(res, 400, {
+          error: 'role must be { role_id, role_name, industry, utilities, reports_to, responsibilities, tasks, out } or null',
+        })
       }
       const stepNumber = Number(step ?? 1)
       if (
@@ -15116,7 +15163,7 @@ const routes = [
       if (!resolvedDomain && (stepNumber > 1 || status === 'committed')) {
         return send(res, 400, {
           error:
-            'pick a business domain on step 1 — a use case cannot advance past it or commit without one',
+            'pick a role on step 1 — it settles the business domain, and a use case cannot advance past it or commit without one',
         })
       }
 
@@ -15125,6 +15172,9 @@ const routes = [
         name: String(name).trim(),
         status: status ?? existing?.status ?? 'draft',
         domain_id: resolvedDomain,
+        /* Always written, even when null: the key's presence is how a saved step number tells the
+           old five-step numbering from this one (see `savedUseCase`). */
+        role: roleRecord === undefined ? (existing ? normalizeRole(existing.role) : null) : roleRecord,
         business_need: business_need ?? existing?.business_need ?? '',
         personas: personaTags ?? existing?.personas ?? [],
         metrics: metricTags ?? existing?.metrics ?? [],

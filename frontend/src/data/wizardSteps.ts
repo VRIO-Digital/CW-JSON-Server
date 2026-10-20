@@ -5,6 +5,7 @@ import type {
   HeroQuestion,
   SourcePick,
 } from '../api/client'
+import { responsibilitiesIssue, roleIssue } from './roleBrief'
 
 /**
  * Everything a step is judged on. One object rather than six signatures, so
@@ -12,7 +13,16 @@ import type {
  */
 export interface WizardDraft {
   name: string
+  /** Settled by the role (`domainForRole`) — never asked for on its own any more. */
   domainId: string | null
+  /* Steps 1 and 2: the role, where it works, and what it is responsible for. */
+  roleId: string | null
+  industry: string | null
+  utilitiesFound: boolean
+  utilities: string[]
+  reportsTo: string
+  responsibilitiesReady: boolean
+  inScope: number
   personas: DraftedItem[]
   metrics: DraftedItem[]
   /** What step 2 can offer — its emptiness is a different problem to fix. */
@@ -41,15 +51,27 @@ export interface WizardDraft {
  */
 export function stepIssue(step: number, draft: WizardDraft): string | null {
   switch (step) {
-    case 1:
+    /*
+     * **Step 1 was Domain and is Role now, and a step was put behind it.** The role settles the
+     * domain, so the domain rule survives as the last line here: a role whose dataset has no domain
+     * for it to land on cannot go on, because every later step drafts from one.
+     */
+    case 1: {
+      const roleProblem = roleIssue(draft)
+      if (roleProblem) return roleProblem
       if (!draft.name.trim()) {
-        return 'Name the use case — it is what your drafts list shows.'
+        return 'Name the role — it is what your drafts list shows.'
       }
-      if (!draft.domainId) return 'Pick a business domain before continuing.'
+      if (!draft.domainId) return 'No business domain is available for this role yet — connect a source first.'
       return null
+    }
+
+    /* The responsibilities drafted for the role: at least one has to stay in scope. */
+    case 2:
+      return responsibilitiesIssue({ ready: draft.responsibilitiesReady, inScope: draft.inScope })
 
     /*
-     * Step 2 is the one step that cannot be answered with nothing: every later
+     * Step 3 (Sources) is the one step that cannot be answered with nothing: every later
      * step derives from the data selected here, so advancing empty would build a
      * graph over no data at all. The four cases need four different fixes.
      *
@@ -57,7 +79,7 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
      * rule is about the picks rather than about what has been answered before them, so it
      * reads exactly as it did one position later.
      */
-    case 2:
+    case 3:
       if (draft.graphSources.length === 0) {
         return 'Connect a data source on Sources first — there is nothing to select here yet.'
       }
@@ -94,13 +116,13 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       }
       return null
 
-    case 3:
+    case 4:
       if (draft.personas.length === 0) {
         return 'Add at least one persona — or use Suggest personas (LLM).'
       }
       return null
 
-    case 4:
+    case 5:
       if (draft.metrics.length === 0) {
         return 'Add at least one metric — the graph has to be able to compute something.'
       }
@@ -113,7 +135,7 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
      * building — and that gate is gone with it, which is stated in CLAUDE.md rather than left to be
      * discovered. A brief with no hero question still cannot build: they are the contract.
      */
-    case 5:
+    case 6:
       if (draft.heroQuestions.length === 0) {
         return 'Add at least one hero question — they are the contract the graph is built against.'
       }

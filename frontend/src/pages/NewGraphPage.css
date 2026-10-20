@@ -1246,3 +1246,295 @@
  * on add, for Graph Studio's Playground to read. See that component's own comment on `onWriteSql`
  * for why the compose survives with no reader left in this step.
  */
+
+/*
+ * The New Role wizard's Role and Responsibilities steps. Ported from the reference build's own
+ * stylesheet, so the colours and the 12–13px type are its spec; spacing is on the --sp-* scale.
+ */
+.nr-chip {
+  border: 1px solid #e9ecf1;
+  color: #4b5a75;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.nr-chip.is-on {
+  color: #f4562b;
+  background: #fff7f4;
+  border-color: #f4562b;
+}
+
+.nr-pick {
+  gap:var(--sp-3);
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  display:grid
+}
+.nr-opt,.nr-ind {
+  text-align:left;
+  padding:var(--sp-3);
+  cursor:pointer;
+  gap:var(--sp-1);
+  font:inherit;
+  background:#fff;
+  border:1px solid #e9ecf1;
+  border-radius:10px;
+  flex-direction:column;
+  display:flex
+}
+.nr-opt b,.nr-ind b {
+  color:#0f1729;
+  font-size:13.5px
+}
+.nr-opt span,.nr-ind span {
+  color:#6b7690;
+  font-size:12px;
+  line-height:1.45
+}
+.nr-opt:hover,.nr-ind:hover {
+  border-color:#f8c9b9
+}
+.nr-opt.is-on,.nr-ind.is-on {
+  background:#fff7f4;
+  border-color:#f4562b;
+  box-shadow:inset 0 0 0 1px #f4562b
+}
+.nr-inds {
+  gap:var(--sp-3);
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  display:grid
+}
+.nr-disc {
+  padding:var(--sp-3) var(--sp-4);
+  background:#fafbfc;
+  border:1px solid #e9ecf1;
+  border-radius:10px
+}
+.nr-disc-head {
+  align-items:center;
+  gap:var(--sp-2);
+  color:#0f1729;
+  font-size:13px;
+  font-weight:600;
+  display:flex
+}
+.nr-ok {
+  color:#0f7b4f
+}
+.nr-disc-steps {
+  margin:var(--sp-2) 0 0;
+  flex-direction:column;
+  gap:var(--sp-1);
+  padding:0;
+  list-style:none;
+  display:flex
+}
+.nr-disc-steps li {
+  color:#4b5a75;
+  gap:var(--sp-2);
+  align-items:baseline;
+  font-size:12.5px;
+  display:flex
+}
+.nr-disc-steps li .anticon {
+  color:#0f7b4f;
+  font-size:11px
+}
+.nr-utils {
+  gap:var(--sp-2);
+  margin-top:var(--sp-3);
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  display:grid
+}
+.nr-util {
+  gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-3);
+  cursor:pointer;
+  background:#fff;
+  border:1px solid #e9ecf1;
+  border-radius:8px;
+  align-items:flex-start;
+  display:flex
+}
+.nr-util.is-on {
+  border-color:#f8c9b9
+}
+.nr-util-body {
+  flex-direction:column;
+  gap:2px;
+  display:flex
+}
+.nr-util-body b {
+  color:#0f1729;
+  font-size:13px
+}
+.nr-util-body span {
+  color:#6b7690;
+  font-size:12px
+}
+.nr-util-n {
+  color:#4b5a75!important
+}
+.nr-none {
+  margin-top:var(--sp-3);
+  color:#8a5a00;
+  padding:var(--sp-2) var(--sp-3);
+  background:#fff8e6;
+  border:1px solid #f5dfa5;
+  border-radius:8px;
+  font-size:13px
+}
+.nr-resp-head {
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:var(--sp-4);
+  margin-bottom:var(--sp-4);
+  flex-wrap:wrap;
+  display:flex
+}
+.nr-resp-title {
+  color:#0f1729;
+  margin-bottom:2px;
+  font-size:15px;
+  font-weight:600
+}
+.nr-areas {
+  gap:var(--sp-2);
+  flex-direction:column;
+  display:flex
+}
+.nr-area {
+  padding:var(--sp-2) var(--sp-3);
+  background:#fff;
+  border:1px solid #e9ecf1;
+  border-radius:10px
+}
+.nr-area.is-out {
+  background:#fafbfc
+}
+.nr-area.is-out .nr-area-name b {
+  color:#8994a8;
+  text-decoration:line-through
+}
+.nr-area-row {
+  align-items:center;
+  gap:var(--sp-3);
+  display:flex
+}
+.nr-area-name {
+  align-items:baseline;
+  gap:var(--sp-2);
+  padding:var(--sp-1) 0;
+  text-align:left;
+  cursor:pointer;
+  font:inherit;
+  background:0 0;
+  border:0;
+  flex:1;
+  min-width:0;
+  display:flex
+}
+.nr-area-name .anticon {
+  color:#8994a8;
+  font-size:10px
+}
+.nr-area-name b {
+  color:#0f1729;
+  white-space:nowrap;
+  font-size:13.5px
+}
+.nr-area-what {
+  color:#6b7690;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+  overflow:hidden
+}
+.nr-area-n {
+  color:#8994a8;
+  white-space:nowrap;
+  font-size:12px
+}
+.nr-reasons {
+  gap:var(--sp-2);
+  padding:var(--sp-1) 0 var(--sp-2) var(--sp-7);
+  flex-wrap:wrap;
+  display:flex
+}
+.nr-reasons .nr-chip {
+  cursor:pointer;
+  background:#fff;
+  border:1px solid #e9ecf1;
+  border-radius:999px;
+  padding:2px 10px;
+  font-size:12px
+}
+.nr-reasons .nr-chip.is-on {
+  color:#f4562b;
+  background:#fff7f4;
+  border-color:#f4562b
+}
+.nr-tasks {
+  padding:var(--sp-1) 0 var(--sp-2) var(--sp-7);
+  flex-direction:column;
+  gap:var(--sp-2);
+  display:flex
+}
+.nr-task {
+  gap:var(--sp-2);
+  color:#24304a;
+  cursor:pointer;
+  align-items:center;
+  font-size:13px;
+  display:flex
+}
+.nr-task-add {
+  gap:var(--sp-2);
+  max-width:520px;
+  margin-top:var(--sp-1);
+  display:flex
+}
+.nr-jd {
+  padding:var(--sp-3) var(--sp-4);
+  margin-bottom:var(--sp-4);
+  background:#f7f9fc;
+  border:1px solid #e3e7ef;
+  border-radius:10px
+}
+.nr-jd-head {
+  margin-bottom:var(--sp-2);
+  font-size:13px
+}
+.nr-find {
+  gap:var(--sp-3);
+  padding:var(--sp-2) 0;
+  color:#24304a;
+  border-top:1px solid #e9ecf1;
+  justify-content:space-between;
+  align-items:flex-start;
+  font-size:13px;
+  display:flex
+}
+.nr-find:first-of-type {
+  border-top:0
+}
+.nr-find.is-dismissed {
+  opacity:.55
+}
+.nr-find-acts {
+  gap:var(--sp-2);
+  flex-shrink:0;
+  display:flex
+}
+.nr-quote {
+  color:#6b7690;
+  margin-top:2px;
+  font-size:12px;
+  font-style:italic
+}
+.nr-dim {
+  color:#8994a8;
+  font-size:12.5px
+}

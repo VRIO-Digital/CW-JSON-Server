@@ -21,6 +21,7 @@
 import type { Stat, Tone } from '../types'
 import {
   arrayOf,
+  any as anyCheck,
   bool,
   nullable,
   num,
@@ -1165,11 +1166,33 @@ export interface HeroQuestion {
   sql?: string | null
 }
 
+/**
+ * The role a New Role brief is for: which role, where it works, who it reports to and what it is
+ * responsible for. `null` on a brief written before the wizard asked — such a brief opens with its
+ * first two steps unanswered rather than with a role invented for it.
+ */
+export interface RoleBrief {
+  roleId: string
+  roleName: string
+  industry: string
+  /** Utility codes. */
+  utilities: string[]
+  reportsTo: string
+  /** Area ids kept in scope. */
+  responsibilities: string[]
+  /** Area id → the tasks kept under it, the reader's own additions included. */
+  tasks: Record<string, string[]>
+  /** Area id → why it was taken out of scope. */
+  out: Record<string, string>
+  jobDescription: string | null
+}
+
 export interface GraphUseCase {
   useCaseId: string
   name: string
   status: 'draft' | 'committed'
   domainId: string | null
+  role: RoleBrief | null
   businessNeed: string
   personas: Persona[]
   metrics: Metric[]
@@ -2730,6 +2753,8 @@ const USE_CASE = shape({
   name: str,
   status: oneOf(['draft', 'committed']),
   domain_id: nullable(str),
+  /* Nullable and unchecked inside: its maps are keyed by area id, which the combinators cannot say. */
+  role: nullable(anyCheck),
   business_need: str,
   personas: arrayOf(DRAFTED_ITEM),
   metrics: arrayOf(DRAFTED_ITEM),
@@ -5165,11 +5190,54 @@ interface RawGraphDomain {
   drafts: { personas: number; metrics: number; hero_questions: number }
 }
 
+interface RawRole {
+  role_id: string
+  role_name: string
+  industry: string
+  utilities: string[]
+  reports_to: string
+  responsibilities: string[]
+  tasks: Record<string, string[]>
+  out: Record<string, string>
+  job_description: string | null
+}
+
+const toRole = (r: RawRole | null | undefined): RoleBrief | null =>
+  r
+    ? {
+        roleId: r.role_id,
+        roleName: r.role_name,
+        industry: r.industry ?? '',
+        utilities: r.utilities ?? [],
+        reportsTo: r.reports_to ?? '',
+        responsibilities: r.responsibilities ?? [],
+        tasks: r.tasks ?? {},
+        out: r.out ?? {},
+        jobDescription: r.job_description ?? null,
+      }
+    : null
+
+const fromRole = (r: RoleBrief | null) =>
+  r
+    ? {
+        role_id: r.roleId,
+        role_name: r.roleName,
+        industry: r.industry,
+        utilities: r.utilities,
+        reports_to: r.reportsTo,
+        responsibilities: r.responsibilities,
+        tasks: r.tasks,
+        out: r.out,
+        job_description: r.jobDescription,
+      }
+    : null
+
 interface RawUseCase {
   use_case_id: string
   name: string
   status: 'draft' | 'committed'
   domain_id: string | null
+  role?: RawRole | null
   business_need: string
   personas: Persona[]
   metrics: Metric[]
@@ -5219,6 +5287,7 @@ const toUseCase = (u: RawUseCase): GraphUseCase => ({
   name: u.name,
   status: u.status,
   domainId: u.domain_id,
+  role: toRole(u.role),
   businessNeed: u.business_need,
   personas: u.personas,
   metrics: u.metrics,
@@ -5598,6 +5667,7 @@ export async function saveUseCase(input: {
   useCaseId?: string | null
   name: string
   domainId: string | null
+  role?: RoleBrief | null
   businessNeed: string
   personas: Persona[]
   metrics: Metric[]
@@ -5613,6 +5683,8 @@ export async function saveUseCase(input: {
       use_case_id: input.useCaseId ?? undefined,
       name: input.name,
       domain_id: input.domainId,
+      /* Absent leaves the stored role alone; null clears it. */
+      role: input.role === undefined ? undefined : fromRole(input.role),
       business_need: input.businessNeed,
       personas: input.personas,
       metrics: input.metrics,
