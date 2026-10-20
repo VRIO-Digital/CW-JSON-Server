@@ -437,6 +437,22 @@ export const CONNECTORS: Connector[] = [
     ],
   },
   {
+    key: 'copperleaf',
+    name: 'Copperleaf',
+    blurb: 'registers a connection — no profiler yet',
+    typeLabel: 'Copperleaf',
+    available: true,
+    profiles: false,
+    accountField: 'serviceUrl',
+    scopeField: 'portfolio',
+    fields: [
+      nameField,
+      { name: 'serviceUrl', label: 'Service URL', kind: 'text', placeholder: 'https://northline.copperleaf.cloud', required: true },
+      { name: 'portfolio', label: 'Portfolio', kind: 'text', placeholder: 'Capital Programme', help: 'The investment portfolio whose initiatives and scenarios are read.', required: true },
+      secretField('secret://copperleaf/portfolio-reader'),
+    ],
+  },
+  {
     /**
      * **Outlook is product vision, and the reason is the corpus rather than the API.**
      *

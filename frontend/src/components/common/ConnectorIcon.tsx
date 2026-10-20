@@ -310,6 +310,7 @@ const monogram =
 const PowerPlanIcon = monogram('PowerPlan', 'PP', '#6B4FBB')
 const EpbcsIcon = monogram('Oracle EPBCS', 'EP', '#C74634')
 const PeopleSoftIcon = monogram('PeopleSoft', 'PS', '#1F6FB5')
+const CopperleafIcon = monogram('Copperleaf', 'CL', '#B8642E')
 
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
@@ -328,6 +329,7 @@ const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   powerplan: PowerPlanIcon,
   epbcs: EpbcsIcon,
   peoplesoft: PeopleSoftIcon,
+  copperleaf: CopperleafIcon,
   osipi: OsiPiIcon,
   sharepoint: SharePointIcon,
   sql: SqlDatabaseIcon,
