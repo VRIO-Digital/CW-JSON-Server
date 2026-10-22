@@ -57,10 +57,7 @@ import { useReportsStore } from '../store/reportsStore'
  * `both` resolves to — this page is not dataset-keyed on the server, so the primary's answer is the
  * honest one there.
  */
-const DATASET_FILES: Record<string, string> = {
-  VLS: 'ai_submissions_vls_demo.html',
-  SIMPSON: 'simpson-ai_submissions.html',
-}
+const DATASET_FILES: Record<string, string> = {}
 const DEFAULT_FILE = 'ai_submissions_demo_final.html'
 
 export default function AISubmissionsPage() {

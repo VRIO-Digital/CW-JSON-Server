@@ -21,38 +21,29 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 /**
- * The datasets, in order, and EPA is first because that ordering is load-bearing: it is the
+ * The datasets, in order, and CAPEX is first because that ordering is load-bearing: it is the
  * primary, so it is what `both` resolves a single-valued key to and what a caller naming no
  * dataset gets.
  *
- * **There are three, and every one of them is read at boot.** A name here with no document behind it
+ * **There are two, and every one of them is read at boot.** A name here with no document behind it
  * stops the boot, which is why adding a dataset is this array *and then* the files behind it — a
- * loader over split files (EPA, CAPEX and KEOLIS each have one) or `npm run seed:dataset -- <NAME>`
+ * loader over split files (CAPEX and KEOLIS each have one) or `npm run seed:dataset -- <NAME>`
  * for a seeded-empty one; the seed refuses a name this array does not declare.
  *
  * KEOLIS is the Keolis Valmont demo package (`frontend/keolis/`), split into `backend/keolis/` by
  * `npm run ingest:keolis`. Its URL letter is K, which stays unique among E, C and B.
  *
- * VLS is the VLS Gulf Coast demo package, split into `backend/vls/` from the package's merged
- * document (its `db.V.json` — the V is VLS; the reference copy was removed once split). Its URL
- * letter is V, which stays unique among E, C, K and B.
- *
- * SIMPSON is the Simpson demo package (tenant: Ridgeline Structural Products), split into
- * `backend/simpson/` from the package's merged `db.RIDGELINE.json` by `npm run ingest:simpson`
- * (the reference copy was removed once split, like VLS's — the committed split files are the
- * store). Its URL letter is S, which stays unique among E, C, K, V and B.
- *
  * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['EPA', 'CAPEX', 'KEOLIS', 'VLS', 'SIMPSON']
-export const PRIMARY = 'EPA'
+export const DATASETS = ['CAPEX', 'KEOLIS']
+export const PRIMARY = 'CAPEX'
 export const BOTH = 'both'
 
 /**
  * Which cloud vendor a dataset's tenant runs on — the **provider brand**.
  *
- * KEOLIS and SIMPSON are the Microsoft tenants — Google for CAPEX and VLS — so under them the
+ * KEOLIS and CAPEX are the Microsoft tenants, so under them the
  * three real connectors present as Azure SQL Database, OneDrive and Microsoft Outlook, the
  * consent is a Microsoft sign-in, and the scopes `/sources/oauth/start` serves are Microsoft
  * Graph's. **Nothing underneath changes**: the kinds are still `bigquery` / `gdrive` / `gmail`,
@@ -66,7 +57,7 @@ export const BOTH = 'both'
  */
 /* CAPEX joined the Microsoft tenants on request: its connectors are Azure SQL Database, OneDrive and
    Outlook, so its mail corpus is filed under Outlook's folders (`Inbox`, not Gmail's `INBOX`). */
-export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', SIMPSON: 'microsoft', CAPEX: 'microsoft' }
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', CAPEX: 'microsoft' }
 export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
 
 /**

@@ -128,10 +128,7 @@ import {
   typeLinks,
 } from './studioLanes.js'
 import { loadCapexDocument } from './capex-loader.js'
-import { loadEpaDocument } from './epa-loader.js'
 import { loadKeolisDocument } from './keolis-loader.js'
-import { loadVlsDocument } from './vls-loader.js'
-import { loadSimpsonDocument } from './simpson-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -278,15 +275,6 @@ const DB_PATH = DB_PATHS[PRIMARY]
  */
 const loadedDocs = await Promise.all(
   DATASETS.map((name) => {
-    /* EPA loads from split files in epa/ folder */
-    if (name === PRIMARY) {
-      return loadEpaDocument().catch((error) => {
-        console.error(`\nmock-server: refusing to start — cannot load EPA split files.`)
-        console.error(`  · ${error.message}`)
-        console.error(`\n  Rebuild the split files:\n      npm run split:epa\n`)
-        process.exit(1)
-      })
-    }
     /* CAPEX loads from split files in capex/ folder */
     if (name === 'CAPEX') {
       return loadCapexDocument().catch((error) => {
@@ -302,25 +290,6 @@ const loadedDocs = await Promise.all(
         console.error(`\nmock-server: refusing to start — cannot load KEOLIS split files.`)
         console.error(`  · ${error.message}`)
         console.error(`\n  Rebuild the split files from the demo package:\n      npm run ingest:keolis\n`)
-        process.exit(1)
-      })
-    }
-    /* VLS loads from split files in vls/ folder, split from the package's merged db.V.json */
-    if (name === 'VLS') {
-      return loadVlsDocument().catch((error) => {
-        console.error(`\nmock-server: refusing to start — cannot load VLS split files.`)
-        console.error(`  · ${error.message}`)
-        console.error(`\n  Restore backend/vls/ from the repository:\n      git checkout -- backend/vls\n`)
-        process.exit(1)
-      })
-    }
-    /* SIMPSON loads from split files in simpson/ folder — the package's reference copy was
-       removed once split, so the committed split files are the store (the VLS arrangement). */
-    if (name === 'SIMPSON') {
-      return loadSimpsonDocument().catch((error) => {
-        console.error(`\nmock-server: refusing to start — cannot load SIMPSON split files.`)
-        console.error(`  · ${error.message}`)
-        console.error(`\n  Restore backend/simpson/ from the repository:\n      git checkout -- backend/simpson\n`)
         process.exit(1)
       })
     }
@@ -1855,7 +1824,9 @@ function validateDb(candidate) {
    * the What-if copy, the governance states — are seeded from the primary rather than emptied,
    * because a page with no copy does not read as an empty dataset, it reads as a broken one.
    */
-  const empty = activeDataset() !== PRIMARY
+  /* EPA, whose data those rules were written for, is gone: CAPEX is the primary now and ships
+     deliberately empty rosters (generators, candidate pools), so emptiness is allowed everywhere. */
+  const empty = true
 
   for (const [key, check] of Object.entries(DB_SHAPE)) {
     if (!(key in candidate)) problems.push(`"${key}" is missing — ${DB_HINTS[key]}`)

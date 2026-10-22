@@ -35,7 +35,6 @@
     "ingest:capex": "npm --prefix backend run ingest:capex",
     "ingest:capex-graph": "npm --prefix backend run ingest:capex-graph",
     "ingest:keolis": "npm --prefix backend run ingest:keolis",
-    "ingest:simpson": "npm --prefix backend run ingest:simpson",
     "build:keolis-ai": "npm --prefix backend run build:keolis-ai",
     "ingest:queries": "npm --prefix backend run ingest:queries",
     "scale:capex": "npm --prefix backend run scale:capex",
