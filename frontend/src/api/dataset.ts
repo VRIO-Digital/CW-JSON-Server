@@ -28,15 +28,16 @@ const KEY = 'contextweave.dataset'
 
 let current = read()
 
-/* Pinned to CAPEX on request: a stored selection (a browser left on KEOLIS, say) no longer survives a
-   reload. `setCurrentDataset` still applies for the session it is called in. */
+/* The selection survives a reload: Settings → Dataset persists the choice, signs out and reloads, so a
+   `read()` that discarded it would bring the app straight back on the dataset the reader just left. A
+   stored value the server no longer has is recovered by `resetDatasetIfRefused()`. */
 function read(): string {
   try {
-    window.localStorage.removeItem(KEY)
+    return window.localStorage.getItem(KEY) || DEFAULT_DATASET
   } catch {
-    /* Private-mode or a blocked store — nothing to clear. */
+    /* Private-mode or a blocked store — fall back to the primary. */
+    return DEFAULT_DATASET
   }
-  return DEFAULT_DATASET
 }
 
 /** The dataset every request carries. Read by `client.ts`, never by a component. */

@@ -1,0 +1,2553 @@
+{
+  "graph_domains": [
+    {
+      "domain_id": "supply-chain",
+      "name": "Supply Chain Planning and Performance (multi-business)",
+      "expected_sources": [
+        "SAP purchasing and stock",
+        "Sourcing and contracts platform",
+        "Operations: sites, work orders, dosing plans",
+        "Supply Chain documents",
+        "Analyst mailbox"
+      ],
+      "fit": "strong",
+      "note": "Order lines, stock, reservations, contracts, bids and scorecards are connected and profiled; policies, notices and contracts are in OneDrive.",
+      "unmet_note": "No purchasing or stock source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "procurement-sourcing",
+      "name": "Procurement, Sourcing and Contract Compliance",
+      "expected_sources": [
+        "Contract register and price lists",
+        "Order lines",
+        "Invoices",
+        "Sourcing events and bids"
+      ],
+      "fit": "strong",
+      "note": "Contracts, price lists, orders, invoices and bids resolve. The savings register is a tracker in OneDrive, not a table.",
+      "unmet_note": "No contract register connected.",
+      "rank": 2
+    },
+    {
+      "domain_id": "inventory-spares",
+      "name": "Inventory and Critical Spares",
+      "expected_sources": [
+        "Stock by site",
+        "Goods movements",
+        "Reservations",
+        "Planned outages"
+      ],
+      "fit": "partial",
+      "note": "Stock, movements, reservations and outages resolve. 3.1% of critical positions have no reorder point, and Energy's dosing plans are the November 2025 vintage.",
+      "unmet_note": "No stock source connected.",
+      "rank": 3
+    },
+    {
+      "domain_id": "logistics-tracking",
+      "name": "Logistics and Shipment Tracking",
+      "expected_sources": [
+        "Carrier tracking",
+        "Shipment positions",
+        "Arrival estimates"
+      ],
+      "fit": "none",
+      "note": "Carrier tracking is not connected, so where a shipment is and when it arrives cannot be read. Questions about arrivals are declined; promised dates on order lines are answered instead.",
+      "unmet_note": "No carrier source connected.",
+      "rank": 4
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "cpo",
+      "name": "Chief Procurement Officer",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "spend",
+        "contract",
+        "savings",
+        "award",
+        "committee",
+        "supplier"
+      ],
+      "focus": "Owns group procurement. Asks what the group spends and with whom, how much is under contract, where the savings stand, and what goes to the Procurement Committee.",
+      "top_questions": [
+        "hq1",
+        "hq2",
+        "hq6",
+        "hq18",
+        "hq32",
+        "hq40"
+      ]
+    },
+    {
+      "persona_id": "cfo-chair",
+      "name": "Chief Financial Officer (Procurement Committee chair)",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "committee",
+        "award",
+        "index",
+        "exposure",
+        "plan"
+      ],
+      "focus": "Chairs the Procurement Committee. Asks what an award costs and saves, what risk it carries, and how spend compares with the plan.",
+      "top_questions": [
+        "hq26",
+        "hq39"
+      ]
+    },
+    {
+      "persona_id": "sc-planning-head",
+      "name": "Head of Supply Chain Planning and Inventory",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "safety stock",
+        "critical",
+        "lead time",
+        "expedite",
+        "transfer",
+        "outage"
+      ],
+      "focus": "Owns stock and supply continuity. Asks which critical items are short, what can be moved between sites, and which suppliers are slipping.",
+      "top_questions": [
+        "hq7",
+        "hq14",
+        "hq16"
+      ]
+    },
+    {
+      "persona_id": "category-manager-chem",
+      "name": "Category Manager, Chemicals and Process Materials",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "chemical",
+        "bid",
+        "landed cost",
+        "force majeure",
+        "dosing",
+        "lot"
+      ],
+      "focus": "Runs the chemicals category and its sourcing events. Asks what the bids save on landed cost, who is qualified, and what a force majeure exposes.",
+      "top_questions": [
+        "hq19",
+        "hq20",
+        "hq21",
+        "hq28",
+        "hq35"
+      ]
+    },
+    {
+      "persona_id": "category-manager-mro",
+      "name": "Category Manager, Maintenance, Repair and Operations",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "MRO",
+        "spares",
+        "off contract",
+        "fragmented",
+        "price"
+      ],
+      "focus": "Runs maintenance categories. Asks where spend leaks off contract, which sites pay different prices for one item, and how many suppliers serve a category.",
+      "top_questions": [
+        "hq5",
+        "hq17"
+      ]
+    },
+    {
+      "persona_id": "buyer",
+      "name": "Buyer",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "order",
+        "late",
+        "promised date",
+        "supplier",
+        "expedite"
+      ],
+      "focus": "Places and chases orders. Asks which lines are late and with whom, and which orders need expediting.",
+      "top_questions": [
+        "hq15",
+        "hq30"
+      ]
+    },
+    {
+      "persona_id": "plant-manager",
+      "name": "Plant Manager, Water",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "days of cover",
+        "chemical",
+        "delivery",
+        "plant",
+        "minimum"
+      ],
+      "focus": "Runs a water treatment works. Asks how many days of each chemical the plant holds and when the next delivery lands.",
+      "top_questions": [
+        "hq8",
+        "hq37",
+        "hq45"
+      ]
+    },
+    {
+      "persona_id": "outage-manager",
+      "name": "Outage Manager, Hazardous Waste",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "outage",
+        "reservation",
+        "readiness",
+        "spares",
+        "kiln"
+      ],
+      "focus": "Plans incinerator outages. Asks whether every reserved part will be there on time and what a missing part costs per day.",
+      "top_questions": [
+        "hq11",
+        "hq38",
+        "hq41"
+      ]
+    },
+    {
+      "persona_id": "ops-director-energy",
+      "name": "Operations Director, Energy",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "dosing plan",
+        "fuel",
+        "biomass",
+        "spares",
+        "plant"
+      ],
+      "focus": "Runs the energy plants. Asks what the plants use and spend, and whether the plans the group buys against are current.",
+      "top_questions": [
+        "hq34"
+      ]
+    },
+    {
+      "persona_id": "storeroom-lead",
+      "name": "Storeroom and Inventory Lead",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "stock",
+        "reorder point",
+        "slow moving",
+        "transfer",
+        "distribution center"
+      ],
+      "focus": "Runs a storeroom. Asks what is held, what has not moved, which items have no reorder point, and what can be released to another site.",
+      "top_questions": [
+        "hq10",
+        "hq29",
+        "hq33"
+      ]
+    },
+    {
+      "persona_id": "ap-lead",
+      "name": "Accounts Payable Lead",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "invoice",
+        "price variance",
+        "match exception",
+        "vendor",
+        "duplicate"
+      ],
+      "focus": "Pays suppliers. Asks which invoices are above contract price, which match exceptions are open, and which vendor records are duplicates.",
+      "top_questions": [
+        "hq3",
+        "hq22",
+        "hq44"
+      ]
+    },
+    {
+      "persona_id": "finance-bp",
+      "name": "Finance Business Partner, Procurement",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "savings",
+        "plan",
+        "inventory value",
+        "turns",
+        "working capital"
+      ],
+      "focus": "Validates savings and tracks spend against plan. Asks what is secured against the target and how stock ties up cash.",
+      "top_questions": [
+        "hq4",
+        "hq9"
+      ]
+    },
+    {
+      "persona_id": "process-safety",
+      "name": "Process Safety Manager",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "storage",
+        "chemical",
+        "tank",
+        "transfer",
+        "safety"
+      ],
+      "focus": "Signs off bulk chemical storage and moves. Asks how much each plant holds against its tank limits and which moves need sign-off.",
+      "top_questions": []
+    },
+    {
+      "persona_id": "business-president",
+      "name": "Business President",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "business",
+        "spend",
+        "chemicals",
+        "plan",
+        "supplier"
+      ],
+      "focus": "Runs one of the three businesses. Asks what the business spends, on what, and how it compares with the plan and the other businesses.",
+      "top_questions": [
+        "hq31",
+        "hq36"
+      ]
+    },
+    {
+      "persona_id": "supplier-quality",
+      "name": "Supplier Quality and Performance Manager",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "on time in full",
+        "scorecard",
+        "corrective action",
+        "qualified",
+        "lead time"
+      ],
+      "focus": "Measures suppliers. Asks who is below target, which corrective actions are open, and who is qualified for what.",
+      "top_questions": [
+        "hq13",
+        "hq25"
+      ]
+    },
+    {
+      "persona_id": "internal-audit",
+      "name": "Internal Audit",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "after the fact",
+        "exception",
+        "force majeure",
+        "policy",
+        "control"
+      ],
+      "focus": "Tests procurement controls. Asks how many orders were raised after the invoice and how much was bought under exceptions.",
+      "top_questions": [
+        "hq23",
+        "hq27"
+      ]
+    },
+    {
+      "persona_id": "treasury",
+      "name": "Treasury and Working Capital",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "payment terms",
+        "inventory value",
+        "cash",
+        "index"
+      ],
+      "focus": "Manages working capital. Asks what terms suppliers give, how much cash sits in stock, and which contracts move with an index.",
+      "top_questions": [
+        "hq12",
+        "hq24"
+      ]
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "hq1",
+      "text": "What did we spend with third parties this year, by business and category, against the plan?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "spend",
+        "third",
+        "parties",
+        "year",
+        "business",
+        "category"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ1",
+      "rationale": "Resolves across pur.po_line + fin.spend_plan + ops.site at high confidence (0.94).",
+      "priority": "high",
+      "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+    },
+    {
+      "question_id": "hq2",
+      "text": "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "much",
+        "spend",
+        "under",
+        "group",
+        "contract",
+        "where"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ2",
+      "rationale": "Resolves across pur.po_line + src.contract at high confidence (0.92); a line is leakage only when contract_price_usd shows a contract covers its material.",
+      "priority": "high",
+      "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
+    },
+    {
+      "question_id": "hq3",
+      "text": "Which invoices were paid above the contract price in the third quarter, and by how much?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "invoices",
+        "were",
+        "paid",
+        "above",
+        "contract",
+        "price"
+      ],
+      "persona": "Accounts Payable Lead",
+      "answer_id": "HQ3",
+      "rationale": "Resolves across ap.invoice_line + pur.po_line + src.contract_item at high confidence (0.91).",
+      "priority": "high",
+      "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
+    },
+    {
+      "question_id": "hq4",
+      "text": "Where are we against the FY26 savings target?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "where",
+        "against",
+        "savings",
+        "target"
+      ],
+      "persona": "Finance Business Partner, Procurement",
+      "answer_id": "HQ4",
+      "rationale": "The target resolves from fin.spend_plan; the secured figure is read from the savings tracker in OneDrive at medium confidence (0.84).",
+      "priority": "high",
+      "sql": "SELECT SUM(plan_usd) * 0.03 AS target_usd\nFROM fin.spend_plan\nWHERE addressable AND period BETWEEN '2026-01' AND '2026-12'\n-- secured savings are read from Savings_tracker_2026-10.xlsx (no table holds the register)"
+    },
+    {
+      "question_id": "hq5",
+      "text": "Which suppliers take the most off-contract spend where a contract covers the item?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "suppliers",
+        "take",
+        "most",
+        "off-contract",
+        "spend",
+        "where"
+      ],
+      "persona": "Category Manager, Maintenance, Repair and Operations",
+      "answer_id": "HQ5",
+      "rationale": "Resolves across pur.po_line + pur.vendor at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
+    },
+    {
+      "question_id": "hq6",
+      "text": "How is spend spread across suppliers in each category, and where is it fragmented?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "spend",
+        "spread",
+        "across",
+        "suppliers",
+        "category",
+        "where"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ6",
+      "rationale": "Resolves across pur.po_line + pur.vendor at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT category_code, COUNT(DISTINCT vendor_id) AS suppliers, MAX(v_spend) / SUM(v_spend) AS top_share\nFROM (SELECT category_code, vendor_id, SUM(ordered_usd) AS v_spend FROM pur.po_line WHERE ordered_on >= '2026-01-01' GROUP BY 1, 2)\nGROUP BY category_code"
+    },
+    {
+      "question_id": "hq7",
+      "text": "Which critical items are below safety stock today?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "critical",
+        "items",
+        "below",
+        "safety",
+        "stock",
+        "today"
+      ],
+      "persona": "Head of Supply Chain Planning and Inventory",
+      "answer_id": "HQ7",
+      "rationale": "Resolves across mm.plant_stock + mm.material at high confidence (0.93).",
+      "priority": "high",
+      "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
+    },
+    {
+      "question_id": "hq8",
+      "text": "How many days of ferric chloride does each plant hold, against its minimum?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "many",
+        "days",
+        "ferric",
+        "chloride",
+        "plant",
+        "hold"
+      ],
+      "persona": "Plant Manager, Water",
+      "answer_id": "HQ8",
+      "rationale": "Resolves across mm.plant_stock + ops.site at high confidence (0.93); the minimum is read from the Inventory and Critical Spares Standard.",
+      "priority": "high",
+      "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
+    },
+    {
+      "question_id": "hq9",
+      "text": "What is our inventory value by business, and how much has not moved in twelve months?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "inventory",
+        "value",
+        "business",
+        "much",
+        "moved",
+        "twelve"
+      ],
+      "persona": "Finance Business Partner, Procurement",
+      "answer_id": "HQ9",
+      "rationale": "Resolves across mm.plant_stock + ops.site at medium confidence (0.82): the demo extract carries critical and chemical positions only.",
+      "priority": "high",
+      "sql": "SELECT s.site_code, s.material_code, s.stock_value_usd, s.last_movement_date\nFROM mm.plant_stock s\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock) AND s.last_movement_date < DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)"
+    },
+    {
+      "question_id": "hq10",
+      "text": "Which critical items are held above safety stock at one site while another site is below?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "critical",
+        "items",
+        "held",
+        "above",
+        "safety",
+        "stock"
+      ],
+      "persona": "Storeroom and Inventory Lead",
+      "answer_id": "HQ10",
+      "rationale": "Resolves across mm.plant_stock + ops.site at high confidence (0.88).",
+      "priority": "normal",
+      "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
+    },
+    {
+      "question_id": "hq11",
+      "text": "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "everything",
+        "reserved",
+        "ravensworth",
+        "kiln",
+        "outage",
+        "time"
+      ],
+      "persona": "Outage Manager, Hazardous Waste",
+      "answer_id": "HQ11",
+      "rationale": "Resolves across mm.reservation + ops.work_order + mm.plant_stock + pur.po_line at high confidence (0.9).",
+      "priority": "high",
+      "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
+    },
+    {
+      "question_id": "hq12",
+      "text": "What are inventory turns by business?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "inventory",
+        "turns",
+        "business"
+      ],
+      "persona": "Treasury and Working Capital",
+      "answer_id": "HQ12",
+      "rationale": "Resolves across mm.stock_movement + mm.plant_stock at medium confidence (0.78): movements are loaded for the critical and chemical positions only.",
+      "priority": "normal",
+      "sql": "SELECT st.business_code, SUM(CASE WHEN m.movement_type IN ('201', '261') THEN -m.amount_usd ELSE 0 END) / NULLIF(AVG(s.stock_value_usd), 0) AS turns\nFROM mm.stock_movement m\nJOIN ops.site st ON st.site_code = m.site_code\nJOIN mm.plant_stock s ON s.site_code = m.site_code AND s.material_code = m.material_code\nWHERE m.posting_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)\nGROUP BY st.business_code"
+    },
+    {
+      "question_id": "hq13",
+      "text": "Which suppliers had the worst on time in full in the third quarter?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "suppliers",
+        "worst",
+        "time",
+        "full",
+        "third",
+        "quarter"
+      ],
+      "persona": "Supplier Quality and Performance Manager",
+      "answer_id": "HQ13",
+      "rationale": "Resolves across pur.po_line + src.supplier_scorecard at high confidence (0.93).",
+      "priority": "high",
+      "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
+    },
+    {
+      "question_id": "hq14",
+      "text": "How have lead times on critical spares moved this year against the contract lead times?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "lead",
+        "times",
+        "critical",
+        "spares",
+        "moved",
+        "year"
+      ],
+      "persona": "Head of Supply Chain Planning and Inventory",
+      "answer_id": "HQ14",
+      "rationale": "Resolves across pur.po_line + src.contract_item at high confidence (0.88).",
+      "priority": "normal",
+      "sql": "SELECT p.vendor_id, AVG(DATE_DIFF(p.received_on, p.ordered_on, DAY)) AS actual_days, AVG(ci.lead_time_days) AS contract_days\nFROM pur.po_line p\nJOIN src.contract_item ci ON ci.contract_no = p.contract_no AND ci.material_code = p.material_code\nWHERE p.received_on IS NOT NULL\nGROUP BY p.vendor_id"
+    },
+    {
+      "question_id": "hq15",
+      "text": "Which open order lines are past their promised date, and with whom?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "open",
+        "order",
+        "lines",
+        "past",
+        "promised",
+        "date"
+      ],
+      "persona": "Buyer",
+      "answer_id": "HQ15",
+      "rationale": "Resolves across pur.po_line + pur.vendor at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT p.po_number, p.vendor_id, p.site_code, p.material_code, p.promised_date, DATE_DIFF(CURRENT_DATE(), p.promised_date, DAY) AS days_late, p.ordered_usd\nFROM pur.po_line p\nWHERE p.line_status = 'Open late'\nORDER BY days_late DESC"
+    },
+    {
+      "question_id": "hq16",
+      "text": "Which critical items have a single qualified source?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "critical",
+        "items",
+        "single",
+        "qualified",
+        "source"
+      ],
+      "persona": "Head of Supply Chain Planning and Inventory",
+      "answer_id": "HQ16",
+      "rationale": "Resolves across mm.material + mm.plant_stock at high confidence (0.9).",
+      "priority": "high",
+      "sql": "SELECT m.material_code, m.description, m.preferred_vendor_id, SUM(s.unrestricted_qty) AS group_stock\nFROM mm.material m\nLEFT JOIN mm.plant_stock s ON s.material_code = m.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nWHERE m.criticality = 'A' AND m.single_source\nGROUP BY 1, 2, 3"
+    },
+    {
+      "question_id": "hq17",
+      "text": "How much do we spend on contracts that expire in the next six months?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "much",
+        "spend",
+        "contracts",
+        "expire",
+        "next",
+        "months"
+      ],
+      "persona": "Category Manager, Maintenance, Repair and Operations",
+      "answer_id": "HQ17",
+      "rationale": "Resolves across src.contract + pur.po_line at high confidence (0.9).",
+      "priority": "high",
+      "sql": "SELECT c.contract_no, c.title, c.end_date, SUM(p.ordered_usd) AS spend_usd\nFROM src.contract c\nJOIN pur.po_line p ON p.contract_no = c.contract_no AND p.ordered_on >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)\nWHERE c.end_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 6 MONTH)\nGROUP BY 1, 2, 3"
+    },
+    {
+      "question_id": "hq18",
+      "text": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "would",
+        "bids",
+        "save",
+        "against",
+        "today",
+        "prices"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ18",
+      "rationale": "Resolves across src.bid + src.contract_item + ops.dosing_plan at high confidence (0.88); Energy volumes are the November 2025 plan.",
+      "priority": "high",
+      "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
+    },
+    {
+      "question_id": "hq19",
+      "text": "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "corrigan",
+        "force",
+        "majeure",
+        "expose",
+        "spot",
+        "buys"
+      ],
+      "persona": "Category Manager, Chemicals and Process Materials",
+      "answer_id": "HQ19",
+      "rationale": "Resolves across pur.po_line + mm.plant_stock + ops.dosing_plan at high confidence (0.89); the allocation is read from the notice in OneDrive.",
+      "priority": "high",
+      "sql": "SELECT d.site_code, SUM(d.plan_tons) * 0.4 AS unshipped_tons_a_year\nFROM ops.dosing_plan d\nWHERE d.material_code = 'CHM-FECL-40' AND d.plan_year = 2027\nGROUP BY d.site_code"
+    },
+    {
+      "question_id": "hq20",
+      "text": "How much of each treatment chemical does each business use now, and what does the 2027 plan say?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "much",
+        "treatment",
+        "chemical",
+        "business",
+        "plan"
+      ],
+      "persona": "Category Manager, Chemicals and Process Materials",
+      "answer_id": "HQ20",
+      "rationale": "Resolves across ops.dosing_plan + ops.site at medium confidence (0.83): Energy plans are the November 2025 vintage.",
+      "priority": "high",
+      "sql": "SELECT d.site_code, d.material_code, d.run_rate_tons, d.plan_tons, d.refreshed_on\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2027"
+    },
+    {
+      "question_id": "hq21",
+      "text": "Which bidders on SE-2026-031 are not qualified for the lots they bid?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "bidders",
+        "qualified",
+        "lots",
+        "they"
+      ],
+      "persona": "Category Manager, Chemicals and Process Materials",
+      "answer_id": "HQ21",
+      "rationale": "Resolves across src.bid + the qualification register in OneDrive at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT b.lot_id, b.bidder_vendor_id, b.qualification_note\nFROM src.bid b\nWHERE b.event_id = 'SE-2026-031' AND NOT b.qualified"
+    },
+    {
+      "question_id": "hq22",
+      "text": "Which three-way match exceptions are open, and why?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "three-way",
+        "match",
+        "exceptions",
+        "open"
+      ],
+      "persona": "Accounts Payable Lead",
+      "answer_id": "HQ22",
+      "rationale": "Resolves across ap.invoice_line + ap.match_exception at high confidence (0.9).",
+      "priority": "high",
+      "sql": "SELECT e.exception_type, COUNT(*) AS open_exceptions, SUM(e.amount_usd) AS amount_usd\nFROM ap.match_exception e\nWHERE e.status = 'Open'\nGROUP BY e.exception_type"
+    },
+    {
+      "question_id": "hq23",
+      "text": "How many orders were raised after the invoice in the third quarter?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "many",
+        "orders",
+        "were",
+        "raised",
+        "after",
+        "invoice"
+      ],
+      "persona": "Internal Audit",
+      "answer_id": "HQ23",
+      "rationale": "Resolves across ap.invoice_line + pur.po_line at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT COUNT(*) AS lines, SUM(invoiced_usd) AS amount_usd\nFROM ap.invoice_line\nWHERE after_the_fact_po AND invoice_date BETWEEN '2026-07-01' AND '2026-09-30'"
+    },
+    {
+      "question_id": "hq24",
+      "text": "What payment terms do we get, weighted by spend, against the 45-day policy?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "payment",
+        "terms",
+        "weighted",
+        "spend",
+        "against",
+        "policy"
+      ],
+      "persona": "Treasury and Working Capital",
+      "answer_id": "HQ24",
+      "rationale": "Resolves across pur.po_line + pur.vendor at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT SUM(p.ordered_usd * v.payment_terms_days) / SUM(p.ordered_usd) AS weighted_terms_days\nFROM pur.po_line p\nJOIN pur.vendor v ON v.vendor_id = p.vendor_id\nWHERE p.ordered_on >= '2026-01-01'"
+    },
+    {
+      "question_id": "hq25",
+      "text": "Which suppliers have an open corrective action request?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "suppliers",
+        "open",
+        "corrective",
+        "action",
+        "request"
+      ],
+      "persona": "Supplier Quality and Performance Manager",
+      "answer_id": "HQ25",
+      "rationale": "Resolves across src.supplier_scorecard + the corrective action requests in OneDrive at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT vendor_id, quarter, otif_pct\nFROM src.supplier_scorecard\nWHERE car_open AND quarter = '2026-Q3'"
+    },
+    {
+      "question_id": "hq26",
+      "text": "How much of our spend sits on index-linked contracts?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "much",
+        "spend",
+        "sits",
+        "index-linked",
+        "contracts"
+      ],
+      "persona": "Chief Financial Officer (Procurement Committee chair)",
+      "answer_id": "HQ26",
+      "rationale": "Resolves across src.contract + pur.po_line at high confidence (0.89).",
+      "priority": "normal",
+      "sql": "SELECT c.index_clause, SUM(p.ordered_usd) AS spend_usd\nFROM pur.po_line p\nJOIN src.contract c ON c.contract_no = p.contract_no\nWHERE c.index_clause IS NOT NULL AND p.ordered_on >= '2026-01-01'\nGROUP BY c.index_clause"
+    },
+    {
+      "question_id": "hq27",
+      "text": "How much did we buy under exception codes this year, and what did it cost above contract?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "much",
+        "under",
+        "exception",
+        "codes",
+        "year",
+        "cost"
+      ],
+      "persona": "Internal Audit",
+      "answer_id": "HQ27",
+      "rationale": "Resolves across pur.po_line at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT exception_code, FORMAT_DATE('%Y-%m', ordered_on) AS month, SUM(ordered_usd) AS amount_usd\nFROM pur.po_line\nWHERE exception_code IS NOT NULL\nGROUP BY 1, 2"
+    },
+    {
+      "question_id": "hq28",
+      "text": "Which sites pay different prices for the same chemical?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "sites",
+        "different",
+        "prices",
+        "same",
+        "chemical"
+      ],
+      "persona": "Category Manager, Chemicals and Process Materials",
+      "answer_id": "HQ28",
+      "rationale": "Resolves across pur.po_line + ops.site at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT p.material_code, MIN(p.unit_price_usd) AS low, MAX(p.unit_price_usd) AS high, COUNT(DISTINCT p.site_code) AS sites\nFROM pur.po_line p\nWHERE p.material_code IS NOT NULL AND p.ordered_on >= '2026-07-01'\nGROUP BY p.material_code\nHAVING COUNT(DISTINCT p.site_code) > 1"
+    },
+    {
+      "question_id": "hq29",
+      "text": "Which critical items have no reorder point set?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "critical",
+        "items",
+        "reorder",
+        "point"
+      ],
+      "persona": "Storeroom and Inventory Lead",
+      "answer_id": "HQ29",
+      "rationale": "Resolves across mm.plant_stock + mm.material at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT s.site_code, s.material_code\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.reorder_point_qty IS NULL AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)"
+    },
+    {
+      "question_id": "hq30",
+      "text": "How long does a requisition take to become a purchase order?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "long",
+        "requisition",
+        "take",
+        "become",
+        "purchase",
+        "order"
+      ],
+      "persona": "Buyer",
+      "answer_id": "HQ30",
+      "rationale": "Declined: requisition dates are not in the purchasing extract.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq31",
+      "text": "What does each business pay per ton for the same treatment chemicals?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "business",
+        "same",
+        "treatment",
+        "chemicals"
+      ],
+      "persona": "Business President",
+      "answer_id": "HQ31",
+      "rationale": "Resolves across pur.po_line + ops.site at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT p.material_code, MIN(p.unit_price_usd) AS low, MAX(p.unit_price_usd) AS high, COUNT(DISTINCT p.site_code) AS sites\nFROM pur.po_line p\nWHERE p.material_code IS NOT NULL AND p.ordered_on >= '2026-07-01'\nGROUP BY p.material_code\nHAVING COUNT(DISTINCT p.site_code) > 1"
+    },
+    {
+      "question_id": "hq32",
+      "text": "Which suppliers serve all three businesses, and how much do we spend with them?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "suppliers",
+        "serve",
+        "three",
+        "businesses",
+        "much",
+        "spend"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ32",
+      "rationale": "Resolves across pur.po_line + pur.vendor + ops.site at high confidence (0.9).",
+      "priority": "normal",
+      "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+    },
+    {
+      "question_id": "hq33",
+      "text": "What do the three distribution centers hold of critical items, and what is it worth?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "three",
+        "distribution",
+        "centers",
+        "hold",
+        "critical",
+        "items"
+      ],
+      "persona": "Storeroom and Inventory Lead",
+      "answer_id": "HQ33",
+      "rationale": "Resolves across mm.plant_stock + ops.site at high confidence (0.88).",
+      "priority": "normal",
+      "sql": "SELECT st.business_code, SUM(s.stock_value_usd) AS value_usd\nFROM mm.plant_stock s\nJOIN ops.site st ON st.site_code = s.site_code\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nGROUP BY st.business_code"
+    },
+    {
+      "question_id": "hq34",
+      "text": "Which dosing plans are out of date?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "dosing",
+        "plans",
+        "date"
+      ],
+      "persona": "Operations Director, Energy",
+      "answer_id": "HQ34",
+      "rationale": "Resolves across ops.dosing_plan at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT d.site_code, d.material_code, d.run_rate_tons, d.plan_tons, d.refreshed_on\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2027"
+    },
+    {
+      "question_id": "hq35",
+      "text": "What will other utilities pay for sodium hypochlorite next year?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "other",
+        "utilities",
+        "sodium",
+        "hypochlorite",
+        "next",
+        "year"
+      ],
+      "persona": "Category Manager, Chemicals and Process Materials",
+      "answer_id": "HQ35",
+      "rationale": "Declined: other companies' prices and future market prices are not in the graph.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq36",
+      "text": "What did each business spend on treatment chemicals this year?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "business",
+        "spend",
+        "treatment",
+        "chemicals",
+        "year"
+      ],
+      "persona": "Business President",
+      "answer_id": "HQ36",
+      "rationale": "Resolves across pur.po_line + ops.site at high confidence (0.93).",
+      "priority": "normal",
+      "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+    },
+    {
+      "question_id": "hq37",
+      "text": "How much stock does the Corrigan allocation leave each water plant by mid-November?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "much",
+        "stock",
+        "corrigan",
+        "allocation",
+        "leave",
+        "water"
+      ],
+      "persona": "Plant Manager, Water",
+      "answer_id": "HQ37",
+      "rationale": "Resolves across mm.plant_stock + pur.po_line at medium confidence (0.8): it projects use at the run rate and deliveries at 60%.",
+      "priority": "normal",
+      "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
+    },
+    {
+      "question_id": "hq38",
+      "text": "What has the Ravensworth Kiln 2 outage reserved, and what is it worth?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "ravensworth",
+        "kiln",
+        "outage",
+        "reserved",
+        "worth"
+      ],
+      "persona": "Outage Manager, Hazardous Waste",
+      "answer_id": "HQ38",
+      "rationale": "Resolves across mm.reservation + mm.material at high confidence (0.92).",
+      "priority": "normal",
+      "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
+    },
+    {
+      "question_id": "hq39",
+      "text": "What will caustic soda cost in 2027?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "caustic",
+        "soda",
+        "cost"
+      ],
+      "persona": "Chief Financial Officer (Procurement Committee chair)",
+      "answer_id": "HQ39",
+      "rationale": "Declined: the graph holds contract prices and index clauses, not market forecasts.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq40",
+      "text": "Is Corrigan financially sound enough to keep as a supplier?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "corrigan",
+        "financially",
+        "sound",
+        "enough",
+        "keep",
+        "supplier"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ40",
+      "rationale": "Declined: the supplier risk ratings service is not connected.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq41",
+      "text": "When will the Holcombe brick shipment arrive at Ravensworth?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "when",
+        "holcombe",
+        "brick",
+        "shipment",
+        "arrive",
+        "ravensworth"
+      ],
+      "persona": "Outage Manager, Hazardous Waste",
+      "answer_id": "HQ41",
+      "rationale": "Declined: carrier tracking is not connected; the promised date on the order line is answered instead.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq42",
+      "text": "What are the scope 3 emissions of our chemical suppliers?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "scope",
+        "emissions",
+        "chemical",
+        "suppliers"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ42",
+      "rationale": "Declined: supplier emissions are not in any connected source.",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq43",
+      "text": "What does Helena need for the 12 November committee, and what is ready?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "helena",
+        "need",
+        "november",
+        "committee",
+        "ready"
+      ],
+      "persona": "Chief Procurement Officer",
+      "answer_id": "HQ43",
+      "rationale": "Resolves across the mailbox (thread A1) and the sourcing folder at medium confidence (0.84).",
+      "priority": "normal",
+      "sql": null
+    },
+    {
+      "question_id": "hq44",
+      "text": "Which vendor records look like duplicates?",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "vendor",
+        "records",
+        "look",
+        "like",
+        "duplicates"
+      ],
+      "persona": "Accounts Payable Lead",
+      "answer_id": "HQ44",
+      "rationale": "Resolves across pur.vendor at high confidence (0.88): same tax number, two vendor ids.",
+      "priority": "normal",
+      "sql": "SELECT v.tax_id, ARRAY_AGG(v.vendor_id) AS vendor_ids, ARRAY_AGG(v.vendor_name) AS names\nFROM pur.vendor v\nWHERE v.vendor_status = 'Active'\nGROUP BY v.tax_id\nHAVING COUNT(*) > 1"
+    },
+    {
+      "question_id": "hq45",
+      "text": "Which pump will fail next at Marston Reach?",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "pump",
+        "fail",
+        "next",
+        "marston",
+        "reach"
+      ],
+      "persona": "Plant Manager, Water",
+      "answer_id": "HQ45",
+      "rationale": "Declined: equipment condition and failure history are not connected, and the graph does not predict failures.",
+      "priority": "normal",
+      "sql": null
+    }
+  ],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-supply-chain-analyst-bw26a01",
+      "name": "Supply Chain Analyst · Bramwell Environmental Group",
+      "status": "committed",
+      "domain_id": "supply-chain",
+      "business_need": "Supply Chain Analyst for Bramwell Environmental Group's three businesses (Water, Hazardous Waste, Energy) and its group procurement. Keeps critical spares and treatment chemicals above safety stock at 36 sites, measures supplier delivery and contract compliance, supports sourcing events with landed-cost analysis, and reports to the Procurement Committee. Reports to rafael.duarte@vriodigital.com.",
+      "personas": [
+        {
+          "name": "Chief Procurement Officer",
+          "description": "Owns group procurement. Asks what the group spends and with whom, how much is under contract, where the savings stand, and what goes to the Procurement Committee.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Head of Supply Chain Planning and Inventory",
+          "description": "Owns stock and supply continuity. Asks which critical items are short, what can be moved between sites, and which suppliers are slipping.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Category Manager, Chemicals and Process Materials",
+          "description": "Runs the chemicals category and its sourcing events. Asks what the bids save on landed cost, who is qualified, and what a force majeure exposes.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Category Manager, Maintenance, Repair and Operations",
+          "description": "Runs maintenance categories. Asks where spend leaks off contract, which sites pay different prices for one item, and how many suppliers serve a category.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Buyer",
+          "description": "Places and chases orders. Asks which lines are late and with whom, and which orders need expediting.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Plant Manager, Water",
+          "description": "Runs a water treatment works. Asks how many days of each chemical the plant holds and when the next delivery lands.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Outage Manager, Hazardous Waste",
+          "description": "Plans incinerator outages. Asks whether every reserved part will be there on time and what a missing part costs per day.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Storeroom and Inventory Lead",
+          "description": "Runs a storeroom. Asks what is held, what has not moved, which items have no reorder point, and what can be released to another site.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Accounts Payable Lead",
+          "description": "Pays suppliers. Asks which invoices are above contract price, which match exceptions are open, and which vendor records are duplicates.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Finance Business Partner, Procurement",
+          "description": "Validates savings and tracks spend against plan. Asks what is secured against the target and how stock ties up cash.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Third-party spend",
+          "description": "Ordered value of purchase order lines by order date, by business and category, against the FY26 spend plan for the same months.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+        },
+        {
+          "name": "Spend under contract",
+          "description": "Ordered value placed on a group contract, as a share of all ordered value in the period.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT SUM(CASE WHEN contract_no IS NOT NULL THEN ordered_usd ELSE 0 END) / SUM(ordered_usd) AS under_contract_share\nFROM pur.po_line\nWHERE ordered_on BETWEEN '2026-01-01' AND '2026-09-30'"
+        },
+        {
+          "name": "Off-contract spend where a contract covers the item",
+          "description": "Ordered value placed off contract on lines whose material is covered by a group contract (contract_price_usd is not null). Spend in categories with no contract is not leakage.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
+        },
+        {
+          "name": "Invoice price variance",
+          "description": "Invoice lines priced above the contract price: (invoiced price minus contract price) times quantity, with the match status.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
+        },
+        {
+          "name": "Supplier on time in full",
+          "description": "Order lines received complete on or before the promised date, as a share of lines received, by supplier and quarter.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
+        },
+        {
+          "name": "Critical items below safety stock",
+          "description": "Class A positions (site and material) whose unrestricted stock is below safety stock at the latest snapshot.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
+        },
+        {
+          "name": "Days of chemical cover",
+          "description": "Unrestricted stock divided by average daily use, per plant and treatment chemical, against the minimum (14 days water, 10 hazardous waste, 7 energy).",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
+        },
+        {
+          "name": "Positions at risk before the next receipt",
+          "description": "Positions projected below safety stock, or short of a reservation, before their next confirmed receipt.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty, s.safety_stock_qty, r.required_qty, r.requirement_date, MIN(p.promised_date) AS next_receipt\nFROM mm.plant_stock s\nLEFT JOIN mm.reservation r ON r.site_code = s.site_code AND r.material_code = s.material_code AND r.status <> 'Closed'\nLEFT JOIN pur.po_line p ON p.site_code = s.site_code AND p.material_code = s.material_code AND p.line_status LIKE 'Open%'\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nGROUP BY 1, 2, 3, 4, 5, 6\nHAVING s.unrestricted_qty < COALESCE(r.required_qty, s.safety_stock_qty) AND (next_receipt IS NULL OR next_receipt > COALESCE(r.requirement_date, CURRENT_DATE()))"
+        },
+        {
+          "name": "Stock that can move between sites",
+          "description": "For each position below safety stock, the stock held at other sites above their own safety stock, and its business.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
+        },
+        {
+          "name": "Outage material readiness",
+          "description": "Reservation lines of a planned outage whose stock on hand, plus receipts promised before the requirement date, covers the required quantity.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
+        },
+        {
+          "name": "Bid landed cost",
+          "description": "Price plus average freight per unit for each bid, by lot, with qualification.",
+          "source": "ai",
+          "origin": null,
+          "sql": "SELECT b.lot_id, b.bidder_vendor_id, b.unit_price_usd, b.freight_usd_per_unit, b.unit_price_usd + b.freight_usd_per_unit AS landed_usd, b.qualified\nFROM src.bid b\nWHERE b.event_id = 'SE-2026-031'\nORDER BY b.lot_id, landed_usd"
+        },
+        {
+          "name": "Award saving on planned volumes",
+          "description": "Planned volume times (current landed cost minus awarded landed cost), by lot, against the prior contract price as the savings policy defines it.",
+          "source": "ai",
+          "origin": null,
+          "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "azuresql:bramwell_erp",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "azuresql:bramwell_srm",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "azuresql:bramwell_ops",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "onedrive:bramwell-supply-chain",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "outlook:nishant.srivastav@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "What did we spend with third parties this year, by business and category, against the plan?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+        },
+        {
+          "text": "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
+        },
+        {
+          "text": "Which invoices were paid above the contract price in the third quarter, and by how much?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
+        },
+        {
+          "text": "Which critical items are below safety stock today?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
+        },
+        {
+          "text": "How many days of ferric chloride does each plant hold, against its minimum?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
+        },
+        {
+          "text": "Which critical items are held above safety stock at one site while another site is below?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
+        },
+        {
+          "text": "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
+        },
+        {
+          "text": "Which suppliers had the worst on time in full in the third quarter?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
+        },
+        {
+          "text": "Which critical items have a single qualified source?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT m.material_code, m.description, m.preferred_vendor_id, SUM(s.unrestricted_qty) AS group_stock\nFROM mm.material m\nLEFT JOIN mm.plant_stock s ON s.material_code = m.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nWHERE m.criticality = 'A' AND m.single_source\nGROUP BY 1, 2, 3"
+        },
+        {
+          "text": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
+        },
+        {
+          "text": "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT d.site_code, SUM(d.plan_tons) * 0.4 AS unshipped_tons_a_year\nFROM ops.dosing_plan d\nWHERE d.material_code = 'CHM-FECL-40' AND d.plan_year = 2027\nGROUP BY d.site_code"
+        },
+        {
+          "text": "How much of each treatment chemical does each business use now, and what does the 2027 plan say?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT d.site_code, d.material_code, d.run_rate_tons, d.plan_tons, d.refreshed_on\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2027"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 6,
+      "updated_at": "2026-10-22T15:48:12.204Z",
+      "role": {
+        "role_id": "sca",
+        "role_name": "Supply Chain Analyst",
+        "industry": "environmental",
+        "businesses": [
+          "WAT",
+          "HAZ",
+          "ENE"
+        ],
+        "reports_to": "rafael.duarte@vriodigital.com",
+        "responsibilities": [
+          "demand",
+          "inv",
+          "supplier",
+          "spend",
+          "source",
+          "chem",
+          "report"
+        ]
+      }
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "supply-chain-analyst",
+      "use_case_id": "uc_supply_chain_analyst",
+      "name": "Supply Chain Analyst",
+      "description": "One graph over order lines, stock, reservations, contracts, bids and scorecards across every business, so a supply question resolves once and states which snapshot, which contract price and which plan it read.",
+      "match_phrases": [
+        "supply chain",
+        "safety stock",
+        "days of cover",
+        "contract coverage",
+        "landed cost",
+        "on time in full",
+        "force majeure"
+      ],
+      "personas": [
+        "cpo",
+        "cfo-chair",
+        "sc-planning-head",
+        "category-manager-chem",
+        "category-manager-mro",
+        "buyer",
+        "plant-manager",
+        "outage-manager",
+        "ops-director-energy",
+        "storeroom-lead",
+        "ap-lead",
+        "finance-bp",
+        "process-safety",
+        "business-president",
+        "supplier-quality",
+        "internal-audit",
+        "treasury"
+      ],
+      "metrics": [
+        "third-party-spend",
+        "spend-under-contract",
+        "off-contract-spend",
+        "invoice-price-variance",
+        "savings-vs-target",
+        "supplier-otif",
+        "supplier-lead-time",
+        "late-open-po",
+        "critical-below-safety",
+        "days-of-cover",
+        "stockout-risk",
+        "inventory-value"
+      ],
+      "hero_questions": [
+        "hq1",
+        "hq2",
+        "hq3",
+        "hq4",
+        "hq5",
+        "hq6",
+        "hq7",
+        "hq8",
+        "hq9",
+        "hq10",
+        "hq11",
+        "hq12"
+      ]
+    }
+  ],
+  "graph_metrics": [
+    {
+      "metric_id": "third-party-spend",
+      "name": "Third-party spend",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "spend",
+        "business",
+        "category",
+        "plan"
+      ],
+      "definition": "Ordered value of purchase order lines by order date, by business and category, against the FY26 spend plan for the same months.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Chief Financial Officer (Procurement Committee chair)",
+        "Business President",
+        "Finance Business Partner, Procurement"
+      ],
+      "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+    },
+    {
+      "metric_id": "spend-under-contract",
+      "name": "Spend under contract",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "contract",
+        "coverage",
+        "compliance"
+      ],
+      "definition": "Ordered value placed on a group contract, as a share of all ordered value in the period.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Category Manager, Maintenance, Repair and Operations",
+        "Chief Financial Officer (Procurement Committee chair)"
+      ],
+      "sql": "SELECT SUM(CASE WHEN contract_no IS NOT NULL THEN ordered_usd ELSE 0 END) / SUM(ordered_usd) AS under_contract_share\nFROM pur.po_line\nWHERE ordered_on BETWEEN '2026-01-01' AND '2026-09-30'"
+    },
+    {
+      "metric_id": "off-contract-spend",
+      "name": "Off-contract spend where a contract covers the item",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "off contract",
+        "leakage",
+        "maverick"
+      ],
+      "definition": "Ordered value placed off contract on lines whose material is covered by a group contract (contract_price_usd is not null). Spend in categories with no contract is not leakage.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Category Manager, Maintenance, Repair and Operations",
+        "Category Manager, Chemicals and Process Materials"
+      ],
+      "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
+    },
+    {
+      "metric_id": "invoice-price-variance",
+      "name": "Invoice price variance",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "invoice",
+        "price",
+        "variance",
+        "overpayment"
+      ],
+      "definition": "Invoice lines priced above the contract price: (invoiced price minus contract price) times quantity, with the match status.",
+      "personas": [
+        "Accounts Payable Lead",
+        "Category Manager, Maintenance, Repair and Operations",
+        "Internal Audit"
+      ],
+      "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
+    },
+    {
+      "metric_id": "savings-vs-target",
+      "name": "Savings against target",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "savings",
+        "target",
+        "secured",
+        "path"
+      ],
+      "definition": "Savings secured (in a signed contract or an order, against the prior contract price on planned volumes) against 3.0% of addressable spend. Read from the savings tracker; avoided premiums are not counted.",
+      "personas": [
+        "Finance Business Partner, Procurement",
+        "Chief Procurement Officer",
+        "Chief Financial Officer (Procurement Committee chair)"
+      ],
+      "sql": "SELECT SUM(plan_usd) * 0.03 AS target_usd\nFROM fin.spend_plan\nWHERE addressable AND period BETWEEN '2026-01' AND '2026-12'\n-- secured savings are read from Savings_tracker_2026-10.xlsx (no table holds the register)"
+    },
+    {
+      "metric_id": "supplier-otif",
+      "name": "Supplier on time in full",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "on time",
+        "in full",
+        "OTIF",
+        "delivery"
+      ],
+      "definition": "Order lines received complete on or before the promised date, as a share of lines received, by supplier and quarter.",
+      "personas": [
+        "Supplier Quality and Performance Manager",
+        "Head of Supply Chain Planning and Inventory",
+        "Buyer"
+      ],
+      "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
+    },
+    {
+      "metric_id": "supplier-lead-time",
+      "name": "Supplier lead time against contract",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "lead time",
+        "contract",
+        "drift"
+      ],
+      "definition": "Average days from order to receipt, against the contract lead time, by supplier and quarter.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Supplier Quality and Performance Manager",
+        "Buyer"
+      ],
+      "sql": "SELECT p.vendor_id, AVG(DATE_DIFF(p.received_on, p.ordered_on, DAY)) AS actual_days, AVG(ci.lead_time_days) AS contract_days\nFROM pur.po_line p\nJOIN src.contract_item ci ON ci.contract_no = p.contract_no AND ci.material_code = p.material_code\nWHERE p.received_on IS NOT NULL\nGROUP BY p.vendor_id"
+    },
+    {
+      "metric_id": "late-open-po",
+      "name": "Late open order lines",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "late",
+        "open",
+        "promised",
+        "overdue"
+      ],
+      "definition": "Open order lines whose promised date has passed, with days late and value.",
+      "personas": [
+        "Buyer",
+        "Head of Supply Chain Planning and Inventory"
+      ],
+      "sql": "SELECT p.po_number, p.vendor_id, p.site_code, p.material_code, p.promised_date, DATE_DIFF(CURRENT_DATE(), p.promised_date, DAY) AS days_late, p.ordered_usd\nFROM pur.po_line p\nWHERE p.line_status = 'Open late'\nORDER BY days_late DESC"
+    },
+    {
+      "metric_id": "critical-below-safety",
+      "name": "Critical items below safety stock",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "critical",
+        "safety stock",
+        "short"
+      ],
+      "definition": "Class A positions (site and material) whose unrestricted stock is below safety stock at the latest snapshot.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Storeroom and Inventory Lead",
+        "Outage Manager, Hazardous Waste"
+      ],
+      "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
+    },
+    {
+      "metric_id": "days-of-cover",
+      "name": "Days of chemical cover",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "days of cover",
+        "chemical",
+        "minimum"
+      ],
+      "definition": "Unrestricted stock divided by average daily use, per plant and treatment chemical, against the minimum (14 days water, 10 hazardous waste, 7 energy).",
+      "personas": [
+        "Plant Manager, Water",
+        "Category Manager, Chemicals and Process Materials",
+        "Head of Supply Chain Planning and Inventory"
+      ],
+      "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
+    },
+    {
+      "metric_id": "stockout-risk",
+      "name": "Positions at risk before the next receipt",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "stockout",
+        "projected",
+        "next receipt"
+      ],
+      "definition": "Positions projected below safety stock, or short of a reservation, before their next confirmed receipt.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Outage Manager, Hazardous Waste",
+        "Buyer"
+      ],
+      "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty, s.safety_stock_qty, r.required_qty, r.requirement_date, MIN(p.promised_date) AS next_receipt\nFROM mm.plant_stock s\nLEFT JOIN mm.reservation r ON r.site_code = s.site_code AND r.material_code = s.material_code AND r.status <> 'Closed'\nLEFT JOIN pur.po_line p ON p.site_code = s.site_code AND p.material_code = s.material_code AND p.line_status LIKE 'Open%'\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nGROUP BY 1, 2, 3, 4, 5, 6\nHAVING s.unrestricted_qty < COALESCE(r.required_qty, s.safety_stock_qty) AND (next_receipt IS NULL OR next_receipt > COALESCE(r.requirement_date, CURRENT_DATE()))"
+    },
+    {
+      "metric_id": "inventory-value",
+      "name": "Inventory value",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "inventory",
+        "value",
+        "stock"
+      ],
+      "definition": "Unrestricted stock at standard price, by business and site, at the latest snapshot.",
+      "personas": [
+        "Finance Business Partner, Procurement",
+        "Treasury and Working Capital",
+        "Storeroom and Inventory Lead"
+      ],
+      "sql": "SELECT st.business_code, SUM(s.stock_value_usd) AS value_usd\nFROM mm.plant_stock s\nJOIN ops.site st ON st.site_code = s.site_code\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nGROUP BY st.business_code"
+    },
+    {
+      "metric_id": "slow-moving-stock",
+      "name": "Slow-moving stock",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "slow moving",
+        "obsolete",
+        "no movement"
+      ],
+      "definition": "Stock value of positions with no goods movement in the last 365 days.",
+      "personas": [
+        "Storeroom and Inventory Lead",
+        "Finance Business Partner, Procurement",
+        "Treasury and Working Capital"
+      ],
+      "sql": "SELECT s.site_code, s.material_code, s.stock_value_usd, s.last_movement_date\nFROM mm.plant_stock s\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock) AND s.last_movement_date < DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)"
+    },
+    {
+      "metric_id": "inventory-turns",
+      "name": "Inventory turns",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "turns",
+        "issues",
+        "average stock"
+      ],
+      "definition": "Value issued over twelve months divided by average stock value, by business.",
+      "personas": [
+        "Finance Business Partner, Procurement",
+        "Treasury and Working Capital"
+      ],
+      "sql": "SELECT st.business_code, SUM(CASE WHEN m.movement_type IN ('201', '261') THEN -m.amount_usd ELSE 0 END) / NULLIF(AVG(s.stock_value_usd), 0) AS turns\nFROM mm.stock_movement m\nJOIN ops.site st ON st.site_code = m.site_code\nJOIN mm.plant_stock s ON s.site_code = m.site_code AND s.material_code = m.material_code\nWHERE m.posting_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)\nGROUP BY st.business_code"
+    },
+    {
+      "metric_id": "transferable-stock",
+      "name": "Stock that can move between sites",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "transfer",
+        "surplus",
+        "group",
+        "another site"
+      ],
+      "definition": "For each position below safety stock, the stock held at other sites above their own safety stock, and its business.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Storeroom and Inventory Lead",
+        "Outage Manager, Hazardous Waste"
+      ],
+      "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
+    },
+    {
+      "metric_id": "outage-readiness",
+      "name": "Outage material readiness",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "outage",
+        "reservation",
+        "readiness",
+        "ready"
+      ],
+      "definition": "Reservation lines of a planned outage whose stock on hand, plus receipts promised before the requirement date, covers the required quantity.",
+      "personas": [
+        "Outage Manager, Hazardous Waste",
+        "Head of Supply Chain Planning and Inventory",
+        "Storeroom and Inventory Lead"
+      ],
+      "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
+    },
+    {
+      "metric_id": "single-source-critical",
+      "name": "Single-source critical items",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "single source",
+        "critical",
+        "qualified"
+      ],
+      "definition": "Class A materials with one qualified supplier, with their stock across the group.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Supplier Quality and Performance Manager",
+        "Chief Procurement Officer"
+      ],
+      "sql": "SELECT m.material_code, m.description, m.preferred_vendor_id, SUM(s.unrestricted_qty) AS group_stock\nFROM mm.material m\nLEFT JOIN mm.plant_stock s ON s.material_code = m.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nWHERE m.criticality = 'A' AND m.single_source\nGROUP BY 1, 2, 3"
+    },
+    {
+      "metric_id": "contract-expiry-exposure",
+      "name": "Spend on contracts expiring in six months",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "expiry",
+        "renewal",
+        "contract"
+      ],
+      "definition": "Spend in the last twelve months on contracts whose end date falls in the next six months.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Category Manager, Maintenance, Repair and Operations",
+        "Category Manager, Chemicals and Process Materials"
+      ],
+      "sql": "SELECT c.contract_no, c.title, c.end_date, SUM(p.ordered_usd) AS spend_usd\nFROM src.contract c\nJOIN pur.po_line p ON p.contract_no = c.contract_no AND p.ordered_on >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)\nWHERE c.end_date BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 6 MONTH)\nGROUP BY 1, 2, 3"
+    },
+    {
+      "metric_id": "bid-landed-cost",
+      "name": "Bid landed cost",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "bid",
+        "landed cost",
+        "freight",
+        "lot"
+      ],
+      "definition": "Price plus average freight per unit for each bid, by lot, with qualification.",
+      "personas": [
+        "Category Manager, Chemicals and Process Materials",
+        "Chief Procurement Officer",
+        "Chief Financial Officer (Procurement Committee chair)"
+      ],
+      "sql": "SELECT b.lot_id, b.bidder_vendor_id, b.unit_price_usd, b.freight_usd_per_unit, b.unit_price_usd + b.freight_usd_per_unit AS landed_usd, b.qualified\nFROM src.bid b\nWHERE b.event_id = 'SE-2026-031'\nORDER BY b.lot_id, landed_usd"
+    },
+    {
+      "metric_id": "award-saving",
+      "name": "Award saving on planned volumes",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "award",
+        "saving",
+        "planned volume"
+      ],
+      "definition": "Planned volume times (current landed cost minus awarded landed cost), by lot, against the prior contract price as the savings policy defines it.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Chief Financial Officer (Procurement Committee chair)",
+        "Finance Business Partner, Procurement",
+        "Category Manager, Chemicals and Process Materials"
+      ],
+      "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
+    },
+    {
+      "metric_id": "fm-exposure",
+      "name": "Force majeure exposure",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "force majeure",
+        "allocation",
+        "exposure"
+      ],
+      "definition": "Volume a supplier in force majeure will not ship at its allocation, and what replacing it costs at spot prices.",
+      "personas": [
+        "Category Manager, Chemicals and Process Materials",
+        "Chief Procurement Officer",
+        "Plant Manager, Water"
+      ],
+      "sql": "SELECT d.site_code, SUM(d.plan_tons) * 0.4 AS unshipped_tons_a_year\nFROM ops.dosing_plan d\nWHERE d.material_code = 'CHM-FECL-40' AND d.plan_year = 2027\nGROUP BY d.site_code"
+    },
+    {
+      "metric_id": "spot-premium",
+      "name": "Spot premium over contract price",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "spot",
+        "premium",
+        "exception"
+      ],
+      "definition": "(Unit price minus contract price) times quantity on lines ordered under an exception code.",
+      "personas": [
+        "Category Manager, Chemicals and Process Materials",
+        "Finance Business Partner, Procurement",
+        "Internal Audit"
+      ],
+      "sql": "SELECT p.exception_code, p.vendor_id, SUM(p.quantity) AS qty, SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.exception_code IS NOT NULL\nGROUP BY 1, 2"
+    },
+    {
+      "metric_id": "match-exceptions",
+      "name": "Open match exceptions",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "match",
+        "exception",
+        "invoice",
+        "hold"
+      ],
+      "definition": "Three-way match exceptions still open, by type and age.",
+      "personas": [
+        "Accounts Payable Lead",
+        "Internal Audit"
+      ],
+      "sql": "SELECT e.exception_type, COUNT(*) AS open_exceptions, SUM(e.amount_usd) AS amount_usd\nFROM ap.match_exception e\nWHERE e.status = 'Open'\nGROUP BY e.exception_type"
+    },
+    {
+      "metric_id": "after-the-fact-po",
+      "name": "Orders raised after the invoice",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "after the fact",
+        "control",
+        "retrospective"
+      ],
+      "definition": "Invoice lines whose order line was created after the invoice date.",
+      "personas": [
+        "Internal Audit",
+        "Accounts Payable Lead"
+      ],
+      "sql": "SELECT COUNT(*) AS lines, SUM(invoiced_usd) AS amount_usd\nFROM ap.invoice_line\nWHERE after_the_fact_po AND invoice_date BETWEEN '2026-07-01' AND '2026-09-30'"
+    },
+    {
+      "metric_id": "supplier-count-per-category",
+      "name": "Suppliers per category",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "fragmented",
+        "suppliers",
+        "category",
+        "consolidation"
+      ],
+      "definition": "Suppliers with spend in each category and the share of the top supplier.",
+      "personas": [
+        "Chief Procurement Officer",
+        "Category Manager, Maintenance, Repair and Operations"
+      ],
+      "sql": "SELECT category_code, COUNT(DISTINCT vendor_id) AS suppliers, MAX(v_spend) / SUM(v_spend) AS top_share\nFROM (SELECT category_code, vendor_id, SUM(ordered_usd) AS v_spend FROM pur.po_line WHERE ordered_on >= '2026-01-01' GROUP BY 1, 2)\nGROUP BY category_code"
+    },
+    {
+      "metric_id": "payment-terms",
+      "name": "Spend-weighted payment terms",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "payment terms",
+        "days",
+        "working capital"
+      ],
+      "definition": "Payment terms in days, weighted by spend, against the 45-day policy.",
+      "personas": [
+        "Treasury and Working Capital",
+        "Finance Business Partner, Procurement"
+      ],
+      "sql": "SELECT SUM(p.ordered_usd * v.payment_terms_days) / SUM(p.ordered_usd) AS weighted_terms_days\nFROM pur.po_line p\nJOIN pur.vendor v ON v.vendor_id = p.vendor_id\nWHERE p.ordered_on >= '2026-01-01'"
+    },
+    {
+      "metric_id": "consumption-vs-plan",
+      "name": "Chemical use against plan",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "dosing",
+        "use",
+        "plan",
+        "run rate"
+      ],
+      "definition": "Run-rate use of each treatment chemical against the plan for the year, by site, with the date the plan was refreshed.",
+      "personas": [
+        "Category Manager, Chemicals and Process Materials",
+        "Operations Director, Energy",
+        "Plant Manager, Water"
+      ],
+      "sql": "SELECT d.site_code, d.material_code, d.run_rate_tons, d.plan_tons, d.refreshed_on\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2027"
+    },
+    {
+      "metric_id": "forecast-accuracy",
+      "name": "Demand plan accuracy",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "accuracy",
+        "plan",
+        "demand"
+      ],
+      "definition": "1 minus the absolute difference between run-rate use and plan, divided by run-rate use, per chemical and site.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Operations Director, Energy"
+      ],
+      "sql": "SELECT d.material_code, 1 - ABS(d.run_rate_tons - d.plan_tons) / NULLIF(d.run_rate_tons, 0) AS accuracy\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2026"
+    },
+    {
+      "metric_id": "car-open",
+      "name": "Open corrective actions",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "corrective action",
+        "CAR",
+        "supplier"
+      ],
+      "definition": "Suppliers with an open corrective action request in the latest quarter.",
+      "personas": [
+        "Supplier Quality and Performance Manager",
+        "Head of Supply Chain Planning and Inventory"
+      ],
+      "sql": "SELECT vendor_id, quarter, otif_pct\nFROM src.supplier_scorecard\nWHERE car_open AND quarter = '2026-Q3'"
+    },
+    {
+      "metric_id": "expedite-cost",
+      "name": "Expedite and premium freight cost",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "expedite",
+        "premium freight",
+        "fee"
+      ],
+      "definition": "Expedite fees and premium freight booked on order lines, by supplier and reason.",
+      "personas": [
+        "Head of Supply Chain Planning and Inventory",
+        "Finance Business Partner, Procurement"
+      ],
+      "sql": "SELECT p.vendor_id, SUM(p.ordered_usd) AS expedite_usd\nFROM pur.po_line p\nWHERE p.material_code IS NULL AND p.category_code = 'LOGI' AND p.exception_code = 'EMG'\nGROUP BY p.vendor_id"
+    },
+    {
+      "metric_id": "emergency-buys",
+      "name": "Exception purchases",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing"
+      ],
+      "keywords": [
+        "emergency",
+        "force majeure",
+        "exception code"
+      ],
+      "definition": "Ordered value placed under an exception code (force majeure FMX, emergency EMG), by code and month.",
+      "personas": [
+        "Internal Audit",
+        "Chief Procurement Officer"
+      ],
+      "sql": "SELECT exception_code, FORMAT_DATE('%Y-%m', ordered_on) AS month, SUM(ordered_usd) AS amount_usd\nFROM pur.po_line\nWHERE exception_code IS NOT NULL\nGROUP BY 1, 2"
+    },
+    {
+      "metric_id": "index-linked-spend",
+      "name": "Index-linked spend",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "index",
+        "price adjustment",
+        "exposure"
+      ],
+      "definition": "Spend on contracts whose price follows an index, by index.",
+      "personas": [
+        "Chief Financial Officer (Procurement Committee chair)",
+        "Treasury and Working Capital",
+        "Category Manager, Chemicals and Process Materials"
+      ],
+      "sql": "SELECT c.index_clause, SUM(p.ordered_usd) AS spend_usd\nFROM pur.po_line p\nJOIN src.contract c ON c.contract_no = p.contract_no\nWHERE c.index_clause IS NOT NULL AND p.ordered_on >= '2026-01-01'\nGROUP BY c.index_clause"
+    },
+    {
+      "metric_id": "reorder-point-coverage",
+      "name": "Critical items without a reorder point",
+      "domains": [
+        "supply-chain",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "reorder point",
+        "missing",
+        "parameters"
+      ],
+      "definition": "Class A positions with no reorder point set.",
+      "personas": [
+        "Storeroom and Inventory Lead",
+        "Head of Supply Chain Planning and Inventory"
+      ],
+      "sql": "SELECT s.site_code, s.material_code\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.reorder_point_qty IS NULL AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)"
+    },
+    {
+      "metric_id": "price-parity",
+      "name": "Price paid for the same item across sites",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "price",
+        "same item",
+        "sites",
+        "parity"
+      ],
+      "definition": "For each material bought at more than one site, the range of unit prices paid in the period.",
+      "personas": [
+        "Category Manager, Maintenance, Repair and Operations",
+        "Category Manager, Chemicals and Process Materials",
+        "Business President"
+      ],
+      "sql": "SELECT p.material_code, MIN(p.unit_price_usd) AS low, MAX(p.unit_price_usd) AS high, COUNT(DISTINCT p.site_code) AS sites\nFROM pur.po_line p\nWHERE p.material_code IS NOT NULL AND p.ordered_on >= '2026-07-01'\nGROUP BY p.material_code\nHAVING COUNT(DISTINCT p.site_code) > 1"
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "ranked-exception",
+      "name": "Ranked exception list",
+      "format": "table ranked by size, owner per row, the rule it breaks",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "below",
+        "late",
+        "worst",
+        "exceptions"
+      ]
+    },
+    {
+      "format_id": "spend-cube",
+      "name": "Spend by business and category",
+      "format": "metric row + one table by business and category + plan beside it",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "spend",
+        "category",
+        "business",
+        "plan"
+      ]
+    },
+    {
+      "format_id": "coverage-and-leakage",
+      "name": "Coverage and leakage",
+      "format": "metric row + leakage by supplier with the premium paid",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "contract",
+        "off contract",
+        "leakage"
+      ]
+    },
+    {
+      "format_id": "bid-comparison",
+      "name": "Bid comparison on landed cost",
+      "format": "lots as rows, bidders as columns, landed cost and qualification",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "bid",
+        "landed",
+        "lot",
+        "award"
+      ]
+    },
+    {
+      "format_id": "stock-cover",
+      "name": "Stock and cover",
+      "format": "positions with on hand, safety stock, days of cover and next receipt",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "days of cover",
+        "safety stock",
+        "stock"
+      ]
+    },
+    {
+      "format_id": "readiness-check",
+      "name": "Readiness check",
+      "format": "reserved items against stock and promised receipts, ready or not, with the gap",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "outage",
+        "readiness",
+        "reserved"
+      ]
+    },
+    {
+      "format_id": "declined-with-alternative",
+      "name": "Declined, with what can be answered",
+      "format": "one sentence on why, then the closest question the graph does answer",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "predict",
+        "forecast",
+        "should",
+        "blame"
+      ]
+    },
+    {
+      "format_id": "claims-from-mail",
+      "name": "Claims read from the mailbox",
+      "format": "figures from the record, then the senders' claims as an attributed list that is never counted",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "email",
+        "says",
+        "confirmed",
+        "thread"
+      ]
+    },
+    {
+      "format_id": "provenance-table",
+      "name": "Provenance table",
+      "format": "every figure with table, basis and as-of",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "source",
+        "provenance",
+        "as-of"
+      ]
+    },
+    {
+      "format_id": "decline-with-alternative",
+      "name": "Decline with alternative",
+      "format": "reason for declining + what can be answered instead",
+      "domains": [
+        "supply-chain",
+        "procurement-sourcing",
+        "inventory-spares"
+      ],
+      "keywords": [
+        "arrive",
+        "market",
+        "rating"
+      ]
+    }
+  ]
+}

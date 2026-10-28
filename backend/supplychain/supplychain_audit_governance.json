@@ -1,0 +1,577 @@
+{
+  "audit": {
+    "stats": [
+      {
+        "label": "Access rules in force",
+        "value": "8",
+        "note": "1 of 8 readers carries a restriction"
+      },
+      {
+        "label": "PII columns",
+        "value": "3",
+        "note": "across 20 catalogued tables",
+        "tone": "good"
+      },
+      {
+        "label": "Columns to review",
+        "value": "7",
+        "note": "profiler confidence below the accept floor",
+        "tone": "warn"
+      },
+      {
+        "label": "Cost-cap headroom",
+        "value": "34%",
+        "note": "tightest: Goals (tenant) at 66.0%",
+        "tone": "warn"
+      }
+    ],
+    "events": [
+      {
+        "actor": "Greta Lindahl",
+        "action": "Opened Stock Cover and Critical Spares",
+        "resource": "Stock Cover and Critical Spares",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 08:52",
+        "detail": "Her access resolved: business = Water - 1,189 of 2,782 critical positions; no masks.",
+        "category": "open"
+      },
+      {
+        "actor": "Helena Marsh",
+        "action": "Opened Procurement Position",
+        "resource": "Procurement Position",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 08:31",
+        "detail": "Her access resolved: all 2,782 critical positions, all four businesses, no masks.",
+        "category": "open"
+      },
+      {
+        "actor": "system",
+        "action": "Scheduled refresh ran on Procurement Position",
+        "resource": "Procurement Position",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today 07:00",
+        "detail": "Order lines, invoices and plan blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. Energy's 2027 dosing plans still marked provisional.",
+        "category": "ref"
+      },
+      {
+        "actor": "Nishant Srivastav",
+        "action": "Started submission 'Award schedule: treatment chemicals 2027 to 2029' from a goal",
+        "resource": "submission sub-award-schedule-2027",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 27 14:12",
+        "detail": "Built from the goal g-chemicals-award-2027 on the template Chemicals award schedule 2024 to 2026.",
+        "category": "pub"
+      },
+      {
+        "actor": "Rafael Duarte",
+        "action": "Armed the goal 'No critical spare or chemical below safety stock'",
+        "resource": "goal g-rule-stock-cover",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 21 16:40",
+        "detail": "Fires on each nightly load of stock, open orders and reservations; checks every critical position against its next receipt.",
+        "category": "pub"
+      },
+      {
+        "actor": "Marcus Feld",
+        "action": "Published graph Supply Chain Analyst v1",
+        "resource": "graph v1",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 20 16:02",
+        "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+        "category": "pub"
+      },
+      {
+        "actor": "Marcus Feld",
+        "action": "Changed rule for Greta Lindahl",
+        "resource": "data access rule",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 20 11:10",
+        "detail": "Restriction basis = business (Water).",
+        "category": "rule"
+      },
+      {
+        "actor": "Imani Okoro",
+        "action": "Exported Chemicals Award SE-2026-031 (XLSX)",
+        "resource": "Chemicals Award SE-2026-031",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 19 12:18",
+        "detail": "Export carries the watermark and the as-of line; bid prices are restricted to the category team and the committee until award.",
+        "category": "export"
+      },
+      {
+        "actor": "system",
+        "action": "Sealed trace for 'What would the bids in SE-2026-031 save against today's prices, on landed cost?'",
+        "resource": "trace_bw01",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Oct 19 10:22",
+        "detail": "5 spans · $0.17 · confidence 0.88",
+        "category": "ref"
+      },
+      {
+        "actor": "Sam Whitaker",
+        "action": "Changed persona access for Business User - Executive",
+        "resource": "settings",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Oct 19 09:30",
+        "detail": "Reports hidden from the sidebar for all personas (beta).",
+        "category": "rule"
+      }
+    ],
+    "policies": [
+      {
+        "name": "Two gates",
+        "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Counts are computed",
+        "desc": "Every count on this screen - \"sees 1,189 of 2,782\" - is derived from the critical position roster at paint time, never typed.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Rule shape",
+        "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Legal basis",
+        "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (business, site, region, category).",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Bid confidentiality",
+        "desc": "A bidder's prices in an open sourcing event are visible to the category team and the Procurement Committee only, until the award is approved.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Correspondence is runtime",
+        "desc": "Mailbox content is read at question time under the reader's permissions and never becomes a graph fact or a cached figure.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "An allocation is not supply",
+        "desc": "A supplier's allocation, promise or capacity letter is quoted as a statement with its date; days of cover count stock and receipts only.",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Goals act only on approval",
+        "desc": "A goal drafts notes and lists; anything sent, ordered or moved outside the product waits for the person who owns the goal.",
+        "status": "Enforced",
+        "tone": "good"
+      }
+    ],
+    "event_window": "Last 10 days · 10 events",
+    "policy_total": 8,
+    "categories": [
+      {
+        "id": "all",
+        "label": "All"
+      },
+      {
+        "id": "pub",
+        "label": "Publishing"
+      },
+      {
+        "id": "open",
+        "label": "Opens"
+      },
+      {
+        "id": "rule",
+        "label": "Rule changes"
+      },
+      {
+        "id": "ref",
+        "label": "Refreshes"
+      },
+      {
+        "id": "export",
+        "label": "Exports"
+      }
+    ]
+  },
+  "traces": {
+    "stats": [
+      {
+        "label": "p50 duration",
+        "value": "4.1 s",
+        "note": "across 11 sealed traces"
+      },
+      {
+        "label": "p95 duration",
+        "value": "7.6 s",
+        "note": "longest: What would the bids in SE-2026-031 save agai",
+        "tone": "warn"
+      },
+      {
+        "label": "Unaccounted time",
+        "value": "710 ms",
+        "note": "shown as a gap, never folded into a step"
+      },
+      {
+        "label": "Cost this window",
+        "value": "$1.04",
+        "note": "against the $2.00 per-question budget"
+      }
+    ],
+    "items": [
+      {
+        "id": "trace_bw01",
+        "operation": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 7600,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-26T15:00:00Z",
+        "actor": "Imani Okoro",
+        "confidence": 0.88,
+        "cost_usd": 0.17,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw02",
+        "operation": "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 6100,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-26T14:13:29Z",
+        "actor": "Rafael Duarte",
+        "confidence": 0.9,
+        "cost_usd": 0.14,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw03",
+        "operation": "How many days of ferric chloride does each plant hold, against its minimum?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 5400,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-26T13:26:58Z",
+        "actor": "Greta Lindahl",
+        "confidence": 0.93,
+        "cost_usd": 0.13,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw04",
+        "operation": "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 4800,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-26T12:39:27Z",
+        "actor": "Helena Marsh",
+        "confidence": 0.92,
+        "cost_usd": 0.12,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw05",
+        "operation": "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 5200,
+        "spans": 5,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "2026-10-26T11:52:56Z",
+        "actor": "Nishant Srivastav",
+        "confidence": 0.89,
+        "cost_usd": 0.12,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw06",
+        "operation": "What did we spend with third parties this year, by business and category, against the plan?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 3600,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-26T10:05:25Z",
+        "actor": "Sofia Brandt",
+        "confidence": 0.94,
+        "cost_usd": 0.09,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw07",
+        "operation": "Which critical items are below safety stock today?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 2900,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-25T09:18:54Z",
+        "actor": "Rafael Duarte",
+        "confidence": 0.93,
+        "cost_usd": 0.08,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw08",
+        "operation": "Which suppliers had the worst on time in full in the third quarter?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 2700,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-25T08:31:23Z",
+        "actor": "Imani Okoro",
+        "confidence": 0.93,
+        "cost_usd": 0.07,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw09",
+        "operation": "What does Helena need for the 12 November committee, and what is ready?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 4100,
+        "spans": 4,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-25T07:44:52Z",
+        "actor": "Nishant Srivastav",
+        "confidence": 0.84,
+        "cost_usd": 0.1,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw10",
+        "operation": "When will the Holcombe brick shipment arrive at Ravensworth?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 600,
+        "spans": 2,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-25T06:57:21Z",
+        "actor": "Marcus Feld",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      },
+      {
+        "id": "trace_bw11",
+        "operation": "Should the committee approve the chemicals award?",
+        "service": "Supply Chain Analyst graph v1",
+        "duration": 700,
+        "spans": 2,
+        "status": "OK",
+        "tone": "good",
+        "at": "2026-10-25T05:10:50Z",
+        "actor": "Helena Marsh",
+        "confidence": null,
+        "cost_usd": 0.01,
+        "sealed": true
+      }
+    ],
+    "sampling": "Every question is sealed - no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "waterfall": {
+      "trace_id": "trace_bw01",
+      "operation": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+      "total_ms": 7600,
+      "unaccounted_ms": 710,
+      "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+      "spans": [
+        {
+          "name": "Understand & plan",
+          "start": 0,
+          "duration": 340,
+          "agent": "supervisor",
+          "detail": "classified: award saving · SE-2026-031 · landed cost · 2027 dosing plans"
+        },
+        {
+          "name": "Resolve the subject",
+          "start": 340,
+          "duration": 590,
+          "agent": "graph agent",
+          "detail": "SE-2026-031 → 7 lots → 20 bids → qualified bidders → 2026 contract prices"
+        },
+        {
+          "name": "Read governed facts",
+          "start": 930,
+          "duration": 2560,
+          "agent": "graph agent",
+          "detail": "srm.bid · src.contract · ops.dosing_plan · freight rate card (as of 2026-10-16)"
+        },
+        {
+          "name": "Pull correspondence",
+          "start": 3490,
+          "duration": 2010,
+          "agent": "runtime agent",
+          "detail": "outlook · 90-day window · threads F1, F3, A3 · permissions follow the reader"
+        },
+        {
+          "name": "Compose and check",
+          "start": 5500,
+          "duration": 1390,
+          "agent": "supervisor",
+          "detail": "qualified bidders only · allocation not counted as supply · Energy plans marked provisional · totals foot"
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [
+      {
+        "label": "Suites",
+        "value": "6",
+        "note": "all derived from package artifacts"
+      },
+      {
+        "label": "Hero questions answerable",
+        "value": "4 of 5",
+        "note": "graph sanity checks",
+        "tone": "warn"
+      },
+      {
+        "label": "High-confidence answers",
+        "value": "43 of 49",
+        "note": "6 medium, 0 low"
+      },
+      {
+        "label": "Must-review graph items",
+        "value": "8",
+        "note": "0 resolved · 1 pivot",
+        "tone": "crit"
+      }
+    ],
+    "runs": [
+      {
+        "suite": "hero-question-answerability",
+        "target": "g_bw_supply_chain_analyst · 5 checks",
+        "checks": 5,
+        "pass_rate": 80,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-20"
+      },
+      {
+        "suite": "answer-confidence",
+        "target": "query set · 49 questions",
+        "checks": 49,
+        "pass_rate": 87.8,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-20"
+      },
+      {
+        "suite": "refusal-correctness",
+        "target": "11 declines",
+        "checks": 11,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-20"
+      },
+      {
+        "suite": "statement-not-promoted",
+        "target": "allocations, capacity letters, promised dates, working notes",
+        "checks": 7,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-20"
+      },
+      {
+        "suite": "citation-validity",
+        "target": "111 citations",
+        "checks": 111,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "2026-10-20"
+      },
+      {
+        "suite": "invoice-reconciliation",
+        "target": "third-quarter invoice lines vs contract prices and receipts",
+        "checks": 12,
+        "pass_rate": 91.7,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "2026-10-20"
+      }
+    ],
+    "checks": [
+      {
+        "name": "sc1 · How many days of ferric chloride does each plant hold, against its minimum?",
+        "dataset": "g_bw_supply_chain_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - at the 27 October snapshot, against the standard"
+      },
+      {
+        "name": "sc2 · What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+        "dataset": "g_bw_supply_chain_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - landed cost among qualified bidders, 2027 dosing plans"
+      },
+      {
+        "name": "sc3 · Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
+        "dataset": "g_bw_supply_chain_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - reservations against stock and promised dates"
+      },
+      {
+        "name": "sc4 · How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+        "dataset": "g_bw_supply_chain_analyst",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "Answerable - order line grain; force majeure lines shown apart"
+      },
+      {
+        "name": "sc5 · When will the Holcombe brick shipment arrive at Ravensworth?",
+        "dataset": "g_bw_supply_chain_analyst",
+        "result": "Refused",
+        "tone": "crit",
+        "detail": "Declined - the arrival source is not connected"
+      },
+      {
+        "name": "Allocation not counted as supply",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq1 held; days of cover count stock and receipts, Corrigan's 60% is quoted"
+      },
+      {
+        "name": "Energy's 2025 plans not read as current",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq3 held; Energy volumes marked provisional"
+      },
+      {
+        "name": "Avoided spot premium not counted as a saving",
+        "dataset": "review queue",
+        "result": "Passed",
+        "tone": "good",
+        "detail": "rq7 held; secured stays $26.4M"
+      }
+    ],
+    "run_trigger": "On graph build and on query-set regeneration",
+    "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (Arcadia caustic billed at the index step from July, applicable from 1 October) open with accounts payable"
+  }
+}

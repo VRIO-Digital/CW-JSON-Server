@@ -25,6 +25,7 @@ export type ProviderBrand = 'google' | 'microsoft'
 export const PROVIDER_BRANDS: Record<string, ProviderBrand> = {
   KEOLIS: 'microsoft',
   CAPEX: 'microsoft',
+  SUPPLYCHAIN: 'microsoft',
 }
 
 export function providerBrandFor(dataset: string): ProviderBrand {

@@ -1,0 +1,2977 @@
+{
+  "new_role": {
+    "_meta": {
+      "package": "supply_chain_analyst_demo_data_package_2026-10-27",
+      "tenant": "Bramwell Environmental Group (fictional; the Supply Chain Analyst demo world)",
+      "dataset": "BRAMWELL",
+      "asOf": "2026-10-27",
+      "today": "2026-10-27",
+      "exported_from": "Composed by _build/build_new_role.py (no prototype).",
+      "note": "What the New Role wizard offers before the graph pools (graph_personas, graph_metrics, graph_hero_questions) take over. The first screen is \"Add a new role\": no role cards. Six steps; every drafted step waits as model work does. No agent is named anywhere in New Role. The key \"utilities\" keeps the app's name; here it lists the businesses. In discovery, found[].projects carries the critical stock positions of each business and approvedB its FY26 spend plan in $B (keys kept for the app)."
+    },
+    "first_screen": {
+      "heading": "Add a new role",
+      "role_cards": false,
+      "note": "Pick a role, then an industry; the businesses the role covers are found by reading the connected data."
+    },
+    "steps": [
+      {
+        "n": 1,
+        "key": "role",
+        "label": "Role",
+        "fields": [
+          "role",
+          "industry",
+          "businesses (found in the connected data, then selected)",
+          "reports to (any email address)",
+          "role name (filled from role and businesses, editable)"
+        ],
+        "wait_ms": {
+          "per_discovery_line": 850
+        }
+      },
+      {
+        "n": 2,
+        "key": "responsibilities",
+        "label": "Responsibilities",
+        "fields": [
+          "responsibilities with their tasks (keep, take out with a reason, open to change tasks)",
+          "optional job description: suggested changes to accept or dismiss"
+        ],
+        "wait_ms": {
+          "draft": 2600,
+          "job_description": 3200
+        },
+        "draft_stages": [
+          "Read the role library",
+          "Read the businesses and their sites",
+          "Draft responsibilities and tasks"
+        ],
+        "jd_stages": [
+          "Read the job description",
+          "Compare it with the drafted responsibilities",
+          "Suggest changes"
+        ],
+        "out_reasons": [
+          "Done by another team",
+          "Not something we do here",
+          "Later, not now"
+        ]
+      },
+      {
+        "n": 3,
+        "key": "sources",
+        "label": "Sources",
+        "fields": [
+          "the connected sources (projects, drives, mailbox) as in New Graph; in the live demo they come from the connected environment"
+        ]
+      },
+      {
+        "n": 4,
+        "key": "personas",
+        "label": "Personas",
+        "endpoint": "POST /graph-personas/suggest",
+        "wait_ms": {
+          "suggest": 2200
+        },
+        "pool": "graph_personas"
+      },
+      {
+        "n": 5,
+        "key": "metrics",
+        "label": "Metrics",
+        "endpoint": "POST /graph-metrics/suggest",
+        "wait_ms": {
+          "suggest": 2400
+        },
+        "pool": "graph_metrics",
+        "note": "Offered for the personas kept, each with a \"Matters to\" line; every kept metric shows its SQL."
+      },
+      {
+        "n": 6,
+        "key": "hero_questions",
+        "label": "Hero questions",
+        "endpoint": "POST /graph-questions/suggest and POST /graph-questions/sql",
+        "wait_ms": {
+          "suggest": 2400,
+          "sql": 700
+        },
+        "pool": "graph_hero_questions"
+      }
+    ],
+    "on_save": "Save and build graph commits the role (graph_use_cases, status committed) and opens it in Graph Studio on Build.",
+    "industries": [
+      {
+        "id": "environmental",
+        "name": "Environmental services",
+        "note": "Water, hazardous waste and energy businesses under one group"
+      },
+      {
+        "id": "water",
+        "name": "Water and wastewater",
+        "note": "Drinking water and wastewater treatment"
+      },
+      {
+        "id": "waste",
+        "name": "Hazardous waste",
+        "note": "Treatment, incineration and disposal"
+      },
+      {
+        "id": "energy",
+        "name": "Energy",
+        "note": "Combined heat and power, biomass and district energy"
+      },
+      {
+        "id": "manufacturing",
+        "name": "Building products manufacturing",
+        "note": "Plants, bills of material and distribution"
+      }
+    ],
+    "discovery": {
+      "environmental": {
+        "steps": [
+          "Reading ops.site in the operations data: 36 sites, 4 business codes",
+          "Matching business codes to ops.business: 3 operating businesses and group procurement with its distribution centers",
+          "Reading the regions and permits for each one",
+          "Counting critical stock positions in mm.plant_stock and the FY26 spend plan in fin.spend_plan"
+        ],
+        "found": [
+          {
+            "code": "WAT",
+            "name": "Bramwell Water",
+            "region": "North, Central and South regions",
+            "commission": "State drinking water and wastewater regulators in three states",
+            "projects": 1189,
+            "approvedB": 0.51,
+            "sites": 16,
+            "preselect": true
+          },
+          {
+            "code": "HAZ",
+            "name": "Bramwell Hazardous Waste",
+            "region": "North, Central and South regions",
+            "commission": "Hazardous waste facility permits (federal and state)",
+            "projects": 661,
+            "approvedB": 0.4,
+            "sites": 8,
+            "preselect": true
+          },
+          {
+            "code": "ENE",
+            "name": "Bramwell Energy",
+            "region": "North, Central and South regions",
+            "commission": "Air permits; not rate-regulated",
+            "projects": 711,
+            "approvedB": 0.37,
+            "sites": 9,
+            "preselect": true
+          },
+          {
+            "code": "GRP",
+            "name": "Group Procurement and Shared Services",
+            "region": "Three distribution centers: North, Central, South",
+            "commission": "No regulator",
+            "projects": 221,
+            "approvedB": 0.1,
+            "sites": 3,
+            "preselect": true
+          }
+        ]
+      },
+      "water": {
+        "steps": [
+          "Reading ops.site in the operations data: 36 sites, 4 business codes",
+          "Keeping the sites of business WAT"
+        ],
+        "found": [
+          {
+            "code": "WAT",
+            "name": "Bramwell Water",
+            "region": "North, Central and South regions",
+            "commission": "State drinking water and wastewater regulators in three states",
+            "projects": 1189,
+            "approvedB": 0.51,
+            "sites": 16,
+            "preselect": true
+          },
+          {
+            "code": "GRP",
+            "name": "Group Procurement and Shared Services",
+            "region": "Three distribution centers: North, Central, South",
+            "commission": "No regulator",
+            "projects": 221,
+            "approvedB": 0.1,
+            "sites": 3,
+            "preselect": false
+          }
+        ]
+      },
+      "waste": {
+        "steps": [
+          "Reading ops.site in the operations data: 36 sites, 4 business codes",
+          "Keeping the sites of business HAZ"
+        ],
+        "found": [
+          {
+            "code": "HAZ",
+            "name": "Bramwell Hazardous Waste",
+            "region": "North, Central and South regions",
+            "commission": "Hazardous waste facility permits (federal and state)",
+            "projects": 661,
+            "approvedB": 0.4,
+            "sites": 8,
+            "preselect": true
+          },
+          {
+            "code": "GRP",
+            "name": "Group Procurement and Shared Services",
+            "region": "Three distribution centers: North, Central, South",
+            "commission": "No regulator",
+            "projects": 221,
+            "approvedB": 0.1,
+            "sites": 3,
+            "preselect": false
+          }
+        ]
+      },
+      "energy": {
+        "steps": [
+          "Reading ops.site in the operations data: 36 sites, 4 business codes",
+          "Keeping the sites of business ENE"
+        ],
+        "found": [
+          {
+            "code": "ENE",
+            "name": "Bramwell Energy",
+            "region": "North, Central and South regions",
+            "commission": "Air permits; not rate-regulated",
+            "projects": 711,
+            "approvedB": 0.37,
+            "sites": 9,
+            "preselect": true
+          },
+          {
+            "code": "GRP",
+            "name": "Group Procurement and Shared Services",
+            "region": "Three distribution centers: North, Central, South",
+            "commission": "No regulator",
+            "projects": 221,
+            "approvedB": 0.1,
+            "sites": 3,
+            "preselect": false
+          }
+        ]
+      },
+      "manufacturing": {
+        "steps": [
+          "Reading ops.site in the operations data: 36 sites, 4 business codes",
+          "Looking for manufacturing plants, bills of material and production orders"
+        ],
+        "found": [],
+        "none": "No manufacturing plants in the connected data. Bramwell runs water, hazardous waste and energy businesses. A building products manufacturer would bring its own plants, bills of material and steel price exposure; connect its ERP first, or pick Environmental services."
+      }
+    },
+    "domain_of_role": {
+      "sca": "supply-chain",
+      "pca": "procurement-sourcing",
+      "inv": "inventory-spares",
+      "fa": "supply-chain"
+    },
+    "roles": [
+      {
+        "id": "sca",
+        "name": "Supply Chain Analyst",
+        "deep": true,
+        "blurb": "Keeps critical spares and treatment chemicals available across the three businesses, checks spend is on contract at the contract price, and supports sourcing events with landed-cost analysis.",
+        "defaults": {
+          "reportsTo": "duarte",
+          "worksFor": [
+            "duarte",
+            "marsh",
+            "okoro",
+            "varga"
+          ]
+        },
+        "areas": [
+          {
+            "id": "spend",
+            "name": "Spend and contract compliance",
+            "what": "Knows what the group buys, from whom, and whether it is bought on contract at the contract price.",
+            "tasks": [
+              "Report third-party spend against plan by business and category",
+              "Measure spend under contract and the leakage where a contract covers the item",
+              "Find invoices above the contract price",
+              "Flag duplicate vendor records",
+              "Track payment terms against the 45-day policy"
+            ]
+          },
+          {
+            "id": "sourcing",
+            "name": "Sourcing and award support",
+            "what": "Gives category managers the analysis behind each sourcing event and award paper.",
+            "tasks": [
+              "Build the volume baseline from dosing plans and run rates",
+              "Compare bids on landed cost: price, freight and index terms",
+              "Check bidder qualification and continuity",
+              "Draft the award paper and schedule for the Procurement Committee"
+            ]
+          },
+          {
+            "id": "inventory",
+            "name": "Inventory and critical spares",
+            "what": "Keeps critical spares and chemicals above safety stock across 36 sites without carrying dead stock.",
+            "tasks": [
+              "Watch critical positions against safety stock after every nightly load",
+              "Look across the group before an emergency buy",
+              "Set and review reorder points",
+              "Find slow-moving stock"
+            ]
+          },
+          {
+            "id": "chem",
+            "name": "Treatment chemical continuity",
+            "what": "Makes sure no plant runs short of a treatment chemical, whatever happens at a supplier.",
+            "tasks": [
+              "Track days of cover per plant and chemical against the minimums",
+              "Size the exposure when a supplier declares force majeure",
+              "Arrange spot volume under exception FMX",
+              "Keep alternate suppliers qualified"
+            ]
+          },
+          {
+            "id": "outage",
+            "name": "Outage material readiness",
+            "what": "Confirms that what a planned outage reserves is on site 14 days before it starts.",
+            "tasks": [
+              "Check reservations against stock and promised dates",
+              "Arrange transfers and expedites for gaps",
+              "Report readiness to the outage manager"
+            ]
+          },
+          {
+            "id": "supplier",
+            "name": "Supplier performance",
+            "what": "Measures delivery, lead time and quality by supplier and follows through on corrective actions.",
+            "tasks": [
+              "Publish quarterly scorecards: on time in full, lead time, price",
+              "Track corrective action requests",
+              "Watch single-source critical items"
+            ]
+          },
+          {
+            "id": "savings",
+            "name": "Savings program",
+            "what": "Keeps the FY26 savings register honest: what counts, what is secured, what is reported apart.",
+            "tasks": [
+              "Record savings when they are in an order or a signed contract",
+              "Report avoided premiums apart",
+              "Reconcile the tracker with Finance each month"
+            ]
+          },
+          {
+            "id": "report",
+            "name": "Reporting",
+            "what": "Turns the above into the monthly report and the committee pack.",
+            "tasks": [
+              "Monthly procurement report after the close",
+              "Quarterly Procurement Committee pack",
+              "Monthly shortage review with the buyers"
+            ]
+          }
+        ],
+        "concepts": {
+          "order": {
+            "name": "Order line",
+            "desc": "A purchase order line with material, supplier, price, contract and dates.",
+            "data": [
+              "d_po"
+            ]
+          },
+          "invoice": {
+            "name": "Invoice line",
+            "desc": "A supplier invoice line with its price and match status.",
+            "data": [
+              "d_ap"
+            ]
+          },
+          "contract": {
+            "name": "Group contract",
+            "desc": "A supply agreement with prices, term and clauses.",
+            "data": [
+              "d_contract",
+              "d_contract_docs"
+            ]
+          },
+          "supplier": {
+            "name": "Supplier",
+            "desc": "A vendor record and its category; one company can hold two records.",
+            "data": [
+              "d_vendor"
+            ]
+          },
+          "material": {
+            "name": "Material",
+            "desc": "A stocked or ordered item with criticality and lead time.",
+            "data": [
+              "d_material"
+            ]
+          },
+          "stock": {
+            "name": "Stock position",
+            "desc": "On hand, safety stock and reorder point of a material at a site.",
+            "data": [
+              "d_stock"
+            ]
+          },
+          "reservation": {
+            "name": "Reservation",
+            "desc": "Material held for a released work order.",
+            "data": [
+              "d_reservation",
+              "d_workorder"
+            ]
+          },
+          "outage": {
+            "name": "Planned outage",
+            "desc": "A planned shutdown with its work orders and dates.",
+            "data": [
+              "d_outage"
+            ]
+          },
+          "dosing": {
+            "name": "Dosing plan",
+            "desc": "Tons of each chemical a site plans to use in a year.",
+            "data": [
+              "d_dosing"
+            ]
+          },
+          "event": {
+            "name": "Sourcing event",
+            "desc": "A tender with lots, bidders and a closing date.",
+            "data": [
+              "d_event"
+            ]
+          },
+          "bid": {
+            "name": "Bid",
+            "desc": "A bidder's price and freight for a lot.",
+            "data": [
+              "d_bid"
+            ]
+          },
+          "scorecard": {
+            "name": "Supplier scorecard",
+            "desc": "On time in full, lead time and corrective actions by quarter.",
+            "data": [
+              "d_scorecard",
+              "d_perf_docs"
+            ]
+          },
+          "plan": {
+            "name": "Spend plan",
+            "desc": "The FY26 third-party spend plan by business, category and month.",
+            "data": [
+              "d_plan"
+            ]
+          },
+          "site": {
+            "name": "Site",
+            "desc": "A plant, facility or distribution center of a business.",
+            "data": [
+              "d_site"
+            ]
+          },
+          "policy": {
+            "name": "Policy and standard",
+            "desc": "The procurement policy, the inventory standard and the performance standard.",
+            "data": [
+              "d_policy_docs"
+            ]
+          },
+          "statement": {
+            "name": "Supplier statement",
+            "desc": "A force majeure notice, allocation, capacity letter or promised date: quoted, never counted as supply.",
+            "data": [
+              "d_contract_docs",
+              "d_mail"
+            ]
+          },
+          "saving": {
+            "name": "Saving",
+            "desc": "A recorded saving with its lever and date.",
+            "data": [
+              "d_savings"
+            ]
+          },
+          "movement": {
+            "name": "Goods movement",
+            "desc": "A receipt, issue or transfer between sites.",
+            "data": [
+              "d_movement"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "m1",
+            "area": "spend",
+            "name": "Spend against plan",
+            "def": "Ordered spend / plan for the same months, by business and category",
+            "unit": "$ and %",
+            "cadence": "Monthly",
+            "threshold": "Over 105% or under 90%",
+            "concepts": [
+              "order",
+              "plan"
+            ]
+          },
+          {
+            "id": "m2",
+            "area": "spend",
+            "name": "Spend under contract",
+            "def": "Spend on a group contract / total spend",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 80%",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "m3",
+            "area": "spend",
+            "name": "Leakage",
+            "def": "Spend off contract where a contract covers the item",
+            "unit": "$",
+            "cadence": "Monthly",
+            "threshold": "Any above $25,000 a line",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "m4",
+            "area": "spend",
+            "name": "Invoice price variance",
+            "def": "Invoice price minus contract price, times quantity",
+            "unit": "$",
+            "cadence": "Monthly",
+            "threshold": "Any",
+            "concepts": [
+              "invoice",
+              "contract"
+            ]
+          },
+          {
+            "id": "m5",
+            "area": "spend",
+            "name": "Orders after the invoice",
+            "def": "Order lines dated after their invoice / order lines",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Above 2%",
+            "concepts": [
+              "order",
+              "invoice"
+            ]
+          },
+          {
+            "id": "m6",
+            "area": "sourcing",
+            "name": "Award saving on landed cost",
+            "def": "Today's landed cost minus the award's landed cost, on the plan volumes",
+            "unit": "$ and %",
+            "cadence": "Each event",
+            "threshold": "",
+            "concepts": [
+              "bid",
+              "event",
+              "dosing"
+            ]
+          },
+          {
+            "id": "m7",
+            "area": "sourcing",
+            "name": "Contracts expiring in six months",
+            "def": "Annual spend on contracts ending in the next six months",
+            "unit": "$",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "contract",
+              "order"
+            ]
+          },
+          {
+            "id": "m8",
+            "area": "sourcing",
+            "name": "Index-linked spend",
+            "def": "Spend on contracts with an index clause / total",
+            "unit": "%",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "contract",
+              "order"
+            ]
+          },
+          {
+            "id": "m9",
+            "area": "inventory",
+            "name": "Critical positions below safety stock",
+            "def": "Critical site and material positions with on hand below safety stock",
+            "unit": "count",
+            "cadence": "Each nightly load",
+            "threshold": "Any",
+            "concepts": [
+              "stock",
+              "material"
+            ]
+          },
+          {
+            "id": "m10",
+            "area": "inventory",
+            "name": "Short before replenishment",
+            "def": "Positions whose need comes before the next receipt",
+            "unit": "count",
+            "cadence": "Each nightly load",
+            "threshold": "Any",
+            "concepts": [
+              "stock",
+              "reservation",
+              "order"
+            ]
+          },
+          {
+            "id": "m11",
+            "area": "inventory",
+            "name": "Transferable stock",
+            "def": "Stock above safety stock at one site that another site is short of",
+            "unit": "units and $",
+            "cadence": "Daily",
+            "threshold": "",
+            "concepts": [
+              "stock",
+              "site"
+            ]
+          },
+          {
+            "id": "m12",
+            "area": "inventory",
+            "name": "Slow-moving stock",
+            "def": "Value of stock with no issue in twelve months",
+            "unit": "$",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "stock",
+              "movement"
+            ]
+          },
+          {
+            "id": "m13",
+            "area": "inventory",
+            "name": "Inventory turns",
+            "def": "Issues at standard cost / average stock value",
+            "unit": "times a year",
+            "cadence": "Quarterly",
+            "threshold": "Below 2",
+            "concepts": [
+              "stock",
+              "movement"
+            ]
+          },
+          {
+            "id": "m14",
+            "area": "chem",
+            "name": "Days of cover",
+            "def": "On hand / average daily use, per plant and chemical",
+            "unit": "days",
+            "cadence": "Each nightly load",
+            "threshold": "Below 14 (water), 10 (hazardous waste), 7 (energy)",
+            "concepts": [
+              "stock",
+              "dosing"
+            ]
+          },
+          {
+            "id": "m15",
+            "area": "chem",
+            "name": "Force majeure exposure",
+            "def": "Short volume times the spot premium over the expected outage",
+            "unit": "$",
+            "cadence": "Weekly during a force majeure",
+            "threshold": "",
+            "concepts": [
+              "statement",
+              "order",
+              "dosing"
+            ]
+          },
+          {
+            "id": "m16",
+            "area": "chem",
+            "name": "Spot premium",
+            "def": "Spot price minus contract price, times tons bought under exception",
+            "unit": "$",
+            "cadence": "Weekly",
+            "threshold": "",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "m17",
+            "area": "outage",
+            "name": "Outage readiness",
+            "def": "Reserved lines covered by stock or a receipt before the need date / reserved lines",
+            "unit": "%",
+            "cadence": "Daily from 30 days before",
+            "threshold": "Below 100% at 14 days",
+            "concepts": [
+              "reservation",
+              "stock",
+              "outage"
+            ]
+          },
+          {
+            "id": "m18",
+            "area": "supplier",
+            "name": "On time in full",
+            "def": "Lines received complete by the promised date / lines received",
+            "unit": "%",
+            "cadence": "Quarterly",
+            "threshold": "Below 95%; below 85% twice raises a request",
+            "concepts": [
+              "order",
+              "scorecard"
+            ]
+          },
+          {
+            "id": "m19",
+            "area": "supplier",
+            "name": "Lead time against contract",
+            "def": "Actual lead time / contract lead time, by supplier and item",
+            "unit": "days",
+            "cadence": "Monthly",
+            "threshold": "Above contract",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "m20",
+            "area": "supplier",
+            "name": "Single-source critical items",
+            "def": "Critical items with one qualified source",
+            "unit": "count",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "material",
+              "supplier"
+            ]
+          },
+          {
+            "id": "m21",
+            "area": "savings",
+            "name": "Savings against target",
+            "def": "Secured savings / FY26 target",
+            "unit": "$ and %",
+            "cadence": "Monthly",
+            "threshold": "Behind the straight-line path",
+            "concepts": [
+              "saving",
+              "plan"
+            ]
+          },
+          {
+            "id": "m22",
+            "area": "report",
+            "name": "Dosing plan freshness",
+            "def": "Plans refreshed in the last twelve months / plans",
+            "unit": "%",
+            "cadence": "Quarterly",
+            "threshold": "Below 100%",
+            "concepts": [
+              "dosing",
+              "site"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "q1",
+            "area": "spend",
+            "q": "What did we spend with third parties this year, by business and category, against the plan?",
+            "who": "marsh",
+            "concepts": [
+              "order",
+              "plan"
+            ],
+            "answer": {
+              "figure": "$1,014.5M",
+              "figLabel": "Spend to September · plan $1,037.5M",
+              "text": "$1,014.5M was ordered from third parties January to September against $1,037.5M planned for those months, 2.2% under. Hazardous Waste is the only business above its plan; Water is furthest under.",
+              "sources": [
+                "pur.po_line · Ordered value by order date, January to September 2026",
+                "fin.spend_plan · FY26 plan by business, category and month",
+                "ops.site · Business of each delivery site"
+              ],
+              "askAnswer": "HQ1"
+            }
+          },
+          {
+            "id": "q2",
+            "area": "spend",
+            "q": "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+            "who": "marsh",
+            "concepts": [
+              "order",
+              "contract"
+            ],
+            "answer": {
+              "figure": "79.0%",
+              "figLabel": "Under contract · $801.5M",
+              "text": "79.0% of spend to September ($801.5M) was placed on a group contract. $92.1M went off contract where a contract covers the item, $11.17M above the contract prices; the rest ($120.9M) is in categories or items no contract covers.",
+              "sources": [
+                "pur.po_line · contract_no and contract_price_usd per line, January to September",
+                "src.contract · Group contracts and the items they cover",
+                "Group_Procurement_Policy_2025.pdf · Sections 3 and 6"
+              ],
+              "askAnswer": "HQ2"
+            }
+          },
+          {
+            "id": "q3",
+            "area": "spend",
+            "q": "Which invoices were paid above the contract price in the third quarter, and by how much?",
+            "who": "asante",
+            "concepts": [
+              "invoice",
+              "contract"
+            ],
+            "answer": {
+              "figure": "472",
+              "figLabel": "Lines above contract · of 6,402 on contract items",
+              "text": "472 of 6,402 third-quarter invoice lines on contract items were priced above the contract price, $863,392 in all. $438,508 of it was paid at the invoice price and can only be recovered by credit note; $424,884 is on hold as open price exceptions.",
+              "sources": [
+                "ap.invoice_line · Invoiced price against contract price, July to September",
+                "src.contract_item · Contract prices per material",
+                "C-CHM-2024-03_Caustic_Supply_Agreement_Arcadia.pdf · Clause 6: steps apply from the following quarter"
+              ],
+              "askAnswer": "HQ3"
+            }
+          },
+          {
+            "id": "q4",
+            "area": "spend",
+            "q": "Which vendor records look like duplicates?",
+            "who": "asante",
+            "concepts": [
+              "supplier"
+            ],
+            "answer": {
+              "figure": "2 records",
+              "figLabel": "Pemberton Process Chemicals, one tax number",
+              "text": "Pemberton Process Chemicals is in the vendor master twice with one tax number: V10031, on the sulfuric acid contract, and V10032 'Pemberton Process Chemicals LLC (Gulf)'. V10032 carries 11 order lines this year ($64,893), all outside the contract.",
+              "sources": [
+                "pur.vendor · tax_id shared by V10031 and V10032",
+                "pur.po_line · Lines on V10032",
+                "Mailbox · Kwame Asante · Accounts payable: two vendor records"
+              ],
+              "askAnswer": "HQ44"
+            }
+          },
+          {
+            "id": "q5",
+            "area": "sourcing",
+            "q": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+            "who": "okoro",
+            "concepts": [
+              "bid",
+              "event",
+              "dosing"
+            ],
+            "answer": {
+              "figure": "$3.44M",
+              "figLabel": "Saving a year · 6.6%",
+              "text": "Awarding each lot to the lowest qualified landed cost, with ferric chloride split 70% to Sabine Coast and 30% to Corrigan once its force majeure lifts, costs $49.03M a year on the 2027 dosing plans against $52.46M at today's contract prices: $3.44M (6.6%) lower. Caustic soda is the largest saving; ferric chloride costs about the same as today.",
+              "sources": [
+                "src.bid · SE-2026-031 bids: price and freight by lot",
+                "src.contract_item · 2026 contract prices",
+                "ops.dosing_plan · 2027 plans; Energy from November 2025"
+              ],
+              "askAnswer": "HQ18"
+            }
+          },
+          {
+            "id": "q6",
+            "area": "sourcing",
+            "q": "How much of each treatment chemical does each business use now, and what does the 2027 plan say?",
+            "who": "okoro",
+            "concepts": [
+              "dosing",
+              "order"
+            ],
+            "answer": {
+              "figure": "102,280 t",
+              "figLabel": "a year on the 2027 dosing plans",
+              "text": "The three businesses use 96,730 tons a year of the seven treatment chemicals at today's run rate; the 2027 plans call for 102,280 tons (+5.7%), most of the increase at water plants as Ashby comes on line. Energy's plans are the November 2025 vintage and are provisional.",
+              "sources": [
+                "ops.dosing_plan · Plans by site and chemical; refresh dates",
+                "Chemical_Dosing_Plans_2027.xlsx · Energy plans are the November 2025 vintage",
+                "Mailbox · Nishant Srivastav · Operations director: Energy plans not refreshed"
+              ],
+              "askAnswer": "HQ20"
+            }
+          },
+          {
+            "id": "q7",
+            "area": "sourcing",
+            "q": "Which bidders on SE-2026-031 are not qualified for the lots they bid?",
+            "who": "okoro",
+            "concepts": [
+              "bid",
+              "supplier"
+            ],
+            "answer": {
+              "figure": "2 bidders",
+              "figLabel": "not qualified for lots they bid",
+              "text": "Two bidders are not qualified for lots they bid: Ostler Minerals on L4 lime (its site audit is not before the second quarter of 2027) and Pemberton Process Chemicals on L5 polymer (jar tests needed at four water plants). Corrigan is qualified but under force majeure on ferric chloride, so its L2 bid cannot show continuity of supply.",
+              "sources": [
+                "src.bid · qualified and qualification_note",
+                "Supplier_Qualification_Register_2026-10.xlsx · Status per supplier",
+                "Mailbox · Imani Okoro · Category manager: two qualification notes"
+              ],
+              "askAnswer": "HQ21"
+            }
+          },
+          {
+            "id": "q8",
+            "area": "sourcing",
+            "q": "How much do we spend on contracts that expire in the next six months?",
+            "who": "marsh",
+            "concepts": [
+              "contract",
+              "order"
+            ],
+            "answer": {
+              "figure": "16",
+              "figLabel": "contracts expire in the next six months",
+              "text": "16 contracts expire in the next six months, carrying $257.3M of this year's spend to 27 October. The seven treatment chemical agreements ending 31 December are $34.9M of it, and are being replaced through SE-2026-031.",
+              "sources": [
+                "src.contract · End dates",
+                "pur.po_line · Spend on each contract, January to 27 October",
+                "SE-2026-031_RFP_Treatment_Chemicals_2027-2029.pdf · Replaces the chemical agreements from 1 January 2027"
+              ],
+              "askAnswer": "HQ17"
+            }
+          },
+          {
+            "id": "q9",
+            "area": "inventory",
+            "q": "Which critical items are below safety stock today?",
+            "who": "duarte",
+            "concepts": [
+              "stock",
+              "material"
+            ],
+            "answer": {
+              "figure": "20",
+              "figLabel": "Below safety stock · of 2,782 critical positions",
+              "text": "20 of 2,782 critical positions are below safety stock at the 27 October snapshot: 8 in Bramwell Water, 10 in Bramwell Hazardous Waste, 2 in Bramwell Energy. 9 of them are at Ravensworth ahead of the Kiln 2 outage, and 7 are ferric chloride at water plants.",
+              "sources": [
+                "mm.plant_stock · Snapshot of 27 October",
+                "mm.material · Criticality class A",
+                "Inventory_and_Critical_Spares_Standard_2025.pdf · Section 2 and 3"
+              ],
+              "askAnswer": "HQ7"
+            }
+          },
+          {
+            "id": "q10",
+            "area": "inventory",
+            "q": "Which critical items are held above safety stock at one site while another site is below?",
+            "who": "duarte",
+            "concepts": [
+              "stock",
+              "site"
+            ],
+            "answer": {
+              "figure": "18",
+              "figLabel": "Positions that could be covered · of 20 below safety stock",
+              "text": "18 of the 20 positions below safety stock could be topped up from another site that would stay at or above its own safety stock. 56 of the 121 possible moves cross from one business to another, which the transfer procedure allows at standard cost.",
+              "sources": [
+                "mm.plant_stock · All positions of the same material across sites, 27 October",
+                "Inventory_and_Critical_Spares_Standard_2025.pdf · Section 5: look across the group first",
+                "Inter-site_Transfer_Procedure.pdf · Standard cost, holder stays above safety stock"
+              ],
+              "askAnswer": "HQ10"
+            }
+          },
+          {
+            "id": "q11",
+            "area": "inventory",
+            "q": "What is our inventory value by business, and how much has not moved in twelve months?",
+            "who": "brandt",
+            "concepts": [
+              "stock",
+              "movement"
+            ],
+            "answer": {
+              "figure": "$65.0M",
+              "figLabel": "On hand · critical and chemical positions",
+              "text": "Critical spares and treatment chemicals on hand are worth $65.0M across the 36 sites. $1.9M of it (2.8%) has not moved in twelve months. This covers critical and chemical positions only; MRO and other class B and C stock are not in this extract.",
+              "sources": [
+                "mm.plant_stock · Stock value and last movement date, 27 October",
+                "ops.site · Business of each site"
+              ],
+              "askAnswer": "HQ9"
+            }
+          },
+          {
+            "id": "q12",
+            "area": "chem",
+            "q": "How many days of ferric chloride does each plant hold, against its minimum?",
+            "who": "lindahl",
+            "concepts": [
+              "stock",
+              "dosing"
+            ],
+            "answer": {
+              "figure": "5",
+              "figLabel": "Under 10 days · water plants",
+              "text": "Five water plants hold less than ten days of ferric chloride against the 14-day minimum: Fenmoor 6.2, Holloway Creek 7.4, Stanwick 8.1, Marston Reach 9.3, Quinton Lakes 9.6 days. 7 water plants are under 14. Two hazardous waste facilities hold 27 to 31 days against their 10-day minimum, but they use little ferric.",
+              "sources": [
+                "mm.plant_stock · Ferric chloride positions, 27 October",
+                "Inventory_and_Critical_Spares_Standard_2025.pdf · Section 3: 14, 10 and 7 days",
+                "Corrigan_Force_Majeure_Notice_2026-10-09.pdf · Allocation 60% from 12 October"
+              ],
+              "askAnswer": "HQ8"
+            }
+          },
+          {
+            "id": "q13",
+            "area": "chem",
+            "q": "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
+            "who": "okoro",
+            "concepts": [
+              "statement",
+              "order"
+            ],
+            "answer": {
+              "figure": "$52,604",
+              "figLabel": "Spot premium so far · 360 tons since 12 October",
+              "text": "Since 12 October Corrigan has shipped 60% of ferric volume and Anika Sorensen has bought the rest on spot from Sabine Coast: 41 lines, 360 tons at $548 against $402, $52,604 above the contract. Five water plants are under ten days of cover. If the allocation lasted the whole of 2027 with Corrigan as primary, replacing 40% on spot would cost about $1.56M a year more.",
+              "sources": [
+                "pur.po_line · Corrigan lines and FMX spot lines since 12 October",
+                "mm.plant_stock · Ferric cover, 27 October",
+                "Corrigan_Force_Majeure_Notice_2026-10-09.pdf · Allocation 60%; restoration not confirmed"
+              ],
+              "askAnswer": "HQ19"
+            }
+          },
+          {
+            "id": "q14",
+            "area": "outage",
+            "q": "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
+            "who": "wierzbicki",
+            "concepts": [
+              "reservation",
+              "stock",
+              "outage"
+            ],
+            "answer": {
+              "figure": "9",
+              "figLabel": "Reserved items · WO-884120 and the outage work orders",
+              "text": "No. Eight of the nine items reserved for the Kiln 2 outage (9 November to 20 November) are short at Ravensworth and their open orders land after they are needed; only the thermocouples are covered by an order due 16 November. Every one of the eight can be covered from stock elsewhere in the group or by an expedite the suppliers have offered.",
+              "sources": [
+                "mm.reservation · Reservations of WO-884120 and the outage work orders",
+                "mm.plant_stock · Ravensworth and every other site, 27 October",
+                "pur.po_line · Open lines and promised dates"
+              ],
+              "askAnswer": "HQ11"
+            }
+          },
+          {
+            "id": "q15",
+            "area": "supplier",
+            "q": "Which suppliers had the worst on time in full in the third quarter?",
+            "who": "duarte",
+            "concepts": [
+              "scorecard",
+              "supplier"
+            ],
+            "answer": {
+              "figure": "87.8%",
+              "figLabel": "Group on time in full · third quarter, by line",
+              "text": "Halberd Industrial Spares (50.0%), Corrigan Chemical Company (67.9%) and Vantor Combustion Systems (68.1%) were the worst in the third quarter, against a 95% target. Across all suppliers 87.8% of lines arrived complete by the promised date.",
+              "sources": [
+                "src.supplier_scorecard · Third quarter 2026",
+                "pur.po_line · Promised and received dates",
+                "Supplier_Performance_Standard_2025.pdf · Target 95%, corrective action below 85%"
+              ],
+              "askAnswer": "HQ13"
+            }
+          },
+          {
+            "id": "q16",
+            "area": "supplier",
+            "q": "Which critical items have a single qualified source?",
+            "who": "duarte",
+            "concepts": [
+              "material",
+              "supplier"
+            ],
+            "answer": {
+              "figure": "45",
+              "figLabel": "Single-source critical items · of 406 class A",
+              "text": "45 critical items have a single qualified source. Four matter most now: the rotary kiln burner nozzle (Vantor, under a corrective action request), the flue gas expansion joint (Orrin), high-alumina refractory brick (Holcombe) and the 450 kW high-lift pump motor (Marlowe).",
+              "sources": [
+                "mm.material · single_source and criticality",
+                "mm.plant_stock · Group stock, 27 October",
+                "Critical_Spares_Review_Q3_2026.pptx · Slide 3: single sources"
+              ],
+              "askAnswer": "HQ16"
+            }
+          },
+          {
+            "id": "q17",
+            "area": "savings",
+            "q": "Where are we against the FY26 savings target?",
+            "who": "brandt",
+            "concepts": [
+              "saving",
+              "plan"
+            ],
+            "answer": {
+              "figure": "$26.4M",
+              "figLabel": "Secured · 58 initiatives",
+              "text": "$26.4M is secured against the $37.2M target (3.0% of $1,240.0M addressable spend), 71% of it. That is $1.5M behind the straight-line path to 30 September. The force majeure premium is reported apart and does not reduce the secured figure.",
+              "sources": [
+                "Savings_tracker_2026-10.xlsx · Position at 15 October",
+                "fin.spend_plan · Addressable base",
+                "Group_Procurement_Policy_2025.pdf · Section 9: how a saving counts"
+              ],
+              "askAnswer": "HQ4"
+            }
+          },
+          {
+            "id": "q18",
+            "area": "report",
+            "q": "What does Helena need for the 12 November committee, and what is ready?",
+            "who": "marsh",
+            "concepts": [
+              "event",
+              "statement"
+            ],
+            "answer": {
+              "figure": "3",
+              "figLabel": "deliverables due Thursday 5 November",
+              "text": "Helena Marsh needs three things by Thursday 5 November for the committee of 12 November: the award paper, the award schedule in the structure the committee approved in 2023, and a few slides. The bids are in and the 2024 schedule is in the sourcing folder; the paper, schedule and slides are drafted from the chemicals award goal.",
+              "sources": [
+                "Mailbox · Helena Marsh · CPO: paper, schedule and slides by 5 November",
+                "Chemicals_Award_Schedule_2024-2026.xlsx · The 2023 structure",
+                "Mailbox · Helena Marsh · Chair: same structure, the award on its own slides"
+              ],
+              "askAnswer": "HQ43"
+            }
+          }
+        ],
+        "routines": [
+          {
+            "id": "r1",
+            "area": "inventory",
+            "name": "Critical stock check after the nightly load",
+            "cadence": "Daily, after 02:00",
+            "to": "duarte",
+            "output": "Exception list with options"
+          },
+          {
+            "id": "r2",
+            "area": "chem",
+            "name": "Ferric chloride cover during the force majeure",
+            "cadence": "Daily until Corrigan restores supply",
+            "to": "okoro",
+            "output": "Cover by plant and spot volume needed"
+          },
+          {
+            "id": "r3",
+            "area": "outage",
+            "name": "Outage readiness check",
+            "cadence": "Daily from 30 days before each planned outage",
+            "to": "wierzbicki",
+            "output": "Readiness list and actions"
+          },
+          {
+            "id": "r4",
+            "area": "spend",
+            "name": "Monthly procurement report",
+            "cadence": "Monthly, after the close (fifth working day)",
+            "to": "marsh",
+            "output": "Report: spend, coverage, leakage, savings"
+          },
+          {
+            "id": "r5",
+            "area": "spend",
+            "name": "Invoice price exceptions",
+            "cadence": "Weekly",
+            "to": "asante",
+            "output": "Lines above contract price, recover or release"
+          },
+          {
+            "id": "r6",
+            "area": "supplier",
+            "name": "Quarterly supplier scorecards",
+            "cadence": "Quarterly, week 2",
+            "to": "duarte",
+            "output": "Scorecard workbook"
+          },
+          {
+            "id": "r7",
+            "area": "sourcing",
+            "name": "Award paper support",
+            "cadence": "Per sourcing event",
+            "to": "okoro",
+            "output": "Award paper, schedule and slides"
+          },
+          {
+            "id": "r8",
+            "area": "savings",
+            "name": "Savings tracker reconciliation",
+            "cadence": "Monthly",
+            "to": "brandt",
+            "output": "Tracker with secured and reported-apart lines"
+          },
+          {
+            "id": "r9",
+            "area": "report",
+            "name": "Quarterly Procurement Committee pack",
+            "cadence": "Quarterly",
+            "to": "kell",
+            "output": "Committee deck"
+          },
+          {
+            "id": "r10",
+            "area": "inventory",
+            "name": "Monthly shortage review",
+            "cadence": "Monthly, first Thursday",
+            "to": "duarte",
+            "output": "Review slides"
+          }
+        ],
+        "data": [
+          {
+            "id": "d_po",
+            "label": "Order lines with price, contract and dates",
+            "obj": "pur.po_line"
+          },
+          {
+            "id": "d_ap",
+            "label": "Invoice lines and match exceptions",
+            "obj": "ap.invoice_line"
+          },
+          {
+            "id": "d_vendor",
+            "label": "Vendor master",
+            "obj": "pur.vendor",
+            "partly": "One company can hold two vendor records with the same tax number; nothing links them."
+          },
+          {
+            "id": "d_material",
+            "label": "Material master: criticality and lead time",
+            "obj": "mm.material"
+          },
+          {
+            "id": "d_stock",
+            "label": "Stock by site and material, nightly",
+            "obj": "mm.plant_stock",
+            "partly": "3% of critical positions have no reorder point set."
+          },
+          {
+            "id": "d_movement",
+            "label": "Receipts, issues and transfers",
+            "obj": "mm.stock_movement"
+          },
+          {
+            "id": "d_reservation",
+            "label": "Reservations of released work orders",
+            "obj": "mm.reservation"
+          },
+          {
+            "id": "d_workorder",
+            "label": "Work orders",
+            "obj": "ops.work_order"
+          },
+          {
+            "id": "d_outage",
+            "label": "Planned outages",
+            "obj": "ops.outage_plan"
+          },
+          {
+            "id": "d_dosing",
+            "label": "Chemical dosing plans",
+            "obj": "ops.dosing_plan",
+            "partly": "Energy's plans are the November 2025 vintage."
+          },
+          {
+            "id": "d_site",
+            "label": "Businesses and sites",
+            "obj": "ops.site"
+          },
+          {
+            "id": "d_plan",
+            "label": "FY26 spend plan",
+            "obj": "fin.spend_plan"
+          },
+          {
+            "id": "d_contract",
+            "label": "Contract register and price lists",
+            "obj": "src.contract"
+          },
+          {
+            "id": "d_event",
+            "label": "Sourcing events",
+            "obj": "src.sourcing_event"
+          },
+          {
+            "id": "d_bid",
+            "label": "Bids by lot",
+            "obj": "src.bid"
+          },
+          {
+            "id": "d_scorecard",
+            "label": "Supplier scorecards",
+            "obj": "src.supplier_scorecard"
+          },
+          {
+            "id": "d_contract_docs",
+            "label": "Contracts, notices and supplier letters",
+            "obj": "od.sourcing"
+          },
+          {
+            "id": "d_policy_docs",
+            "label": "Policy, standards and committee packs",
+            "obj": "od.procurement"
+          },
+          {
+            "id": "d_perf_docs",
+            "label": "Corrective action requests",
+            "obj": "od.performance"
+          },
+          {
+            "id": "d_savings",
+            "label": "Savings tracker",
+            "obj": "od.procurement"
+          },
+          {
+            "id": "d_mail",
+            "label": "Buyer, plant and supplier correspondence",
+            "obj": "outlook.supply"
+          },
+          {
+            "id": "d_carrier",
+            "label": "Shipment tracking and arrival estimates",
+            "obj": "carrier.tracking"
+          },
+          {
+            "id": "d_risk",
+            "label": "Supplier financial and continuity scores",
+            "obj": "risk.ratings"
+          }
+        ],
+        "jd": {
+          "file": "Bramwell_Job_Description_Supply_Chain_Analyst.pdf",
+          "pages": 4,
+          "findings": [
+            {
+              "id": "j1",
+              "kind": "confirm",
+              "text": "Confirms 7 of your 8 areas: spend, sourcing, inventory, chemicals, outages, supplier performance and reporting.",
+              "quote": "“Analyses spend, stock and supplier performance across the three businesses and supports sourcing events and the Procurement Committee.”"
+            },
+            {
+              "id": "j2",
+              "kind": "task",
+              "area": "chem",
+              "text": "Add a task to Treatment chemical continuity: check tank capacity with Process Safety before a spot delivery.",
+              "quote": "“Confirms with Process Safety that a spot or transferred chemical delivery fits the receiving tank before it is booked.”",
+              "value": "Check tank capacity with Process Safety before a spot delivery"
+            },
+            {
+              "id": "j3",
+              "kind": "scope",
+              "area": "savings",
+              "text": "Take Savings program out of scope. Finance owns the savings register; the analyst supplies the evidence for each line.",
+              "quote": "“The savings register is kept by the Finance Business Partner; the analyst provides the order or contract that evidences each saving.”",
+              "reason": "Done by another team"
+            },
+            {
+              "id": "j4",
+              "kind": "threshold",
+              "metric": "m3",
+              "area": "spend",
+              "text": "Set the threshold on Leakage: any off-contract line above $25,000 without three quotes is reported.",
+              "quote": "§3.4 “Any order placed off contract above $25,000 without three quotes on file is reported to the Category Manager the same week.”",
+              "value": "Any line above $25,000 without three quotes"
+            },
+            {
+              "id": "j5",
+              "kind": "routine",
+              "area": "outage",
+              "text": "Add a routine: weekly readiness call with the outage manager for the six weeks before each planned outage.",
+              "quote": "“For the six weeks before a planned outage, joins the weekly readiness call with the outage manager.”",
+              "routine": {
+                "id": "r_jd1",
+                "area": "outage",
+                "name": "Outage readiness call",
+                "cadence": "Weekly, six weeks before each outage",
+                "to": "wierzbicki",
+                "output": "Readiness list"
+              }
+            },
+            {
+              "id": "j6",
+              "kind": "people",
+              "text": "Add Ruth Calloway to the people it works for. The description says chemical deliveries are agreed with Process Safety.",
+              "quote": "“Works with the Process Safety Manager on chemical storage limits.”",
+              "person": "calloway"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "i1",
+            "data": "d_vendor",
+            "text": "Pemberton Process Chemicals has two vendor records (V10031, V10032) with one tax number; spot orders on V10032 sit outside the contract.",
+            "actions": [
+              "Treat them as one supplier in analysis",
+              "Keep them apart and flag them"
+            ]
+          },
+          {
+            "id": "i2",
+            "data": "d_dosing",
+            "text": "Energy's 2027 dosing plans are the November 2025 vintage; 10% of the chemicals volume rests on them.",
+            "actions": [
+              "Use them, marked provisional",
+              "Use the FY26 run rate for Energy instead"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pca",
+        "name": "Procurement Analyst",
+        "deep": false,
+        "blurb": "Supports category managers with spend analysis, sourcing events and contract compliance.",
+        "defaults": {
+          "reportsTo": "marsh",
+          "worksFor": [
+            "marsh",
+            "okoro"
+          ]
+        },
+        "areas": [
+          {
+            "id": "spend",
+            "name": "Spend analysis",
+            "what": "Cuts spend by category, supplier and business.",
+            "tasks": [
+              "Monthly spend cube",
+              "Supplier fragmentation by category"
+            ]
+          },
+          {
+            "id": "events",
+            "name": "Sourcing events",
+            "what": "Runs the data side of RFPs.",
+            "tasks": [
+              "Build bid comparison sheets",
+              "Compute landed cost"
+            ]
+          },
+          {
+            "id": "comp",
+            "name": "Contract compliance",
+            "what": "Finds orders off contract and prices above contract.",
+            "tasks": [
+              "Leakage report",
+              "Price variance report"
+            ]
+          }
+        ],
+        "concepts": {
+          "contract": {
+            "name": "Group contract",
+            "desc": "A supply agreement with prices, term and clauses.",
+            "data": [
+              "d_contract",
+              "d_contract_docs"
+            ]
+          },
+          "order": {
+            "name": "Order line",
+            "desc": "A purchase order line with material, supplier, price, contract and dates.",
+            "data": [
+              "d_po"
+            ]
+          },
+          "bid": {
+            "name": "Bid",
+            "desc": "A bidder's price and freight for a lot.",
+            "data": [
+              "d_bid"
+            ]
+          },
+          "supplier": {
+            "name": "Supplier",
+            "desc": "A vendor record and its category; one company can hold two records.",
+            "data": [
+              "d_vendor"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "pm1",
+            "area": "comp",
+            "name": "Spend under contract",
+            "def": "Spend on a group contract / total spend",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 80%",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "pm2",
+            "area": "events",
+            "name": "Award saving on landed cost",
+            "def": "Today's landed cost minus the award's",
+            "unit": "$",
+            "cadence": "Each event",
+            "threshold": "",
+            "concepts": [
+              "bid"
+            ]
+          },
+          {
+            "id": "pm3",
+            "area": "spend",
+            "name": "Suppliers per category",
+            "def": "Active suppliers in each category",
+            "unit": "count",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "supplier",
+              "order"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "pq1",
+            "area": "comp",
+            "q": "Where does spend go off contract when a contract covers the item?",
+            "who": "marsh",
+            "concepts": [
+              "order",
+              "contract"
+            ]
+          },
+          {
+            "id": "pq2",
+            "area": "events",
+            "q": "What would the open sourcing event save on landed cost?",
+            "who": "okoro",
+            "concepts": [
+              "bid"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "pr1",
+            "area": "comp",
+            "name": "Leakage report",
+            "cadence": "Monthly",
+            "to": "marsh",
+            "output": "Report"
+          }
+        ],
+        "data": [
+          {
+            "id": "p_po",
+            "label": "Order lines",
+            "obj": "pur.po_line"
+          },
+          {
+            "id": "p_ctr",
+            "label": "Contract register",
+            "obj": "src.contract"
+          },
+          {
+            "id": "p_bid",
+            "label": "Bids",
+            "obj": "src.bid"
+          }
+        ],
+        "jd": {
+          "file": "Bramwell_Job_Description_Procurement_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "pj1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Analyses spend, runs bid comparisons and reports contract compliance.”"
+            },
+            {
+              "id": "pj2",
+              "kind": "task",
+              "area": "events",
+              "text": "Add a task to Sourcing events: keep the freight rate card current before each event.",
+              "quote": "“Keeps the freight rate card current before each sourcing event.”",
+              "value": "Keep the freight rate card current"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "pi1",
+            "data": "p_po",
+            "text": "4% of order lines carry no material number (free-text services).",
+            "actions": [
+              "Classify by description",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "inv",
+        "name": "Inventory Planner",
+        "deep": false,
+        "blurb": "Sets stock levels for critical spares and consumables and keeps the storerooms stocked without dead stock.",
+        "defaults": {
+          "reportsTo": "duarte",
+          "worksFor": [
+            "duarte",
+            "varga"
+          ]
+        },
+        "areas": [
+          {
+            "id": "levels",
+            "name": "Stock levels",
+            "what": "Sets safety stock and reorder points.",
+            "tasks": [
+              "Review reorder points quarterly",
+              "Set safety stock from lead time"
+            ]
+          },
+          {
+            "id": "dead",
+            "name": "Slow-moving stock",
+            "what": "Finds and clears stock that does not move.",
+            "tasks": [
+              "Twelve-month no-issue list",
+              "Propose write-offs and transfers"
+            ]
+          },
+          {
+            "id": "store",
+            "name": "Storeroom performance",
+            "what": "Measures accuracy and service at each storeroom.",
+            "tasks": [
+              "Cycle count accuracy",
+              "Fill rate by storeroom"
+            ]
+          }
+        ],
+        "concepts": {
+          "stock": {
+            "name": "Stock position",
+            "desc": "On hand, safety stock and reorder point of a material at a site.",
+            "data": [
+              "d_stock"
+            ]
+          },
+          "material": {
+            "name": "Material",
+            "desc": "A stocked or ordered item with criticality and lead time.",
+            "data": [
+              "d_material"
+            ]
+          },
+          "movement": {
+            "name": "Goods movement",
+            "desc": "A receipt, issue or transfer between sites.",
+            "data": [
+              "d_movement"
+            ]
+          },
+          "site": {
+            "name": "Site",
+            "desc": "A plant, facility or distribution center of a business.",
+            "data": [
+              "d_site"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "im1",
+            "area": "levels",
+            "name": "Critical positions below safety stock",
+            "def": "Positions with on hand below safety stock",
+            "unit": "count",
+            "cadence": "Daily",
+            "threshold": "Any",
+            "concepts": [
+              "stock"
+            ]
+          },
+          {
+            "id": "im2",
+            "area": "dead",
+            "name": "Slow-moving stock",
+            "def": "Value with no issue in twelve months",
+            "unit": "$",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "stock",
+              "movement"
+            ]
+          },
+          {
+            "id": "im3",
+            "area": "store",
+            "name": "Fill rate",
+            "def": "Issues filled from stock / issues requested",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 97%",
+            "concepts": [
+              "movement"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "iq1",
+            "area": "levels",
+            "q": "Which critical items have no reorder point set?",
+            "who": "duarte",
+            "concepts": [
+              "stock",
+              "material"
+            ]
+          },
+          {
+            "id": "iq2",
+            "area": "dead",
+            "q": "How much stock has not moved in twelve months, by business?",
+            "who": "duarte",
+            "concepts": [
+              "stock",
+              "movement"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "ir1",
+            "area": "levels",
+            "name": "Reorder point review",
+            "cadence": "Quarterly",
+            "to": "duarte",
+            "output": "Change list"
+          }
+        ],
+        "data": [
+          {
+            "id": "i_stock",
+            "label": "Stock by site",
+            "obj": "mm.plant_stock"
+          },
+          {
+            "id": "i_mov",
+            "label": "Goods movements",
+            "obj": "mm.stock_movement"
+          },
+          {
+            "id": "i_mat",
+            "label": "Material master",
+            "obj": "mm.material"
+          }
+        ],
+        "jd": {
+          "file": "Bramwell_Job_Description_Inventory_Planner.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "ij1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Sets stock levels, clears slow-moving stock and measures storeroom performance.”"
+            },
+            {
+              "id": "ij2",
+              "kind": "task",
+              "area": "store",
+              "text": "Add a task to Storeroom performance: run the annual wall-to-wall count at the distribution centers.",
+              "quote": "“Runs the annual wall-to-wall count at the three distribution centers.”",
+              "value": "Annual wall-to-wall count at the distribution centers"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "ii1",
+            "data": "i_stock",
+            "text": "3% of critical positions have no reorder point set.",
+            "actions": [
+              "Derive one from lead time and use",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fa",
+        "name": "Financial Analyst",
+        "deep": false,
+        "blurb": "Runs the operating budget and forecast for the businesses, explains variances and reports unit costs.",
+        "defaults": {
+          "reportsTo": "brandt",
+          "worksFor": [
+            "brandt",
+            "kell"
+          ]
+        },
+        "areas": [
+          {
+            "id": "budget",
+            "name": "Operating budget and forecast",
+            "what": "Builds the O&M budget and keeps the forecast current.",
+            "tasks": [
+              "Prepare the O&M budget",
+              "Update the monthly forecast"
+            ]
+          },
+          {
+            "id": "close",
+            "name": "Month-end variance analysis",
+            "what": "Explains actuals against budget after close.",
+            "tasks": [
+              "Explain variances by business",
+              "Review accruals with Accounting"
+            ]
+          },
+          {
+            "id": "mgmt",
+            "name": "Management reporting",
+            "what": "Reports financial results to leadership.",
+            "tasks": [
+              "Monthly financial report",
+              "Board financial summary"
+            ]
+          }
+        ],
+        "concepts": {
+          "plan": {
+            "name": "Spend plan",
+            "desc": "The FY26 third-party spend plan by business, category and month.",
+            "data": [
+              "d_plan"
+            ]
+          },
+          "order": {
+            "name": "Order line",
+            "desc": "A purchase order line with material, supplier, price, contract and dates.",
+            "data": [
+              "d_po"
+            ]
+          },
+          "invoice": {
+            "name": "Invoice line",
+            "desc": "A supplier invoice line with its price and match status.",
+            "data": [
+              "d_ap"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "fm1",
+            "area": "close",
+            "name": "O&M variance",
+            "def": "Actual minus budget by business",
+            "unit": "$ and %",
+            "cadence": "Monthly",
+            "threshold": "Over 5%",
+            "concepts": [
+              "plan",
+              "invoice"
+            ]
+          },
+          {
+            "id": "fm2",
+            "area": "budget",
+            "name": "Forecast accuracy",
+            "def": "1 minus |actual minus forecast| / actual",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 95%",
+            "concepts": [
+              "plan"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "fq1",
+            "area": "close",
+            "q": "Which businesses are over their operating budget this year, and why?",
+            "who": "brandt",
+            "concepts": [
+              "plan",
+              "invoice"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "fr1",
+            "area": "close",
+            "name": "Month-end variance pack",
+            "cadence": "Monthly, business day 6",
+            "to": "brandt",
+            "output": "Variance pack"
+          }
+        ],
+        "data": [
+          {
+            "id": "f_plan",
+            "label": "Spend plan",
+            "obj": "fin.spend_plan"
+          },
+          {
+            "id": "f_ap",
+            "label": "Invoice lines",
+            "obj": "ap.invoice_line"
+          }
+        ],
+        "jd": {
+          "file": "Bramwell_Job_Description_Financial_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "fj1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+            },
+            {
+              "id": "fj2",
+              "kind": "task",
+              "area": "close",
+              "text": "Add a task to Month-end variance analysis: reconcile chemical and fuel costs to plant usage.",
+              "quote": "“Reconciles chemical and fuel costs to plant usage monthly.”",
+              "value": "Reconcile chemical and fuel costs to usage"
+            }
+          ]
+        },
+        "issues": []
+      }
+    ],
+    "job_description_findings": {
+      "sca": [
+        {
+          "id": "j1",
+          "kind": "confirm",
+          "text": "Confirms 7 of your 8 areas: spend, sourcing, inventory, chemicals, outages, supplier performance and reporting.",
+          "quote": "“Analyses spend, stock and supplier performance across the three businesses and supports sourcing events and the Procurement Committee.”"
+        },
+        {
+          "id": "j2",
+          "kind": "task",
+          "area": "chem",
+          "text": "Add a task to Treatment chemical continuity: check tank capacity with Process Safety before a spot delivery.",
+          "quote": "“Confirms with Process Safety that a spot or transferred chemical delivery fits the receiving tank before it is booked.”",
+          "value": "Check tank capacity with Process Safety before a spot delivery"
+        },
+        {
+          "id": "j3",
+          "kind": "scope",
+          "area": "savings",
+          "text": "Take Savings program out of scope. Finance owns the savings register; the analyst supplies the evidence for each line.",
+          "quote": "“The savings register is kept by the Finance Business Partner; the analyst provides the order or contract that evidences each saving.”",
+          "reason": "Done by another team"
+        },
+        {
+          "id": "j4",
+          "kind": "threshold",
+          "metric": "m3",
+          "area": "spend",
+          "text": "Set the threshold on Leakage: any off-contract line above $25,000 without three quotes is reported.",
+          "quote": "§3.4 “Any order placed off contract above $25,000 without three quotes on file is reported to the Category Manager the same week.”",
+          "value": "Any line above $25,000 without three quotes"
+        },
+        {
+          "id": "j5",
+          "kind": "routine",
+          "area": "outage",
+          "text": "Add a routine: weekly readiness call with the outage manager for the six weeks before each planned outage.",
+          "quote": "“For the six weeks before a planned outage, joins the weekly readiness call with the outage manager.”",
+          "routine": {
+            "id": "r_jd1",
+            "area": "outage",
+            "name": "Outage readiness call",
+            "cadence": "Weekly, six weeks before each outage",
+            "to": "wierzbicki",
+            "output": "Readiness list"
+          }
+        },
+        {
+          "id": "j6",
+          "kind": "people",
+          "text": "Add Ruth Calloway to the people it works for. The description says chemical deliveries are agreed with Process Safety.",
+          "quote": "“Works with the Process Safety Manager on chemical storage limits.”",
+          "person": "calloway"
+        }
+      ],
+      "pca": [
+        {
+          "id": "pj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Analyses spend, runs bid comparisons and reports contract compliance.”"
+        },
+        {
+          "id": "pj2",
+          "kind": "task",
+          "area": "events",
+          "text": "Add a task to Sourcing events: keep the freight rate card current before each event.",
+          "quote": "“Keeps the freight rate card current before each sourcing event.”",
+          "value": "Keep the freight rate card current"
+        }
+      ],
+      "inv": [
+        {
+          "id": "ij1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Sets stock levels, clears slow-moving stock and measures storeroom performance.”"
+        },
+        {
+          "id": "ij2",
+          "kind": "task",
+          "area": "store",
+          "text": "Add a task to Storeroom performance: run the annual wall-to-wall count at the distribution centers.",
+          "quote": "“Runs the annual wall-to-wall count at the three distribution centers.”",
+          "value": "Annual wall-to-wall count at the distribution centers"
+        }
+      ],
+      "fa": [
+        {
+          "id": "fj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+        },
+        {
+          "id": "fj2",
+          "kind": "task",
+          "area": "close",
+          "text": "Add a task to Month-end variance analysis: reconcile chemical and fuel costs to plant usage.",
+          "quote": "“Reconciles chemical and fuel costs to plant usage monthly.”",
+          "value": "Reconcile chemical and fuel costs to usage"
+        }
+      ]
+    },
+    "organisation": {
+      "name": "Bramwell Environmental Group",
+      "kind": "Investor-owned · water, hazardous waste and energy businesses with group procurement"
+    },
+    "utilities": [
+      {
+        "id": "wat",
+        "name": "Bramwell Water",
+        "region": "North, Central and South regions",
+        "commission": "State drinking water and wastewater regulators in three states"
+      },
+      {
+        "id": "haz",
+        "name": "Bramwell Hazardous Waste",
+        "region": "North, Central and South regions",
+        "commission": "Hazardous waste facility permits (federal and state)"
+      },
+      {
+        "id": "ene",
+        "name": "Bramwell Energy",
+        "region": "North, Central and South regions",
+        "commission": "Air permits; not rate-regulated"
+      },
+      {
+        "id": "grp",
+        "name": "Group Procurement and Shared Services",
+        "region": "Three distribution centers: North, Central, South",
+        "commission": "No regulator"
+      }
+    ],
+    "people": [
+      {
+        "id": "duarte",
+        "name": "Rafael Duarte",
+        "title": "Head of Supply Chain Planning"
+      },
+      {
+        "id": "marsh",
+        "name": "Helena Marsh",
+        "title": "Chief Procurement Officer"
+      },
+      {
+        "id": "kell",
+        "name": "Adrian Kell",
+        "title": "Chief Financial Officer, chair of the Procurement Committee"
+      },
+      {
+        "id": "okoro",
+        "name": "Imani Okoro",
+        "title": "Category Manager, Chemicals"
+      },
+      {
+        "id": "sorensen",
+        "name": "Anika Sorensen",
+        "title": "Buyer, Chemicals"
+      },
+      {
+        "id": "varga",
+        "name": "Leon Varga",
+        "title": "Buyer, MRO and Spares"
+      },
+      {
+        "id": "lindahl",
+        "name": "Greta Lindahl",
+        "title": "Plant Manager, Fenmoor Water Treatment Works"
+      },
+      {
+        "id": "wierzbicki",
+        "name": "Tomasz Wierzbicki",
+        "title": "Outage Manager, Ravensworth Incinerator"
+      },
+      {
+        "id": "tanaka",
+        "name": "Mei Tanaka",
+        "title": "Operations Director, Energy"
+      },
+      {
+        "id": "asante",
+        "name": "Kwame Asante",
+        "title": "Accounts Payable Lead"
+      },
+      {
+        "id": "brandt",
+        "name": "Sofia Brandt",
+        "title": "Finance Business Partner, Procurement"
+      },
+      {
+        "id": "calloway",
+        "name": "Ruth Calloway",
+        "title": "Process Safety Manager"
+      }
+    ],
+    "sources": [
+      {
+        "id": "erp",
+        "name": "SAP S/4HANA",
+        "system": "Materials, purchasing, payables, plan",
+        "kind": "ERP",
+        "state": "connected"
+      },
+      {
+        "id": "srm",
+        "name": "Sourcing and contracts platform",
+        "system": "Contracts, sourcing events, bids, scorecards",
+        "kind": "Procurement",
+        "state": "connected"
+      },
+      {
+        "id": "ops",
+        "name": "Operations data",
+        "system": "Businesses, sites, work orders, outages, dosing plans",
+        "kind": "Warehouse",
+        "state": "connected"
+      },
+      {
+        "id": "onedrive",
+        "name": "OneDrive · Supply Chain",
+        "system": "Documents",
+        "kind": "Documents",
+        "state": "connected"
+      },
+      {
+        "id": "outlook",
+        "name": "Outlook · supply chain mailbox",
+        "system": "Mail",
+        "kind": "Mail",
+        "state": "connected"
+      },
+      {
+        "id": "carrier",
+        "name": "Carrier tracking",
+        "system": "Shipments and arrival estimates",
+        "kind": "Logistics",
+        "state": "missing"
+      },
+      {
+        "id": "risk",
+        "name": "Supplier risk ratings",
+        "system": "Financial and continuity scores",
+        "kind": "External",
+        "state": "missing"
+      },
+      {
+        "id": "index",
+        "name": "Market price indices",
+        "system": "Chemical, steel and fuel indices",
+        "kind": "External",
+        "state": "missing"
+      }
+    ],
+    "data_objects": {
+      "mm.material": {
+        "src": "erp",
+        "label": "mm.material",
+        "type": "table",
+        "size": "2,366 rows · one material",
+        "lane": "structured"
+      },
+      "mm.plant_stock": {
+        "src": "erp",
+        "label": "mm.plant_stock",
+        "type": "table",
+        "size": "1,284,600 rows · one site x material x snapshot date",
+        "lane": "structured"
+      },
+      "mm.stock_movement": {
+        "src": "erp",
+        "label": "mm.stock_movement",
+        "type": "table",
+        "size": "3,912,400 rows · one goods movement",
+        "lane": "structured"
+      },
+      "mm.reservation": {
+        "src": "erp",
+        "label": "mm.reservation",
+        "type": "table",
+        "size": "96,400 rows · one reservation line",
+        "lane": "structured"
+      },
+      "pur.po_line": {
+        "src": "erp",
+        "label": "pur.po_line",
+        "type": "table",
+        "size": "412,880 rows · one purchase order line",
+        "lane": "structured"
+      },
+      "pur.goods_receipt": {
+        "src": "erp",
+        "label": "pur.goods_receipt",
+        "type": "table",
+        "size": "398,110 rows · one goods receipt line",
+        "lane": "structured"
+      },
+      "pur.vendor": {
+        "src": "erp",
+        "label": "pur.vendor",
+        "type": "table",
+        "size": "1,846 rows · one vendor",
+        "lane": "structured"
+      },
+      "ap.invoice_line": {
+        "src": "erp",
+        "label": "ap.invoice_line",
+        "type": "table",
+        "size": "288,400 rows · one invoice line",
+        "lane": "structured"
+      },
+      "ap.match_exception": {
+        "src": "erp",
+        "label": "ap.match_exception",
+        "type": "table",
+        "size": "3,912 rows · one exception",
+        "lane": "structured"
+      },
+      "fin.spend_plan": {
+        "src": "erp",
+        "label": "fin.spend_plan",
+        "type": "table",
+        "size": "588 rows · one business x category x month",
+        "lane": "structured"
+      },
+      "src.contract": {
+        "src": "srm",
+        "label": "src.contract",
+        "type": "table",
+        "size": "214 rows · one contract",
+        "lane": "structured"
+      },
+      "src.contract_item": {
+        "src": "srm",
+        "label": "src.contract_item",
+        "type": "table",
+        "size": "6,120 rows · one contract x material x validity",
+        "lane": "structured"
+      },
+      "src.sourcing_event": {
+        "src": "srm",
+        "label": "src.sourcing_event",
+        "type": "table",
+        "size": "86 rows · one event",
+        "lane": "structured"
+      },
+      "src.bid": {
+        "src": "srm",
+        "label": "src.bid",
+        "type": "table",
+        "size": "1,940 rows · one event x lot x bidder",
+        "lane": "structured"
+      },
+      "src.supplier_scorecard": {
+        "src": "srm",
+        "label": "src.supplier_scorecard",
+        "type": "table",
+        "size": "1,420 rows · one supplier x quarter",
+        "lane": "structured"
+      },
+      "ops.business": {
+        "src": "ops",
+        "label": "ops.business",
+        "type": "table",
+        "size": "4 rows · one business",
+        "lane": "structured"
+      },
+      "ops.site": {
+        "src": "ops",
+        "label": "ops.site",
+        "type": "table",
+        "size": "36 rows · one site",
+        "lane": "structured"
+      },
+      "ops.work_order": {
+        "src": "ops",
+        "label": "ops.work_order",
+        "type": "table",
+        "size": "41,210 rows · one work order",
+        "lane": "structured"
+      },
+      "ops.outage_plan": {
+        "src": "ops",
+        "label": "ops.outage_plan",
+        "type": "table",
+        "size": "22 rows · one outage",
+        "lane": "structured"
+      },
+      "ops.dosing_plan": {
+        "src": "ops",
+        "label": "ops.dosing_plan",
+        "type": "table",
+        "size": "214 rows · one site x material x plan year",
+        "lane": "structured"
+      },
+      "od.procurement": {
+        "src": "onedrive",
+        "label": "Group procurement: committee packs, policy, plan, savings",
+        "type": "folder",
+        "size": "7 documents",
+        "lane": "documents"
+      },
+      "od.sourcing": {
+        "src": "onedrive",
+        "label": "Chemicals sourcing SE-2026-031: RFP, bids, contracts, notices",
+        "type": "folder",
+        "size": "11 documents",
+        "lane": "documents"
+      },
+      "od.inventory": {
+        "src": "onedrive",
+        "label": "Inventory and critical spares: standard, outage scope, readiness",
+        "type": "folder",
+        "size": "5 documents",
+        "lane": "documents"
+      },
+      "od.performance": {
+        "src": "onedrive",
+        "label": "Supplier performance: scorecards, corrective actions, standard",
+        "type": "folder",
+        "size": "3 documents",
+        "lane": "documents"
+      },
+      "outlook.supply": {
+        "src": "outlook",
+        "label": "Supply chain mailbox",
+        "type": "mailbox",
+        "size": "1 mailbox · 16 threads",
+        "lane": "mail"
+      },
+      "carrier.tracking": {
+        "src": "carrier",
+        "label": "Shipments and arrival estimates",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "risk.ratings": {
+        "src": "risk",
+        "label": "Supplier financial and continuity scores",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "index.prices": {
+        "src": "index",
+        "label": "Chemical, steel and fuel price indices",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      }
+    },
+    "pools_by_role": {
+      "_about": "What New Role steps 4 to 6 offer for each role, computed with the server rule: rows whose domains include the role's domain (domain_of_role), and metrics and questions only for the personas kept (all suggested personas kept here). Ids point into graph_personas, graph_metrics and graph_hero_questions. roles[].metrics and roles[].questions are the role library's own notes and are not what the steps offer.",
+      "sca": {
+        "role": "Supply Chain Analyst",
+        "domain_id": "supply-chain",
+        "counts": {
+          "personas": 17,
+          "metrics": 34,
+          "hero_questions": 45
+        },
+        "personas": [
+          "cpo",
+          "cfo-chair",
+          "sc-planning-head",
+          "category-manager-chem",
+          "category-manager-mro",
+          "buyer",
+          "plant-manager",
+          "outage-manager",
+          "ops-director-energy",
+          "storeroom-lead",
+          "ap-lead",
+          "finance-bp",
+          "process-safety",
+          "business-president",
+          "supplier-quality",
+          "internal-audit",
+          "treasury"
+        ],
+        "metrics": [
+          "third-party-spend",
+          "spend-under-contract",
+          "off-contract-spend",
+          "invoice-price-variance",
+          "savings-vs-target",
+          "supplier-otif",
+          "supplier-lead-time",
+          "late-open-po",
+          "critical-below-safety",
+          "days-of-cover",
+          "stockout-risk",
+          "inventory-value",
+          "slow-moving-stock",
+          "inventory-turns",
+          "transferable-stock",
+          "outage-readiness",
+          "single-source-critical",
+          "contract-expiry-exposure",
+          "bid-landed-cost",
+          "award-saving",
+          "fm-exposure",
+          "spot-premium",
+          "match-exceptions",
+          "after-the-fact-po",
+          "supplier-count-per-category",
+          "payment-terms",
+          "consumption-vs-plan",
+          "forecast-accuracy",
+          "car-open",
+          "expedite-cost",
+          "emergency-buys",
+          "index-linked-spend",
+          "reorder-point-coverage",
+          "price-parity"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq7",
+          "hq8",
+          "hq9",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq14",
+          "hq15",
+          "hq16",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq20",
+          "hq21",
+          "hq22",
+          "hq23",
+          "hq24",
+          "hq25",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq29",
+          "hq30",
+          "hq31",
+          "hq32",
+          "hq33",
+          "hq34",
+          "hq35",
+          "hq36",
+          "hq37",
+          "hq38",
+          "hq39",
+          "hq40",
+          "hq41",
+          "hq42",
+          "hq43",
+          "hq44",
+          "hq45"
+        ]
+      },
+      "pca": {
+        "role": "Procurement Analyst",
+        "domain_id": "procurement-sourcing",
+        "counts": {
+          "personas": 11,
+          "metrics": 29,
+          "hero_questions": 30
+        },
+        "personas": [
+          "cpo",
+          "cfo-chair",
+          "category-manager-chem",
+          "category-manager-mro",
+          "buyer",
+          "ap-lead",
+          "finance-bp",
+          "business-president",
+          "supplier-quality",
+          "internal-audit",
+          "treasury"
+        ],
+        "metrics": [
+          "third-party-spend",
+          "spend-under-contract",
+          "off-contract-spend",
+          "invoice-price-variance",
+          "savings-vs-target",
+          "supplier-otif",
+          "supplier-lead-time",
+          "late-open-po",
+          "days-of-cover",
+          "stockout-risk",
+          "inventory-value",
+          "slow-moving-stock",
+          "inventory-turns",
+          "single-source-critical",
+          "contract-expiry-exposure",
+          "bid-landed-cost",
+          "award-saving",
+          "fm-exposure",
+          "spot-premium",
+          "match-exceptions",
+          "after-the-fact-po",
+          "supplier-count-per-category",
+          "payment-terms",
+          "consumption-vs-plan",
+          "car-open",
+          "expedite-cost",
+          "emergency-buys",
+          "index-linked-spend",
+          "price-parity"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq13",
+          "hq15",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq20",
+          "hq21",
+          "hq22",
+          "hq23",
+          "hq24",
+          "hq25",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq30",
+          "hq31",
+          "hq32",
+          "hq35",
+          "hq36",
+          "hq39",
+          "hq40",
+          "hq42",
+          "hq43",
+          "hq44"
+        ]
+      },
+      "inv": {
+        "role": "Inventory Planner",
+        "domain_id": "inventory-spares",
+        "counts": {
+          "personas": 12,
+          "metrics": 31,
+          "hero_questions": 20
+        },
+        "personas": [
+          "sc-planning-head",
+          "category-manager-chem",
+          "category-manager-mro",
+          "buyer",
+          "plant-manager",
+          "outage-manager",
+          "ops-director-energy",
+          "storeroom-lead",
+          "finance-bp",
+          "process-safety",
+          "supplier-quality",
+          "treasury"
+        ],
+        "metrics": [
+          "third-party-spend",
+          "spend-under-contract",
+          "off-contract-spend",
+          "invoice-price-variance",
+          "savings-vs-target",
+          "supplier-otif",
+          "supplier-lead-time",
+          "late-open-po",
+          "critical-below-safety",
+          "days-of-cover",
+          "stockout-risk",
+          "inventory-value",
+          "slow-moving-stock",
+          "inventory-turns",
+          "transferable-stock",
+          "outage-readiness",
+          "single-source-critical",
+          "contract-expiry-exposure",
+          "bid-landed-cost",
+          "award-saving",
+          "fm-exposure",
+          "spot-premium",
+          "supplier-count-per-category",
+          "payment-terms",
+          "consumption-vs-plan",
+          "forecast-accuracy",
+          "car-open",
+          "expedite-cost",
+          "index-linked-spend",
+          "reorder-point-coverage",
+          "price-parity"
+        ],
+        "hero_questions": [
+          "hq7",
+          "hq8",
+          "hq9",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq14",
+          "hq15",
+          "hq16",
+          "hq19",
+          "hq20",
+          "hq25",
+          "hq29",
+          "hq33",
+          "hq34",
+          "hq37",
+          "hq38",
+          "hq41",
+          "hq45"
+        ]
+      },
+      "fa": {
+        "role": "Financial Analyst",
+        "domain_id": "supply-chain",
+        "counts": {
+          "personas": 17,
+          "metrics": 34,
+          "hero_questions": 45
+        },
+        "personas": [
+          "cpo",
+          "cfo-chair",
+          "sc-planning-head",
+          "category-manager-chem",
+          "category-manager-mro",
+          "buyer",
+          "plant-manager",
+          "outage-manager",
+          "ops-director-energy",
+          "storeroom-lead",
+          "ap-lead",
+          "finance-bp",
+          "process-safety",
+          "business-president",
+          "supplier-quality",
+          "internal-audit",
+          "treasury"
+        ],
+        "metrics": [
+          "third-party-spend",
+          "spend-under-contract",
+          "off-contract-spend",
+          "invoice-price-variance",
+          "savings-vs-target",
+          "supplier-otif",
+          "supplier-lead-time",
+          "late-open-po",
+          "critical-below-safety",
+          "days-of-cover",
+          "stockout-risk",
+          "inventory-value",
+          "slow-moving-stock",
+          "inventory-turns",
+          "transferable-stock",
+          "outage-readiness",
+          "single-source-critical",
+          "contract-expiry-exposure",
+          "bid-landed-cost",
+          "award-saving",
+          "fm-exposure",
+          "spot-premium",
+          "match-exceptions",
+          "after-the-fact-po",
+          "supplier-count-per-category",
+          "payment-terms",
+          "consumption-vs-plan",
+          "forecast-accuracy",
+          "car-open",
+          "expedite-cost",
+          "emergency-buys",
+          "index-linked-spend",
+          "reorder-point-coverage",
+          "price-parity"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq7",
+          "hq8",
+          "hq9",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq14",
+          "hq15",
+          "hq16",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq20",
+          "hq21",
+          "hq22",
+          "hq23",
+          "hq24",
+          "hq25",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq29",
+          "hq30",
+          "hq31",
+          "hq32",
+          "hq33",
+          "hq34",
+          "hq35",
+          "hq36",
+          "hq37",
+          "hq38",
+          "hq39",
+          "hq40",
+          "hq41",
+          "hq42",
+          "hq43",
+          "hq44",
+          "hq45"
+        ]
+      }
+    }
+  },
+  "document_readings": {
+    "_about": "What each job description in uploads/01_new_role actually says, as the New Role step 2 shows it. It is not in the merged db.",
+    "readings": [
+      {
+        "file": "Bramwell_Job_Description_Supply_Chain_Analyst.pdf",
+        "role_id": "sca",
+        "role": "Supply Chain Analyst",
+        "pages": 4,
+        "findings": [
+          {
+            "id": "j1",
+            "kind": "confirm",
+            "text": "Confirms 7 of your 8 areas: spend, sourcing, inventory, chemicals, outages, supplier performance and reporting.",
+            "quote": "“Analyses spend, stock and supplier performance across the three businesses and supports sourcing events and the Procurement Committee.”"
+          },
+          {
+            "id": "j2",
+            "kind": "task",
+            "area": "chem",
+            "text": "Add a task to Treatment chemical continuity: check tank capacity with Process Safety before a spot delivery.",
+            "quote": "“Confirms with Process Safety that a spot or transferred chemical delivery fits the receiving tank before it is booked.”",
+            "value": "Check tank capacity with Process Safety before a spot delivery"
+          },
+          {
+            "id": "j3",
+            "kind": "scope",
+            "area": "savings",
+            "text": "Take Savings program out of scope. Finance owns the savings register; the analyst supplies the evidence for each line.",
+            "quote": "“The savings register is kept by the Finance Business Partner; the analyst provides the order or contract that evidences each saving.”",
+            "reason": "Done by another team"
+          },
+          {
+            "id": "j4",
+            "kind": "threshold",
+            "metric": "m3",
+            "area": "spend",
+            "text": "Set the threshold on Leakage: any off-contract line above $25,000 without three quotes is reported.",
+            "quote": "§3.4 “Any order placed off contract above $25,000 without three quotes on file is reported to the Category Manager the same week.”",
+            "value": "Any line above $25,000 without three quotes"
+          },
+          {
+            "id": "j5",
+            "kind": "routine",
+            "area": "outage",
+            "text": "Add a routine: weekly readiness call with the outage manager for the six weeks before each planned outage.",
+            "quote": "“For the six weeks before a planned outage, joins the weekly readiness call with the outage manager.”",
+            "routine": {
+              "id": "r_jd1",
+              "area": "outage",
+              "name": "Outage readiness call",
+              "cadence": "Weekly, six weeks before each outage",
+              "to": "wierzbicki",
+              "output": "Readiness list"
+            }
+          },
+          {
+            "id": "j6",
+            "kind": "people",
+            "text": "Add Ruth Calloway to the people it works for. The description says chemical deliveries are agreed with Process Safety.",
+            "quote": "“Works with the Process Safety Manager on chemical storage limits.”",
+            "person": "calloway"
+          }
+        ],
+        "source": "uploads/01_new_role/Bramwell_Job_Description_Supply_Chain_Analyst.pdf"
+      },
+      {
+        "file": "Bramwell_Job_Description_Procurement_Analyst.pdf",
+        "role_id": "pca",
+        "role": "Procurement Analyst",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "pj1",
+            "kind": "confirm",
+            "text": "Confirms all 3 of your areas.",
+            "quote": "“Analyses spend, runs bid comparisons and reports contract compliance.”"
+          },
+          {
+            "id": "pj2",
+            "kind": "task",
+            "area": "events",
+            "text": "Add a task to Sourcing events: keep the freight rate card current before each event.",
+            "quote": "“Keeps the freight rate card current before each sourcing event.”",
+            "value": "Keep the freight rate card current"
+          }
+        ],
+        "source": "uploads/01_new_role/Bramwell_Job_Description_Procurement_Analyst.pdf"
+      },
+      {
+        "file": "Bramwell_Job_Description_Inventory_Planner.pdf",
+        "role_id": "inv",
+        "role": "Inventory Planner",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "ij1",
+            "kind": "confirm",
+            "text": "Confirms all 3 of your areas.",
+            "quote": "“Sets stock levels, clears slow-moving stock and measures storeroom performance.”"
+          },
+          {
+            "id": "ij2",
+            "kind": "task",
+            "area": "store",
+            "text": "Add a task to Storeroom performance: run the annual wall-to-wall count at the distribution centers.",
+            "quote": "“Runs the annual wall-to-wall count at the three distribution centers.”",
+            "value": "Annual wall-to-wall count at the distribution centers"
+          }
+        ],
+        "source": "uploads/01_new_role/Bramwell_Job_Description_Inventory_Planner.pdf"
+      },
+      {
+        "file": "Bramwell_Job_Description_Financial_Analyst.pdf",
+        "role_id": "fa",
+        "role": "Financial Analyst",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "fj1",
+            "kind": "confirm",
+            "text": "Confirms all 3 of your areas.",
+            "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+          },
+          {
+            "id": "fj2",
+            "kind": "task",
+            "area": "close",
+            "text": "Add a task to Month-end variance analysis: reconcile chemical and fuel costs to plant usage.",
+            "quote": "“Reconciles chemical and fuel costs to plant usage monthly.”",
+            "value": "Reconcile chemical and fuel costs to usage"
+          }
+        ],
+        "source": "uploads/01_new_role/Bramwell_Job_Description_Financial_Analyst.pdf"
+      }
+    ]
+  }
+}

@@ -94,6 +94,7 @@ import {
   containerProxy,
   DATASET_HEADER,
   DATASETS,
+  datasetLabel,
   documentProxy,
   mergeDocs,
   PRIMARY,
@@ -129,6 +130,7 @@ import {
 } from './studioLanes.js'
 import { loadCapexDocument } from './capex-loader.js'
 import { loadKeolisDocument } from './keolis-loader.js'
+import { loadSupplychainDocument } from './supplychain-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -290,6 +292,15 @@ const loadedDocs = await Promise.all(
         console.error(`\nmock-server: refusing to start — cannot load KEOLIS split files.`)
         console.error(`  · ${error.message}`)
         console.error(`\n  Rebuild the split files from the demo package:\n      npm run ingest:keolis\n`)
+        process.exit(1)
+      })
+    }
+    /* SUPPLYCHAIN (Supply Chain Analyst) loads from split files in supplychain/, written by the ingest */
+    if (name === 'SUPPLYCHAIN') {
+      return loadSupplychainDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load SUPPLYCHAIN split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Rebuild the split files from the package:\n      npm run ingest:supplychain\n`)
         process.exit(1)
       })
     }
@@ -7144,6 +7155,9 @@ const REPORT_LABEL_KEY = {
   quarters: 'quarter',
   traces: 'mtn',
   projects: 'n',
+  /* Supply Chain Analyst's reports are rendered documents, so its `positions` roster is empty and the
+     label column is declared for the validator's sake only — the same arrangement as CAPEX's `projects`. */
+  positions: 'n',
 }
 
 /*
@@ -10742,7 +10756,7 @@ const routes = [
       send(res, 200, {
         datasets: DATASETS.map((name) => ({
           dataset: name,
-          label: name,
+          label: datasetLabel(name),
           primary: name === PRIMARY,
           ref: DB_PATHS[name],
           store: storeKind(DB_PATHS[name]),

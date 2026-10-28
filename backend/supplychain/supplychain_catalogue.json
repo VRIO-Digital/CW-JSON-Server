@@ -1,0 +1,839 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "contract_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.96
+    },
+    {
+      "name": "event_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "material_code",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "document_title",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.93
+    },
+    {
+      "name": "document_type",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.91
+    },
+    {
+      "name": "revision",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.88
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.87
+    },
+    {
+      "name": "signed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "party_buyer",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.92
+    },
+    {
+      "name": "supplier_name",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.93
+    },
+    {
+      "name": "clause_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.86
+    },
+    {
+      "name": "site_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "amount_usd",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.87
+    },
+    {
+      "name": "price_per_unit_usd",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.88
+    },
+    {
+      "name": "amount_basis",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.8
+    },
+    {
+      "name": "volume_tons",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.85
+    },
+    {
+      "name": "notice_days",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.83
+    },
+    {
+      "name": "status_stated",
+      "type": "string",
+      "class": "lifecycle_state",
+      "confidence": 0.82
+    },
+    {
+      "name": "allocation_pct",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.84
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "author_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.88,
+      "pii": true
+    },
+    {
+      "name": "statement_kind",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.79
+    }
+  ],
+  "data_model": {
+    "suggestions": [
+      {
+        "suggestion_id": "sg_bw_allocation_receipt",
+        "from_table_key": "pur.po_line",
+        "from_column": "vendor_id",
+        "to_table_key": "src.contract",
+        "to_column": "vendor_id",
+        "relationship_type": "ALLOCATED_UNDER",
+        "relationship_type_alternatives": [
+          "CONSTRAINED_BY"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "Corrigan's ferric lines since 12 October ship at 60% under a force majeure the contract table does not hold as a state; the allocation lives in a notice. The join is on vendor only, so it cannot say which lines are allocated.",
+        "confidence": 0.64
+      },
+      {
+        "suggestion_id": "sg_bw_reservation_receipt",
+        "from_table_key": "mm.reservation",
+        "from_column": "material_code",
+        "to_table_key": "pur.po_line",
+        "to_column": "material_code",
+        "relationship_type": "FULFILLED_BY",
+        "relationship_type_alternatives": [
+          "AWAITS"
+        ],
+        "cardinality_hint": "N:N",
+        "rationale": "A reservation is met from stock or from an open order line for the same material and site; nothing names which line is meant for which reservation, so the join is at material and site.",
+        "confidence": 0.72
+      },
+      {
+        "suggestion_id": "sg_bw_bid_contract",
+        "from_table_key": "src.bid",
+        "from_column": "material_code",
+        "to_table_key": "src.contract_item",
+        "to_column": "material_code",
+        "relationship_type": "COMPARED_WITH",
+        "relationship_type_alternatives": [
+          "REPLACES"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "A bid is compared with the expiring contract price for the same material; the bid carries freight separately while some contract prices are delivered, so the comparison is only like for like on landed cost.",
+        "confidence": 0.69
+      },
+      {
+        "suggestion_id": "sg_bw_dosing_stock",
+        "from_table_key": "ops.dosing_plan",
+        "from_column": "site_code",
+        "to_table_key": "mm.plant_stock",
+        "to_column": "site_code",
+        "relationship_type": "SETS_USE_FOR",
+        "relationship_type_alternatives": [
+          "PLANS"
+        ],
+        "cardinality_hint": "1:N",
+        "rationale": "Daily use on stock comes from the run rate, not the plan; using the plan for days of cover would change the safety stock of every Energy site, whose plans are a year old.",
+        "confidence": 0.61
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "ent-mm-material-bw11c72",
+        "confirmed_by": null,
+        "table_key": "mm.material",
+        "entity_name": "material",
+        "description": "Entity for material, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T09:00:12.000Z"
+      },
+      {
+        "entity_id": "ent-mm-plant-stock-bw62005",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "mm.plant_stock",
+        "entity_name": "plant_stock",
+        "description": "Entity for plant_stock, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.site",
+            "from_columns": [
+              "site_code"
+            ],
+            "to_columns": [
+              "site_code"
+            ],
+            "relationship_type": "HELD_AT",
+            "cardinality_hint": "N:1",
+            "rationale": "Stock is held at one site.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "mm.material",
+            "from_columns": [
+              "material_code"
+            ],
+            "to_columns": [
+              "material_code"
+            ],
+            "relationship_type": "OF_MATERIAL",
+            "cardinality_hint": "N:1",
+            "rationale": "Stock is of one material.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T10:07:12.000Z"
+      },
+      {
+        "entity_id": "ent-mm-stock-movement-bw2a010",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "mm.stock_movement",
+        "entity_name": "stock_movement",
+        "description": "Entity for stock_movement, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "mm.material",
+            "from_columns": [
+              "material_code"
+            ],
+            "to_columns": [
+              "material_code"
+            ],
+            "relationship_type": "MOVES",
+            "cardinality_hint": "N:1",
+            "rationale": "Movements name the material.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T11:14:12.000Z"
+      },
+      {
+        "entity_id": "ent-mm-reservation-bwe709a",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "mm.reservation",
+        "entity_name": "reservation",
+        "description": "Entity for reservation, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.work_order",
+            "from_columns": [
+              "work_order"
+            ],
+            "to_columns": [
+              "work_order"
+            ],
+            "relationship_type": "RESERVED_FOR",
+            "cardinality_hint": "N:1",
+            "rationale": "A reservation line belongs to one work order.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T12:21:12.000Z"
+      },
+      {
+        "entity_id": "ent-pur-po-line-bw25c90",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "pur.po_line",
+        "entity_name": "po_line",
+        "description": "Entity for po_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.site",
+            "from_columns": [
+              "site_code"
+            ],
+            "to_columns": [
+              "site_code"
+            ],
+            "relationship_type": "DELIVERED_TO",
+            "cardinality_hint": "N:1",
+            "rationale": "Order lines name the site they deliver to; business_code on the line is the site's business.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "mm.material",
+            "from_columns": [
+              "material_code"
+            ],
+            "to_columns": [
+              "material_code"
+            ],
+            "relationship_type": "ORDERS",
+            "cardinality_hint": "N:1",
+            "rationale": "Material lines name the material; service lines carry none.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pur.vendor",
+            "from_columns": [
+              "vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "ORDERED_FROM",
+            "cardinality_hint": "N:1",
+            "rationale": "Vendor on the order.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "src.contract",
+            "from_columns": [
+              "contract_no"
+            ],
+            "to_columns": [
+              "contract_no"
+            ],
+            "relationship_type": "ORDERED_UNDER",
+            "cardinality_hint": "N:1",
+            "rationale": "Lines ordered on a contract carry its number; a line off contract carries none.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T13:28:12.000Z"
+      },
+      {
+        "entity_id": "ent-pur-goods-receipt-bw739d8",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "pur.goods_receipt",
+        "entity_name": "goods_receipt",
+        "description": "Entity for goods_receipt, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pur.po_line",
+            "from_columns": [
+              "po_number"
+            ],
+            "to_columns": [
+              "po_number"
+            ],
+            "relationship_type": "RECEIVES",
+            "cardinality_hint": "N:1",
+            "rationale": "Receipts post against order lines.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T14:35:12.000Z"
+      },
+      {
+        "entity_id": "ent-pur-vendor-bwd4848",
+        "confirmed_by": null,
+        "table_key": "pur.vendor",
+        "entity_name": "vendor",
+        "description": "Entity for vendor, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T15:42:12.000Z"
+      },
+      {
+        "entity_id": "ent-ap-invoice-line-bw19ef5",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "ap.invoice_line",
+        "entity_name": "invoice_line",
+        "description": "Entity for invoice_line, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pur.po_line",
+            "from_columns": [
+              "po_number"
+            ],
+            "to_columns": [
+              "po_number"
+            ],
+            "relationship_type": "BILLS",
+            "cardinality_hint": "N:1",
+            "rationale": "Invoice lines match order lines; 0.7% carry no order (no-PO invoices).",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T16:49:12.000Z"
+      },
+      {
+        "entity_id": "ent-ap-match-exception-bw29a75",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "ap.match_exception",
+        "entity_name": "match_exception",
+        "description": "Entity for match_exception, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ap.invoice_line",
+            "from_columns": [
+              "invoice_no"
+            ],
+            "to_columns": [
+              "invoice_no"
+            ],
+            "relationship_type": "RAISED_ON",
+            "cardinality_hint": "N:1",
+            "rationale": "An exception is raised on one invoice line.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T09:56:12.000Z"
+      },
+      {
+        "entity_id": "ent-fin-spend-plan-bw105d1",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "fin.spend_plan",
+        "entity_name": "spend_plan",
+        "description": "Entity for spend_plan, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.business",
+            "from_columns": [
+              "business_code"
+            ],
+            "to_columns": [
+              "business_code"
+            ],
+            "relationship_type": "PLANS_FOR",
+            "cardinality_hint": "N:1",
+            "rationale": "The plan is by business, category and month.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T10:03:12.000Z"
+      },
+      {
+        "entity_id": "ent-src-contract-bw68f21",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "src.contract",
+        "entity_name": "contract",
+        "description": "Entity for contract, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "src.contract_item",
+            "from_columns": [
+              "contract_no"
+            ],
+            "to_columns": [
+              "contract_no"
+            ],
+            "relationship_type": "PRICES",
+            "cardinality_hint": "1:N",
+            "rationale": "A contract has one price per material and validity period.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pur.vendor",
+            "from_columns": [
+              "vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "AWARDED_TO",
+            "cardinality_hint": "N:1",
+            "rationale": "A contract is with one vendor id; a duplicate vendor record of the same company is not covered.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T11:10:12.000Z"
+      },
+      {
+        "entity_id": "ent-src-contract-item-bw8f5a6",
+        "confirmed_by": null,
+        "table_key": "src.contract_item",
+        "entity_name": "contract_item",
+        "description": "Entity for contract_item, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T12:17:12.000Z"
+      },
+      {
+        "entity_id": "ent-src-sourcing-event-bw7042a",
+        "confirmed_by": null,
+        "table_key": "src.sourcing_event",
+        "entity_name": "sourcing_event",
+        "description": "Entity for sourcing_event, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T13:24:12.000Z"
+      },
+      {
+        "entity_id": "ent-src-bid-bwac9f2",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "src.bid",
+        "entity_name": "bid",
+        "description": "Entity for bid, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "src.sourcing_event",
+            "from_columns": [
+              "event_id"
+            ],
+            "to_columns": [
+              "event_id"
+            ],
+            "relationship_type": "BID_IN",
+            "cardinality_hint": "N:1",
+            "rationale": "Bids belong to one event and lot.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "pur.vendor",
+            "from_columns": [
+              "bidder_vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "BID_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "Bidders are vendors; a new bidder gets a vendor id when it registers.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T14:31:12.000Z"
+      },
+      {
+        "entity_id": "ent-src-supplier-scorecard-bwe3321",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "src.supplier_scorecard",
+        "entity_name": "supplier_scorecard",
+        "description": "Entity for supplier_scorecard, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "pur.vendor",
+            "from_columns": [
+              "vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "SCORES",
+            "cardinality_hint": "N:1",
+            "rationale": "One scorecard per vendor and quarter.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T15:38:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-business-bw99c49",
+        "confirmed_by": null,
+        "table_key": "ops.business",
+        "entity_name": "business",
+        "description": "Entity for business, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T16:45:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-site-bw07c25",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "ops.site",
+        "entity_name": "site",
+        "description": "Entity for site, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.business",
+            "from_columns": [
+              "business_code"
+            ],
+            "to_columns": [
+              "business_code"
+            ],
+            "relationship_type": "RUN_BY",
+            "cardinality_hint": "N:1",
+            "rationale": "Each site belongs to one business.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T09:52:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-work-order-bw81938",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "ops.work_order",
+        "entity_name": "work_order",
+        "description": "Entity for work_order, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.outage_plan",
+            "from_columns": [
+              "outage_id"
+            ],
+            "to_columns": [
+              "outage_id"
+            ],
+            "relationship_type": "PART_OF",
+            "cardinality_hint": "N:1",
+            "rationale": "Outage work orders name the outage; routine work carries none.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-22T10:59:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-outage-plan-bw6af13",
+        "confirmed_by": null,
+        "table_key": "ops.outage_plan",
+        "entity_name": "outage_plan",
+        "description": "Entity for outage_plan, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-10-20T11:06:12.000Z"
+      },
+      {
+        "entity_id": "ent-ops-dosing-plan-bwdf30b",
+        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "table_key": "ops.dosing_plan",
+        "entity_name": "dosing_plan",
+        "description": "Entity for dosing_plan, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "mm.material",
+            "from_columns": [
+              "material_code"
+            ],
+            "to_columns": [
+              "material_code"
+            ],
+            "relationship_type": "PLANS_USE_OF",
+            "cardinality_hint": "N:1",
+            "rationale": "Dosing plans name the chemical's material number.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-10-21T12:13:12.000Z"
+      }
+    ]
+  },
+  "change_signals": [
+    {
+      "signal_id": "sig-bw-01",
+      "kind": "missing_instances",
+      "severity": "serious",
+      "dataset": "g_bw_supply_chain_analyst",
+      "table": "Carrier tracking is not connected",
+      "detail": "Shipment positions and arrival estimates cannot be read. Arrival questions are declined; the supplier's promised date on the order line is answered instead.",
+      "action": "Never infer an arrival from a promised date or a mail.",
+      "detected": "2026-10-22"
+    },
+    {
+      "signal_id": "sig-bw-02",
+      "kind": "missing_instances",
+      "severity": "serious",
+      "dataset": "g_bw_supply_chain_analyst",
+      "table": "Supplier risk ratings are not connected",
+      "detail": "Financial health and ESG scores of suppliers are not connected. Questions about whether a supplier is sound are declined.",
+      "action": "Do not rank supplier risk by spend or on time in full as a stand-in.",
+      "detected": "2026-10-22"
+    },
+    {
+      "signal_id": "sig-bw-03",
+      "kind": "stale_source",
+      "severity": "warning",
+      "dataset": "ops.dosing_plan",
+      "table": "Energy dosing plans are the November 2025 vintage",
+      "detail": "Water and Hazardous Waste refreshed their 2027 plans on 18 September 2026; Energy has not, and will refresh after the Harlow outage in March 2027.",
+      "action": "Mark Energy volumes as provisional with their date; never present them as refreshed.",
+      "detected": "2026-10-15"
+    },
+    {
+      "signal_id": "sig-bw-04",
+      "kind": "shallow_chain",
+      "severity": "warning",
+      "dataset": "pur.vendor",
+      "table": "Duplicate vendor records",
+      "detail": "Pemberton Process Chemicals is V10031 and V10032 with one tax number; spot orders on V10032 sit outside the contract.",
+      "action": "Keep the two ids apart in every count until procurement merges them.",
+      "detected": "2026-10-08"
+    },
+    {
+      "signal_id": "sig-bw-05",
+      "kind": "sampling_limit",
+      "severity": "warning",
+      "dataset": "mm.plant_stock",
+      "table": "Critical positions without a reorder point",
+      "detail": "3.1% of class A positions have no reorder point; they are tested against safety stock only.",
+      "action": "Do not treat a missing reorder point as zero.",
+      "detected": "2026-10-22"
+    }
+  ],
+  "_meta": {
+    "package": "supply_chain_analyst_demo_data_package_2026-10-27",
+    "tenant": "Bramwell Environmental Group (invented - a water, hazardous waste and energy group with group procurement; every figure is invented)",
+    "schema_source": "the development team’s db.CAPEX.json key set and field shapes, as carried by the reference packages of 2026-09-24 and 2026-10-12",
+    "generated_by": "_build/build_platform.py",
+    "as_of": "2026-10-27",
+    "today": "2026-10-27",
+    "note": "Every value is generated from the datasets in datasets/ and the scripts in _build/. Never hand-edit this file - change the generator and rebuild.",
+    "keys_carried_from_capex_schema": 31
+  },
+  "_provenance": {
+    "google_account": "demo login identity (the presenter); unchanged from the existing datasets",
+    "auth_roles": "the four persona roles the app already defines; access notes written for Bramwell Environmental Group",
+    "credentials": "one handle per warehouse source (bramwell_erp, bramwell_srm, bramwell_ops); deterministic",
+    "projects": "gen/gen_graph_supply.py - 3 warehouse sources, 6 datasets, 20 tables; row counts are the invented warehouse’s",
+    "audit": "authored for the demo fortnight (19 to 28 October 2026)",
+    "traces": "sealed traces over recorded answers; stats computed from them",
+    "evals": "computed from ask_answers, the review queue and the sanity checks",
+    "change_signals": "the graph’s own gaps - what the data cannot support, with the do-not clause",
+    "column_profiles": "every column of the 20 tables, with profiler statistics; the dictionaries in uploads/05_data_catalog carry the same columns",
+    "column_vocabulary": "the highest-confidence profiled columns",
+    "document_vocabulary": "the document-corpus profile of the OneDrive source",
+    "drives": "the Supply Chain folder in OneDrive: 6 folders, 31 documents; page, character and chunk counts measured from the rendered files in drive_corpus/",
+    "drive_credentials": "one handle per drive; deterministic",
+    "document_extractions": "_build/extractions_supply.py - what the document graph builder reads from each document, resolved to canvas node ids",
+    "graph_domains": "domains ranked by what the connected data supports",
+    "graph_studio": "_build/graph_supply.py canvas (concepts, thin instances, measures; spring layout seed 7) + 8 review items with 1 pivot + 5 sanity checks",
+    "graph_personas": "the personas of the Supply Chain Analyst role; top_questions are the hero ids each one asks",
+    "graph_hero_questions": "every question the Ask answers carry (HQ1 to HQ45)",
+    "graph_answer_formats": "the block mixes the answers use",
+    "graph_use_cases": "the one committed role - Supply Chain Analyst for Bramwell Environmental Group",
+    "graph_use_case_templates": "assembled from the ids above",
+    "ask_answers": "_build/answers_supply.py - 49 recorded answers (HQ1 to HQ45 and four extra declines Q46 to Q49); every figure computed from the datasets",
+    "reports": "_build/gov_supply.py - three reports and their governance; Reports is hidden from the sidebar for every persona, but governance feeds Audit & Governance",
+    "settings": "the eight demo users (all on the demo login domain) and the nav permissions the app uses today (Reports hidden)",
+    "reports_prototype": "the Authoring tab fixture - the twelve suppliers taking the most off-contract spend where a contract covers the item, in USD millions",
+    "data_model": "declared relationships between the tables, confirmed by the presenter, plus open suggestions",
+    "graph_metrics": "the governed measures of the Supply Chain Analyst role",
+    "mail_corpus": "the supply chain mailbox - 22 messages in 16 threads (mailbox_export/)",
+    "studio_graph": "the as-built graph-version shape: structured lane over the selected tables, document lane extracted from the corpus, Bridge type links"
+  }
+}

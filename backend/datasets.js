@@ -36,7 +36,11 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['CAPEX', 'KEOLIS']
+export const DATASETS = ['CAPEX', 'KEOLIS', 'SUPPLYCHAIN']
+
+/** What the Settings dataset picker prints for a dataset, where its name is not a readable label. */
+export const DATASET_LABELS = { SUPPLYCHAIN: 'Supply Chain Analyst' }
+export const datasetLabel = (name) => DATASET_LABELS[name] ?? name
 export const PRIMARY = 'CAPEX'
 export const BOTH = 'both'
 
@@ -57,7 +61,7 @@ export const BOTH = 'both'
  */
 /* CAPEX joined the Microsoft tenants on request: its connectors are Azure SQL Database, OneDrive and
    Outlook, so its mail corpus is filed under Outlook's folders (`Inbox`, not Gmail's `INBOX`). */
-export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', CAPEX: 'microsoft' }
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', CAPEX: 'microsoft', SUPPLYCHAIN: 'microsoft' }
 export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
 
 /**
@@ -294,6 +298,8 @@ export const MERGE_PLAN = {
           business_units: { union: null },
           regions: { union: null },
           categories: { union: null },
+          /* Supply Chain Analyst's empty spine; its rows live inside its rendered reports. */
+          positions: { union: null },
         },
       },
       reports: { union: 'report_id' },

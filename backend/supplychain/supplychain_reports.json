@@ -1,0 +1,3110 @@
+{
+  "reports": {
+    "meta": {
+      "persona_name": "Sofia Brandt",
+      "persona_role": "Finance Business Partner, Procurement · Bramwell Environmental Group",
+      "persona_initials": "SB",
+      "entity_plural": "suppliers",
+      "scope_line": "the Bramwell supplier panel",
+      "source_trace": "Traces to: bramwell_erp.pur.po_line, bramwell_srm.src.contract, bramwell_erp.ap.invoice_line, bramwell_erp.mm.plant_stock, as of 2026-10-27."
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Supplier",
+        "kind": "text",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "cat",
+        "label": "Category",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "bu",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "phase",
+        "label": "Contract",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "spend",
+        "label": "Spend to September",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "on",
+        "label": "On contract",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "off",
+        "label": "Off contract where covered",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "panel",
+        "label": "all 58 suppliers on the panel"
+      },
+      "measure": {
+        "value": "off",
+        "label": "off-contract spend where a contract covers the item"
+      },
+      "horizon": {
+        "value": "ytd",
+        "label": "January to September 2026"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which suppliers to include?",
+        "options": [
+          {
+            "value": "panel",
+            "label": "all 58 suppliers on the panel",
+            "d": "Everyone with an order this year"
+          },
+          {
+            "value": "contracted",
+            "label": "suppliers with a group contract",
+            "d": "Contracted suppliers only"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Off contract\" measured against?",
+        "options": [
+          {
+            "value": "off",
+            "label": "off-contract spend where a contract covers the item",
+            "d": "Leakage, policy section 3"
+          },
+          {
+            "value": "all",
+            "label": "all spend without a contract",
+            "d": "Including uncovered categories"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "ytd",
+            "label": "January to September 2026",
+            "d": "Order date"
+          },
+          {
+            "value": "q3",
+            "label": "Third quarter",
+            "d": "July to September"
+          }
+        ]
+      }
+    },
+    "slice_default": [
+      "bu",
+      "cat",
+      "phase"
+    ],
+    "summary_catalog": [
+      {
+        "key": "count",
+        "label": "suppliers in view",
+        "tone": null,
+        "agg": "rows",
+        "field": null,
+        "format": "int",
+        "def": "Suppliers the scope admits",
+        "scope_class": "count"
+      },
+      {
+        "key": "spend",
+        "label": "spend to September",
+        "tone": null,
+        "agg": "sum",
+        "field": "spend",
+        "format": "money_m",
+        "def": "Order lines January to September",
+        "scope_class": "sum"
+      },
+      {
+        "key": "off",
+        "label": "off contract where covered",
+        "tone": "warn",
+        "agg": "sum",
+        "field": "off",
+        "format": "money_m",
+        "def": "Leakage",
+        "scope_class": "sum"
+      },
+      {
+        "key": "over10",
+        "label": "suppliers leaking above 10%",
+        "tone": "crit",
+        "agg": "count_eq",
+        "field": "status",
+        "format": "int",
+        "def": "Off-contract share above 10%",
+        "scope_class": "count"
+      }
+    ],
+    "summary_default": [],
+    "data": {
+      "projects": [
+        {
+          "n": "Penrose Fasteners and Tools",
+          "reg": "North",
+          "cat": "MRO consumables",
+          "bu": "Water",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Allbright Maintenance Products",
+          "reg": "Central",
+          "cat": "MRO consumables",
+          "bu": "Water",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Ridgecrest Waterworks Supply",
+          "reg": "South",
+          "cat": "Pipe, fittings and network materials",
+          "bu": "Water",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Greenwood Biomass Cooperative",
+          "reg": "Central",
+          "cat": "Fuels: natural gas, diesel and biomass",
+          "bu": "Energy",
+          "phase": "On contract",
+          "comp": "On contract"
+        },
+        {
+          "n": "Ironclad Workwear",
+          "reg": "Central",
+          "cat": "Safety equipment and PPE",
+          "bu": "Hazardous Waste",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Drumline Packaging",
+          "reg": "South",
+          "cat": "Containers, drums and packaging",
+          "bu": "Hazardous Waste",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Hartwell Timber Residues",
+          "reg": "North",
+          "cat": "Fuels: natural gas, diesel and biomass",
+          "bu": "Energy",
+          "phase": "No contract",
+          "comp": "No contract"
+        },
+        {
+          "n": "Larkspur Energy Marketing",
+          "reg": "Central",
+          "cat": "Fuels: natural gas, diesel and biomass",
+          "bu": "Energy",
+          "phase": "On contract",
+          "comp": "On contract"
+        },
+        {
+          "n": "Harbor Ductile Pipe",
+          "reg": "Central",
+          "cat": "Pipe, fittings and network materials",
+          "bu": "Water",
+          "phase": "On contract",
+          "comp": "On contract"
+        },
+        {
+          "n": "Coastal Fuels Supply",
+          "reg": "South",
+          "cat": "Fuels: natural gas, diesel and biomass",
+          "bu": "Energy",
+          "phase": "On contract",
+          "comp": "On contract"
+        },
+        {
+          "n": "Granite State Industrial",
+          "reg": "North",
+          "cat": "MRO consumables",
+          "bu": "Water",
+          "phase": "On contract",
+          "comp": "On contract"
+        },
+        {
+          "n": "Ashdown Switchgear",
+          "reg": "South",
+          "cat": "Electrical equipment and instrumentation",
+          "bu": "Water",
+          "phase": "No contract",
+          "comp": "No contract"
+        }
+      ],
+      "contracts": [
+        {
+          "id": "pkg_c_chm_2024_02",
+          "no": "C-CHM-2024-02",
+          "project": "cat_chem",
+          "projectCode": "CHEM",
+          "projectName": "Treatment chemicals",
+          "title": "Ferric chloride 40% supply 2024 to 2026",
+          "form": "Group supply agreement",
+          "role": "Supplier",
+          "contractor": "Corrigan Chemical Company",
+          "contractorId": "org_corrigan_chemical_company",
+          "value": null,
+          "effective": "2024-01-01",
+          "doc": "onedrive://Supply Chain/01_Chemicals sourcing SE-2026-031/C-CHM-2024-02.pdf",
+          "documentSource": "src_onedrive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, term, price and index clause read from the cover sheet."
+        },
+        {
+          "id": "pkg_c_chm_2024_03",
+          "no": "C-CHM-2024-03",
+          "project": "cat_chem",
+          "projectCode": "CHEM",
+          "projectName": "Treatment chemicals",
+          "title": "Sodium hydroxide 50% supply 2024 to 2026",
+          "form": "Group supply agreement",
+          "role": "Supplier",
+          "contractor": "Arcadia Alkali Corp",
+          "contractorId": "org_arcadia_alkali_corp",
+          "value": null,
+          "effective": "2024-01-01",
+          "doc": "onedrive://Supply Chain/01_Chemicals sourcing SE-2026-031/C-CHM-2024-03.pdf",
+          "documentSource": "src_onedrive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, term, price and index clause read from the cover sheet."
+        },
+        {
+          "id": "pkg_c_spr_2025_04",
+          "no": "C-SPR-2025-04",
+          "project": "cat_spar",
+          "projectCode": "SPAR",
+          "projectName": "Critical spares and rotating equipment",
+          "title": "Vantor Combustion Systems spares agreement",
+          "form": "Group supply agreement",
+          "role": "Supplier",
+          "contractor": "Vantor Combustion Systems",
+          "contractorId": "org_vantor_combustion_systems",
+          "value": null,
+          "effective": "2025-01-01",
+          "doc": "onedrive://Supply Chain/01_Chemicals sourcing SE-2026-031/C-SPR-2025-04.pdf",
+          "documentSource": "src_onedrive",
+          "resolvedTo": "e_contract",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Supplier, term, price and index clause read from the cover sheet."
+        }
+      ],
+      "changeOrders": [],
+      "business_units": [
+        "WAT - Bramwell Water",
+        "HAZ - Bramwell Hazardous Waste",
+        "ENE - Bramwell Energy",
+        "GRP - Group Procurement and Shared Services"
+      ],
+      "regions": [
+        "Central",
+        "North",
+        "South"
+      ],
+      "categories": [
+        "Treatment chemicals",
+        "Containers, drums and packaging",
+        "Third-party disposal",
+        "Electrical equipment and instrumentation",
+        "Fleet and equipment hire",
+        "Fuels: natural gas, diesel and biomass",
+        "IT and telecoms",
+        "Laboratory services and supplies",
+        "Transport and haulage",
+        "MRO consumables",
+        "Pipe, fittings and network materials",
+        "Safety equipment and PPE",
+        "Professional and engineering services",
+        "Critical spares and rotating equipment"
+      ],
+      "positions": []
+    },
+    "reports": [
+      {
+        "report_id": "rep_bw_procurement",
+        "report_tag": "procurement-position",
+        "subject": "position × business",
+        "title": "Procurement Position",
+        "question": "Show third-party spend against plan, how much is under contract, the leakage where a contract covers the item, and the savings secured.",
+        "spine": "positions",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_spend_under_contract",
+        "measure_label": "Spend under contract",
+        "reading": {
+          "template": "Show third-party spend against plan, how much is under contract, the leakage where a contract covers the item, and the savings secured. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Third-party spend, January to September 2026",
+            "grain": "group",
+            "source": "spend",
+            "figures": [
+              {
+                "key": "posted",
+                "label": "Ordered to September",
+                "measure": "m_third_party_spend",
+                "measureLabel": "Ordered to September",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 1014518815.22,
+                "display": "$1,014.5M",
+                "exact": "$1,014,518,815",
+                "note": null,
+                "prov": "pv_bwaeb2d"
+              },
+              {
+                "key": "plan",
+                "label": "Plan to September",
+                "measure": "m_third_party_spend_plan",
+                "measureLabel": "Plan to September",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 1037460000,
+                "display": "$1,037.5M",
+                "exact": "$1,037,460,000",
+                "note": null,
+                "prov": "pv_bw99956"
+              },
+              {
+                "key": "under",
+                "label": "Under a group contract",
+                "measure": "m_spend_under_contract",
+                "measureLabel": "Under a group contract",
+                "unit": "PCT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 79.0037607115437,
+                "display": "79.0%",
+                "exact": null,
+                "note": null,
+                "prov": "pv_bw30748"
+              },
+              {
+                "key": "leak",
+                "label": "Off contract where one covers the item",
+                "measure": "m_off_contract_spend",
+                "measureLabel": "Off contract where one covers the item",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 92108407.5,
+                "display": "$92.1M",
+                "exact": "$92,108,408",
+                "note": null,
+                "prov": "pv_bw295b8"
+              },
+              {
+                "key": "secured",
+                "label": "Savings secured",
+                "measure": "m_savings_vs_target",
+                "measureLabel": "Savings secured",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 26400000,
+                "display": "$26.4M",
+                "exact": "$26,400,000",
+                "note": null,
+                "prov": "pv_bwc385e"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Order lines by order date; a saving counts once it is in an order or a signed contract.",
+            "combines": false,
+            "combinesNote": "Spend, leakage and savings are different measures and are not added.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 29892,
+              "label": "the 29,892 order lines January to September",
+              "note": "Energy's 2027 dosing plans are November 2025 figures, marked provisional."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Ordered to September as a share of the plan for those months, by business",
+            "grain": "business",
+            "source": "spend",
+            "chartType": "bar",
+            "axis": [
+              "Water",
+              "Hazardous Waste",
+              "Energy",
+              "Group"
+            ],
+            "axisLabel": "percent of plan to September",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "share",
+                "label": "Ordered ÷ plan",
+                "measure": "m_plan_share",
+                "unit": "PCT",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 95.8,
+                    "display": "95.8%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 101.1,
+                    "display": "101.1%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 97.9,
+                    "display": "97.9%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 94.4,
+                    "display": "94.4%",
+                    "unit": "PCT",
+                    "exact": null
+                  }
+                ],
+                "total": null,
+                "noTotal": "Shares per business are not summed."
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": false,
+            "failure": null,
+            "note": "Hazardous Waste is the only business above its plan; Water is furthest under.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 29892,
+              "label": "the 29,892 order lines January to September",
+              "note": "Energy's 2027 dosing plans are November 2025 figures, marked provisional."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "group",
+            "source": "spend",
+            "role": "caveat",
+            "body": "Spend is $22.9M under plan to September. 79.0% is on a group contract, below the 80% the policy aims for; $92.1M went off contract where a contract covers the item, most of it MRO, pipe and fuels. The ferric chloride spot buys under force majeure follow the policy and are shown apart.",
+            "parts": [
+              {
+                "text": "Spend is $22.9M under plan to September. 79.0% is on a group contract, below the 80% the policy aims for; $92.1M went off contract where a contract covers the item, most of it MRO, pipe and fuels. The ferric chloride spot buys under force majeure follow the policy and are shown apart."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 29892,
+              "label": "the 29,892 order lines January to September",
+              "note": "Energy's 2027 dosing plans are November 2025 figures, marked provisional."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this report",
+            "grain": "group",
+            "source": "spend",
+            "suggestions": [
+              "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
+              "Where are we against the FY26 savings target?",
+              "Which invoices were paid above the contract price in the third quarter, and by how much?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_bw_supply_chain_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-10-27T07:00:00Z",
+              "reportId": "rep_bw_procurement"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 29892,
+              "label": "the 29,892 order lines January to September",
+              "note": "Energy's 2027 dosing plans are November 2025 figures, marked provisional."
+            }
+          }
+        ],
+        "heading": "Procurement Position",
+        "subtitle": "Show third-party spend against plan, how much is under contract, the leakage where a contract covers the item, and the savings secured.",
+        "badge": "Group",
+        "note": "Show third-party spend against plan, how much is under contract, the leakage where a contract covers the item, and the savings secured.",
+        "tiles": [
+          {
+            "label": "Ordered to September",
+            "value": "$1,014.5M",
+            "unit": "plan $1,037.5M",
+            "tone": "good",
+            "exact": "$1,014,518,815",
+            "measure": "m_third_party_spend"
+          },
+          {
+            "label": "Under contract",
+            "value": "79.0%",
+            "unit": "policy aims for 80%",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_spend_under_contract"
+          },
+          {
+            "label": "Leakage",
+            "value": "$92.1M",
+            "unit": "where a contract covers the item",
+            "tone": "crit",
+            "exact": "$92,108,408",
+            "measure": "m_off_contract_spend"
+          },
+          {
+            "label": "Savings secured",
+            "value": "$26.4M",
+            "unit": "of $37.2M",
+            "tone": "warn",
+            "exact": "$26,400,000",
+            "measure": "m_savings_vs_target"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-27, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_bw_supply_chain_analyst v1 · role Supply Chain Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "Energy's 2027 dosing plans are November 2025 figures until the refresh after the Harlow outage in March."
+          },
+          {
+            "label": "Served",
+            "text": "Procurement Position · 1 · Marcus Feld (Domain Architect) under Author -- full · 29,892 of 29,892 rows · as of 2026-10-27"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_bw_procurement",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Domain Architect",
+          "rows_served": 29892,
+          "rows_total": 29892,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-10-27",
+          "as_of_line": "As of 2026-10-27 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Procurement Position · 1 · Marcus Feld (Domain Architect) under Author -- full · 29,892 of 29,892 rows · as of 2026-10-27",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/bw-report.html?report=rep_bw_procurement"
+      },
+      {
+        "report_id": "rep_bw_stock",
+        "report_tag": "stock-cover-and-critical-spares",
+        "subject": "position × business",
+        "title": "Stock Cover and Critical Spares",
+        "question": "Show which critical positions run short before their next receipt, the ferric chloride cover at each plant, and the outage items not ready.",
+        "spine": "positions",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_spend_under_contract",
+        "measure_label": "Spend under contract",
+        "reading": {
+          "template": "Show which critical positions run short before their next receipt, the ferric chloride cover at each plant, and the outage items not ready. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Critical stock at the 28 October load",
+            "grain": "group",
+            "source": "stock",
+            "figures": [
+              {
+                "key": "pos",
+                "label": "Critical positions",
+                "measure": "m_critical_below_safety",
+                "measureLabel": "Critical positions",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2782,
+                "display": "2,782",
+                "exact": null,
+                "note": null,
+                "prov": "pv_bwaba47"
+              },
+              {
+                "key": "below",
+                "label": "Below safety stock at 27 October",
+                "measure": "m_critical_below_safety",
+                "measureLabel": "Below safety stock at 27 October",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 20,
+                "display": "20",
+                "exact": null,
+                "note": null,
+                "prov": "pv_bw8ee01"
+              },
+              {
+                "key": "short",
+                "label": "Short before replenishment, 28 October",
+                "measure": "m_stockout_risk",
+                "measureLabel": "Short before replenishment, 28 October",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 19,
+                "display": "19",
+                "exact": null,
+                "note": null,
+                "prov": "pv_bw5908f"
+              },
+              {
+                "key": "outage",
+                "label": "Kiln 2 outage items short",
+                "measure": "m_outage_readiness",
+                "measureLabel": "Kiln 2 outage items short",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 9,
+                "display": "9",
+                "exact": null,
+                "note": null,
+                "prov": "pv_bwd6a6c"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Stock, open orders and reservations at the nightly load; an allocation or promise is not supply.",
+            "combines": false,
+            "combinesNote": "Counts of positions; not added across measures.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 2782,
+              "label": "the 2,782 critical stock positions",
+              "note": "Corrigan's 60% allocation is quoted, not counted as supply."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Ferric chloride days of cover at the plants under the minimum, 27 October",
+            "grain": "site",
+            "source": "stock",
+            "chartType": "bar",
+            "axis": [
+              "Fenmoor Water Treatment Works",
+              "Holloway Creek Water Treatment Works",
+              "Stanwick Water Treatment Works",
+              "Marston Reach Water Treatment Works",
+              "Quinton Lakes Water Treatment Works",
+              "Pellham Water Treatment Works",
+              "Brantley Water Treatment Works"
+            ],
+            "axisLabel": "days of cover",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "days",
+                "label": "Days of cover",
+                "measure": "m_days_of_cover",
+                "unit": "DAYS",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 6.2,
+                    "display": "6.2 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 7.4,
+                    "display": "7.4 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 8.1,
+                    "display": "8.1 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 9.3,
+                    "display": "9.3 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 9.6,
+                    "display": "9.6 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 11.8,
+                    "display": "11.8 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  },
+                  {
+                    "raw": 12.6,
+                    "display": "12.6 days",
+                    "unit": "DAYS",
+                    "exact": null
+                  }
+                ],
+                "total": null,
+                "noTotal": "Days of cover are not summed."
+              }
+            ],
+            "baseline": {
+              "value": 14,
+              "label": "14-day minimum at water plants"
+            },
+            "stackTotalCombines": false,
+            "failure": null,
+            "note": "Five plants are under ten days while Corrigan ships 60%.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 2782,
+              "label": "the 2,782 critical stock positions",
+              "note": "Corrigan's 60% allocation is quoted, not counted as supply."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "What the load shows",
+            "grain": "group",
+            "source": "stock",
+            "role": "caveat",
+            "body": "19 positions will run short before their next receipt: 9 for the Ravensworth Kiln 2 outage from 9 November, 7 ferric chloride positions at water plants and 3 spares. The group holds enough to cover nine of them by transfer; Holcombe and Vantor moved their dates this week.",
+            "parts": [
+              {
+                "text": "19 positions will run short before their next receipt: 9 for the Ravensworth Kiln 2 outage from 9 November, 7 ferric chloride positions at water plants and 3 spares. The group holds enough to cover nine of them by transfer; Holcombe and Vantor moved their dates this week."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 2782,
+              "label": "the 2,782 critical stock positions",
+              "note": "Corrigan's 60% allocation is quoted, not counted as supply."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about stock cover",
+            "grain": "group",
+            "source": "stock",
+            "suggestions": [
+              "Which critical items are below safety stock today?",
+              "How many days of ferric chloride does each plant hold, against its minimum?",
+              "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_bw_supply_chain_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-10-27T07:00:00Z",
+              "reportId": "rep_bw_stock"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 2782,
+              "label": "the 2,782 critical stock positions",
+              "note": "Corrigan's 60% allocation is quoted, not counted as supply."
+            }
+          }
+        ],
+        "heading": "Stock Cover and Critical Spares",
+        "subtitle": "Show which critical positions run short before their next receipt, the ferric chloride cover at each plant, and the outage items not ready.",
+        "badge": "Business",
+        "note": "Show which critical positions run short before their next receipt, the ferric chloride cover at each plant, and the outage items not ready.",
+        "tiles": [
+          {
+            "label": "Short before replenishment",
+            "value": "19",
+            "unit": "of 2,782 positions",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_stockout_risk"
+          },
+          {
+            "label": "Kiln 2 outage items",
+            "value": "9 short",
+            "unit": "outage starts 9 November",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_outage_readiness"
+          },
+          {
+            "label": "Ferric under minimum",
+            "value": "7 plants",
+            "unit": "5 under ten days",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_days_of_cover"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-28, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_bw_supply_chain_analyst v1 · role Supply Chain Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "Corrigan's 60% allocation is quoted as a statement; it is never counted as supply."
+          },
+          {
+            "label": "Served",
+            "text": "Stock Cover and Critical Spares · 1 · Marcus Feld (Domain Architect) under Author -- full · 2,782 of 2,782 rows · as of 2026-10-28"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_bw_stock",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Business User -- Executive",
+          "rows_served": 2782,
+          "rows_total": 2782,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-10-28",
+          "as_of_line": "As of 2026-10-28 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Stock Cover and Critical Spares · 1 · Marcus Feld (Domain Architect) under Author -- full · 2,782 of 2,782 rows · as of 2026-10-28",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/bw-report.html?report=rep_bw_stock"
+      },
+      {
+        "report_id": "rep_bw_award",
+        "report_tag": "chemicals-award-se-2026-031",
+        "subject": "position × business",
+        "title": "Chemicals Award SE-2026-031",
+        "question": "Show what the treatment chemicals bids save on landed cost, lot by lot, and keep the force majeure spot premium apart.",
+        "spine": "positions",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_spend_under_contract",
+        "measure_label": "Spend under contract",
+        "reading": {
+          "template": "Show what the treatment chemicals bids save on landed cost, lot by lot, and keep the force majeure spot premium apart. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "SE-2026-031 treatment chemicals 2027 to 2029, a year",
+            "grain": "event",
+            "source": "award",
+            "figures": [
+              {
+                "key": "cur",
+                "label": "Today's landed cost",
+                "measure": "m_bid_landed_cost",
+                "measureLabel": "Today's landed cost",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 52462440,
+                "display": "$52.5M",
+                "exact": "$52,462,440",
+                "note": null,
+                "prov": "pv_bwbfc81"
+              },
+              {
+                "key": "new",
+                "label": "Award with Sabine Coast primary and Corrigan secondary",
+                "measure": "m_bid_landed_cost",
+                "measureLabel": "Award with Sabine Coast primary and Corrigan secondary",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 49025110,
+                "display": "$49.0M",
+                "exact": "$49,025,110",
+                "note": null,
+                "prov": "pv_bw3aac9"
+              },
+              {
+                "key": "save",
+                "label": "Saving a year",
+                "measure": "m_award_saving",
+                "measureLabel": "Saving a year",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 3437330,
+                "display": "$3.4M",
+                "exact": "$3,437,330",
+                "note": null,
+                "prov": "pv_bw72323"
+              },
+              {
+                "key": "spot",
+                "label": "Ferric spot premium since 12 October",
+                "measure": "m_spot_premium",
+                "measureLabel": "Ferric spot premium since 12 October",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 52603.8,
+                "display": "$52,604",
+                "exact": "$52,604",
+                "note": null,
+                "prov": "pv_bwba5ea"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Landed cost among qualified bidders on the 2027 dosing plans; the spot premium is reported apart and is not a saving.",
+            "combines": true,
+            "combinesNote": "Saving = today's landed cost − the award.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 7,
+              "label": "the 7 lots of SE-2026-031",
+              "note": "Bids closed 16 October; volumes from the 2027 dosing plans."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Saving a year by lot",
+            "grain": "lot",
+            "source": "award",
+            "chartType": "bar",
+            "axis": [
+              "L1 Sodium hypochlorite 12.5%",
+              "L2 Ferric chloride 40%",
+              "L3 Sodium hydroxide 50%",
+              "L4 Hydrated lime",
+              "L5 Cationic polymer",
+              "L6 Powdered activated carbon",
+              "L7 Sulfuric acid 93%"
+            ],
+            "axisLabel": "USD a year",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "save",
+                "label": "Saving",
+                "measure": "m_award_saving",
+                "unit": "USD",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 633600,
+                    "display": "$633,600",
+                    "unit": "USD",
+                    "exact": "$633,600"
+                  },
+                  {
+                    "raw": -2270,
+                    "display": "$-2,270",
+                    "unit": "USD",
+                    "exact": "$-2,270"
+                  },
+                  {
+                    "raw": 1245000,
+                    "display": "$1.2M",
+                    "unit": "USD",
+                    "exact": "$1,245,000"
+                  },
+                  {
+                    "raw": 588600,
+                    "display": "$588,600",
+                    "unit": "USD",
+                    "exact": "$588,600"
+                  },
+                  {
+                    "raw": 334500,
+                    "display": "$334,500",
+                    "unit": "USD",
+                    "exact": "$334,500"
+                  },
+                  {
+                    "raw": 481900,
+                    "display": "$481,900",
+                    "unit": "USD",
+                    "exact": "$481,900"
+                  },
+                  {
+                    "raw": 156000,
+                    "display": "$156,000",
+                    "unit": "USD",
+                    "exact": "$156,000"
+                  }
+                ],
+                "total": {
+                  "raw": 3437330,
+                  "display": "$3.4M"
+                },
+                "noTotal": null
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": true,
+            "failure": null,
+            "note": "Ferric chloride costs about the same as today on Sabine Coast; the other six lots carry the saving.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 7,
+              "label": "the 7 lots of SE-2026-031",
+              "note": "Bids closed 16 October; volumes from the 2027 dosing plans."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "event",
+            "source": "award",
+            "role": "caveat",
+            "body": "The award is on landed cost among qualified bidders. Corrigan's ferric bid is the lowest but it is under force majeure, so it is capped as a 30% secondary that starts only when the force majeure lifts in writing. Pemberton's duplicate vendor record has to be closed before the contracts start.",
+            "parts": [
+              {
+                "text": "The award is on landed cost among qualified bidders. Corrigan's ferric bid is the lowest but it is under force majeure, so it is capped as a 30% secondary that starts only when the force majeure lifts in writing. Pemberton's duplicate vendor record has to be closed before the contracts start."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 7,
+              "label": "the 7 lots of SE-2026-031",
+              "note": "Bids closed 16 October; volumes from the 2027 dosing plans."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this award",
+            "grain": "event",
+            "source": "award",
+            "suggestions": [
+              "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
+              "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
+              "Which bidders on SE-2026-031 are not qualified for the lots they bid?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_bw_supply_chain_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-10-27T07:00:00Z",
+              "reportId": "rep_bw_award"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 7,
+              "label": "the 7 lots of SE-2026-031",
+              "note": "Bids closed 16 October; volumes from the 2027 dosing plans."
+            }
+          }
+        ],
+        "heading": "Chemicals Award SE-2026-031",
+        "subtitle": "Show what the treatment chemicals bids save on landed cost, lot by lot, and keep the force majeure spot premium apart.",
+        "badge": "Sourcing",
+        "note": "Show what the treatment chemicals bids save on landed cost, lot by lot, and keep the force majeure spot premium apart.",
+        "tiles": [
+          {
+            "label": "Saving a year",
+            "value": "$3.4M",
+            "unit": "6.6% of today",
+            "tone": "good",
+            "exact": "$3,437,330",
+            "measure": "m_award_saving"
+          },
+          {
+            "label": "Ferric spot premium",
+            "value": "$52.6k",
+            "unit": "since 12 October, reported apart",
+            "tone": "warn",
+            "exact": "$52,604",
+            "measure": "m_spot_premium"
+          },
+          {
+            "label": "Committee",
+            "value": "12 Nov",
+            "unit": "paper due 5 November",
+            "tone": "neutral",
+            "exact": null,
+            "measure": "m_award_saving"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-16, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_bw_supply_chain_analyst v1 · role Supply Chain Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "Bid prices are restricted to the category team and the Procurement Committee until the award is approved."
+          },
+          {
+            "label": "Served",
+            "text": "Chemicals Award SE-2026-031 · 1 · Marcus Feld (Domain Architect) under Author -- full · 7 of 7 rows · as of 2026-10-16"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_bw_award",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Data Analyst",
+          "rows_served": 7,
+          "rows_total": 7,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-10-16",
+          "as_of_line": "As of 2026-10-16 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Chemicals Award SE-2026-031 · 1 · Marcus Feld (Domain Architect) under Author -- full · 7 of 7 rows · as of 2026-10-16",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/bw-report.html?report=rep_bw_award"
+      }
+    ],
+    "saved": [],
+    "governance": {
+      "statuses": [
+        {
+          "key": "published",
+          "label": "Published",
+          "tone": "good"
+        },
+        {
+          "key": "draft",
+          "label": "Draft",
+          "tone": "neutral"
+        },
+        {
+          "key": "scheduled",
+          "label": "Scheduled",
+          "tone": "neutral"
+        },
+        {
+          "key": "unpublished",
+          "label": "Unpublished",
+          "tone": "warn"
+        }
+      ],
+      "reports": [
+        {
+          "report_id": "rep_bw_procurement",
+          "status": "published",
+          "version": "v1",
+          "author": "Marcus Feld",
+          "category": "Group",
+          "as_of": "2026-10-27T07:00:00Z",
+          "schedule": "Refreshes daily · 07:00 UTC",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "The schedule covers order lines, invoices and plan blocks; correspondence is read at open time.",
+          "link": "contextweave.bramwell-environmental.example/r/procurement-position",
+          "readers": [
+            {
+              "email": "helena.marsh@vriodigital.com",
+              "name": "Helena Marsh",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "sofia.brandt@vriodigital.com",
+              "name": "Sofia Brandt",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope, buyer names masked"
+              }
+            },
+            {
+              "email": "rafael.duarte@vriodigital.com",
+              "name": "Rafael Duarte",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_bw_stock",
+          "status": "published",
+          "version": "v1",
+          "author": "Nishant Srivastav",
+          "category": "Business",
+          "as_of": "2026-10-28T07:00:00Z",
+          "schedule": "After every nightly load",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "Days of cover count stock and receipts only.",
+          "link": "contextweave.bramwell-environmental.example/r/stock-cover-and-critical-spares",
+          "readers": [
+            {
+              "email": "greta.lindahl@vriodigital.com",
+              "name": "Greta Lindahl",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "rules",
+                "projects_admitted": 1189,
+                "detail": "Business = Water"
+              }
+            },
+            {
+              "email": "rafael.duarte@vriodigital.com",
+              "name": "Rafael Duarte",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "helena.marsh@vriodigital.com",
+              "name": "Helena Marsh",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_bw_award",
+          "status": "published",
+          "version": "v1",
+          "author": "Imani Okoro",
+          "category": "Sourcing",
+          "as_of": "2026-10-16T07:00:00Z",
+          "schedule": "Only when it’s opened",
+          "approval": "Chief Procurement Officer sign-off",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "Bid prices restricted to the category team and the committee until award.",
+          "link": "contextweave.bramwell-environmental.example/r/chemicals-award-se-2026-031",
+          "readers": [
+            {
+              "email": "helena.marsh@vriodigital.com",
+              "name": "Helena Marsh",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "nishant.srivastav@vriodigital.com",
+              "name": "Nishant Srivastav",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "sofia.brandt@vriodigital.com",
+              "name": "Sofia Brandt",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 2782,
+                "detail": "Full scope, contract values masked"
+              }
+            }
+          ]
+        }
+      ],
+      "data_scope": [
+        {
+          "role_id": "helena_marsh",
+          "scope": "All 2,782",
+          "predicate": "Full scope",
+          "grain": "position",
+          "masked": "",
+          "may_author": false,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "helena.marsh@vriodigital.com",
+          "name": "Helena Marsh",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "nishant_srivastav",
+          "scope": "All 2,782",
+          "predicate": "Full scope",
+          "grain": "position",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "nishant.srivastav@vriodigital.com",
+          "name": "Nishant Srivastav",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "rafael_duarte",
+          "scope": "All 2,782",
+          "predicate": "Full scope",
+          "grain": "position",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "rafael.duarte@vriodigital.com",
+          "name": "Rafael Duarte",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "imani_okoro",
+          "scope": "All 2,782",
+          "predicate": "Full scope",
+          "grain": "position",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "imani.okoro@vriodigital.com",
+          "name": "Imani Okoro",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "sofia_brandt",
+          "scope": "All 2,782, masked",
+          "predicate": "Buyer names and contract values masked",
+          "grain": "position",
+          "masked": "buyer names, contract values",
+          "may_author": false,
+          "full": true,
+          "mask": true,
+          "rule": null,
+          "email": "sofia.brandt@vriodigital.com",
+          "name": "Sofia Brandt",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "marcus_feld",
+          "scope": "All 2,782",
+          "predicate": "Full scope",
+          "grain": "position",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "marcus.feld@vriodigital.com",
+          "name": "Marcus Feld",
+          "projects_admitted": 2782,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        },
+        {
+          "role_id": "greta_lindahl",
+          "scope": "1,189 of 2,782",
+          "predicate": "Business = Water",
+          "grain": "position",
+          "masked": "",
+          "may_author": false,
+          "full": false,
+          "mask": false,
+          "rule": {
+            "basis": "business",
+            "values": [
+              "Water"
+            ]
+          },
+          "email": "greta.lindahl@vriodigital.com",
+          "name": "Greta Lindahl",
+          "projects_admitted": 1189,
+          "of_total": 2782,
+          "computed_from": "critical positions[] at paint time"
+        }
+      ],
+      "gate_notes": {
+        "both": "The two are administered in two separate places: audience at publish time, data scope on the reader's row.",
+        "entitlement": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address.",
+        "data_scope": "Which rows does this viewer's predicate admit? Managed on the reader's row; follows the person everywhere.",
+        "author": "Writing a report definition is a separate permission from reading one.",
+        "cannot_be_front_end": "If the browser receives 2,782 rows and shows 1,189, the other rows have leaked. The server filters before it serves."
+      },
+      "publishing": {
+        "title": "Publish this report",
+        "republish_title": "Publish your changes",
+        "lead": "It goes live to the people you pick - nobody else is told it exists.",
+        "name": {
+          "label": "Report name",
+          "help": "Give it a name your audience will recognise.",
+          "placeholder": "e.g. Stock Cover and Critical Spares - November"
+        },
+        "readers": {
+          "label": "Who can open it",
+          "placeholder": "Type a name or email address…",
+          "empty": "Nobody yet - this report stays private until you add a reader.",
+          "note": "Each person sees only what their data access allows.",
+          "caveat": "This narrows who is shown the report. It is not access control.",
+          "local_caveat": "Readers are recorded on the artifact; their data scope is managed in Audit & Governance.",
+          "presets": [
+            "Helena Marsh",
+            "Rafael Duarte",
+            "Greta Lindahl",
+            "Imani Okoro",
+            "Sofia Brandt",
+            "Marcus Feld"
+          ],
+          "default": []
+        },
+        "freshness": {
+          "label": "Keep it fresh",
+          "presets": [
+            {
+              "id": "open",
+              "label": "Only when it’s opened",
+              "sentence": "Only when it’s opened"
+            },
+            {
+              "id": "daily",
+              "label": "Every weekday (Mon to Fri) at 7:00 AM",
+              "sentence": "Every weekday at 7:00 AM"
+            },
+            {
+              "id": "monday",
+              "label": "Weekly on Monday at 6:00 AM",
+              "sentence": "Weekly on Monday at 6:00 AM"
+            },
+            {
+              "id": "monthly",
+              "label": "Monthly on the 1st at 6:00 AM",
+              "sentence": "Monthly on the 1st at 6:00 AM"
+            },
+            {
+              "id": "custom",
+              "label": "Custom…",
+              "sentence": "Custom schedule"
+            }
+          ],
+          "days": [
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun"
+          ],
+          "times": [
+            "6:00 AM",
+            "7:00 AM",
+            "8:00 AM",
+            "12:00 PM",
+            "6:00 PM"
+          ],
+          "units": [
+            "day",
+            "week",
+            "month"
+          ],
+          "default": "open",
+          "default_detail": {
+            "preset": "open",
+            "every": 1,
+            "unit": "week",
+            "days": [
+              "Mon"
+            ],
+            "time": "6:00 AM"
+          },
+          "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+        },
+        "foot": "Live immediately after you publish.",
+        "buttons": {
+          "publish": "Publish report",
+          "republish": "Publish changes",
+          "cancel": "Cancel",
+          "unpublish": "Unpublish",
+          "manage": "Manage publishing…"
+        }
+      },
+      "audit": {
+        "copy": {
+          "title": "Audit & Governance",
+          "lead": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which businesses and sites each person can see - and every open is logged.",
+          "not_enforced": "A rule is recorded, not enforced, until the server filters on it. No report on this demo serves a row a reader's rule excludes.",
+          "gates": [
+            {
+              "key": "open",
+              "title": "Who can open",
+              "detail": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address."
+            },
+            {
+              "key": "inside",
+              "title": "What they see inside",
+              "detail": "Data access per person, managed on the reader's row - business, site, region or category."
+            },
+            {
+              "key": "log",
+              "title": "Every open is logged",
+              "detail": "Who opened what, what their access resolved to, and every access change - in the audit trail."
+            }
+          ],
+          "empty_log": "Nothing recorded yet. Change a rule or open a report and it appears here.",
+          "log_note": "Nothing in the log is editable; the trail is append-only.",
+          "basis_note": "A field qualifies as a restriction basis only if every one of its values is known on every row."
+        },
+        "categories": [
+          {
+            "key": "all",
+            "label": "All",
+            "id": "all"
+          },
+          {
+            "key": "pub",
+            "label": "Publishing",
+            "id": "pub"
+          },
+          {
+            "key": "open",
+            "label": "Opens",
+            "id": "open"
+          },
+          {
+            "key": "rule",
+            "label": "Rule changes",
+            "id": "rule"
+          },
+          {
+            "key": "ref",
+            "label": "Refreshes",
+            "id": "ref"
+          },
+          {
+            "key": "export",
+            "label": "Exports",
+            "id": "export"
+          }
+        ],
+        "events": [
+          {
+            "actor": "Greta Lindahl",
+            "action": "Opened Stock Cover and Critical Spares",
+            "resource": "Stock Cover and Critical Spares",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:52",
+            "detail": "Her access resolved: business = Water - 1,189 of 2,782 critical positions; no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "Helena Marsh",
+            "action": "Opened Procurement Position",
+            "resource": "Procurement Position",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:31",
+            "detail": "Her access resolved: all 2,782 critical positions, all four businesses, no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "system",
+            "action": "Scheduled refresh ran on Procurement Position",
+            "resource": "Procurement Position",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 07:00",
+            "detail": "Order lines, invoices and plan blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. Energy's 2027 dosing plans still marked provisional.",
+            "category": "ref"
+          },
+          {
+            "actor": "Nishant Srivastav",
+            "action": "Started submission 'Award schedule: treatment chemicals 2027 to 2029' from a goal",
+            "resource": "submission sub-award-schedule-2027",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 27 14:12",
+            "detail": "Built from the goal g-chemicals-award-2027 on the template Chemicals award schedule 2024 to 2026.",
+            "category": "pub"
+          },
+          {
+            "actor": "Rafael Duarte",
+            "action": "Armed the goal 'No critical spare or chemical below safety stock'",
+            "resource": "goal g-rule-stock-cover",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 21 16:40",
+            "detail": "Fires on each nightly load of stock, open orders and reservations; checks every critical position against its next receipt.",
+            "category": "pub"
+          },
+          {
+            "actor": "Marcus Feld",
+            "action": "Published graph Supply Chain Analyst v1",
+            "resource": "graph v1",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 20 16:02",
+            "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+            "category": "pub"
+          },
+          {
+            "actor": "Marcus Feld",
+            "action": "Changed rule for Greta Lindahl",
+            "resource": "data access rule",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 20 11:10",
+            "detail": "Restriction basis = business (Water).",
+            "category": "rule"
+          },
+          {
+            "actor": "Imani Okoro",
+            "action": "Exported Chemicals Award SE-2026-031 (XLSX)",
+            "resource": "Chemicals Award SE-2026-031",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 19 12:18",
+            "detail": "Export carries the watermark and the as-of line; bid prices are restricted to the category team and the committee until award.",
+            "category": "export"
+          },
+          {
+            "actor": "system",
+            "action": "Sealed trace for 'What would the bids in SE-2026-031 save against today's prices, on landed cost?'",
+            "resource": "trace_bw01",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 19 10:22",
+            "detail": "5 spans · $0.17 · confidence 0.88",
+            "category": "ref"
+          },
+          {
+            "actor": "Sam Whitaker",
+            "action": "Changed persona access for Business User - Executive",
+            "resource": "settings",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 19 09:30",
+            "detail": "Reports hidden from the sidebar for all personas (beta).",
+            "category": "rule"
+          }
+        ],
+        "restriction_bases": [
+          {
+            "id": "business",
+            "label": "Business",
+            "values": 4
+          },
+          {
+            "id": "site",
+            "label": "Site",
+            "values": 36
+          },
+          {
+            "id": "region",
+            "label": "Region",
+            "values": 3
+          },
+          {
+            "id": "category",
+            "label": "Category",
+            "values": 14
+          }
+        ],
+        "excluded_bases": {
+          "fields": [
+            "on_hand",
+            "days_of_cover",
+            "unit_price",
+            "spend"
+          ],
+          "reason": "Continuous. A rule written on them re-resolves every time a figure moves, so a reader's scope would change without anyone changing the rule."
+        }
+      },
+      "document": {
+        "document_id": "GOVERNANCE_AUDIT_BW",
+        "file": "governance_audit_bw.html",
+        "title": "Context Weave - Audit & Governance · Bramwell Environmental Group",
+        "heading": "⛨ Audit & Governance",
+        "subtitle": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which rows each reader may see.",
+        "tabs": [
+          {
+            "key": "0",
+            "label": "Reports"
+          },
+          {
+            "key": "1",
+            "label": "Audit log"
+          }
+        ],
+        "package": "supply_chain_analyst_demo_data_package_2026-10-27",
+        "screen": "08 - Audit & Governance",
+        "generated": "2026-10-27",
+        "roster_total": 2782
+      }
+    },
+    "authoring_fixture": {
+      "_note": "The supplier fixture the authoring screen previews against: the suppliers that take the most off-contract spend where a contract covers the item, January to September 2026, in USD millions, read from the drill data. Field keys keep the shapes the app reads: auth and comm are spend on contract, proj is total spend, varD and varP are the off-contract amount and share.",
+      "projects": [
+        {
+          "name": "Penrose Fasteners and Tools",
+          "auth": 0,
+          "comm": 0,
+          "proj": 7.31,
+          "portfolio": "MRO consumables",
+          "region": "North",
+          "phase": "No contract",
+          "owner": "Leon Varga",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Allbright Maintenance Products",
+          "auth": 0,
+          "comm": 0,
+          "proj": 7.05,
+          "portfolio": "MRO consumables",
+          "region": "Central",
+          "phase": "No contract",
+          "owner": "Leon Varga",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Ridgecrest Waterworks Supply",
+          "auth": 0,
+          "comm": 0,
+          "proj": 5.96,
+          "portfolio": "Pipe, fittings and network materials",
+          "region": "South",
+          "phase": "No contract",
+          "owner": "Category team",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Greenwood Biomass Cooperative",
+          "auth": 66.32,
+          "comm": 66.32,
+          "proj": 71.92,
+          "portfolio": "Fuels: natural gas, diesel and biomass",
+          "region": "Central",
+          "phase": "On contract",
+          "owner": "Category team",
+          "funding": "Energy",
+          "partner": "Energy",
+          "contract": "Large",
+          "reason": "Leaking"
+        },
+        {
+          "name": "Ironclad Workwear",
+          "auth": 0,
+          "comm": 0,
+          "proj": 4.87,
+          "portfolio": "Safety equipment and PPE",
+          "region": "Central",
+          "phase": "No contract",
+          "owner": "Category team",
+          "funding": "Hazardous Waste",
+          "partner": "Hazardous Waste",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Drumline Packaging",
+          "auth": 0,
+          "comm": 0,
+          "proj": 4.34,
+          "portfolio": "Containers, drums and packaging",
+          "region": "South",
+          "phase": "No contract",
+          "owner": "Category team",
+          "funding": "Hazardous Waste",
+          "partner": "Hazardous Waste",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Hartwell Timber Residues",
+          "auth": 0,
+          "comm": 0,
+          "proj": 4.23,
+          "portfolio": "Fuels: natural gas, diesel and biomass",
+          "region": "North",
+          "phase": "No contract",
+          "owner": "Category team",
+          "funding": "Energy",
+          "partner": "Energy",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Larkspur Energy Marketing",
+          "auth": 37,
+          "comm": 37,
+          "proj": 40.96,
+          "portfolio": "Fuels: natural gas, diesel and biomass",
+          "region": "Central",
+          "phase": "On contract",
+          "owner": "Category team",
+          "funding": "Energy",
+          "partner": "Energy",
+          "contract": "Large",
+          "reason": "Leaking"
+        },
+        {
+          "name": "Harbor Ductile Pipe",
+          "auth": 36.16,
+          "comm": 36.16,
+          "proj": 42.48,
+          "portfolio": "Pipe, fittings and network materials",
+          "region": "Central",
+          "phase": "On contract",
+          "owner": "Category team",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Large",
+          "reason": "Leaking"
+        },
+        {
+          "name": "Coastal Fuels Supply",
+          "auth": 0,
+          "comm": 0,
+          "proj": 3.65,
+          "portfolio": "Fuels: natural gas, diesel and biomass",
+          "region": "South",
+          "phase": "On contract",
+          "owner": "Category team",
+          "funding": "Energy",
+          "partner": "Energy",
+          "contract": "Small",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Granite State Industrial",
+          "auth": 23.15,
+          "comm": 23.15,
+          "proj": 27.68,
+          "portfolio": "MRO consumables",
+          "region": "North",
+          "phase": "On contract",
+          "owner": "Leon Varga",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Large",
+          "reason": "Above 10%"
+        },
+        {
+          "name": "Ashdown Switchgear",
+          "auth": 0,
+          "comm": 0,
+          "proj": 3.12,
+          "portfolio": "Electrical equipment and instrumentation",
+          "region": "South",
+          "phase": "No contract",
+          "owner": "Category team",
+          "funding": "Water",
+          "partner": "Water",
+          "contract": "Small",
+          "reason": "Above 10%"
+        }
+      ],
+      "derived": {
+        "Penrose Fasteners and Tools": {
+          "status": "Above 10%",
+          "variancePoints": 94.3,
+          "varianceDollarsM": 6.89,
+          "gmPct": 94.3
+        },
+        "Allbright Maintenance Products": {
+          "status": "Above 10%",
+          "variancePoints": 90.8,
+          "varianceDollarsM": 6.4,
+          "gmPct": 90.8
+        },
+        "Ridgecrest Waterworks Supply": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 5.96,
+          "gmPct": 100
+        },
+        "Greenwood Biomass Cooperative": {
+          "status": "At risk",
+          "variancePoints": 7.8,
+          "varianceDollarsM": 5.59,
+          "gmPct": 7.8
+        },
+        "Ironclad Workwear": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 4.87,
+          "gmPct": 100
+        },
+        "Drumline Packaging": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 4.34,
+          "gmPct": 100
+        },
+        "Hartwell Timber Residues": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 4.23,
+          "gmPct": 100
+        },
+        "Larkspur Energy Marketing": {
+          "status": "At risk",
+          "variancePoints": 9.7,
+          "varianceDollarsM": 3.96,
+          "gmPct": 9.7
+        },
+        "Harbor Ductile Pipe": {
+          "status": "At risk",
+          "variancePoints": 8.6,
+          "varianceDollarsM": 3.65,
+          "gmPct": 8.6
+        },
+        "Coastal Fuels Supply": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 3.65,
+          "gmPct": 100
+        },
+        "Granite State Industrial": {
+          "status": "Above 10%",
+          "variancePoints": 11.9,
+          "varianceDollarsM": 3.3,
+          "gmPct": 11.9
+        },
+        "Ashdown Switchgear": {
+          "status": "Above 10%",
+          "variancePoints": 100,
+          "varianceDollarsM": 3.12,
+          "gmPct": 100
+        }
+      },
+      "unit": "USD millions and percent",
+      "derivationRules": {
+        "variancePoints": "off contract where covered ÷ total spend × 100",
+        "varianceDollarsM": "off contract where covered",
+        "status": "share > 10% -> Above 10%; > 5% -> At risk; else Within",
+        "gmPct": "off-contract share"
+      }
+    },
+    "register": {
+      "roster": "suppliers",
+      "identity": "n",
+      "fields": [
+        {
+          "key": "n",
+          "label": "Supplier",
+          "kind": "text",
+          "filterable": false,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "reg",
+          "label": "Region",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "bu",
+          "label": "Main business",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "comp",
+          "label": "Contract",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        }
+      ]
+    },
+    "documents": [
+      {
+        "document_id": "R1",
+        "report_id": "rep_bw_procurement",
+        "file": "R1_procurement_position.html",
+        "title": "Procurement Position",
+        "subtitle": "Show third-party spend against plan, how much is under contract, the leakage where a contract covers the item, and the savings secured.",
+        "category": "Group",
+        "status": "published",
+        "version": "v1",
+        "slug": "procurement-position",
+        "author": "pp_feld",
+        "refresh": "Daily 07:00 UTC",
+        "updated_at": "2026-10-25T16:10:00Z",
+        "spec_file": "Procurement_Position_Specification.html"
+      },
+      {
+        "document_id": "R2",
+        "report_id": "rep_bw_stock",
+        "file": "R2_stock_cover_and_critical_spares.html",
+        "title": "Stock Cover and Critical Spares",
+        "subtitle": "Show which critical positions run short before their next receipt, the ferric chloride cover at each plant, and the outage items not ready.",
+        "category": "Business",
+        "status": "published",
+        "version": "v1",
+        "slug": "stock-cover-and-critical-spares",
+        "author": "pp_srivastav",
+        "refresh": "After every nightly load",
+        "updated_at": "2026-10-26T16:11:00Z",
+        "spec_file": "Stock_Cover_and_Critical_Spares_Specification.html"
+      },
+      {
+        "document_id": "R3",
+        "report_id": "rep_bw_award",
+        "file": "R3_chemicals_award_se_2026_031.html",
+        "title": "Chemicals Award SE-2026-031",
+        "subtitle": "Show what the treatment chemicals bids save on landed cost, lot by lot, and keep the force majeure spot premium apart.",
+        "category": "Sourcing",
+        "status": "published",
+        "version": "v1",
+        "slug": "chemicals-award-se-2026-031",
+        "author": "pp_okoro",
+        "refresh": "On open",
+        "updated_at": "2026-10-27T16:12:00Z",
+        "spec_file": "Chemicals_Award_SE-2026-031_Specification.html"
+      }
+    ],
+    "authoring_document": "report_authoring_simplified_v3.html"
+  },
+  "reports_prototype": {
+    "meta": {
+      "persona_name": "Sofia Brandt",
+      "persona_role": "Finance Business Partner, Procurement · Bramwell Environmental Group",
+      "persona_initials": "SB",
+      "entity_plural": "suppliers",
+      "scope_line": "the Bramwell supplier panel",
+      "source_trace": "Traces to: bramwell_erp.pur.po_line, bramwell_srm.src.contract, as of 2026-10-27.",
+      "entity_singular": "supplier",
+      "ask_placeholder": "e.g. Which suppliers take the most off-contract spend where a contract covers the item?"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Supplier",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "portfolio",
+        "label": "Category",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "region",
+        "label": "Region",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "phase",
+        "label": "Contract",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "owner",
+        "label": "Buyer",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "funding",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "partner",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "contract",
+        "label": "Size",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "reason",
+        "label": "Position",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "auth",
+        "label": "On contract ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "comm",
+        "label": "On contract ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "proj",
+        "label": "Spend ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varD",
+        "label": "Off contract ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varP",
+        "label": "Off contract (%)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "pct",
+        "label": "Off-contract share %",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "the suppliers in the fixture"
+      },
+      "measure": {
+        "value": "varP",
+        "label": "off-contract share"
+      },
+      "horizon": {
+        "value": "ytd",
+        "label": "January to September 2026"
+      },
+      "graph": {
+        "value": "bw_sca",
+        "label": "the Supply Chain Analyst graph"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which suppliers to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "the suppliers in the fixture",
+            "d": "The largest off-contract takers"
+          },
+          {
+            "value": "water",
+            "label": "Water only",
+            "d": "Suppliers whose main business is Water"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Off contract\" measured against?",
+        "options": [
+          {
+            "value": "varP",
+            "label": "off-contract share",
+            "d": "Where a contract covers the item"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "ytd",
+            "label": "January to September 2026",
+            "d": "Order date"
+          }
+        ]
+      },
+      "graph": {
+        "q": "Which published graph should this run against?",
+        "options": [
+          {
+            "value": "bw_sca",
+            "label": "the Supply Chain Analyst graph",
+            "short": "Supply Chain Analyst",
+            "d": "Published · SAP + contracts platform + operations + documents + mailbox · refreshed today"
+          }
+        ]
+      }
+    },
+    "generators": [
+      {
+        "name": "Penrose Fasteners and Tools",
+        "auth": 0,
+        "comm": 0,
+        "proj": 7.31,
+        "portfolio": "MRO consumables",
+        "region": "North",
+        "phase": "No contract",
+        "owner": "Leon Varga",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 6.89,
+        "varP": 94.3,
+        "pct": 94.3,
+        "sales": 7.31,
+        "gm": 7.31,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Allbright Maintenance Products",
+        "auth": 0,
+        "comm": 0,
+        "proj": 7.05,
+        "portfolio": "MRO consumables",
+        "region": "Central",
+        "phase": "No contract",
+        "owner": "Leon Varga",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 6.4,
+        "varP": 90.8,
+        "pct": 90.8,
+        "sales": 7.05,
+        "gm": 7.05,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Ridgecrest Waterworks Supply",
+        "auth": 0,
+        "comm": 0,
+        "proj": 5.96,
+        "portfolio": "Pipe, fittings and network materials",
+        "region": "South",
+        "phase": "No contract",
+        "owner": "Category team",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 5.96,
+        "varP": 100,
+        "pct": 100,
+        "sales": 5.96,
+        "gm": 5.96,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Greenwood Biomass Cooperative",
+        "auth": 66.32,
+        "comm": 66.32,
+        "proj": 71.92,
+        "portfolio": "Fuels: natural gas, diesel and biomass",
+        "region": "Central",
+        "phase": "On contract",
+        "owner": "Category team",
+        "funding": "Energy",
+        "partner": "Energy",
+        "contract": "Large",
+        "reason": "Leaking",
+        "varD": 5.59,
+        "varP": 7.8,
+        "pct": 7.8,
+        "sales": 71.92,
+        "gm": 71.92,
+        "status": "At risk"
+      },
+      {
+        "name": "Ironclad Workwear",
+        "auth": 0,
+        "comm": 0,
+        "proj": 4.87,
+        "portfolio": "Safety equipment and PPE",
+        "region": "Central",
+        "phase": "No contract",
+        "owner": "Category team",
+        "funding": "Hazardous Waste",
+        "partner": "Hazardous Waste",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 4.87,
+        "varP": 100,
+        "pct": 100,
+        "sales": 4.87,
+        "gm": 4.87,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Drumline Packaging",
+        "auth": 0,
+        "comm": 0,
+        "proj": 4.34,
+        "portfolio": "Containers, drums and packaging",
+        "region": "South",
+        "phase": "No contract",
+        "owner": "Category team",
+        "funding": "Hazardous Waste",
+        "partner": "Hazardous Waste",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 4.34,
+        "varP": 100,
+        "pct": 100,
+        "sales": 4.34,
+        "gm": 4.34,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Hartwell Timber Residues",
+        "auth": 0,
+        "comm": 0,
+        "proj": 4.23,
+        "portfolio": "Fuels: natural gas, diesel and biomass",
+        "region": "North",
+        "phase": "No contract",
+        "owner": "Category team",
+        "funding": "Energy",
+        "partner": "Energy",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 4.23,
+        "varP": 100,
+        "pct": 100,
+        "sales": 4.23,
+        "gm": 4.23,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Larkspur Energy Marketing",
+        "auth": 37,
+        "comm": 37,
+        "proj": 40.96,
+        "portfolio": "Fuels: natural gas, diesel and biomass",
+        "region": "Central",
+        "phase": "On contract",
+        "owner": "Category team",
+        "funding": "Energy",
+        "partner": "Energy",
+        "contract": "Large",
+        "reason": "Leaking",
+        "varD": 3.96,
+        "varP": 9.7,
+        "pct": 9.7,
+        "sales": 40.96,
+        "gm": 40.96,
+        "status": "At risk"
+      },
+      {
+        "name": "Harbor Ductile Pipe",
+        "auth": 36.16,
+        "comm": 36.16,
+        "proj": 42.48,
+        "portfolio": "Pipe, fittings and network materials",
+        "region": "Central",
+        "phase": "On contract",
+        "owner": "Category team",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Large",
+        "reason": "Leaking",
+        "varD": 3.65,
+        "varP": 8.6,
+        "pct": 8.6,
+        "sales": 42.48,
+        "gm": 42.48,
+        "status": "At risk"
+      },
+      {
+        "name": "Coastal Fuels Supply",
+        "auth": 0,
+        "comm": 0,
+        "proj": 3.65,
+        "portfolio": "Fuels: natural gas, diesel and biomass",
+        "region": "South",
+        "phase": "On contract",
+        "owner": "Category team",
+        "funding": "Energy",
+        "partner": "Energy",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 3.65,
+        "varP": 100,
+        "pct": 100,
+        "sales": 3.65,
+        "gm": 3.65,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Granite State Industrial",
+        "auth": 23.15,
+        "comm": 23.15,
+        "proj": 27.68,
+        "portfolio": "MRO consumables",
+        "region": "North",
+        "phase": "On contract",
+        "owner": "Leon Varga",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Large",
+        "reason": "Above 10%",
+        "varD": 3.3,
+        "varP": 11.9,
+        "pct": 11.9,
+        "sales": 27.68,
+        "gm": 27.68,
+        "status": "Above 10%"
+      },
+      {
+        "name": "Ashdown Switchgear",
+        "auth": 0,
+        "comm": 0,
+        "proj": 3.12,
+        "portfolio": "Electrical equipment and instrumentation",
+        "region": "South",
+        "phase": "No contract",
+        "owner": "Category team",
+        "funding": "Water",
+        "partner": "Water",
+        "contract": "Small",
+        "reason": "Above 10%",
+        "varD": 3.12,
+        "varP": 100,
+        "pct": 100,
+        "sales": 3.12,
+        "gm": 3.12,
+        "status": "Above 10%"
+      }
+    ],
+    "facilities": [],
+    "quarters": [],
+    "traces": [],
+    "starters": [
+      {
+        "id": "rep_q_leak10",
+        "report_tag": "suppliers-leaking-above-10",
+        "label": "Suppliers leaking above 10%",
+        "title": "Suppliers leaking above 10%",
+        "q": "Show which suppliers take more than 10% of their spend off contract where a contract covers the item.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varP"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_supplier_360",
+        "report_tag": "supplier-360",
+        "label": "Supplier 360",
+        "title": "Supplier 360",
+        "q": "Give one supplier's full position: spend, on contract, off contract, on time in full and open corrective actions.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "proj"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_stock_cover",
+        "report_tag": "stock-cover-and-critical-spares",
+        "label": "Stock Cover and Critical Spares",
+        "title": "Stock Cover and Critical Spares",
+        "q": "Show which critical positions run short before their next receipt, and keep allocations apart from supply.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varP"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "label": "Summary tiles",
+        "d": "Suppliers, spend, off contract, share",
+        "block": {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      },
+      {
+        "label": "Leakage chart",
+        "d": "Suppliers ranked by off-contract share",
+        "block": {
+          "type": "chart",
+          "title": "Off-contract share by supplier",
+          "chartType": "bar",
+          "measure": "varP"
+        }
+      },
+      {
+        "label": "Spend chart",
+        "d": "Spend to September per supplier",
+        "block": {
+          "type": "chart",
+          "title": "Spend by supplier",
+          "chartType": "column",
+          "measure": "proj"
+        }
+      },
+      {
+        "label": "Supplier detail",
+        "d": "One row per supplier, with status and the figures behind it",
+        "block": {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      }
+    ],
+    "slice_default": [
+      "portfolio",
+      "region",
+      "phase",
+      "status"
+    ],
+    "audiences": [
+      {
+        "key": "business_user_exec",
+        "label": "Business User -- Executive",
+        "d": "All businesses, all suppliers, all spend."
+      },
+      {
+        "key": "analyst",
+        "label": "Data Analyst",
+        "d": "All suppliers and spend. Buyer names masked (PII)."
+      },
+      {
+        "key": "architect",
+        "label": "Domain Architect",
+        "d": "Everything, at every grain, including contract terms."
+      },
+      {
+        "key": "admin",
+        "label": "Platform Admin",
+        "d": "Structure, lineage, cost and access. No financial values."
+      }
+    ],
+    "library": [],
+    "row_model": {
+      "label": "name",
+      "sublabel": "{portfolio} · {phase} · {owner}",
+      "status": "status",
+      "tones": {
+        "Above 10%": "over",
+        "At risk": "warn",
+        "Within": "ok"
+      },
+      "scopes": {
+        "active": {},
+        "water": {
+          "field": "funding",
+          "op": "eq",
+          "value": "Water"
+        }
+      },
+      "measures": [
+        "varP",
+        "varD",
+        "pct",
+        "proj",
+        "auth",
+        "comm"
+      ],
+      "kpis": [
+        {
+          "key": "count",
+          "label": "Suppliers in scope",
+          "agg": "rows"
+        },
+        {
+          "key": "auth",
+          "label": "On contract",
+          "agg": "sum",
+          "field": "auth",
+          "format": "money_m"
+        },
+        {
+          "key": "proj",
+          "label": "Spend",
+          "agg": "sum",
+          "field": "proj",
+          "format": "money_m"
+        },
+        {
+          "key": "varP",
+          "label": "Off-contract share",
+          "agg": "avg",
+          "field": "varP",
+          "format": "pct"
+        },
+        {
+          "key": "over",
+          "label": "Above 10%",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Above 10%",
+          "tone": "bad"
+        },
+        {
+          "key": "atrisk",
+          "label": "At risk",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "At risk",
+          "tone": "warn"
+        }
+      ],
+      "formats": {
+        "auth": "money_m",
+        "comm": "money_m",
+        "proj": "money_m",
+        "varD": "money_m",
+        "varP": "pct",
+        "pct": "pct",
+        "status": "text"
+      },
+      "labels": {},
+      "pills": {},
+      "blocks": [
+        "kpis",
+        "chart",
+        "table"
+      ],
+      "footer": []
+    }
+  }
+}
