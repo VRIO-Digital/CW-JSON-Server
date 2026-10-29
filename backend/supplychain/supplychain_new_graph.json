@@ -1338,157 +1338,110 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-supply-chain-analyst-bw26a01",
-      "name": "Supply Chain Analyst · Bramwell Environmental Group",
+      "use_case_id": "uc-supply-chain-analyst-bramwell-water-bramwell-hazardous-waste-bramwell-energy-group-procurement-and-shared-services-mvtj8x6g6",
+      "name": "Supply Chain Analyst · Bramwell Water, Bramwell Hazardous Waste, Bramwell Energy, Group Procurement and Shared Services",
       "status": "committed",
       "domain_id": "supply-chain",
-      "business_need": "Supply Chain Analyst for Bramwell Environmental Group's three businesses (Water, Hazardous Waste, Energy) and its group procurement. Keeps critical spares and treatment chemicals above safety stock at 36 sites, measures supplier delivery and contract compliance, supports sourcing events with landed-cost analysis, and reports to the Procurement Committee. Reports to rafael.duarte@vriodigital.com.",
+      "role": {
+        "role_id": "sca",
+        "role_name": "Supply Chain Analyst",
+        "industry": "environmental",
+        "utilities": [
+          "WAT",
+          "HAZ",
+          "ENE",
+          "GRP"
+        ],
+        "reports_to": "nishant.srivastav@vriodigital.com",
+        "responsibilities": [
+          "spend",
+          "sourcing",
+          "inventory",
+          "chem",
+          "outage",
+          "supplier",
+          "savings",
+          "report"
+        ],
+        "tasks": {
+          "spend": [
+            "Report third-party spend against plan by business and category",
+            "Measure spend under contract and the leakage where a contract covers the item",
+            "Find invoices above the contract price",
+            "Flag duplicate vendor records",
+            "Track payment terms against the 45-day policy"
+          ],
+          "sourcing": [
+            "Build the volume baseline from dosing plans and run rates",
+            "Compare bids on landed cost: price, freight and index terms",
+            "Check bidder qualification and continuity",
+            "Draft the award paper and schedule for the Procurement Committee"
+          ],
+          "inventory": [
+            "Watch critical positions against safety stock after every nightly load",
+            "Look across the group before an emergency buy",
+            "Set and review reorder points",
+            "Find slow-moving stock"
+          ],
+          "chem": [
+            "Track days of cover per plant and chemical against the minimums",
+            "Size the exposure when a supplier declares force majeure",
+            "Arrange spot volume under exception FMX",
+            "Keep alternate suppliers qualified"
+          ],
+          "outage": [
+            "Check reservations against stock and promised dates",
+            "Arrange transfers and expedites for gaps",
+            "Report readiness to the outage manager"
+          ],
+          "supplier": [
+            "Publish quarterly scorecards: on time in full, lead time, price",
+            "Track corrective action requests",
+            "Watch single-source critical items"
+          ],
+          "savings": [
+            "Record savings when they are in an order or a signed contract",
+            "Report avoided premiums apart",
+            "Reconcile the tracker with Finance each month"
+          ],
+          "report": [
+            "Monthly procurement report after the close",
+            "Quarterly Procurement Committee pack",
+            "Monthly shortage review with the buyers"
+          ]
+        },
+        "out": {},
+        "job_description": null
+      },
+      "business_need": "Supply Chain Analyst for Bramwell Water, Bramwell Hazardous Waste, Bramwell Energy and Group Procurement and Shared Services (environmental services). Keeps critical spares and treatment chemicals available across the three businesses, checks spend is on contract at the contract price, and supports sourcing events with landed-cost analysis. Responsible for spend and contract compliance; sourcing and award support; inventory and critical spares; treatment chemical continuity; outage material readiness; supplier performance; savings program; reporting. Reports to nishant.srivastav@vriodigital.com.",
       "personas": [
         {
-          "name": "Chief Procurement Officer",
-          "description": "Owns group procurement. Asks what the group spends and with whom, how much is under contract, where the savings stand, and what goes to the Procurement Committee.",
+          "name": "Sofia Brandt",
+          "description": "Finance Business Partner, Procurement",
           "source": "ai",
           "origin": null
         },
         {
-          "name": "Head of Supply Chain Planning and Inventory",
-          "description": "Owns stock and supply continuity. Asks which critical items are short, what can be moved between sites, and which suppliers are slipping.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Category Manager, Chemicals and Process Materials",
-          "description": "Runs the chemicals category and its sourcing events. Asks what the bids save on landed cost, who is qualified, and what a force majeure exposes.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Category Manager, Maintenance, Repair and Operations",
-          "description": "Runs maintenance categories. Asks where spend leaks off contract, which sites pay different prices for one item, and how many suppliers serve a category.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Buyer",
-          "description": "Places and chases orders. Asks which lines are late and with whom, and which orders need expediting.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Plant Manager, Water",
-          "description": "Runs a water treatment works. Asks how many days of each chemical the plant holds and when the next delivery lands.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Outage Manager, Hazardous Waste",
-          "description": "Plans incinerator outages. Asks whether every reserved part will be there on time and what a missing part costs per day.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Storeroom and Inventory Lead",
-          "description": "Runs a storeroom. Asks what is held, what has not moved, which items have no reorder point, and what can be released to another site.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Accounts Payable Lead",
-          "description": "Pays suppliers. Asks which invoices are above contract price, which match exceptions are open, and which vendor records are duplicates.",
-          "source": "ai",
-          "origin": null
-        },
-        {
-          "name": "Finance Business Partner, Procurement",
-          "description": "Validates savings and tracks spend against plan. Asks what is secured against the target and how stock ties up cash.",
+          "name": "Ruth Calloway",
+          "description": "Process Safety Manager",
           "source": "ai",
           "origin": null
         }
       ],
       "metrics": [
         {
-          "name": "Third-party spend",
-          "description": "Ordered value of purchase order lines by order date, by business and category, against the FY26 spend plan for the same months.",
+          "name": "Spend against plan",
+          "description": "Ordered spend / plan for the same months, by business and category · Unit: $ and % · Cadence: Monthly · Flags: Over 105% or under 90%",
           "source": "ai",
           "origin": null,
-          "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+          "sql": null
         },
         {
           "name": "Spend under contract",
-          "description": "Ordered value placed on a group contract, as a share of all ordered value in the period.",
+          "description": "Spend on a group contract / total spend · Unit: % · Cadence: Monthly · Flags: Below 80%",
           "source": "ai",
           "origin": null,
-          "sql": "SELECT SUM(CASE WHEN contract_no IS NOT NULL THEN ordered_usd ELSE 0 END) / SUM(ordered_usd) AS under_contract_share\nFROM pur.po_line\nWHERE ordered_on BETWEEN '2026-01-01' AND '2026-09-30'"
-        },
-        {
-          "name": "Off-contract spend where a contract covers the item",
-          "description": "Ordered value placed off contract on lines whose material is covered by a group contract (contract_price_usd is not null). Spend in categories with no contract is not leakage.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
-        },
-        {
-          "name": "Invoice price variance",
-          "description": "Invoice lines priced above the contract price: (invoiced price minus contract price) times quantity, with the match status.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
-        },
-        {
-          "name": "Supplier on time in full",
-          "description": "Order lines received complete on or before the promised date, as a share of lines received, by supplier and quarter.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
-        },
-        {
-          "name": "Critical items below safety stock",
-          "description": "Class A positions (site and material) whose unrestricted stock is below safety stock at the latest snapshot.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
-        },
-        {
-          "name": "Days of chemical cover",
-          "description": "Unrestricted stock divided by average daily use, per plant and treatment chemical, against the minimum (14 days water, 10 hazardous waste, 7 energy).",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
-        },
-        {
-          "name": "Positions at risk before the next receipt",
-          "description": "Positions projected below safety stock, or short of a reservation, before their next confirmed receipt.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty, s.safety_stock_qty, r.required_qty, r.requirement_date, MIN(p.promised_date) AS next_receipt\nFROM mm.plant_stock s\nLEFT JOIN mm.reservation r ON r.site_code = s.site_code AND r.material_code = s.material_code AND r.status <> 'Closed'\nLEFT JOIN pur.po_line p ON p.site_code = s.site_code AND p.material_code = s.material_code AND p.line_status LIKE 'Open%'\nWHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nGROUP BY 1, 2, 3, 4, 5, 6\nHAVING s.unrestricted_qty < COALESCE(r.required_qty, s.safety_stock_qty) AND (next_receipt IS NULL OR next_receipt > COALESCE(r.requirement_date, CURRENT_DATE()))"
-        },
-        {
-          "name": "Stock that can move between sites",
-          "description": "For each position below safety stock, the stock held at other sites above their own safety stock, and its business.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
-        },
-        {
-          "name": "Outage material readiness",
-          "description": "Reservation lines of a planned outage whose stock on hand, plus receipts promised before the requirement date, covers the required quantity.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
-        },
-        {
-          "name": "Bid landed cost",
-          "description": "Price plus average freight per unit for each bid, by lot, with qualification.",
-          "source": "ai",
-          "origin": null,
-          "sql": "SELECT b.lot_id, b.bidder_vendor_id, b.unit_price_usd, b.freight_usd_per_unit, b.unit_price_usd + b.freight_usd_per_unit AS landed_usd, b.qualified\nFROM src.bid b\nWHERE b.event_id = 'SE-2026-031'\nORDER BY b.lot_id, landed_usd"
-        },
-        {
-          "name": "Award saving on planned volumes",
-          "description": "Planned volume times (current landed cost minus awarded landed cost), by lot, against the prior contract price as the savings policy defines it.",
-          "source": "ai",
-          "origin": null,
-          "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
+          "sql": null
         }
       ],
       "sources": [
@@ -1498,22 +1451,7 @@
           "objects": []
         },
         {
-          "source_id": "azuresql:bramwell_srm",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "azuresql:bramwell_ops",
-          "mode": "all",
-          "objects": []
-        },
-        {
           "source_id": "onedrive:bramwell-supply-chain",
-          "mode": "all",
-          "objects": []
-        },
-        {
-          "source_id": "outlook:nishant.srivastav@vriodigital.com",
           "mode": "all",
           "objects": []
         }
@@ -1521,101 +1459,21 @@
       "hero_questions": [
         {
           "text": "What did we spend with third parties this year, by business and category, against the plan?",
-          "priority": "high",
+          "priority": "normal",
           "source": "ai",
-          "sql": "SELECT p.business_code, p.category_code, SUM(p.ordered_usd) AS spend_usd, SUM(sp.plan_usd) AS plan_usd\nFROM pur.po_line p\nLEFT JOIN fin.spend_plan sp ON sp.business_code = p.business_code AND sp.category_code = p.category_code AND sp.period = FORMAT_DATE('%Y-%m', p.ordered_on)\nWHERE p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.business_code, p.category_code"
+          "sql": "SELECT business_code, category_code, plan_usd, addressable\nFROM `fin`.`spend_plan`\nLIMIT 1000"
         },
         {
           "text": "How much of our spend is under a group contract, and where does it go off contract when a contract covers the item?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT p.category_code, p.vendor_id, SUM(p.ordered_usd) AS off_contract_usd,\n       SUM((p.unit_price_usd - p.contract_price_usd) * p.quantity) AS premium_usd\nFROM pur.po_line p\nWHERE p.contract_no IS NULL AND p.contract_price_usd IS NOT NULL AND p.ordered_on BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY p.category_code, p.vendor_id\nORDER BY off_contract_usd DESC"
-        },
-        {
-          "text": "Which invoices were paid above the contract price in the third quarter, and by how much?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT i.vendor_id, COUNT(*) AS lines, SUM(i.price_variance_usd) AS variance_usd,\n       SUM(CASE WHEN i.match_status = 'Paid at invoice price' THEN i.price_variance_usd ELSE 0 END) AS paid_usd\nFROM ap.invoice_line i\nWHERE i.price_variance_usd > 0 AND i.invoice_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY i.vendor_id\nORDER BY variance_usd DESC"
-        },
-        {
-          "text": "Which critical items are below safety stock today?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT s.site_code, s.material_code, m.description, s.unrestricted_qty, s.safety_stock_qty\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.criticality = 'A' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND s.unrestricted_qty < s.safety_stock_qty"
-        },
-        {
-          "text": "How many days of ferric chloride does each plant hold, against its minimum?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT s.site_code, s.material_code, s.unrestricted_qty / NULLIF(s.avg_daily_use, 0) AS days_of_cover\nFROM mm.plant_stock s\nJOIN mm.material m ON m.material_code = s.material_code\nWHERE m.category_code = 'CHEM' AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nORDER BY days_of_cover"
-        },
-        {
-          "text": "Which critical items are held above safety stock at one site while another site is below?",
           "priority": "normal",
           "source": "ai",
-          "sql": "SELECT need.site_code AS short_site, have.site_code AS holding_site, need.material_code, have.unrestricted_qty - have.safety_stock_qty AS releasable_qty\nFROM mm.plant_stock need\nJOIN mm.plant_stock have ON have.material_code = need.material_code AND have.site_code <> need.site_code AND have.snapshot_date = need.snapshot_date\nWHERE need.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\n  AND need.unrestricted_qty < need.safety_stock_qty AND have.unrestricted_qty > have.safety_stock_qty"
-        },
-        {
-          "text": "Will everything reserved for the Ravensworth Kiln 2 outage be there on time?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT r.material_code, r.required_qty, r.requirement_date, s.unrestricted_qty, MIN(p.promised_date) AS next_receipt\nFROM mm.reservation r\nJOIN ops.work_order w ON w.work_order = r.work_order\nJOIN mm.plant_stock s ON s.site_code = r.site_code AND s.material_code = r.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nLEFT JOIN pur.po_line p ON p.site_code = r.site_code AND p.material_code = r.material_code AND p.line_status LIKE 'Open%'\nWHERE w.outage_id = 'OUT-RAV-K2-2026'\nGROUP BY 1, 2, 3, 4"
-        },
-        {
-          "text": "Which suppliers had the worst on time in full in the third quarter?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT p.vendor_id, COUNT(*) AS lines,\n       AVG(CASE WHEN p.received_on <= p.promised_date AND p.delivered_complete THEN 1.0 ELSE 0.0 END) AS otif\nFROM pur.po_line p\nWHERE p.received_on IS NOT NULL AND p.promised_date BETWEEN '2026-07-01' AND '2026-09-30'\nGROUP BY p.vendor_id\nHAVING COUNT(*) >= 20\nORDER BY otif"
-        },
-        {
-          "text": "Which critical items have a single qualified source?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT m.material_code, m.description, m.preferred_vendor_id, SUM(s.unrestricted_qty) AS group_stock\nFROM mm.material m\nLEFT JOIN mm.plant_stock s ON s.material_code = m.material_code AND s.snapshot_date = (SELECT MAX(snapshot_date) FROM mm.plant_stock)\nWHERE m.criticality = 'A' AND m.single_source\nGROUP BY 1, 2, 3"
-        },
-        {
-          "text": "What would the bids in SE-2026-031 save against today's prices, on landed cost?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "WITH vol AS (SELECT material_code, SUM(plan_tons) AS tons FROM ops.dosing_plan WHERE plan_year = 2027 GROUP BY material_code)\nSELECT b.lot_id, v.tons, ci.unit_price_usd AS current_price, b.unit_price_usd + b.freight_usd_per_unit AS awarded_landed\nFROM src.bid b\nJOIN vol v ON v.material_code = b.material_code\nJOIN src.contract_item ci ON ci.material_code = b.material_code AND ci.valid_to = '2026-12-31'\nWHERE b.event_id = 'SE-2026-031' AND b.qualified"
-        },
-        {
-          "text": "What does the Corrigan force majeure expose, and what have the spot buys cost so far?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT d.site_code, SUM(d.plan_tons) * 0.4 AS unshipped_tons_a_year\nFROM ops.dosing_plan d\nWHERE d.material_code = 'CHM-FECL-40' AND d.plan_year = 2027\nGROUP BY d.site_code"
-        },
-        {
-          "text": "How much of each treatment chemical does each business use now, and what does the 2027 plan say?",
-          "priority": "high",
-          "source": "ai",
-          "sql": "SELECT d.site_code, d.material_code, d.run_rate_tons, d.plan_tons, d.refreshed_on\nFROM ops.dosing_plan d\nWHERE d.plan_year = 2027"
+          "sql": "SELECT contract_no, contract_price_usd, exception_code, ordered_usd\nFROM `pur`.`po_line`\nLIMIT 1000"
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 6,
-      "updated_at": "2026-10-22T15:48:12.204Z",
-      "role": {
-        "role_id": "sca",
-        "role_name": "Supply Chain Analyst",
-        "industry": "environmental",
-        "businesses": [
-          "WAT",
-          "HAZ",
-          "ENE"
-        ],
-        "reports_to": "rafael.duarte@vriodigital.com",
-        "responsibilities": [
-          "demand",
-          "inv",
-          "supplier",
-          "spend",
-          "source",
-          "chem",
-          "report"
-        ]
-      }
+      "updated_at": "2026-10-29T12:42:37.764Z"
     }
   ],
   "graph_use_case_templates": [

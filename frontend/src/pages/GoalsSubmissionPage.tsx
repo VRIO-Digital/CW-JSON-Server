@@ -56,6 +56,7 @@ import './GoalsSubmissionPage.css'
 const DATASET_FILES: Record<string, { goals: string; submission: string }> = {
   KEOLIS: { goals: 'Keolis_Goals.html', submission: 'Keolis_Submissions.html' },
   CAPEX: { goals: 'Capex-Goals.html', submission: 'Capex-Submission.html' },
+  SUPPLYCHAIN: { goals: 'Supply_chain_goals.html', submission: 'Supply_chain_submission.html' },
 }
 const FILES = DATASET_FILES[currentDataset().toUpperCase()] ?? DATASET_FILES.KEOLIS
 
@@ -231,7 +232,10 @@ const CAPEX_NOTICES: SimNotice[] = [
   [24000, 'Review the note before it goes out', 'The note to the controller is drafted and waits for your review. Nothing is sent until you do.', 'findings'],
 ]
 
-const SIM_NOTICES = currentDataset().toUpperCase() === 'CAPEX' ? CAPEX_NOTICES : KEOLIS_NOTICES
+/* SUPPLYCHAIN has none yet: its scenario is a different load (the Bramwell nightly one) and the
+   Keolis notices name projects it does not have, so an empty list beats a foreign one. */
+const SIM_NOTICES: SimNotice[] =
+  { CAPEX: CAPEX_NOTICES, SUPPLYCHAIN: [] as SimNotice[] }[currentDataset().toUpperCase()] ?? KEOLIS_NOTICES
 
 /* The bell's own antd badge never drew, so this frame paints a count of its own. It is a fixed element
    on the document body, placed from the bell's bounding box, rather than a child of the button: the
@@ -761,6 +765,7 @@ const MISSING_ADD_LABELS = [
   'Add the Q2 minutes',
   'Add your working notes',
   'Add Marc’s thread',
+  'Add the dosing plans',
 ]
 
 const ADDED_BOX_CSS =

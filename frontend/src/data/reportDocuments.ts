@@ -123,6 +123,16 @@ const goalsSubmissionModules = import.meta.glob('../*/goals-submission/*.html', 
   eager: true,
 }) as Record<string, string>
 
+/*
+ * An eighth: SUPPLYCHAIN keeps its two pages in folders named for the screen (`src/SupplyChain/Goals/`,
+ * `src/SupplyChain/Submission/`) rather than one `goals-submission/` folder, so they are named here.
+ */
+const supplyChainGoalsModules = import.meta.glob('../SupplyChain/{Goals,Submission}/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 /**
  * Filename -> URL, keyed on the basename because that is what the payload carries.
  *
@@ -140,6 +150,7 @@ for (const [path, url] of Object.entries({
   ...aiSubmissionsModules,
   ...datasetAiSubmissionsModules,
   ...goalsSubmissionModules,
+  ...supplyChainGoalsModules,
 })) {
   const name = path.slice(path.lastIndexOf('/') + 1)
   const seen = byName.get(name)
