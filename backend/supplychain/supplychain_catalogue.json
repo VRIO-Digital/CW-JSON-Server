@@ -204,6 +204,246 @@
         "cardinality_hint": "1:N",
         "rationale": "Daily use on stock comes from the run rate, not the plan; using the plan for days of cover would change the safety stock of every Energy site, whose plans are a year old.",
         "confidence": 0.61
+      },
+      {
+        "suggestion_id": "sg_mm_plant_stock__ops_site__site_code",
+        "from_table_key": "mm.plant_stock",
+        "from_column": "site_code",
+        "to_table_key": "ops.site",
+        "to_column": "site_code",
+        "relationship_type": "HELD_AT",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Stock is held at one site.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_mm_plant_stock__mm_material__material_code",
+        "from_table_key": "mm.plant_stock",
+        "from_column": "material_code",
+        "to_table_key": "mm.material",
+        "to_column": "material_code",
+        "relationship_type": "OF_MATERIAL",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Stock is of one material.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_mm_stock_movement__mm_material__material_code",
+        "from_table_key": "mm.stock_movement",
+        "from_column": "material_code",
+        "to_table_key": "mm.material",
+        "to_column": "material_code",
+        "relationship_type": "MOVES",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Movements name the material.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_mm_reservation__ops_work_order__work_order",
+        "from_table_key": "mm.reservation",
+        "from_column": "work_order",
+        "to_table_key": "ops.work_order",
+        "to_column": "work_order",
+        "relationship_type": "RESERVED_FOR",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "A reservation line belongs to one work order.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_pur_po_line__ops_site__site_code",
+        "from_table_key": "pur.po_line",
+        "from_column": "site_code",
+        "to_table_key": "ops.site",
+        "to_column": "site_code",
+        "relationship_type": "DELIVERED_TO",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Order lines name the site they deliver to; business_code on the line is the site's business.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_pur_po_line__mm_material__material_code",
+        "from_table_key": "pur.po_line",
+        "from_column": "material_code",
+        "to_table_key": "mm.material",
+        "to_column": "material_code",
+        "relationship_type": "ORDERS",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Material lines name the material; service lines carry none.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_pur_po_line__pur_vendor__vendor_id",
+        "from_table_key": "pur.po_line",
+        "from_column": "vendor_id",
+        "to_table_key": "pur.vendor",
+        "to_column": "vendor_id",
+        "relationship_type": "ORDERED_FROM",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Vendor on the order.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_pur_po_line__src_contract__contract_no",
+        "from_table_key": "pur.po_line",
+        "from_column": "contract_no",
+        "to_table_key": "src.contract",
+        "to_column": "contract_no",
+        "relationship_type": "ORDERED_UNDER",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Lines ordered on a contract carry its number; a line off contract carries none.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_pur_goods_receipt__pur_po_line__po_number",
+        "from_table_key": "pur.goods_receipt",
+        "from_column": "po_number",
+        "to_table_key": "pur.po_line",
+        "to_column": "po_number",
+        "relationship_type": "RECEIVES",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Receipts post against order lines.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_ap_invoice_line__pur_po_line__po_number",
+        "from_table_key": "ap.invoice_line",
+        "from_column": "po_number",
+        "to_table_key": "pur.po_line",
+        "to_column": "po_number",
+        "relationship_type": "BILLS",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Invoice lines match order lines; 0.7% carry no order (no-PO invoices).",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_ap_match_exception__ap_invoice_line__invoice_no",
+        "from_table_key": "ap.match_exception",
+        "from_column": "invoice_no",
+        "to_table_key": "ap.invoice_line",
+        "to_column": "invoice_no",
+        "relationship_type": "RAISED_ON",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "An exception is raised on one invoice line.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_fin_spend_plan__ops_business__business_code",
+        "from_table_key": "fin.spend_plan",
+        "from_column": "business_code",
+        "to_table_key": "ops.business",
+        "to_column": "business_code",
+        "relationship_type": "PLANS_FOR",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "The plan is by business, category and month.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_src_contract__src_contract_item__contract_no",
+        "from_table_key": "src.contract",
+        "from_column": "contract_no",
+        "to_table_key": "src.contract_item",
+        "to_column": "contract_no",
+        "relationship_type": "PRICES",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "1:N",
+        "rationale": "A contract has one price per material and validity period.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_src_contract__pur_vendor__vendor_id",
+        "from_table_key": "src.contract",
+        "from_column": "vendor_id",
+        "to_table_key": "pur.vendor",
+        "to_column": "vendor_id",
+        "relationship_type": "AWARDED_TO",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "A contract is with one vendor id; a duplicate vendor record of the same company is not covered.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_src_bid__src_sourcing_event__event_id",
+        "from_table_key": "src.bid",
+        "from_column": "event_id",
+        "to_table_key": "src.sourcing_event",
+        "to_column": "event_id",
+        "relationship_type": "BID_IN",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Bids belong to one event and lot.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_src_bid__pur_vendor__bidder_vendor_id",
+        "from_table_key": "src.bid",
+        "from_column": "bidder_vendor_id",
+        "to_table_key": "pur.vendor",
+        "to_column": "vendor_id",
+        "relationship_type": "BID_BY",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Bidders are vendors; a new bidder gets a vendor id when it registers.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_src_supplier_scorecard__pur_vendor__vendor_id",
+        "from_table_key": "src.supplier_scorecard",
+        "from_column": "vendor_id",
+        "to_table_key": "pur.vendor",
+        "to_column": "vendor_id",
+        "relationship_type": "SCORES",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "One scorecard per vendor and quarter.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_ops_site__ops_business__business_code",
+        "from_table_key": "ops.site",
+        "from_column": "business_code",
+        "to_table_key": "ops.business",
+        "to_column": "business_code",
+        "relationship_type": "RUN_BY",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Each site belongs to one business.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_ops_work_order__ops_outage_plan__outage_id",
+        "from_table_key": "ops.work_order",
+        "from_column": "outage_id",
+        "to_table_key": "ops.outage_plan",
+        "to_column": "outage_id",
+        "relationship_type": "PART_OF",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Outage work orders name the outage; routine work carries none.",
+        "confidence": 0.8
+      },
+      {
+        "suggestion_id": "sg_ops_dosing_plan__mm_material__material_code",
+        "from_table_key": "ops.dosing_plan",
+        "from_column": "material_code",
+        "to_table_key": "mm.material",
+        "to_column": "material_code",
+        "relationship_type": "PLANS_USE_OF",
+        "relationship_type_alternatives": [],
+        "cardinality_hint": "N:1",
+        "rationale": "Dosing plans name the chemical's material number.",
+        "confidence": 0.8
       }
     ],
     "entities": [
@@ -229,34 +469,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.site",
-            "from_columns": [
-              "site_code"
-            ],
-            "to_columns": [
-              "site_code"
-            ],
-            "relationship_type": "HELD_AT",
-            "cardinality_hint": "N:1",
-            "rationale": "Stock is held at one site.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "mm.material",
-            "from_columns": [
-              "material_code"
-            ],
-            "to_columns": [
-              "material_code"
-            ],
-            "relationship_type": "OF_MATERIAL",
-            "cardinality_hint": "N:1",
-            "rationale": "Stock is of one material.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T10:07:12.000Z"
       },
@@ -269,21 +482,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "mm.material",
-            "from_columns": [
-              "material_code"
-            ],
-            "to_columns": [
-              "material_code"
-            ],
-            "relationship_type": "MOVES",
-            "cardinality_hint": "N:1",
-            "rationale": "Movements name the material.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-22T11:14:12.000Z"
       },
@@ -296,21 +495,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.work_order",
-            "from_columns": [
-              "work_order"
-            ],
-            "to_columns": [
-              "work_order"
-            ],
-            "relationship_type": "RESERVED_FOR",
-            "cardinality_hint": "N:1",
-            "rationale": "A reservation line belongs to one work order.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-20T12:21:12.000Z"
       },
@@ -323,60 +508,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.site",
-            "from_columns": [
-              "site_code"
-            ],
-            "to_columns": [
-              "site_code"
-            ],
-            "relationship_type": "DELIVERED_TO",
-            "cardinality_hint": "N:1",
-            "rationale": "Order lines name the site they deliver to; business_code on the line is the site's business.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "mm.material",
-            "from_columns": [
-              "material_code"
-            ],
-            "to_columns": [
-              "material_code"
-            ],
-            "relationship_type": "ORDERS",
-            "cardinality_hint": "N:1",
-            "rationale": "Material lines name the material; service lines carry none.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "pur.vendor",
-            "from_columns": [
-              "vendor_id"
-            ],
-            "to_columns": [
-              "vendor_id"
-            ],
-            "relationship_type": "ORDERED_FROM",
-            "cardinality_hint": "N:1",
-            "rationale": "Vendor on the order.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "src.contract",
-            "from_columns": [
-              "contract_no"
-            ],
-            "to_columns": [
-              "contract_no"
-            ],
-            "relationship_type": "ORDERED_UNDER",
-            "cardinality_hint": "N:1",
-            "rationale": "Lines ordered on a contract carry its number; a line off contract carries none.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T13:28:12.000Z"
       },
@@ -389,21 +521,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "pur.po_line",
-            "from_columns": [
-              "po_number"
-            ],
-            "to_columns": [
-              "po_number"
-            ],
-            "relationship_type": "RECEIVES",
-            "cardinality_hint": "N:1",
-            "rationale": "Receipts post against order lines.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-22T14:35:12.000Z"
       },
@@ -429,21 +547,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "pur.po_line",
-            "from_columns": [
-              "po_number"
-            ],
-            "to_columns": [
-              "po_number"
-            ],
-            "relationship_type": "BILLS",
-            "cardinality_hint": "N:1",
-            "rationale": "Invoice lines match order lines; 0.7% carry no order (no-PO invoices).",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T16:49:12.000Z"
       },
@@ -456,21 +560,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ap.invoice_line",
-            "from_columns": [
-              "invoice_no"
-            ],
-            "to_columns": [
-              "invoice_no"
-            ],
-            "relationship_type": "RAISED_ON",
-            "cardinality_hint": "N:1",
-            "rationale": "An exception is raised on one invoice line.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-22T09:56:12.000Z"
       },
@@ -483,21 +573,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.business",
-            "from_columns": [
-              "business_code"
-            ],
-            "to_columns": [
-              "business_code"
-            ],
-            "relationship_type": "PLANS_FOR",
-            "cardinality_hint": "N:1",
-            "rationale": "The plan is by business, category and month.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-20T10:03:12.000Z"
       },
@@ -510,34 +586,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "src.contract_item",
-            "from_columns": [
-              "contract_no"
-            ],
-            "to_columns": [
-              "contract_no"
-            ],
-            "relationship_type": "PRICES",
-            "cardinality_hint": "1:N",
-            "rationale": "A contract has one price per material and validity period.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "pur.vendor",
-            "from_columns": [
-              "vendor_id"
-            ],
-            "to_columns": [
-              "vendor_id"
-            ],
-            "relationship_type": "AWARDED_TO",
-            "cardinality_hint": "N:1",
-            "rationale": "A contract is with one vendor id; a duplicate vendor record of the same company is not covered.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T11:10:12.000Z"
       },
@@ -576,34 +625,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "src.sourcing_event",
-            "from_columns": [
-              "event_id"
-            ],
-            "to_columns": [
-              "event_id"
-            ],
-            "relationship_type": "BID_IN",
-            "cardinality_hint": "N:1",
-            "rationale": "Bids belong to one event and lot.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          },
-          {
-            "target_table_key": "pur.vendor",
-            "from_columns": [
-              "bidder_vendor_id"
-            ],
-            "to_columns": [
-              "vendor_id"
-            ],
-            "relationship_type": "BID_BY",
-            "cardinality_hint": "N:1",
-            "rationale": "Bidders are vendors; a new bidder gets a vendor id when it registers.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T14:31:12.000Z"
       },
@@ -616,21 +638,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "pur.vendor",
-            "from_columns": [
-              "vendor_id"
-            ],
-            "to_columns": [
-              "vendor_id"
-            ],
-            "relationship_type": "SCORES",
-            "cardinality_hint": "N:1",
-            "rationale": "One scorecard per vendor and quarter.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-22T15:38:12.000Z"
       },
@@ -656,21 +664,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.business",
-            "from_columns": [
-              "business_code"
-            ],
-            "to_columns": [
-              "business_code"
-            ],
-            "relationship_type": "RUN_BY",
-            "cardinality_hint": "N:1",
-            "rationale": "Each site belongs to one business.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T09:52:12.000Z"
       },
@@ -683,21 +677,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "ops.outage_plan",
-            "from_columns": [
-              "outage_id"
-            ],
-            "to_columns": [
-              "outage_id"
-            ],
-            "relationship_type": "PART_OF",
-            "cardinality_hint": "N:1",
-            "rationale": "Outage work orders name the outage; routine work carries none.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-22T10:59:12.000Z"
       },
@@ -723,21 +703,7 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "mm.material",
-            "from_columns": [
-              "material_code"
-            ],
-            "to_columns": [
-              "material_code"
-            ],
-            "relationship_type": "PLANS_USE_OF",
-            "cardinality_hint": "N:1",
-            "rationale": "Dosing plans name the chemical's material number.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-10-21T12:13:12.000Z"
       }

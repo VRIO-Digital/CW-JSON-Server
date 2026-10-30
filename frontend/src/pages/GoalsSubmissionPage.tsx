@@ -1144,6 +1144,17 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
             const win = inner.defaultView
             if (!win) return
             frameWinRef.current = win
+            /* Every build of the prototype bootstraps itself with `localStorage.setItem(
+               'contextweave.dataset', 'KEOLIS')`, and the frame shares this app's origin and storage — so
+               opening Goals or Submission overwrote the reader's selection, and the next reload came
+               back on Keolis (`/K/…`). The app's own selection is the authority, so it is written back
+               once the document has had its say. The in-memory value never changed, which is why the
+               page looked right until the reload. */
+            try {
+              win.localStorage.setItem('contextweave.dataset', currentDataset())
+            } catch {
+              /* A blocked store: nothing was overwritten either, since the document's write failed too. */
+            }
             /*
              * Frame → app: the document navigating itself — "Build in Submissions" inside a goal is a
              * router move to `/K/submissions/<id>` — pulls the app's route along, so the sidebar names
