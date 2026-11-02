@@ -1,0 +1,63 @@
+{
+  "note": "Files reachable from the + menu. Each one has an effect on the plan when added to the Halden proposal goal (case once); on any other goal it is read and listed under What I am working from with \"nothing in it changes the plan as it stands\".",
+  "gdrive": [
+    {
+      "id": "profiles",
+      "file": "Halden_Waste_Profiles_2026-10-22.xlsx",
+      "upload": "uploads/03_goals/Halden_Waste_Profiles_2026-10-22.xlsx",
+      "corpus": "DOC:halden-profiles",
+      "effect": "Already read: the six profiles are attached to the example"
+    },
+    {
+      "id": "policy",
+      "file": "Waste_Acceptance_Policy_2025.pdf",
+      "upload": "uploads/03_goals/Waste_Acceptance_Policy_2025.pdf",
+      "corpus": "DOC:acceptance-policy",
+      "effect": "Answers the question on QR-14: section 4 says a generator's destruction requirement binds the routing, so deep well is not offered for the product-contact streams. The card folds with 'from the acceptance policy'."
+    },
+    {
+      "id": "mywork",
+      "file": "Halden_routing_working_2026-10.xlsx",
+      "upload": "uploads/03_goals/Halden_routing_working_2026-10.xlsx",
+      "corpus": "DOC:my-halden-working",
+      "effect": "Answers both questions: Granger for the QR-14 streams with Port Terrell as the alternative, and incineration only. If step 3 has run, the run keeps what it has."
+    },
+    {
+      "id": "lab",
+      "file": "Riverbend_Laboratory_Report_Halden_2026-10-29.pdf",
+      "upload": "uploads/03_goals/Riverbend_Laboratory_Report_Halden_2026-10-29.pdf",
+      "corpus": "DOC:halden-lab",
+      "effect": "Read: all six results released on 29 October; the solvent carries 3.2% total halogens, so Fox Hollow is out for it and the quote prices it on Granger"
+    }
+  ],
+  "gmail": [
+    {
+      "id": "a2",
+      "thread": "A2",
+      "subject": "Halden QR-14: no deep well for the process water",
+      "upload": "uploads/03_goals/mail/A2.eml",
+      "effect": "Answers the question on QR-14: Halden's quality lead confirms deep well is not acceptable for the process water. The card folds with 'from Priya's thread'."
+    },
+    {
+      "id": "a4",
+      "thread": "A4",
+      "subject": "Margin floor on the Halden quote",
+      "upload": "uploads/03_goals/mail/A4.eml",
+      "effect": "Answers the question on capacity: Raj tests the floor at the quoted routing, so the routing has to be the one the streams will take; Granger, with Port Terrell as the alternative"
+    },
+    {
+      "id": "a1",
+      "thread": "A1",
+      "subject": "Halden Biopharma: quote by Friday 6 November",
+      "upload": "uploads/03_goals/mail/A1.eml",
+      "effect": "Already read from Gmail; listed under what I am working from"
+    }
+  ],
+  "web": {
+    "toggle": "Web search",
+    "once": "Halden's public statements on Caldwell Bend: the production start and the ramp. Never a volume commitment unless Halden writes one.",
+    "watch": "Carrier notices and outlet outages, cited in the notice."
+  },
+  "bigquery": "Lists the connected warehouse (ironbridge_ops, ironbridge_fin, ironbridge_legacy); reads are always available, nothing to attach.",
+  "upload": "Any file from the computer is read and listed; it changes the plan only when it answers something."
+}

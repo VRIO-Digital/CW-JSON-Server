@@ -36,6 +36,7 @@
     "ingest:capex-graph": "npm --prefix backend run ingest:capex-graph",
     "ingest:keolis": "npm --prefix backend run ingest:keolis",
     "ingest:supplychain": "npm --prefix backend run ingest:supplychain",
+    "ingest:arcwood": "npm --prefix backend run ingest:arcwood",
     "build:keolis-ai": "npm --prefix backend run build:keolis-ai",
     "ingest:queries": "npm --prefix backend run ingest:queries",
     "scale:capex": "npm --prefix backend run scale:capex",

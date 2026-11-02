@@ -1,0 +1,446 @@
+{
+  "note": "A new outlet watch briefed from the example: both questions answered by tile, one change (checked as each manifest is created), armed.",
+  "journey": {
+    "id": "g-every-accepted-stream-has-an-outlet-w-ib5f1053",
+    "mode": "watch",
+    "kind": "rule",
+    "case": "watch",
+    "title": "Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load",
+    "agent": {
+      "name": "Agent Keel",
+      "icon": "rocket",
+      "colour": "#6b3fa0"
+    },
+    "prompt": "Keep every accepted stream with a permitted outlet that has capacity when it arrives, and keep every stream above the margin floor. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out, or a stream falls under the floor, size it, look at what the rest of the network can take, and work out what can still be done before I ask.",
+    "files": [],
+    "stage": "armed",
+    "status": "armed",
+    "rv": [
+      "against",
+      "memory",
+      "watch",
+      "src:policy",
+      "src:ops",
+      "where",
+      "src:cal",
+      "prior",
+      "miss:tell",
+      "until",
+      "fires",
+      "tell",
+      "steps"
+    ],
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "A permitted code is not an outlet without capacity · a hold leaves within ten days · an expired approval is not an outlet · nothing below 15%",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Waste_Acceptance_Policy_2025.pdf · Pricing_and_Margin_Policy_2026.pdf",
+        "res": "Outlets need capacity in the period · ten-day transfer · third-party approvals must be current · the floors and clause 9.2",
+        "rv": [
+          "watch",
+          "src:policy"
+        ]
+      },
+      {
+        "tool": "scan ops.manifest · ops.capacity_booking · ops.third_party_approval · fin.state_fee",
+        "res": "3,098 approved profiles · 554 open manifests · bookings by unit and week · approvals with expiry · fees from 1 November",
+        "rv": [
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "read the load calendar",
+        "res": "Profiles, manifests, bookings and the price book load nightly at 02:00. Next: tonight, Wednesday 4 November",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "\"Halden Biopharma proposal\" reads the same Port Terrell and Granger bookings; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "search for a plant and service center distribution list",
+        "res": "No distribution list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Port Terrell kiln down since 06:40 on 3 November · 14 inbound manifests booked to it · Meridian West approvals to 30 November · Illinois fee up $3.00",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "fires",
+        "title": "What should make it fire?",
+        "text": "Bookings move every day and most shipments keep an outlet. The rule can fire only when a shipment has no outlet with capacity before it arrives, or also when a stream falls under the floor or an approval runs out, or on every load.",
+        "tiles": [
+          {
+            "v": "outlet",
+            "t": "When a shipment has no permitted outlet with capacity before it arrives",
+            "s": "The ones that need a move"
+          },
+          {
+            "v": "early",
+            "t": "Also when a stream falls under the margin floor or an outlet approval runs out",
+            "s": "What the policies ask for",
+            "rec": true
+          },
+          {
+            "v": "always",
+            "t": "A digest of every load",
+            "s": "A short reading each morning"
+          }
+        ]
+      },
+      {
+        "key": "tell",
+        "title": "Who is told when it fires?",
+        "text": "No distribution list is connected. The notice goes out without waiting for you, so pick who should see it.",
+        "tiles": [
+          {
+            "v": "me",
+            "t": "Just me",
+            "s": "I decide who hears"
+          },
+          {
+            "v": "plants",
+            "t": "Me and the plant managers",
+            "s": "Whoever confirms a slot"
+          },
+          {
+            "v": "all",
+            "t": "Me, the plant managers, the service centers and transport",
+            "s": "Everyone who can move or hold a load"
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fires": "early",
+      "tell": "plants"
+    },
+    "over": {
+      "where": "In our data, at the nightly load and as each manifest is created. A shipment booked to a unit that is down is caught the hour it is booked, not at 02:00."
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 2,
+    "agreedV": 2,
+    "history": [
+      {
+        "t": "14:24",
+        "what": "Checked as each manifest is created"
+      }
+    ],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the load flagged, and size it",
+        "purpose": "Which shipments have lost their outlet, which approvals run out, which streams are under the floor, and by how much.",
+        "how": "Every open manifest against the bookings of its unit for the week it arrives; every approval against its expiry; every approved stream against the floor at the fees in force. Limited to what the load that fired the rule changed.",
+        "draws": [
+          "ops.manifest",
+          "ops.capacity_booking",
+          "ops.third_party_approval",
+          "fin.state_fee"
+        ],
+        "check": "Every flagged position recomputes from the bookings, the approvals and the price book."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone is on it",
+        "purpose": "Is this new, and is someone already handling it.",
+        "how": "The outage notice, the fee change, the approval expiry, and what the plant managers, the service centers and transport have said.",
+        "draws": [
+          "Port_Terrell_Outage_Notice_2026-11-03.pdf",
+          "Gmail: outage, outlets, pricing (F1, F2, F3, B1)",
+          "fin.state_fee"
+        ],
+        "check": "Every cause is dated and sourced."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Look across the network: headroom, holds, outlets, clauses",
+        "purpose": "What the rest of the network can take, what can wait, and what the contracts allow.",
+        "how": "For each shipment: units with the codes on their permit and headroom in the week, the extra cost on the rate card, the ten-day clock at the service center, the approved third-party outlets; for each stream under the floor, the pass-through clause.",
+        "draws": [
+          "ops.capacity_booking (all units)",
+          "ops.facility_permit_code",
+          "fin.transport_lane",
+          "ops.transfer_hold",
+          "Gmail: plants and transport (R1, R2)"
+        ],
+        "check": "No unit is loaded past its headroom; no hold runs past its tenth day."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with what it costs and what it protects, checked against open goals.",
+        "how": "Each option with its cost, the shipments it covers, the revenue it protects, who has to agree, and an honest statement where a load can simply wait; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Halden Biopharma proposal",
+          "Pricing_and_Margin_Policy_2026.pdf"
+        ],
+        "check": "Every option states what it costs and what it covers."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Notice to the people you chose",
+        "purpose": "One page, sent without waiting for you.",
+        "how": "The shipments, why they lost their outlet, what the network holds, the options and the moves; on the re-route notice template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: re-route notice"
+        ],
+        "check": "Every figure in the notice links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "pending"
+      },
+      "w2": {
+        "state": "pending"
+      },
+      "w3": {
+        "state": "pending"
+      },
+      "w4": {
+        "state": "pending"
+      },
+      "w5": {
+        "state": "pending"
+      }
+    },
+    "findings": [],
+    "recs": [],
+    "outputs": [],
+    "started": [],
+    "gaps": [],
+    "chat": [
+      {
+        "who": "me",
+        "text": "Keep every accepted stream with a permitted outlet that has capacity when it arrives, and keep every stream above the margin floor. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out, or a stream falls under the floor, size it, look at what the rest of the network can take, and work out what can still be done before I ask.",
+        "id": "j1-ib183dc9",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "search role memory",
+              "res": "A permitted code is not an outlet without capacity · a hold leaves within ten days · an expired approval is not an outlet · nothing below 15%",
+              "live": false
+            },
+            {
+              "tool": "read Waste_Acceptance_Policy_2025.pdf · Pricing_and_Margin_Policy_2026.pdf",
+              "res": "Outlets need capacity in the period · ten-day transfer · third-party approvals must be current · the floors and clause 9.2",
+              "live": false
+            },
+            {
+              "tool": "scan ops.manifest · ops.capacity_booking · ops.third_party_approval · fin.state_fee",
+              "res": "3,098 approved profiles · 554 open manifests · bookings by unit and week · approvals with expiry · fees from 1 November",
+              "live": false
+            },
+            {
+              "tool": "read the load calendar",
+              "res": "Profiles, manifests, bookings and the price book load nightly at 02:00. Next: tonight, Wednesday 4 November",
+              "live": false
+            },
+            {
+              "tool": "check open goals",
+              "res": "\"Halden Biopharma proposal\" reads the same Port Terrell and Granger bookings; I read it whenever this fires",
+              "live": false
+            },
+            {
+              "tool": "search for a plant and service center distribution list",
+              "res": "No distribution list is connected; I need to know who to tell",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "read the latest position",
+              "res": "Port Terrell kiln down since 06:40 on 3 November · 14 inbound manifests booked to it · Meridian West approvals to 30 November · Illinois fee up $3.00",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft what I do when it fires",
+              "res": "5 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j2-ib292f72",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "The plan for the watch is on the right. Two things I could not find; one at a time.",
+        "id": "j3-ibce1427",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "fires",
+          "done": "no outlet with capacity, a stream under the floor, or an approval running out"
+        },
+        "id": "j4-ib065229",
+        "at": "14:24"
+      },
+      {
+        "who": "me",
+        "text": "Also when a stream falls under the margin floor or an outlet approval runs out",
+        "id": "j5-ib4f4c8b",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "tell",
+          "done": "you and the plant managers"
+        },
+        "id": "j6-ib84a865",
+        "at": "14:24"
+      },
+      {
+        "who": "me",
+        "text": "Me and the plant managers",
+        "id": "j7-ib7bc05d",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan for the watch. To change a line, press Edit on it and tell me here, or just type. Nothing is armed until you say so.",
+        "id": "j8-ib397375",
+        "at": "14:24"
+      },
+      {
+        "who": "me",
+        "text": "Check every manifest as it is created, not only at the load",
+        "id": "j9-ib42ba3c",
+        "at": "14:24"
+      },
+      {
+        "who": "agent",
+        "text": "Checked as manifests are created now. That catches a shipment booked to a unit that is down the hour it is booked, not at 02:00; expect more, smaller notices.",
+        "id": "j10-ibc3d9fb",
+        "at": "14:24"
+      },
+      {
+        "who": "event",
+        "text": "Watch armed · v2 · 3 Nov, 14:25",
+        "id": "j11-ib7f46c2",
+        "at": "14:25"
+      },
+      {
+        "who": "agent",
+        "text": "Armed. I check every accepted stream and every open manifest at the nightly load and each manifest as it is created; the next load is tonight, 02:00 on 4 November. Nothing runs until then. The Port Terrell outage is in the position already, so expect this to fire.",
+        "id": "j12-ib92dc56",
+        "at": "14:25"
+      }
+    ],
+    "chips": [
+      "Simulate tonight's load (4 November)",
+      "What will it look like when it fires?",
+      "Open the Halden proposal goal"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask about the watch, or change it between checks…"
+    },
+    "log": [
+      {
+        "t": "14:24",
+        "who": "You",
+        "what": "Checked as each manifest is created"
+      },
+      {
+        "t": "14:25",
+        "who": "You",
+        "what": "Armed the watch (v2)."
+      },
+      {
+        "t": "14:25",
+        "who": "Agent Keel",
+        "what": "Armed. First check: tonight's load, 02:00 on 4 November."
+      }
+    ],
+    "runs": [],
+    "flags": {},
+    "doneCount": 0,
+    "paused": false,
+    "agreedAt": "14:25",
+    "armedAt": "3 Nov, 14:25",
+    "armedBy": "You",
+    "nextCheck": "tonight's load, 02:00 on 4 November"
+  }
+}

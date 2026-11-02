@@ -1,0 +1,936 @@
+[
+  {
+    "question_id": "hq1",
+    "text": "What did we invoice this year by business, against the plan, and at what margin?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "invoice",
+      "year",
+      "business",
+      "against",
+      "plan",
+      "margin"
+    ],
+    "persona": "Chief Financial Officer",
+    "answer_id": "HQ1",
+    "rationale": "Resolves across fin.invoice_line + fin.revenue_plan + ops.facility at high confidence (0.94).",
+    "priority": "high",
+    "sql": "SELECT i.business_code, FORMAT_DATE('%Y-%m', i.invoice_date) AS period, SUM(i.amount_usd) AS revenue, ANY_VALUE(r.plan_usd) AS plan\nFROM fin.invoice_line i\nJOIN fin.revenue_plan r ON r.business_code = i.business_code AND r.period = FORMAT_DATE('%Y-%m', i.invoice_date)\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq2",
+    "text": "Which units are booked above 90% of capacity for the fourth quarter?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "units",
+      "booked",
+      "above",
+      "capacity",
+      "fourth",
+      "quarter"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ2",
+    "rationale": "Resolves across ops.capacity_booking + ops.process_unit at high confidence (0.93).",
+    "priority": "high",
+    "sql": "SELECT b.facility_code, b.process_code, SUM(b.booked_tons) AS booked, SUM(b.capacity_tons) AS capacity, SUM(b.booked_tons) / SUM(b.capacity_tons) AS share\nFROM ops.capacity_booking b\nWHERE b.iso_week BETWEEN 40 AND 52\nGROUP BY 1, 2\nORDER BY share DESC"
+  },
+  {
+    "question_id": "hq3",
+    "text": "Which approved profiles are under the 15% stream floor at today's fees?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "approved",
+      "profiles",
+      "under",
+      "stream",
+      "floor",
+      "today"
+    ],
+    "persona": "Pricing and Margin Manager",
+    "answer_id": "HQ3",
+    "rationale": "Resolves across ops.waste_profile + fin.treatment_cost + fin.transport_lane + fin.state_fee at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT p.profile_id, p.generator_id, p.price_usd_ton, fc.full_cost_usd_ton, (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton AS margin_pct\nFROM ops.waste_profile p\nJOIN full_cost fc ON fc.facility_code = p.facility_code AND fc.process_code = p.process_code AND fc.origin_region = (SELECT origin_region FROM ops.generator g WHERE g.generator_id = p.generator_id)\nWHERE p.status = 'Approved' AND (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton < 0.15"
+  },
+  {
+    "question_id": "hq4",
+    "text": "What do third-party outlets cost us this year, and which approvals expire next?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "third-party",
+      "outlets",
+      "cost",
+      "year",
+      "approvals",
+      "expire"
+    ],
+    "persona": "Third-Party Approvals Lead",
+    "answer_id": "HQ4",
+    "rationale": "Resolves across ops.third_party_manifest + ops.third_party_approval at high confidence (0.91).",
+    "priority": "high",
+    "sql": "SELECT t.outlet_id, SUM(t.tons) AS tons, SUM(t.cost_usd) AS cost\nFROM ops.third_party_manifest t\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq5",
+    "text": "Which generators send the most off-spec loads?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "generators",
+      "send",
+      "most",
+      "off-spec",
+      "loads"
+    ],
+    "persona": "Environmental Health and Safety Manager",
+    "answer_id": "HQ5",
+    "rationale": "Resolves across ops.manifest + ops.receipt_discrepancy + ops.generator at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT m.generator_id, COUNTIF(m.off_spec) / COUNT(*) AS off_spec_rate, COUNT(*) AS receipts\nFROM ops.manifest m\nWHERE m.status = 'Received'\nGROUP BY 1\nHAVING receipts >= 20\nORDER BY off_spec_rate DESC"
+  },
+  {
+    "question_id": "hq6",
+    "text": "How many shipments exceeded the ten-day transfer limit this year, and at which service centers?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "many",
+      "shipments",
+      "exceeded",
+      "ten-day",
+      "transfer",
+      "limit"
+    ],
+    "persona": "Director of Compliance",
+    "answer_id": "HQ6",
+    "rationale": "Resolves across ops.transfer_hold + ops.facility at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT h.center_code, FORMAT_DATE('%Y-%m', h.arrived_on) AS month, COUNTIF(h.exceeded_ten_days) AS exceeded, COUNT(*) AS holds\nFROM ops.transfer_hold h\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq7",
+    "text": "Which profiles are pending approval, and which of them are waiting on a laboratory result?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "profiles",
+      "pending",
+      "approval",
+      "them",
+      "waiting",
+      "laboratory"
+    ],
+    "persona": "Approval Chemist",
+    "answer_id": "HQ7",
+    "rationale": "Resolves across ops.waste_profile + ops.profile_analytical at high confidence (0.92).",
+    "priority": "high",
+    "sql": "SELECT p.profile_id, p.generator_id, DATE_DIFF(CURRENT_DATE(), p.received_on, DAY) AS days_pending, EXISTS (SELECT 1 FROM ops.profile_analytical a WHERE a.profile_id = p.profile_id AND a.released_on IS NOT NULL) AS result_released\nFROM ops.waste_profile p\nWHERE p.status = 'Pending'"
+  },
+  {
+    "question_id": "hq8",
+    "text": "What is booked against the capacity of each incineration unit, and what headroom is left in November?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "booked",
+      "against",
+      "capacity",
+      "incineration",
+      "unit",
+      "headroom"
+    ],
+    "persona": "Plant Manager, Incineration",
+    "answer_id": "HQ8",
+    "rationale": "Resolves across ops.capacity_booking + ops.process_unit at high confidence (0.93).",
+    "priority": "high",
+    "sql": "SELECT b.facility_code, b.process_code, SUM(b.capacity_tons - b.booked_tons) AS headroom_tons\nFROM ops.capacity_booking b\nWHERE b.iso_week IN (45, 46) AND NOT b.outage\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq9",
+    "text": "What is the margin by facility and unit this year?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "margin",
+      "facility",
+      "unit",
+      "year"
+    ],
+    "persona": "Business President",
+    "answer_id": "HQ9",
+    "rationale": "Resolves across fin.invoice_line + ops.facility at high confidence (0.92).",
+    "priority": "high",
+    "sql": "SELECT i.facility_code, i.process_code, SUM(i.amount_usd) AS revenue, 1 - SUM(i.full_cost_usd) / SUM(i.amount_usd) AS margin_pct\nFROM fin.invoice_line i\nGROUP BY 1, 2\nORDER BY margin_pct"
+  },
+  {
+    "question_id": "hq10",
+    "text": "Which units could take each of the six Halden streams under their permits?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "units",
+      "could",
+      "take",
+      "halden",
+      "streams",
+      "under"
+    ],
+    "persona": "Approval Chemist",
+    "answer_id": "HQ10",
+    "rationale": "Resolves across ops.facility_permit_code + ops.process_unit + the Halden profiles at high confidence (0.9); customer requirements read from QR-14 in Drive.",
+    "priority": "normal",
+    "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+  },
+  {
+    "question_id": "hq11",
+    "text": "What does the Port Terrell outage strand, and where can each shipment go?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "port",
+      "terrell",
+      "outage",
+      "strand",
+      "where",
+      "shipment"
+    ],
+    "persona": "Plant Manager, Incineration",
+    "answer_id": "HQ11",
+    "rationale": "Resolves across ops.manifest + ops.capacity_booking + ops.facility_permit_code + ops.transfer_hold at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT m.manifest_id, m.generator_id, m.facility_code, m.process_code, m.tons, m.eta\nFROM ops.manifest m\nJOIN ops.capacity_booking b ON b.facility_code = m.facility_code AND b.process_code = m.process_code AND b.iso_week = m.booked_week\nWHERE m.status IN ('Booked', 'In transit') AND (b.outage OR b.booked_tons > b.capacity_tons)"
+  },
+  {
+    "question_id": "hq12",
+    "text": "How long does a profile take from receipt to approval?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "long",
+      "profile",
+      "take",
+      "receipt",
+      "approval"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ12",
+    "rationale": "Resolves across ops.waste_profile at medium confidence (0.8): receipt dates are carried for profiles received since 2025.",
+    "priority": "normal",
+    "sql": "SELECT DATE_TRUNC(p.approved_on, QUARTER) AS quarter, APPROX_QUANTILES(DATE_DIFF(p.approved_on, p.received_on, DAY), 100)[OFFSET(50)] AS median_days\nFROM ops.waste_profile p\nWHERE p.approved_on IS NOT NULL\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq13",
+    "text": "Which third-party approvals expire in the next 60 days, and which streams depend on them?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "third-party",
+      "approvals",
+      "expire",
+      "next",
+      "days",
+      "streams"
+    ],
+    "persona": "Third-Party Approvals Lead",
+    "answer_id": "HQ13",
+    "rationale": "Resolves across ops.third_party_approval + ops.waste_profile at high confidence (0.93).",
+    "priority": "high",
+    "sql": "SELECT a.outlet_id, a.profile_id, a.generator_id, a.expires_on, a.cost_usd_ton\nFROM ops.third_party_approval a\nWHERE a.expires_on BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 60 DAY)"
+  },
+  {
+    "question_id": "hq14",
+    "text": "What does a re-route from Port Terrell to Granger cost a ton on the rate card, by origin region?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "re-route",
+      "port",
+      "terrell",
+      "granger",
+      "cost",
+      "rate"
+    ],
+    "persona": "Transportation Manager",
+    "answer_id": "HQ14",
+    "rationale": "Resolves across fin.transport_lane + fin.treatment_cost + fin.state_fee at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT m.manifest_id, (fc_alt.full_cost_usd_ton - fc_now.full_cost_usd_ton) * m.tons AS extra_cost_usd\nFROM ops.manifest m\nJOIN full_cost fc_now ON fc_now.facility_code = m.facility_code AND fc_now.process_code = m.process_code\nJOIN full_cost fc_alt ON fc_alt.facility_code = :alt_facility AND fc_alt.process_code = m.process_code"
+  },
+  {
+    "question_id": "hq15",
+    "text": "Which shipments are on the pad at Galena Shores today, and when does each one's clock run out?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "shipments",
+      "galena",
+      "shores",
+      "today",
+      "when",
+      "clock"
+    ],
+    "persona": "Customer Solutions Coordinator",
+    "answer_id": "HQ15",
+    "rationale": "Resolves across ops.transfer_hold + ops.manifest at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT h.manifest_id, h.center_code, h.arrived_on, h.days_held, h.deadline\nFROM ops.transfer_hold h\nWHERE h.left_on IS NULL\nORDER BY h.deadline"
+  },
+  {
+    "question_id": "hq16",
+    "text": "How many Harbor Line and Tidewater profiles are still on the legacy system, and how many has a chemist reviewed?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "many",
+      "harbor",
+      "line",
+      "tidewater",
+      "profiles",
+      "legacy"
+    ],
+    "persona": "Integration Lead, Acquisitions",
+    "answer_id": "HQ16",
+    "rationale": "Resolves across legacy.legacy_profile + ops.waste_profile at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT l.source_company, COUNT(*) AS profiles, COUNTIF(l.reviewed) AS reviewed\nFROM legacy.legacy_profile l\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq17",
+    "text": "Which approved profiles expire in the next 90 days, and what revenue rides on them?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "approved",
+      "profiles",
+      "expire",
+      "next",
+      "days",
+      "revenue"
+    ],
+    "persona": "Account Manager",
+    "answer_id": "HQ17",
+    "rationale": "Resolves across ops.waste_profile + ops.generator at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT p.profile_id, p.generator_id, p.expires_on, p.annual_tons * p.price_usd_ton AS annual_revenue\nFROM ops.waste_profile p\nWHERE p.status = 'Approved' AND p.expires_on BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)"
+  },
+  {
+    "question_id": "hq18",
+    "text": "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "would",
+      "halden",
+      "streams",
+      "earn",
+      "year",
+      "route"
+    ],
+    "persona": "Vice President, Sales (Capacity Committee chair)",
+    "answer_id": "HQ18",
+    "rationale": "Resolves across the Halden profiles + fin.price_book + fin.treatment_cost + fin.transport_lane + fin.state_fee at high confidence (0.88); capacity notes from ops.capacity_booking.",
+    "priority": "high",
+    "sql": "SELECT q.profile_id, q.facility_code, q.process_code, q.price_usd_ton, (q.price_usd_ton - fc.full_cost_usd_ton) / q.price_usd_ton AS margin_pct\nFROM fin.quote_line q\nJOIN full_cost fc USING (facility_code, process_code)"
+  },
+  {
+    "question_id": "hq19",
+    "text": "Can Port Terrell carry the Halden process wastewater in the first quarter, on what is booked today?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "port",
+      "terrell",
+      "carry",
+      "halden",
+      "process",
+      "wastewater"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ19",
+    "rationale": "Resolves across ops.capacity_booking + ops.process_unit at medium confidence (0.82): the first-quarter plan is not published; the fourth quarter is repeated.",
+    "priority": "high",
+    "sql": "SELECT b.facility_code, b.process_code, SUM(b.capacity_tons - b.booked_tons) AS headroom_tons\nFROM ops.capacity_booking b\nWHERE b.iso_week IN (45, 46) AND NOT b.outage\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq20",
+    "text": "Which of the six Halden streams meet the destruction requirement at which units, and which outlets are ruled out by it?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "halden",
+      "streams",
+      "meet",
+      "destruction",
+      "requirement",
+      "units"
+    ],
+    "persona": "Account Manager",
+    "answer_id": "HQ20",
+    "rationale": "Resolves across ops.facility_permit_code + the Halden profiles + QR-14 and the Bayou Verde permit summary in Drive at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+  },
+  {
+    "question_id": "hq21",
+    "text": "Which Halden streams carry a laboratory finding the profile did not say?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "halden",
+      "streams",
+      "carry",
+      "laboratory",
+      "finding",
+      "profile"
+    ],
+    "persona": "Laboratory Manager",
+    "answer_id": "HQ21",
+    "rationale": "Resolves across ops.profile_analytical + ops.waste_profile at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT FORMAT_DATE('%Y-%m', a.sampled_on) AS month, APPROX_QUANTILES(DATE_DIFF(a.released_on, a.sampled_on, DAY), 100)[OFFSET(50)] AS median_days\nFROM ops.profile_analytical a\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq22",
+    "text": "Which quotes this year were priced below the price book, and by how much?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "quotes",
+      "year",
+      "were",
+      "priced",
+      "below",
+      "price"
+    ],
+    "persona": "Pricing and Margin Manager",
+    "answer_id": "HQ22",
+    "rationale": "Resolves across fin.quote_line + fin.price_book at high confidence (0.9).",
+    "priority": "high",
+    "sql": "SELECT ql.quote_id, ql.profile_id, ql.price_usd_ton, ql.book_price_usd_ton, 1 - ql.price_usd_ton / ql.book_price_usd_ton AS discount\nFROM fin.quote_line ql\nWHERE ql.price_usd_ton < ql.book_price_usd_ton"
+  },
+  {
+    "question_id": "hq23",
+    "text": "How many profiles were approved before their laboratory result was released?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "many",
+      "profiles",
+      "were",
+      "approved",
+      "before",
+      "laboratory"
+    ],
+    "persona": "Internal Audit",
+    "answer_id": "HQ23",
+    "rationale": "Resolves across ops.waste_profile + ops.profile_analytical at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT p.profile_id, p.approved_on, MIN(a.released_on) AS first_release\nFROM ops.waste_profile p\nJOIN ops.profile_analytical a USING (profile_id)\nGROUP BY 1, 2\nHAVING p.approved_on < first_release"
+  },
+  {
+    "question_id": "hq24",
+    "text": "What is our quote turnaround, and how many quotes went out after the date the customer asked for?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "quote",
+      "turnaround",
+      "many",
+      "quotes",
+      "went",
+      "after"
+    ],
+    "persona": "Vice President, Sales (Capacity Committee chair)",
+    "answer_id": "HQ24",
+    "rationale": "Resolves across fin.quote at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT DATE_TRUNC(q.issued_on, QUARTER) AS quarter, AVG(q.turnaround_days) AS avg_days, COUNTIF(q.issued_on > q.due_on) AS late\nFROM fin.quote q\nWHERE q.issued_on IS NOT NULL\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq25",
+    "text": "Which permits and outlet approvals come up for decision in the next 90 days?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "permits",
+      "outlet",
+      "approvals",
+      "come",
+      "decision",
+      "next"
+    ],
+    "persona": "Director of Compliance",
+    "answer_id": "HQ25",
+    "rationale": "Resolves across ops.process_unit + ops.third_party_outlet + the compliance notes in Drive at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT 'facility' AS kind, f.facility_code AS id, f.unit_note AS note FROM ops.process_unit f WHERE f.unit_note LIKE '%renewal%'\nUNION ALL\nSELECT 'outlet', t.outlet_id, CAST(t.approval_expires_on AS STRING) FROM ops.third_party_outlet t WHERE t.approval_expires_on <= DATE_ADD(CURRENT_DATE(), INTERVAL 90 DAY)"
+  },
+  {
+    "question_id": "hq26",
+    "text": "What does the 1 November fee rise do to margin, and which contracts carry the pass-through clause?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "november",
+      "rise",
+      "margin",
+      "contracts",
+      "carry",
+      "pass-through"
+    ],
+    "persona": "Chief Financial Officer",
+    "answer_id": "HQ26",
+    "rationale": "Resolves across fin.state_fee + ops.manifest + ops.facility at medium confidence (0.84): the pass-through clause is read from the contract files, not a column.",
+    "priority": "normal",
+    "sql": "SELECT fa.state, SUM(m.tons) AS tons, ANY_VALUE(f_new.fee_usd_ton - f_old.fee_usd_ton) AS fee_change\nFROM ops.manifest m\nJOIN ops.facility fa USING (facility_code)\nJOIN fin.state_fee f_old ON f_old.state = fa.state AND f_old.valid_to IS NOT NULL\nJOIN fin.state_fee f_new ON f_new.state = fa.state AND f_new.valid_to IS NULL\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq27",
+    "text": "How much has gone to third-party outlets this year, by outlet, and what did it cost above our own units?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "much",
+      "gone",
+      "third-party",
+      "outlets",
+      "year",
+      "outlet"
+    ],
+    "persona": "Internal Audit",
+    "answer_id": "HQ27",
+    "rationale": "Resolves across ops.third_party_manifest + ops.third_party_outlet at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT t.outlet_id, SUM(t.tons) AS tons, SUM(t.cost_usd) AS cost\nFROM ops.third_party_manifest t\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq28",
+    "text": "Which generators pay different prices for the same process?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "generators",
+      "different",
+      "prices",
+      "same",
+      "process"
+    ],
+    "persona": "Pricing and Margin Manager",
+    "answer_id": "HQ28",
+    "rationale": "Resolves across ops.waste_profile + fin.price_book at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT i.generator_id, SUM(i.amount_usd) AS revenue, 1 - SUM(i.full_cost_usd) / SUM(i.amount_usd) AS margin_pct\nFROM fin.invoice_line i\nGROUP BY 1\nORDER BY revenue DESC"
+  },
+  {
+    "question_id": "hq29",
+    "text": "Which lanes carry the most tons, and what do they cost a ton?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "lanes",
+      "carry",
+      "most",
+      "tons",
+      "they",
+      "cost"
+    ],
+    "persona": "Transportation Manager",
+    "answer_id": "HQ29",
+    "rationale": "Resolves across ops.manifest + ops.generator + fin.transport_lane at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT g.origin_region, m.facility_code, SUM(m.tons) AS tons, ANY_VALUE(l.rate_usd_ton) AS rate, ANY_VALUE(l.loaded_miles) AS miles\nFROM ops.manifest m\nJOIN ops.generator g USING (generator_id)\nJOIN fin.transport_lane l ON l.origin_region = g.origin_region AND l.facility_code = m.facility_code\nWHERE m.status = 'Received'\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq30",
+    "text": "Where is the Halford Retail Services tanker right now?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "where",
+      "halford",
+      "retail",
+      "services",
+      "tanker",
+      "right"
+    ],
+    "persona": "Customer Solutions Coordinator",
+    "answer_id": "HQ30",
+    "rationale": "Declined: carrier tracking is not connected; the manifest's expected arrival is answered instead.",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq31",
+    "text": "What has Cypress Landing taken since it opened, against its permitted capacity?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "cypress",
+      "landing",
+      "taken",
+      "since",
+      "opened",
+      "against"
+    ],
+    "persona": "Plant Manager, Incineration",
+    "answer_id": "HQ31",
+    "rationale": "Resolves across ops.manifest + ops.process_unit at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT m.process_code, SUM(m.tons) AS tons\nFROM ops.manifest m\nWHERE m.facility_code = 'CYP' AND m.status = 'Received'\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq32",
+    "text": "Which generators are our largest by revenue this year, and at what margin?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "generators",
+      "largest",
+      "revenue",
+      "year",
+      "margin"
+    ],
+    "persona": "Vice President, Sales (Capacity Committee chair)",
+    "answer_id": "HQ32",
+    "rationale": "Resolves across fin.invoice_line + ops.generator at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT i.generator_id, SUM(i.amount_usd) AS revenue, 1 - SUM(i.full_cost_usd) / SUM(i.amount_usd) AS margin_pct\nFROM fin.invoice_line i\nGROUP BY 1\nORDER BY revenue DESC"
+  },
+  {
+    "question_id": "hq33",
+    "text": "Which waste codes do we receive the most of, and at which units?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "waste",
+      "codes",
+      "receive",
+      "most",
+      "units"
+    ],
+    "persona": "Director of Compliance",
+    "answer_id": "HQ33",
+    "rationale": "Resolves across ops.manifest + ops.waste_profile at high confidence (0.9).",
+    "priority": "normal",
+    "sql": "SELECT c AS waste_code, m.process_code, SUM(m.tons) AS tons\nFROM ops.manifest m\nJOIN ops.waste_profile p USING (profile_id), UNNEST(SPLIT(p.waste_codes, ',')) c\nWHERE m.status = 'Received'\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq34",
+    "text": "What does the legacy price book charge against our 2026 price book for the same processes?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "legacy",
+      "price",
+      "book",
+      "charge",
+      "against",
+      "price"
+    ],
+    "persona": "Integration Lead, Acquisitions",
+    "answer_id": "HQ34",
+    "rationale": "Resolves across legacy.legacy_profile + fin.price_book at high confidence (0.88).",
+    "priority": "normal",
+    "sql": "SELECT l.ironbridge_profile_id, l.legacy_price_usd_ton, b.price_usd_ton AS book, l.legacy_price_usd_ton / b.price_usd_ton - 1 AS gap\nFROM legacy.legacy_profile l\nJOIN ops.waste_profile p ON p.profile_id = l.ironbridge_profile_id\nJOIN fin.price_book b ON b.process_code = p.process_code"
+  },
+  {
+    "question_id": "hq35",
+    "text": "What will competitors quote Halden for the process wastewater?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "competitors",
+      "quote",
+      "halden",
+      "process",
+      "wastewater"
+    ],
+    "persona": "Account Manager",
+    "answer_id": "HQ35",
+    "rationale": "Declined: competitor and market pricing are not in any connected source.",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq36",
+    "text": "What is each business's revenue by facility this year?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "business",
+      "revenue",
+      "facility",
+      "year"
+    ],
+    "persona": "Business President",
+    "answer_id": "HQ36",
+    "rationale": "Resolves across fin.invoice_line + ops.facility at high confidence (0.93).",
+    "priority": "normal",
+    "sql": "SELECT i.business_code, FORMAT_DATE('%Y-%m', i.invoice_date) AS period, SUM(i.amount_usd) AS revenue, ANY_VALUE(r.plan_usd) AS plan\nFROM fin.invoice_line i\nJOIN fin.revenue_plan r ON r.business_code = i.business_code AND r.period = FORMAT_DATE('%Y-%m', i.invoice_date)\nGROUP BY 1, 2"
+  },
+  {
+    "question_id": "hq37",
+    "text": "If the Port Terrell outage runs a week longer, which further shipments lose their outlet?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "port",
+      "terrell",
+      "outage",
+      "runs",
+      "week",
+      "longer"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ37",
+    "rationale": "Resolves across ops.manifest + ops.capacity_booking at medium confidence (0.8): it extends the outage weeks and reads the bookings.",
+    "priority": "normal",
+    "sql": "SELECT m.manifest_id, m.generator_id, m.facility_code, m.process_code, m.tons, m.eta\nFROM ops.manifest m\nJOIN ops.capacity_booking b ON b.facility_code = m.facility_code AND b.process_code = m.process_code AND b.iso_week = m.booked_week\nWHERE m.status IN ('Booked', 'In transit') AND (b.outage OR b.booked_tons > b.capacity_tons)"
+  },
+  {
+    "question_id": "hq38",
+    "text": "Is the Halden solvent waste acceptable at Fox Hollow for fuel blending?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "halden",
+      "solvent",
+      "waste",
+      "acceptable",
+      "hollow",
+      "fuel"
+    ],
+    "persona": "Approval Chemist",
+    "answer_id": "HQ38",
+    "rationale": "Resolves across ops.process_unit + ops.profile_analytical + the fuel blending limits note in Drive at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+  },
+  {
+    "question_id": "hq39",
+    "text": "What will the Texas disposal fee be in 2027?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "texas",
+      "disposal"
+    ],
+    "persona": "Chief Financial Officer",
+    "answer_id": "HQ39",
+    "rationale": "Declined: the graph holds the fee schedule in force, not legislation to come.",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq40",
+    "text": "Will Halden sign if we quote Granger instead of Port Terrell?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "halden",
+      "sign",
+      "quote",
+      "granger",
+      "instead",
+      "port"
+    ],
+    "persona": "Vice President, Sales (Capacity Committee chair)",
+    "answer_id": "HQ40",
+    "rationale": "Declined: the graph does not predict a customer's decision; what Halden asked for is answered instead.",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq41",
+    "text": "Has the Riverbend laboratory released the Halden results?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "riverbend",
+      "laboratory",
+      "released",
+      "halden",
+      "results"
+    ],
+    "persona": "Account Manager",
+    "answer_id": "HQ41",
+    "rationale": "Resolves across ops.profile_analytical at high confidence (0.95).",
+    "priority": "normal",
+    "sql": "SELECT a.profile_id, a.parameter, a.value, a.unit, a.released_on\nFROM ops.profile_analytical a\nJOIN ops.waste_profile p USING (profile_id)\nWHERE p.generator_id = 'G11100'"
+  },
+  {
+    "question_id": "hq42",
+    "text": "Is the Halden process wastewater RCRA hazardous under Texas rules without a TCLP result?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "halden",
+      "process",
+      "wastewater",
+      "rcra",
+      "hazardous",
+      "under"
+    ],
+    "persona": "Director of Compliance",
+    "answer_id": "HQ42",
+    "rationale": "Declined: a classification needs the released result; the profile's stated codes and the released results are answered instead.",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq43",
+    "text": "What does Priya need for the Halden proposal by Friday, and what is ready?",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "priya",
+      "need",
+      "halden",
+      "proposal",
+      "friday",
+      "ready"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ43",
+    "rationale": "Resolves across the mailbox (thread A1) and the proposal folder at medium confidence (0.84).",
+    "priority": "normal",
+    "sql": null
+  },
+  {
+    "question_id": "hq44",
+    "text": "Which units are down or over capacity this week, and what is booked to them?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "units",
+      "down",
+      "over",
+      "capacity",
+      "week",
+      "booked"
+    ],
+    "persona": "Director of Technical Solutions",
+    "answer_id": "HQ44",
+    "rationale": "Resolves across ops.capacity_booking + ops.manifest at high confidence (0.92).",
+    "priority": "normal",
+    "sql": "SELECT m.facility_code, COUNT(*) AS manifests, SUM(m.tons) AS tons, SUM(m.revenue_usd) AS revenue\nFROM ops.manifest m\nJOIN ops.capacity_booking b ON b.facility_code = m.facility_code AND b.process_code = m.process_code AND b.iso_week = m.booked_week\nWHERE m.status IN ('Booked', 'In transit') AND b.outage\nGROUP BY 1"
+  },
+  {
+    "question_id": "hq45",
+    "text": "Which incinerator will fail next?",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "incinerator",
+      "fail",
+      "next"
+    ],
+    "persona": "Plant Manager, Incineration",
+    "answer_id": "HQ45",
+    "rationale": "Declined: equipment condition and failure history are not connected, and the graph does not predict failures.",
+    "priority": "normal",
+    "sql": null
+  }
+]

@@ -1,0 +1,3421 @@
+{
+  "_meta": {
+    "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+    "tenant": "Ironbridge Environmental Services (fictional; the Waste Stream Analyst demo world)",
+    "dataset": "IRONBRIDGE",
+    "asOf": "2026-11-03",
+    "today": "2026-11-03",
+    "exported_from": "The Goals and Submissions prototype (prototypes/), driven by _build/proto/export_from_prototype.mjs; sections and visuals as its stores hold them.",
+    "note": "seeded: what the store opens with (the pricing schedule at the outline step, recommended from the Halden goal once it was handed off). session: every submission after the walk, each section with the visual its format earns. The re-route notice is the one the outlet watch drafted when option 1 was executed (same id as watch_rule_03_executed.json); the re-route and outlet list is started from the watch goal and left at the brief."
+  },
+  "seeded": [
+    {
+      "id": "sub-pricing-schedule-halden-2027",
+      "title": "Pricing schedule: Halden Biopharma 2027 to 2029",
+      "audience": "Priya Natarajan and Halden Biopharma procurement",
+      "purpose": "Price per ton by stream, the facility each goes to, the capacity held and the fallback, in the structure approved for Delmar Chemical in 2023",
+      "template": "Your prior deliverables: pricing schedule, Delmar Chemical 2024 to 2026",
+      "templateId": "t-prior-pricing-2024",
+      "format": "Workbook",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-halden-proposal"
+      ],
+      "fromGoal": {
+        "id": "g-halden-proposal",
+        "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday"
+      },
+      "agentName": "Agent Compass",
+      "stage": "outline",
+      "sections": [
+        {
+          "id": "t-prior-pricing-2024-0",
+          "heading": "S-1 Contract summary",
+          "body": "Quote on Granger for the QR-14 streams, with Port Terrell as the alternative when its first-quarter plan is published.\nProcess water, solvent, lab packs and product-contact solids incinerated at Granger at the book; aerosols at Cypress Landing; scrubber water to Bayou Verde deep well. Port Terrell named as the alternative in the schedule, to move at the first contract review once its plan shows room. Close the EPA identification number before 1 January.\nQuote a year: $3.56M\nMargin: $1.24M · 34.7%\nCapacity: in the bookings\nApproval: VP Sales and Director",
+          "from": "Preferred recommendation, Agent Compass",
+          "role": "summary",
+          "included": true,
+          "visual": {
+            "kind": "waterfall",
+            "title": "Halden Biopharma: quote a year to margin on full cost ($M a year)",
+            "note": "From $3.56M at the book to $1.24M of margin (34.7%) with the QR-14 streams on Granger; on Port Terrell it would be $1.53M (43.0%), capacity unconfirmed.",
+            "table": {
+              "columns": [
+                "Step",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Quote a year at the book",
+                  "$3.56M"
+                ],
+                [
+                  "Treatment",
+                  "−$1.78M"
+                ],
+                [
+                  "Transport",
+                  "−$404k"
+                ],
+                [
+                  "Handling and fees",
+                  "−$138k"
+                ],
+                [
+                  "Margin a year",
+                  "$1.24M"
+                ]
+              ]
+            },
+            "data": {
+              "steps": [
+                {
+                  "step": "Quote a year at the book",
+                  "amount": 3557610
+                },
+                {
+                  "step": "Treatment",
+                  "amount": -1780014
+                },
+                {
+                  "step": "Transport",
+                  "amount": -404019.02
+                },
+                {
+                  "step": "Handling and fees",
+                  "amount": -138421.5
+                },
+                {
+                  "step": "Margin a year",
+                  "amount": 1235155.48
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-1",
+          "heading": "S-2 Streams and routing",
+          "body": "2. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Where each stream goes, and the fallback",
+            "note": "The quoted unit for each stream with its capacity note, and the next eligible unit in the network.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Quoted unit",
+                "Capacity",
+                "Fallback"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Granger · Incineration, aqueous liquids",
+                  "in the bookings",
+                  "Port Terrell · Incineration, aqueous liquids"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Granger · Incineration, organic liquids",
+                  "in the bookings",
+                  "Tidewater · Fuel blending"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger · Incineration, lab packs",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing · Aerosol processing",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Granger · Incineration, solids and sludges",
+                  "in the bookings",
+                  "Port Terrell · Incineration, solids and sludges"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde · Deep well injection",
+                  "in the bookings",
+                  "Bayou Verde · Aqueous treatment"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Granger · Incineration, aqueous liquids",
+                  "in the bookings",
+                  "Port Terrell · Incineration, aqueous liquids"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Granger · Incineration, organic liquids",
+                  "in the bookings",
+                  "Tidewater · Fuel blending"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger · Incineration, lab packs",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing · Aerosol processing",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Granger · Incineration, solids and sludges",
+                  "in the bookings",
+                  "Port Terrell · Incineration, solids and sludges"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde · Deep well injection",
+                  "in the bookings",
+                  "Bayou Verde · Aqueous treatment"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-2",
+          "heading": "S-3 Price and full cost by stream",
+          "body": "3. On the Granger routing the quote is $3.56M a year at 34.7% margin on full cost, above the floor, with no stream under 15%.\nThe process water earns 35.9% at $740.00 a ton carrying the 1,020-mile haul; the solvent is the lowest stream at 25.0%; the scrubber water on deep well the highest. Quoted on Port Terrell the margin would be 43.0%, on capacity that is not confirmed. Deep well for the process water is the cheapest route and is ruled out by QR-14.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Price, full cost and margin by stream",
+            "note": "Price from the 2026 book; full cost on the quoted route (treatment, handling, transport, state fee). Contract margin 34.7% against the 28% floor; no stream under 15%.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Unit",
+                "Price a ton",
+                "Full cost a ton",
+                "Margin a ton",
+                "Margin",
+                "Margin a year"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Granger",
+                  "$740.00",
+                  "$474.14",
+                  "$265.86",
+                  "35.9%",
+                  "$0.77M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Granger",
+                  "$560.00",
+                  "$420.14",
+                  "$139.86",
+                  "25.0%",
+                  "$0.09M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Granger",
+                  "$1,350.00",
+                  "$948.14",
+                  "$401.86",
+                  "29.8%",
+                  "$0.16M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Granger",
+                  "$740.00",
+                  "$474.14",
+                  "$265.86",
+                  "35.9%",
+                  "$0.77M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Granger",
+                  "$560.00",
+                  "$420.14",
+                  "$139.86",
+                  "25.0%",
+                  "$0.09M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Granger",
+                  "$1,350.00",
+                  "$948.14",
+                  "$401.86",
+                  "29.8%",
+                  "$0.16M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-3",
+          "heading": "S-4 Capacity and fallback",
+          "body": "2. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Booked against permitted, fourth quarter, for the units the quote uses",
+            "note": "Port Terrell has no first-quarter 2027 plan; Granger carries about 2,175 tons of first-quarter headroom on aqueous incineration against 725 tons a quarter of process water.",
+            "table": {
+              "columns": [
+                "Facility",
+                "Unit",
+                "Permitted a year",
+                "Q4 booked",
+                "Q4 capacity",
+                "Share",
+                "Note"
+              ],
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-4",
+          "heading": "S-5 Approvals and contract dates",
+          "body": "",
+          "from": "You · Approval level, who signs, contract start and end, price review clause.",
+          "role": "free",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-prior-pricing-2024-5",
+          "heading": "Open items",
+          "body": "• Port Terrell has not published its first-quarter 2027 plan; the alternative is stated in the schedule and the stream moves there at the first contract review if the plan shows room.\n• Halden's EPA identification number is applied for and not issued; no manifest moves until it is, whatever the contract date.\n• Tidewater's permit renewal decision is due 18 December; the solvent is not quoted there, so nothing in the quote rests on it.",
+          "from": "Gaps and open questions, Agent Compass",
+          "role": "assumptions",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-prior-pricing-2024-6",
+          "heading": "Evidence index",
+          "body": "• Released results for the six profiles (table: ironbridge_ops.profile_analytical, 2026-10-29)\n• Destruction with a certificate; deep well and landfill not acceptable (document: Halden_Quality_Requirement_QR-14_Waste_Destruction.pdf, 2026-10-20)\n• Bookings by unit, weeks 40 to 52 (table: ironbridge_ops.capacity_booking, 2026-11-03)\n• No new pharmaceutical volume on Port Terrell until its first-quarter plan is published (document: Capacity_Committee_Q3_2026_minutes.pdf, 2026-10-17)\n• Director: Granger unless Port Terrell publishes a plan (mail: Thread A1, 2026-10-23)\n• Full cost a ton by route: treatment, handling, fee, lane (table: ironbridge_fin.treatment_cost, transport_lane, state_fee, price_book, 2026-11-01)\n• The floor at the quoted routing; no stream below 15% (document: Pricing_and_Margin_Policy_2026.pdf, 2026-01-05)\n• The four tests and the approval levels (document: Waste_Acceptance_Policy_2025.pdf, 2025-02-01)\n• Compliance: no manifest until the number is issued (mail: Thread E1, 2026-10-28)",
+          "from": "Evidence lines, Agent Compass",
+          "role": "evidence",
+          "included": true,
+          "visual": null
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-02T16:12:00Z",
+      "log": [
+        {
+          "at": "2026-11-02T16:12:00Z",
+          "who": "Agent Compass",
+          "what": "Recommended this submission from the goal \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\" because the template \"Pricing schedule, Delmar Chemical 2024 to 2026 (as approved).xlsx\" is in the library."
+        },
+        {
+          "at": "2026-11-02T16:15:00Z",
+          "who": "Nishant Srivastav",
+          "what": "Confirmed the brief and the template; outline filled from the goal."
+        }
+      ]
+    }
+  ],
+  "session": [
+    {
+      "id": "sub-quote-letter-halden-biopharma-ib7a31c2",
+      "title": "Quote letter: Halden Biopharma proposal",
+      "audience": "Halden Biopharma, through Priya Natarajan",
+      "purpose": "The proposal in words: what we take, where it goes, what it costs them, what we hold in capacity and what the fallback is",
+      "template": "Customer: quote letter",
+      "templateId": "t-cust-quote-letter",
+      "format": "Document",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-halden-proposal"
+      ],
+      "fromGoal": {
+        "id": "g-halden-proposal",
+        "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday"
+      },
+      "agentName": "Agent Compass",
+      "stage": "draft",
+      "sections": [
+        {
+          "id": "t-cust-quote-letter-0",
+          "heading": "What we are quoting",
+          "body": "The proposal in words: what we take, where it goes, what it costs them, what we hold in capacity and what the fallback is.\n\nGoal: Characterise and classify the six Halden Biopharma streams from Caldwell Bend, 4,860 tons a year from February 2027; find the unit in our network that can take each one under its permit, its capacity and QR-14; cost every route and price it from the book; test the margin against the floor; and draft the acceptance memo, the quote letter and the pricing schedule.\nDecision asked: Accept the six streams and quote them for 1 January 2027 to 31 December 2029\nDeadline: Quote to Priya Natarajan by Friday 6 November; Halden decides by 20 November; production from February 2027",
+          "from": "Goal, Agent Compass",
+          "role": "purpose",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-cust-quote-letter-1",
+          "heading": "The streams accepted and where they go",
+          "body": "2. With the QR-14 streams quoted on Port Terrell the margin is 43.0%, $0.29M a year more than on Granger, on capacity that is not confirmed.\nPort Terrell is 94% booked for the fourth quarter, has no first-quarter plan, and its kiln is down today; the committee ruled out new pharmaceutical volume there until the plan is published. Quoting it is your call, recorded on the plan, with Granger named as the fallback.\n\n3. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Acceptance under the policy, stream by stream",
+            "note": "Every stream acceptable; two gaps before the first shipment: Halden's EPA identification number and the approval above $2M.",
+            "table": {
+              "columns": [
+                "Stream",
+                "Classification",
+                "Treatment standard",
+                "Status"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "F003 (methanol) and Texas state-regulated; not ignitable (3.8% methanol in water); DOT: not regulated as hazardous for transport",
+                  "F003 treatment standard: incineration meets it; deep well under a no-migration petition",
+                  "Acceptable: incineration (Granger or Port Terrell)"
+                ],
+                [
+                  "H2",
+                  "D001, F003, U154; DOT UN1230 Methanol, PG II",
+                  "F003 and D001: combustion",
+                  "Acceptable: incineration of organic liquids; Tidewater fuel blending is permitted but does not earn the margin"
+                ],
+                [
+                  "H3",
+                  "Lab packs: D001, F003 and non-hazardous finished product; packed by the customer to DOT lab pack rules",
+                  "Lab pack alternative treatment standard: incineration",
+                  "Acceptable: lab pack incineration at Granger"
+                ],
+                [
+                  "H4",
+                  "D001 aerosols; DOT UN1950",
+                  "Aerosol puncturing: contents to fuel blending or incineration, cans recycled",
+                  "Acceptable: Cypress Landing"
+                ],
+                [
+                  "H5",
+                  "Non-hazardous under RCRA; Texas state-regulated Class 1 industrial waste",
+                  "Not applicable (not RCRA hazardous)",
+                  "Acceptable: incineration of solids"
+                ],
+                [
+                  "H6",
+                  "D002 (pH 12.6); DOT UN1824 Sodium hydroxide solution, PG II",
+                  "D002: deactivation to pH 2 to 12.5; deep well under the UIC permit",
+                  "Acceptable: Bayou Verde deep well"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "F003 (methanol) and Texas state-regulated; not ignitable (3.8% methanol in water); DOT: not regulated as hazardous for transport",
+                  "F003 treatment standard: incineration meets it; deep well under a no-migration petition",
+                  "Acceptable: incineration (Granger or Port Terrell)"
+                ],
+                [
+                  "H2",
+                  "D001, F003, U154; DOT UN1230 Methanol, PG II",
+                  "F003 and D001: combustion",
+                  "Acceptable: incineration of organic liquids; Tidewater fuel blending is permitted but does not earn the margin"
+                ],
+                [
+                  "H3",
+                  "Lab packs: D001, F003 and non-hazardous finished product; packed by the customer to DOT lab pack rules",
+                  "Lab pack alternative treatment standard: incineration",
+                  "Acceptable: lab pack incineration at Granger"
+                ],
+                [
+                  "H4",
+                  "D001 aerosols; DOT UN1950",
+                  "Aerosol puncturing: contents to fuel blending or incineration, cans recycled",
+                  "Acceptable: Cypress Landing"
+                ],
+                [
+                  "H5",
+                  "Non-hazardous under RCRA; Texas state-regulated Class 1 industrial waste",
+                  "Not applicable (not RCRA hazardous)",
+                  "Acceptable: incineration of solids"
+                ],
+                [
+                  "H6",
+                  "D002 (pH 12.6); DOT UN1824 Sodium hydroxide solution, PG II",
+                  "D002: deactivation to pH 2 to 12.5; deep well under the UIC permit",
+                  "Acceptable: Bayou Verde deep well"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-cust-quote-letter-2",
+          "heading": "Price per ton by stream",
+          "body": "3. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.\n\n4. Every stream is acceptable under the policy; two gaps to close before the first shipment: Halden's EPA identification number and the approval above $2M.\nUnderstood, permitted, capacity in the period, requirement met, for all six. The EPA identification number is applied for and not issued, so no manifest moves on signature; the annual value is above $2M, so Marcus Oyelaran and Dana Whitfield approve. Witnessed destruction for the expired product is scheduled at Granger on request.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Price, full cost and margin by stream",
+            "note": "Price from the 2026 book; full cost on the quoted route (treatment, handling, transport, state fee). Contract margin 43.0% against the 28% floor; no stream under 15%.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Unit",
+                "Price a ton",
+                "Full cost a ton",
+                "Margin a ton",
+                "Margin",
+                "Margin a year"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-cust-quote-letter-3",
+          "heading": "Before the first shipment",
+          "body": "• Port Terrell has not published its first-quarter 2027 plan; the alternative is stated in the schedule and the stream moves there at the first contract review if the plan shows room.\n• Halden's EPA identification number is applied for and not issued; no manifest moves until it is, whatever the contract date.\n• Tidewater's permit renewal decision is due 18 December; the solvent is not quoted there, so nothing in the quote rests on it.",
+          "from": "Gaps and open questions, Agent Compass",
+          "role": "assumptions",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-cust-quote-letter-4",
+          "heading": "Next steps",
+          "body": "",
+          "from": "You",
+          "role": "next",
+          "included": true,
+          "visual": null
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-03T14:31:05Z",
+      "log": [
+        {
+          "at": "2026-11-03T14:31:05Z",
+          "who": "Nishant Srivastav",
+          "what": "Started from the goal \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\", as Agent Compass recommended because the template \"Quote letter\" is in the library."
+        },
+        {
+          "at": "2026-11-03T14:31:22Z",
+          "who": "Nishant Srivastav",
+          "what": "Built the draft."
+        }
+      ]
+    },
+    {
+      "id": "sub-acceptance-memo-halden-biopharma-ib40be19",
+      "title": "Waste acceptance memo: Halden Biopharma, six streams",
+      "audience": "Dana Whitfield, Director of Technical Solutions, and Marcus Oyelaran, Vice President, Sales",
+      "purpose": "The acceptance of each stream, its routing, the full cost and margin, and the gaps to close before the first shipment",
+      "template": "Technical Solutions: acceptance memo",
+      "templateId": "t-ts-acceptance-memo",
+      "format": "Document",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-halden-proposal"
+      ],
+      "fromGoal": {
+        "id": "g-halden-proposal",
+        "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday"
+      },
+      "agentName": "Agent Compass",
+      "stage": "draft",
+      "sections": [
+        {
+          "id": "t-ts-acceptance-memo-0",
+          "heading": "Decision asked and approval level",
+          "body": "The acceptance of each stream, its routing, the full cost and margin, and the gaps to close before the first shipment.\n\nGoal: Characterise and classify the six Halden Biopharma streams from Caldwell Bend, 4,860 tons a year from February 2027; find the unit in our network that can take each one under its permit, its capacity and QR-14; cost every route and price it from the book; test the margin against the floor; and draft the acceptance memo, the quote letter and the pricing schedule.\nDecision asked: Accept the six streams and quote them for 1 January 2027 to 31 December 2029\nDeadline: Quote to Priya Natarajan by Friday 6 November; Halden decides by 20 November; production from February 2027",
+          "from": "Goal, Agent Compass",
+          "role": "purpose",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-ts-acceptance-memo-1",
+          "heading": "The streams and what they are",
+          "body": "1. Six streams, 4,860 tons a year, all understood on released results; three carry QR-14 (destruction with a certificate) and the solvent carries 3.2% halogens the profile did not say.\nThe process water is not ignitable and carries 40 mg/L of active ingredient, so aqueous treatment is not an outlet; the solvent cannot go to Fox Hollow fuel blending; the product-contact solids are Texas state-regulated and QR-14 rules out landfill for them.\n\n3. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "The six Halden streams on released results",
+            "note": "4,860 tons a year; three carry QR-14 (destruction with a certificate); the solvent carries 3.2% total halogens the profile did not state.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Form",
+                "Codes",
+                "Tons a year",
+                "Requirement",
+                "Halogens"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "Aqueous liquid, bulk",
+                  "F003, STATE-TX",
+                  "2,900",
+                  "QR-14",
+                  ""
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "Organic liquid, bulk",
+                  "D001, F003, U154",
+                  "640",
+                  "",
+                  "3.2%"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "Lab pack",
+                  "D001, F003, NONHAZ",
+                  "85",
+                  "",
+                  ""
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "Aerosol cans",
+                  "D001",
+                  "38",
+                  "",
+                  ""
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "Solids, drums",
+                  "NONHAZ, STATE-TX",
+                  "410",
+                  "QR-14",
+                  ""
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "Aqueous liquid, bulk",
+                  "D002",
+                  "787",
+                  "",
+                  ""
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "Aqueous liquid, bulk",
+                  "F003, STATE-TX",
+                  "2,900",
+                  "QR-14",
+                  ""
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "Organic liquid, bulk",
+                  "D001, F003, U154",
+                  "640",
+                  "",
+                  "3.2%"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "Lab pack",
+                  "D001, F003, NONHAZ",
+                  "85",
+                  "",
+                  ""
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "Aerosol cans",
+                  "D001",
+                  "38",
+                  "",
+                  ""
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "Solids, drums",
+                  "NONHAZ, STATE-TX",
+                  "410",
+                  "QR-14",
+                  ""
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "Aqueous liquid, bulk",
+                  "D002",
+                  "787",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-acceptance-memo-2",
+          "heading": "Where each stream goes and the capacity behind it",
+          "body": "3. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Booked against permitted, fourth quarter, for the units the quote uses",
+            "note": "Port Terrell has no first-quarter 2027 plan; Granger carries about 2,175 tons of first-quarter headroom on aqueous incineration against 725 tons a quarter of process water.",
+            "table": {
+              "columns": [
+                "Facility",
+                "Unit",
+                "Permitted a year",
+                "Q4 booked",
+                "Q4 capacity",
+                "Share",
+                "Note"
+              ],
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-acceptance-memo-3",
+          "heading": "Price, full cost and margin against the floor",
+          "body": "2. With the QR-14 streams quoted on Port Terrell the margin is 43.0%, $0.29M a year more than on Granger, on capacity that is not confirmed.\nPort Terrell is 94% booked for the fourth quarter, has no first-quarter plan, and its kiln is down today; the committee ruled out new pharmaceutical volume there until the plan is published. Quoting it is your call, recorded on the plan, with Granger named as the fallback.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Price, full cost and margin by stream",
+            "note": "Price from the 2026 book; full cost on the quoted route (treatment, handling, transport, state fee). Contract margin 43.0% against the 28% floor; no stream under 15%.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Unit",
+                "Price a ton",
+                "Full cost a ton",
+                "Margin a ton",
+                "Margin",
+                "Margin a year"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-acceptance-memo-4",
+          "heading": "Options considered",
+          "body": "Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature (preferred)\nProcess water, solvent and product-contact solids incinerated at Port Terrell at the book; lab packs at Granger; aerosols at Cypress Landing; scrubber water to Bayou Verde deep well. Granger named as the fallback in the schedule; Port Terrell's first-quarter plan confirmed before the contract is signed.\nQuote a year: $3.56M · Margin: $1.53M · 43.0% · Capacity: not confirmed · Approval: VP Sales and Director\nTrade-off: Earns $0.29M a year more than Granger, on a unit that is 94% booked, has no first-quarter plan and is down today; if the plan shows no room the quote moves to Granger at 34.7%.\n\nQuote on Granger for the QR-14 streams, Port Terrell as the alternative\nThe same quote with the three QR-14 streams at Granger, the capacity in the bookings and the longer haul.\nQuote a year: $3.56M · Margin: $1.24M · 34.7% · Capacity: in the bookings · Committee: as decided\nTrade-off: Gives up $0.29M a year of margin for capacity that is in the bookings.\n\nDecline the process water and quote the other five streams\nQuote the solvent, the expired product, the aerosols, the product-contact solids and the scrubber water, and tell Halden the process water needs capacity we cannot show until Port Terrell publishes its plan.\nQuote a year: $1.41M · Margin: $0.46M · 32.9% · Anchor stream: lost · One vendor: not met\nTrade-off: Avoids the haul and the capacity question, but gives up $2.15M a year of revenue and the stream Halden cares about most; they asked for one vendor.",
+          "from": "Recommendations, Agent Compass",
+          "role": "options",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "The options side by side",
+            "note": "3 options from Agent Compass; the preferred one first.",
+            "table": {
+              "columns": [
+                "Option",
+                "Quote a year",
+                "Margin",
+                "Capacity",
+                "Approval"
+              ],
+              "rows": [
+                [
+                  "Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature (preferred)",
+                  "$3.56M",
+                  "$1.53M · 43.0%",
+                  "not confirmed",
+                  "VP Sales and Director"
+                ],
+                [
+                  "Quote on Granger for the QR-14 streams, Port Terrell as the alternative",
+                  "$3.56M",
+                  "$1.24M · 34.7%",
+                  "in the bookings",
+                  "as decided"
+                ],
+                [
+                  "Decline the process water and quote the other five streams",
+                  "$1.41M",
+                  "$0.46M · 32.9%",
+                  "lost",
+                  "not met"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature (preferred)",
+                  "$3.56M",
+                  "$1.53M · 43.0%",
+                  "not confirmed",
+                  "VP Sales and Director"
+                ],
+                [
+                  "Quote on Granger for the QR-14 streams, Port Terrell as the alternative",
+                  "$3.56M",
+                  "$1.24M · 34.7%",
+                  "in the bookings",
+                  "as decided"
+                ],
+                [
+                  "Decline the process water and quote the other five streams",
+                  "$1.41M",
+                  "$0.46M · 32.9%",
+                  "lost",
+                  "not met"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-acceptance-memo-5",
+          "heading": "Recommendation",
+          "body": "Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature.\nProcess water, solvent and product-contact solids incinerated at Port Terrell at the book; lab packs at Granger; aerosols at Cypress Landing; scrubber water to Bayou Verde deep well. Granger named as the fallback in the schedule; Port Terrell's first-quarter plan confirmed before the contract is signed.\nQuote a year: $3.56M\nMargin: $1.53M · 43.0%\nCapacity: not confirmed\nApproval: VP Sales and Director",
+          "from": "Preferred recommendation, Agent Compass",
+          "role": "summary",
+          "included": true,
+          "visual": {
+            "kind": "waterfall",
+            "title": "Halden Biopharma: quote a year to margin on full cost ($M a year)",
+            "note": "From $3.56M at the book to $1.53M of margin (43.0%) with the QR-14 streams on Port Terrell; on Granger it is $1.24M (34.7%).",
+            "table": {
+              "columns": [
+                "Step",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Quote a year at the book",
+                  "$3.56M"
+                ],
+                [
+                  "Treatment",
+                  "−$1.77M"
+                ],
+                [
+                  "Transport",
+                  "−$119k"
+                ],
+                [
+                  "Handling and fees",
+                  "−$136k"
+                ],
+                [
+                  "Margin a year",
+                  "$1.53M"
+                ]
+              ]
+            },
+            "data": {
+              "steps": [
+                {
+                  "step": "Quote a year at the book",
+                  "amount": 3557610
+                },
+                {
+                  "step": "Treatment",
+                  "amount": -1772614
+                },
+                {
+                  "step": "Transport",
+                  "amount": -118987.01999999999
+                },
+                {
+                  "step": "Handling and fees",
+                  "amount": -136446.50000000003
+                },
+                {
+                  "step": "Margin a year",
+                  "amount": 1529562.48
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-acceptance-memo-6",
+          "heading": "Evidence",
+          "body": "• Released results for the six profiles (table: ironbridge_ops.profile_analytical, 2026-10-29)\n• Destruction with a certificate; deep well and landfill not acceptable (document: Halden_Quality_Requirement_QR-14_Waste_Destruction.pdf, 2026-10-20)\n• Full cost a ton by route (table: ironbridge_fin.treatment_cost, transport_lane, state_fee, price_book, 2026-11-01)\n• Port Terrell bookings, weeks 40 to 52 (table: ironbridge_ops.capacity_booking, 2026-11-03)\n• Bookings by unit, weeks 40 to 52 (table: ironbridge_ops.capacity_booking, 2026-11-03)\n• No new pharmaceutical volume on Port Terrell until its first-quarter plan is published (document: Capacity_Committee_Q3_2026_minutes.pdf, 2026-10-17)\n• Director: Granger unless Port Terrell publishes a plan (mail: Thread A1, 2026-10-23)\n• The four tests and the approval levels (document: Waste_Acceptance_Policy_2025.pdf, 2025-02-01)\n• Compliance: no manifest until the number is issued (mail: Thread E1, 2026-10-28)",
+          "from": "Evidence lines, Agent Compass",
+          "role": "evidence",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-ts-acceptance-memo-7",
+          "heading": "Assumptions and open points",
+          "body": "• Port Terrell has not published its first-quarter 2027 plan; the alternative is stated in the schedule and the stream moves there at the first contract review if the plan shows room.\n• Halden's EPA identification number is applied for and not issued; no manifest moves until it is, whatever the contract date.\n• Tidewater's permit renewal decision is due 18 December; the solvent is not quoted there, so nothing in the quote rests on it.",
+          "from": "Gaps and open questions, Agent Compass",
+          "role": "assumptions",
+          "included": true,
+          "visual": null
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-03T14:30:12Z",
+      "log": [
+        {
+          "at": "2026-11-03T14:30:12Z",
+          "who": "Nishant Srivastav",
+          "what": "Started from the goal \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\", as Agent Compass recommended because the template \"Acceptance memo\" is in the library."
+        },
+        {
+          "at": "2026-11-03T14:30:40Z",
+          "who": "Nishant Srivastav",
+          "what": "Built the draft."
+        }
+      ]
+    },
+    {
+      "id": "sub-re-route-notice-the-4-november-load-ib1ca307",
+      "title": "Re-route notice: the 4 November load",
+      "audience": "Dana Whitfield, Walt Brennan, Elena Vasquez, Jenna Fairbanks, Hector Ruiz, Carla Dimitriou and Raj Mehta",
+      "purpose": "Confirm the Granger slots, book the trucks and hold the two loads so every stranded shipment has an outlet before its clock runs out",
+      "template": "Technical Solutions: re-route notice",
+      "templateId": "t-ts-reroute-notice",
+      "format": "Memo",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-rule-outlet-watch"
+      ],
+      "fromGoal": {
+        "id": "g-rule-outlet-watch",
+        "title": "Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load"
+      },
+      "agentName": "Agent Ledger",
+      "stage": "draft",
+      "sections": [
+        {
+          "id": "t-ts-reroute-notice-0",
+          "heading": "What we ask, and by when",
+          "body": "Confirm the Granger slots, book the trucks and hold the two loads so every stranded shipment has an outlet before its clock runs out.\n\nGoal: Keep every accepted stream with a permitted outlet that has capacity when it arrives, and every stream above the margin floor, across the 13 facilities and the third-party outlets. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out or a stream falls under the floor, size it, look at what the rest of the network can take, and come back with what can still be done.\nDecision asked: Confirm the re-routes, the holds and the outlet loads so every stranded shipment has an outlet inside its clock, and bill the fee on the streams under the floor\nDeadline: Granger slots confirmed before the trucks are booked on Wednesday 4 November at noon; the first clock runs out on 11 November; the kiln is back on feed on 15 November",
+          "from": "Goal, Agent Ledger",
+          "role": "purpose",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-ts-reroute-notice-1",
+          "heading": "The shipments and their exposure",
+          "body": "1. Eighteen positions need a decision: fourteen shipments (911 tons, $0.71M) booked for Port Terrell units that are down, two approvals that expire, two streams under the floor.\nSix of the shipments are on the pad at Galena Shores with the first clock running out on 11 November; two arrive after the restart. The two Meridian West approvals end 30 November; the two Riverbend streams dropped under 15% when the Illinois fee rose on 1 November.",
+          "from": "Findings, Agent Ledger",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Shipments without an outlet, 4 November load",
+            "note": "14 shipments, 911 tons and $0.71M of revenue, booked for Port Terrell units that are down to 14 November; six on the pad at Galena Shores.",
+            "table": {
+              "columns": [
+                "Manifest",
+                "Generator",
+                "Booked unit",
+                "Tons",
+                "Revenue",
+                "Where it is",
+                "Clock",
+                "Action"
+              ],
+              "rows": [
+                [
+                  "MN-3437842",
+                  "Halford Retail Services South",
+                  "Incineration, aqueous liquids",
+                  "120",
+                  "$0.10M",
+                  "In transit via Galena Shores",
+                  "2026-11-11",
+                  "reroute"
+                ],
+                [
+                  "MN-3437843",
+                  "Pryor Petrochemical",
+                  "Incineration, aqueous liquids",
+                  "120",
+                  "$0.10M",
+                  "In transit via Galena Shores",
+                  "2026-11-12",
+                  "reroute"
+                ],
+                [
+                  "MN-3437844",
+                  "Whitcombe Pharma East",
+                  "Incineration, organic liquids",
+                  "88.6",
+                  "$0.05M",
+                  "In transit via Galena Shores",
+                  "2026-11-13",
+                  "reroute"
+                ],
+                [
+                  "MN-3437845",
+                  "Maddox Biologics South",
+                  "Incineration, aqueous liquids",
+                  "87.7",
+                  "$0.06M",
+                  "In transit via Galena Shores",
+                  "2026-11-14",
+                  "reroute"
+                ],
+                [
+                  "MN-3437846",
+                  "Keller Circuits Industries",
+                  "Incineration, aqueous liquids",
+                  "85.7",
+                  "$0.07M",
+                  "In transit via Galena Shores",
+                  "2026-11-15",
+                  "hold"
+                ],
+                [
+                  "MN-3437847",
+                  "Inglewood Water Utility Partners",
+                  "Incineration, organic liquids",
+                  "79.1",
+                  "$0.04M",
+                  "In transit via Galena Shores",
+                  "2026-11-15",
+                  "hold"
+                ],
+                [
+                  "MN-3437848",
+                  "Stoneham Beverage",
+                  "Incineration, aqueous liquids",
+                  "61.5",
+                  "$0.05M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437849",
+                  "Greyson Coatings Works",
+                  "Incineration, solids and sludges",
+                  "49",
+                  "$0.07M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437850",
+                  "Kimball Drivetrain",
+                  "Incineration, aqueous liquids",
+                  "58.8",
+                  "$0.04M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437851",
+                  "Thornbury Coatings Industries",
+                  "Incineration, solids and sludges",
+                  "37",
+                  "$0.05M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437852",
+                  "Maddox Specialty Chemicals Works",
+                  "Incineration, organic liquids",
+                  "33.1",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "third party"
+                ],
+                [
+                  "MN-3437853",
+                  "Maddox Energy Works",
+                  "Incineration, aqueous liquids",
+                  "29.3",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437854",
+                  "Lakeshore Metal Finishing Industries",
+                  "Incineration, organic liquids",
+                  "35",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "keep"
+                ],
+                [
+                  "MN-3437855",
+                  "Pinecrest Foods",
+                  "Incineration, aqueous liquids",
+                  "26.6",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "keep"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "MN-3437842",
+                  "Halford Retail Services South",
+                  "Incineration, aqueous liquids",
+                  "120",
+                  "$0.10M",
+                  "In transit via Galena Shores",
+                  "2026-11-11",
+                  "reroute"
+                ],
+                [
+                  "MN-3437843",
+                  "Pryor Petrochemical",
+                  "Incineration, aqueous liquids",
+                  "120",
+                  "$0.10M",
+                  "In transit via Galena Shores",
+                  "2026-11-12",
+                  "reroute"
+                ],
+                [
+                  "MN-3437844",
+                  "Whitcombe Pharma East",
+                  "Incineration, organic liquids",
+                  "88.6",
+                  "$0.05M",
+                  "In transit via Galena Shores",
+                  "2026-11-13",
+                  "reroute"
+                ],
+                [
+                  "MN-3437845",
+                  "Maddox Biologics South",
+                  "Incineration, aqueous liquids",
+                  "87.7",
+                  "$0.06M",
+                  "In transit via Galena Shores",
+                  "2026-11-14",
+                  "reroute"
+                ],
+                [
+                  "MN-3437846",
+                  "Keller Circuits Industries",
+                  "Incineration, aqueous liquids",
+                  "85.7",
+                  "$0.07M",
+                  "In transit via Galena Shores",
+                  "2026-11-15",
+                  "hold"
+                ],
+                [
+                  "MN-3437847",
+                  "Inglewood Water Utility Partners",
+                  "Incineration, organic liquids",
+                  "79.1",
+                  "$0.04M",
+                  "In transit via Galena Shores",
+                  "2026-11-15",
+                  "hold"
+                ],
+                [
+                  "MN-3437848",
+                  "Stoneham Beverage",
+                  "Incineration, aqueous liquids",
+                  "61.5",
+                  "$0.05M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437849",
+                  "Greyson Coatings Works",
+                  "Incineration, solids and sludges",
+                  "49",
+                  "$0.07M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437850",
+                  "Kimball Drivetrain",
+                  "Incineration, aqueous liquids",
+                  "58.8",
+                  "$0.04M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437851",
+                  "Thornbury Coatings Industries",
+                  "Incineration, solids and sludges",
+                  "37",
+                  "$0.05M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437852",
+                  "Maddox Specialty Chemicals Works",
+                  "Incineration, organic liquids",
+                  "33.1",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "third party"
+                ],
+                [
+                  "MN-3437853",
+                  "Maddox Energy Works",
+                  "Incineration, aqueous liquids",
+                  "29.3",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "reroute"
+                ],
+                [
+                  "MN-3437854",
+                  "Lakeshore Metal Finishing Industries",
+                  "Incineration, organic liquids",
+                  "35",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "keep"
+                ],
+                [
+                  "MN-3437855",
+                  "Pinecrest Foods",
+                  "Incineration, aqueous liquids",
+                  "26.6",
+                  "$0.02M",
+                  "Booked",
+                  "",
+                  "keep"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-reroute-notice-2",
+          "heading": "Why it happened",
+          "body": "1. Eighteen positions need a decision: fourteen shipments (911 tons, $0.71M) booked for Port Terrell units that are down, two approvals that expire, two streams under the floor.\nSix of the shipments are on the pad at Galena Shores with the first clock running out on 11 November; two arrive after the restart. The two Meridian West approvals end 30 November; the two Riverbend streams dropped under 15% when the Illinois fee rose on 1 November.",
+          "from": "Findings, Agent Ledger",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Why the positions are flagged",
+            "note": "The outage, the approvals that expire and the fee behind the floor positions.",
+            "table": {
+              "columns": [
+                "Cause",
+                "From",
+                "To",
+                "What happened",
+                "Effect"
+              ],
+              "rows": [
+                [
+                  "Port Terrell kiln 1 and liquid injection",
+                  "2026-11-03",
+                  "2026-11-14",
+                  "Refractory failure in the kiln transition section found at the 06:40 inspection; liquid injection unit also down while the kiln is cold.",
+                  "14 shipments, $0.71M; $96,000 a day of lost margin"
+                ],
+                [
+                  "Meridian West approval: Delmar Chemical",
+                  "2026-11-30",
+                  "",
+                  "Overflow approval from the third quarter runs out",
+                  "29.5 tons; comes home to Granger at $18,107 less a year"
+                ],
+                [
+                  "Meridian West approval: Gulf Coast Coatings",
+                  "2026-11-30",
+                  "",
+                  "Overflow approval from the third quarter runs out",
+                  "9.5 tons; comes home to Granger at $5,831 less a year"
+                ],
+                [
+                  "Riverbend stabilization: Larch Refining",
+                  "2026-11-01",
+                  "",
+                  "Illinois fee rose $3.00 a ton; the contract has no pass-through",
+                  "margin 14.3% after the 1 November fee rise (15.1% before)"
+                ],
+                [
+                  "Riverbend stabilization: Delmar Specialty Chemicals Gulf",
+                  "2026-11-01",
+                  "",
+                  "Illinois fee rose $3.00 a ton; the contract has no pass-through",
+                  "margin 14.8% after the 1 November fee rise (15.6% before)"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Port Terrell kiln 1 and liquid injection",
+                  "2026-11-03",
+                  "2026-11-14",
+                  "Refractory failure in the kiln transition section found at the 06:40 inspection; liquid injection unit also down while the kiln is cold.",
+                  "14 shipments, $0.71M; $96,000 a day of lost margin"
+                ],
+                [
+                  "Meridian West approval: Delmar Chemical",
+                  "2026-11-30",
+                  "",
+                  "Overflow approval from the third quarter runs out",
+                  "29.5 tons; comes home to Granger at $18,107 less a year"
+                ],
+                [
+                  "Meridian West approval: Gulf Coast Coatings",
+                  "2026-11-30",
+                  "",
+                  "Overflow approval from the third quarter runs out",
+                  "9.5 tons; comes home to Granger at $5,831 less a year"
+                ],
+                [
+                  "Riverbend stabilization: Larch Refining",
+                  "2026-11-01",
+                  "",
+                  "Illinois fee rose $3.00 a ton; the contract has no pass-through",
+                  "margin 14.3% after the 1 November fee rise (15.1% before)"
+                ],
+                [
+                  "Riverbend stabilization: Delmar Specialty Chemicals Gulf",
+                  "2026-11-01",
+                  "",
+                  "Illinois fee rose $3.00 a ton; the contract has no pass-through",
+                  "margin 14.8% after the 1 November fee rise (15.6% before)"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-reroute-notice-3",
+          "heading": "Options",
+          "body": "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee (preferred)\nWalt Brennan confirms the Granger slots for weeks 45 and 46, Hector Ruiz books the trucks from Thursday, Jenna Fairbanks holds the two loads whose clocks reach 15 November, Carla Dimitriou moves the two Meridian West profiles to Granger, and the account managers bill the Illinois fee on the next Riverbend invoices under clause 9.2.\nExtra cost: $60.9k less $23.9k · Positions covered: all 18 · Ten-day clocks: all kept · Third-party: 1 load\nTrade-off: Granger runs close to its organic-liquids headroom for two weeks, and the two held loads depend on the kiln being back on 15 November as estimated.\n\nSend everything stranded to third-party outlets\nLeave Granger's bookings as they are and send the stranded shipments to Northstar Thermal and Meridian West at their outlet cost.\nCost: $241.9k · Cannot go: 8 shipments · Negative margin: 6 shipments · Meridian West: expires 30 November\nTrade-off: Keeps Granger's headroom, but the aqueous loads with a destruction requirement have no outlet outside the network, six shipments go negative, and Meridian West's approvals end this month.\n\nAsk the generators to hold their shipments until 16 November\nHold every inbound load at the generator or on the pad until the kiln is back; nothing moves.\nRevenue deferred: $0.71M · Clocks breached: 6 · Cost: $0 · Customers: two with pickup windows\nTrade-off: Costs nothing in haul, but breaches six ten-day clocks at Galena Shores, defers the revenue, and two generators have contractual pickup windows this week.",
+          "from": "Recommendations, Agent Ledger",
+          "role": "options",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "The options side by side",
+            "note": "3 options from Agent Ledger; the preferred one first.",
+            "table": {
+              "columns": [
+                "Option",
+                "Extra cost",
+                "Positions covered",
+                "Ten-day clocks",
+                "Third-party"
+              ],
+              "rows": [
+                [
+                  "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee (preferred)",
+                  "$60.9k less $23.9k",
+                  "all 18",
+                  "all kept",
+                  "1 load"
+                ],
+                [
+                  "Send everything stranded to third-party outlets",
+                  "$241.9k",
+                  "8 shipments",
+                  "6 shipments",
+                  "expires 30 November"
+                ],
+                [
+                  "Ask the generators to hold their shipments until 16 November",
+                  "$0.71M",
+                  "6",
+                  "$0",
+                  "two with pickup windows"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee (preferred)",
+                  "$60.9k less $23.9k",
+                  "all 18",
+                  "all kept",
+                  "1 load"
+                ],
+                [
+                  "Send everything stranded to third-party outlets",
+                  "$241.9k",
+                  "8 shipments",
+                  "6 shipments",
+                  "expires 30 November"
+                ],
+                [
+                  "Ask the generators to hold their shipments until 16 November",
+                  "$0.71M",
+                  "6",
+                  "$0",
+                  "two with pickup windows"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-reroute-notice-4",
+          "heading": "Recommendation",
+          "body": "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee.\nWalt Brennan confirms the Granger slots for weeks 45 and 46, Hector Ruiz books the trucks from Thursday, Jenna Fairbanks holds the two loads whose clocks reach 15 November, Carla Dimitriou moves the two Meridian West profiles to Granger, and the account managers bill the Illinois fee on the next Riverbend invoices under clause 9.2.\nExtra cost: $60.9k less $23.9k\nPositions covered: all 18\nTen-day clocks: all kept\nThird-party: 1 load",
+          "from": "Preferred recommendation, Agent Ledger",
+          "role": "summary",
+          "included": true,
+          "visual": {
+            "kind": "kpis",
+            "title": "Headline figures",
+            "note": "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee",
+            "table": {
+              "columns": [
+                "Figure",
+                "Value"
+              ],
+              "rows": [
+                [
+                  "Extra cost",
+                  "$60.9k less $23.9k"
+                ],
+                [
+                  "Positions covered",
+                  "all 18"
+                ],
+                [
+                  "Ten-day clocks",
+                  "all kept"
+                ],
+                [
+                  "Third-party",
+                  "1 load"
+                ]
+              ]
+            },
+            "data": {
+              "items": [
+                {
+                  "label": "Extra cost",
+                  "value": "$60.9k less $23.9k",
+                  "tone": "good"
+                },
+                {
+                  "label": "Positions covered",
+                  "value": "all 18",
+                  "tone": "good"
+                },
+                {
+                  "label": "Ten-day clocks",
+                  "value": "all kept",
+                  "tone": "good"
+                },
+                {
+                  "label": "Third-party",
+                  "value": "1 load",
+                  "tone": null
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-03T14:21:00Z",
+      "log": [
+        {
+          "at": "2026-11-03T14:21:00Z",
+          "who": "Agent Ledger",
+          "what": "Drafted from the findings of the goal \"Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load\" when you executed option 1, on the template \"Re-route notice\"."
+        },
+        {
+          "at": "2026-11-03T14:21:04Z",
+          "who": "Agent Ledger",
+          "what": "Sent to Dana Whitfield, Walt Brennan, Elena Vasquez, Jenna Fairbanks, Hector Ruiz, Carla Dimitriou and Raj Mehta, with the re-route and outlet list."
+        }
+      ]
+    },
+    {
+      "id": "sub-re-route-and-outlet-list-port-terre-ib6d2a41",
+      "title": "Re-route and outlet list: Port Terrell outage",
+      "audience": "Hector Ruiz, Walt Brennan and the Galena Shores service center",
+      "purpose": "Each shipment with its new destination, tons, the extra cost on the rate card and the date it must leave",
+      "template": "Technical Solutions: re-route and outlet list",
+      "templateId": "t-ts-reroute-list",
+      "format": "Workbook",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-rule-outlet-watch"
+      ],
+      "fromGoal": {
+        "id": "g-rule-outlet-watch",
+        "title": "Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load"
+      },
+      "agentName": "Agent Ledger",
+      "stage": "brief",
+      "sections": [
+        {
+          "id": "t-ts-reroute-list-0",
+          "heading": "Cover: what moves, where, by when",
+          "body": "Each shipment with its new destination, tons, the extra cost on the rate card and the date it must leave.\n\nGoal: Keep every accepted stream with a permitted outlet that has capacity when it arrives, and every stream above the margin floor, across the 13 facilities and the third-party outlets. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out or a stream falls under the floor, size it, look at what the rest of the network can take, and come back with what can still be done.\nDecision asked: Confirm the re-routes, the holds and the outlet loads so every stranded shipment has an outlet inside its clock, and bill the fee on the streams under the floor\nDeadline: Granger slots confirmed before the trucks are booked on Wednesday 4 November at noon; the first clock runs out on 11 November; the kiln is back on feed on 15 November",
+          "from": "Goal, Agent Ledger",
+          "role": "purpose",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-ts-reroute-list-1",
+          "heading": "Re-routes inside the network",
+          "body": "4. Covering every position costs $60.9k of extra haul and outlet cost, less $23.9k saved on the overflow streams; the kiln costs $96,000 a day while it is down.\nNine re-routes to Granger on the rate card, one to Northstar Thermal, two holds and two keeps at no cost, two overflow streams home at a saving, two fee pass-throughs. Sending everything stranded to outlets instead costs $241.9k and leaves eight shipments with no outlet that meets their requirement.",
+          "from": "Findings, Agent Ledger",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Re-routes inside the network",
+            "note": "9 shipments, $37,029 of extra haul and outlet cost; every re-route sits inside Granger headroom.",
+            "table": {
+              "columns": [
+                "Manifest",
+                "Generator",
+                "Tons",
+                "Action",
+                "To",
+                "Cost",
+                "Clock"
+              ],
+              "rows": [
+                [
+                  "MN-3437842",
+                  "Halford Retail Services South",
+                  "120",
+                  "reroute",
+                  "Granger",
+                  "$8,119",
+                  "2026-11-11"
+                ],
+                [
+                  "MN-3437843",
+                  "Pryor Petrochemical",
+                  "120",
+                  "reroute",
+                  "Granger",
+                  "$5,758",
+                  "2026-11-12"
+                ],
+                [
+                  "MN-3437844",
+                  "Whitcombe Pharma East",
+                  "88.6",
+                  "reroute",
+                  "Granger",
+                  "$6,023",
+                  "2026-11-13"
+                ],
+                [
+                  "MN-3437845",
+                  "Maddox Biologics South",
+                  "87.7",
+                  "reroute",
+                  "Granger",
+                  "$4,208",
+                  "2026-11-14"
+                ],
+                [
+                  "MN-3437848",
+                  "Stoneham Beverage",
+                  "61.5",
+                  "reroute",
+                  "Granger",
+                  "$2,951",
+                  ""
+                ],
+                [
+                  "MN-3437849",
+                  "Greyson Coatings Works",
+                  "49",
+                  "reroute",
+                  "Granger",
+                  "$4,066",
+                  ""
+                ],
+                [
+                  "MN-3437850",
+                  "Kimball Drivetrain",
+                  "58.8",
+                  "reroute",
+                  "Granger",
+                  "$2,580",
+                  ""
+                ],
+                [
+                  "MN-3437851",
+                  "Thornbury Coatings Industries",
+                  "37",
+                  "reroute",
+                  "Granger",
+                  "$2,039",
+                  ""
+                ],
+                [
+                  "MN-3437853",
+                  "Maddox Energy Works",
+                  "29.3",
+                  "reroute",
+                  "Granger",
+                  "$1,286",
+                  ""
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "MN-3437842",
+                  "Halford Retail Services South",
+                  "120",
+                  "reroute",
+                  "Granger",
+                  "$8,119",
+                  "2026-11-11"
+                ],
+                [
+                  "MN-3437843",
+                  "Pryor Petrochemical",
+                  "120",
+                  "reroute",
+                  "Granger",
+                  "$5,758",
+                  "2026-11-12"
+                ],
+                [
+                  "MN-3437844",
+                  "Whitcombe Pharma East",
+                  "88.6",
+                  "reroute",
+                  "Granger",
+                  "$6,023",
+                  "2026-11-13"
+                ],
+                [
+                  "MN-3437845",
+                  "Maddox Biologics South",
+                  "87.7",
+                  "reroute",
+                  "Granger",
+                  "$4,208",
+                  "2026-11-14"
+                ],
+                [
+                  "MN-3437848",
+                  "Stoneham Beverage",
+                  "61.5",
+                  "reroute",
+                  "Granger",
+                  "$2,951",
+                  ""
+                ],
+                [
+                  "MN-3437849",
+                  "Greyson Coatings Works",
+                  "49",
+                  "reroute",
+                  "Granger",
+                  "$4,066",
+                  ""
+                ],
+                [
+                  "MN-3437850",
+                  "Kimball Drivetrain",
+                  "58.8",
+                  "reroute",
+                  "Granger",
+                  "$2,580",
+                  ""
+                ],
+                [
+                  "MN-3437851",
+                  "Thornbury Coatings Industries",
+                  "37",
+                  "reroute",
+                  "Granger",
+                  "$2,039",
+                  ""
+                ],
+                [
+                  "MN-3437853",
+                  "Maddox Energy Works",
+                  "29.3",
+                  "reroute",
+                  "Granger",
+                  "$1,286",
+                  ""
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-reroute-list-2",
+          "heading": "Outlet loads and holds",
+          "body": "4. Covering every position costs $60.9k of extra haul and outlet cost, less $23.9k saved on the overflow streams; the kiln costs $96,000 a day while it is down.\nNine re-routes to Granger on the rate card, one to Northstar Thermal, two holds and two keeps at no cost, two overflow streams home at a saving, two fee pass-throughs. Sending everything stranded to outlets instead costs $241.9k and leaves eight shipments with no outlet that meets their requirement.",
+          "from": "Findings, Agent Ledger",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Outlet loads, holds and shipments that stay booked",
+            "note": "5 shipments, $23,889 of extra haul and outlet cost.",
+            "table": {
+              "columns": [
+                "Manifest",
+                "Generator",
+                "Tons",
+                "Action",
+                "To",
+                "Cost",
+                "Clock"
+              ],
+              "rows": [
+                [
+                  "MN-3437846",
+                  "Keller Circuits Industries",
+                  "85.7",
+                  "hold",
+                  "hold at Galena Shores to 2026-11-15",
+                  "",
+                  "2026-11-15"
+                ],
+                [
+                  "MN-3437847",
+                  "Inglewood Water Utility Partners",
+                  "79.1",
+                  "hold",
+                  "hold at Galena Shores to 2026-11-15",
+                  "",
+                  "2026-11-15"
+                ],
+                [
+                  "MN-3437852",
+                  "Maddox Specialty Chemicals Works",
+                  "33.1",
+                  "third party",
+                  "Northstar Thermal",
+                  "$23,889",
+                  ""
+                ],
+                [
+                  "MN-3437854",
+                  "Lakeshore Metal Finishing Industries",
+                  "35",
+                  "keep",
+                  "stays booked; arrives after the restart",
+                  "",
+                  ""
+                ],
+                [
+                  "MN-3437855",
+                  "Pinecrest Foods",
+                  "26.6",
+                  "keep",
+                  "stays booked; arrives after the restart",
+                  "",
+                  ""
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "MN-3437846",
+                  "Keller Circuits Industries",
+                  "85.7",
+                  "hold",
+                  "hold at Galena Shores to 2026-11-15",
+                  "",
+                  "2026-11-15"
+                ],
+                [
+                  "MN-3437847",
+                  "Inglewood Water Utility Partners",
+                  "79.1",
+                  "hold",
+                  "hold at Galena Shores to 2026-11-15",
+                  "",
+                  "2026-11-15"
+                ],
+                [
+                  "MN-3437852",
+                  "Maddox Specialty Chemicals Works",
+                  "33.1",
+                  "third party",
+                  "Northstar Thermal",
+                  "$23,889",
+                  ""
+                ],
+                [
+                  "MN-3437854",
+                  "Lakeshore Metal Finishing Industries",
+                  "35",
+                  "keep",
+                  "stays booked; arrives after the restart",
+                  "",
+                  ""
+                ],
+                [
+                  "MN-3437855",
+                  "Pinecrest Foods",
+                  "26.6",
+                  "keep",
+                  "stays booked; arrives after the restart",
+                  "",
+                  ""
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-ts-reroute-list-3",
+          "heading": "Confirmations",
+          "body": "",
+          "from": "You · Who confirms each slot, each truck and each outlet load, and by when.",
+          "role": "next",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-ts-reroute-list-4",
+          "heading": "Sources per line",
+          "body": "• Open manifests booked for Port Terrell at the 4 November load (table: ironbridge_ops.manifest, 2026-11-04)\n• Bookings with the outage flag, weeks 45 and 46 (table: ironbridge_ops.capacity_booking, 2026-11-04)\n• Refractory failure; eleven days; feed on 15 November (document: Port_Terrell_Outage_Notice_2026-11-03.pdf, 2026-11-03)\n• Coordinator: loads on the pad and their clocks (mail: Thread F2, 2026-11-03)\n• Headroom by unit, weeks 45 and 46 (table: ironbridge_ops.capacity_booking, 2026-11-04)\n• Plant manager: Granger headroom for two weeks (mail: Thread R1, 2026-11-03)\n• Lane rates and outlet costs (table: ironbridge_fin.transport_lane, ironbridge_ops.third_party_outlet, 2026-11-04)\n• Lost margin a day (document: Port_Terrell_Outage_Notice_2026-11-03.pdf, 2026-11-03)",
+          "from": "Evidence lines, Agent Ledger",
+          "role": "evidence",
+          "included": true,
+          "visual": null
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-03T14:36:40Z",
+      "log": [
+        {
+          "at": "2026-11-03T14:36:40Z",
+          "who": "Nishant Srivastav",
+          "what": "Started from the goal \"Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load\", as Agent Ledger recommended because the template \"Re-route and outlet list\" is in the library."
+        }
+      ]
+    },
+    {
+      "id": "sub-pricing-schedule-halden-2027",
+      "title": "Pricing schedule: Halden Biopharma 2027 to 2029",
+      "audience": "Priya Natarajan and Halden Biopharma procurement",
+      "purpose": "Price per ton by stream, the facility each goes to, the capacity held and the fallback, in the structure approved for Delmar Chemical in 2023",
+      "template": "Your prior deliverables: pricing schedule, Delmar Chemical 2024 to 2026",
+      "templateId": "t-prior-pricing-2024",
+      "format": "Workbook",
+      "origin": "recommendation",
+      "goalIds": [
+        "g-halden-proposal"
+      ],
+      "fromGoal": {
+        "id": "g-halden-proposal",
+        "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday"
+      },
+      "agentName": "Agent Compass",
+      "stage": "draft",
+      "sections": [
+        {
+          "id": "t-prior-pricing-2024-0",
+          "heading": "S-1 Contract summary",
+          "body": "Quote on Granger for the QR-14 streams, with Port Terrell as the alternative when its first-quarter plan is published.\nProcess water, solvent, lab packs and product-contact solids incinerated at Granger at the book; aerosols at Cypress Landing; scrubber water to Bayou Verde deep well. Port Terrell named as the alternative in the schedule, to move at the first contract review once its plan shows room. Close the EPA identification number before 1 January.\nQuote a year: $3.56M\nMargin: $1.24M · 34.7%\nCapacity: in the bookings\nApproval: VP Sales and Director",
+          "from": "Preferred recommendation, Agent Compass",
+          "role": "summary",
+          "included": true,
+          "visual": {
+            "kind": "waterfall",
+            "title": "Halden Biopharma: quote a year to margin on full cost ($M a year)",
+            "note": "From $3.56M at the book to $1.53M of margin (43.0%) with the QR-14 streams on Port Terrell; on Granger it is $1.24M (34.7%).",
+            "table": {
+              "columns": [
+                "Step",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Quote a year at the book",
+                  "$3.56M"
+                ],
+                [
+                  "Treatment",
+                  "−$1.77M"
+                ],
+                [
+                  "Transport",
+                  "−$119k"
+                ],
+                [
+                  "Handling and fees",
+                  "−$136k"
+                ],
+                [
+                  "Margin a year",
+                  "$1.53M"
+                ]
+              ]
+            },
+            "data": {
+              "steps": [
+                {
+                  "step": "Quote a year at the book",
+                  "amount": 3557610
+                },
+                {
+                  "step": "Treatment",
+                  "amount": -1772614
+                },
+                {
+                  "step": "Transport",
+                  "amount": -118987.01999999999
+                },
+                {
+                  "step": "Handling and fees",
+                  "amount": -136446.50000000003
+                },
+                {
+                  "step": "Margin a year",
+                  "amount": 1529562.48
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-1",
+          "heading": "S-2 Streams and routing",
+          "body": "2. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Where each stream goes, and the fallback",
+            "note": "The quoted unit for each stream with its capacity note, and the next eligible unit in the network.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Quoted unit",
+                "Capacity",
+                "Fallback"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell · Incineration, aqueous liquids",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Granger · Incineration, aqueous liquids"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell · Incineration, organic liquids",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Tidewater · Fuel blending"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger · Incineration, lab packs",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing · Aerosol processing",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell · Incineration, solids and sludges",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Granger · Incineration, solids and sludges"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde · Deep well injection",
+                  "in the bookings",
+                  "Bayou Verde · Aqueous treatment"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell · Incineration, aqueous liquids",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Granger · Incineration, aqueous liquids"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell · Incineration, organic liquids",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Tidewater · Fuel blending"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger · Incineration, lab packs",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing · Aerosol processing",
+                  "in the bookings",
+                  "none"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell · Incineration, solids and sludges",
+                  "booked 94% for the fourth quarter; first-quarter 2027 plan not published; kiln down since 3 November",
+                  "Granger · Incineration, solids and sludges"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde · Deep well injection",
+                  "in the bookings",
+                  "Bayou Verde · Aqueous treatment"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-2",
+          "heading": "S-3 Price and full cost by stream",
+          "body": "3. On the Granger routing the quote is $3.56M a year at 34.7% margin on full cost, above the floor, with no stream under 15%.\nThe process water earns 35.9% at $740.00 a ton carrying the 1,020-mile haul; the solvent is the lowest stream at 25.0%; the scrubber water on deep well the highest. Quoted on Port Terrell the margin would be 43.0%, on capacity that is not confirmed. Deep well for the process water is the cheapest route and is ruled out by QR-14.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Price, full cost and margin by stream",
+            "note": "Price from the 2026 book; full cost on the quoted route (treatment, handling, transport, state fee). Contract margin 43.0% against the 28% floor; no stream under 15%.",
+            "table": {
+              "columns": [
+                "Stream",
+                "What",
+                "Tons a year",
+                "Unit",
+                "Price a ton",
+                "Full cost a ton",
+                "Margin a ton",
+                "Margin",
+                "Margin a year"
+              ],
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "H1",
+                  "API process wastewater",
+                  "2,900",
+                  "Port Terrell",
+                  "$740.00",
+                  "$406.48",
+                  "$333.52",
+                  "45.1%",
+                  "$0.97M"
+                ],
+                [
+                  "H2",
+                  "Methanol and DMSO solvent waste",
+                  "640",
+                  "Port Terrell",
+                  "$560.00",
+                  "$332.48",
+                  "$227.52",
+                  "40.6%",
+                  "$0.15M"
+                ],
+                [
+                  "H3",
+                  "Expired and off-specification product in vials",
+                  "85",
+                  "Granger",
+                  "$2,900.00",
+                  "$1,816.14",
+                  "$1,083.86",
+                  "37.4%",
+                  "$0.09M"
+                ],
+                [
+                  "H4",
+                  "Aerosol cans, cleaning and lubricant",
+                  "38",
+                  "Cypress Landing",
+                  "$1,900.00",
+                  "$1,129.32",
+                  "$770.68",
+                  "40.6%",
+                  "$0.03M"
+                ],
+                [
+                  "H5",
+                  "API-contaminated solids and PPE",
+                  "410",
+                  "Port Terrell",
+                  "$1,350.00",
+                  "$845.48",
+                  "$504.52",
+                  "37.4%",
+                  "$0.21M"
+                ],
+                [
+                  "H6",
+                  "Caustic scrubber blowdown",
+                  "787",
+                  "Bayou Verde",
+                  "$230.00",
+                  "$117.58",
+                  "$112.42",
+                  "48.9%",
+                  "$0.09M"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-3",
+          "heading": "S-4 Capacity and fallback",
+          "body": "2. Every stream has a permitted unit with capacity; Port Terrell is 94% booked with no first-quarter plan and its kiln down, so Granger carries the QR-14 streams with about 2,175 tons of first-quarter headroom.\nGranger is 70.9% booked for the fourth quarter; Port Terrell's first quarter, if it repeats the fourth, has about 630 tons of headroom against 725 tons of process water a quarter. The committee ruled out new pharmaceutical volume on Port Terrell until its plan is published. Tidewater is under renewal; aerosols fit at Cypress Landing; the scrubber water at Bayou Verde.",
+          "from": "Findings, Agent Compass",
+          "role": "findings",
+          "included": true,
+          "visual": {
+            "kind": "table",
+            "title": "Booked against permitted, fourth quarter, for the units the quote uses",
+            "note": "Port Terrell has no first-quarter 2027 plan; Granger carries about 2,175 tons of first-quarter headroom on aqueous incineration against 725 tons a quarter of process water.",
+            "table": {
+              "columns": [
+                "Facility",
+                "Unit",
+                "Permitted a year",
+                "Q4 booked",
+                "Q4 capacity",
+                "Share",
+                "Note"
+              ],
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            },
+            "data": {
+              "rows": [
+                [
+                  "Port Terrell",
+                  "Incineration, organic liquids",
+                  "22,000",
+                  "5,221",
+                  "5,500",
+                  "94.9%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, aqueous liquids",
+                  "42,000",
+                  "9,909",
+                  "10,500",
+                  "94.4%",
+                  ""
+                ],
+                [
+                  "Port Terrell",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "4,649",
+                  "5,000",
+                  "93.0%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, organic liquids",
+                  "18,000",
+                  "3,873",
+                  "4,501",
+                  "86.1%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, solids and sludges",
+                  "20,000",
+                  "3,609",
+                  "5,000",
+                  "72.2%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, aqueous liquids",
+                  "30,000",
+                  "5,316",
+                  "7,500",
+                  "70.9%",
+                  ""
+                ],
+                [
+                  "Granger",
+                  "Incineration, lab packs",
+                  "4,000",
+                  "660",
+                  "1,000",
+                  "66.0%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Aqueous treatment",
+                  "12,000",
+                  "1,829",
+                  "3,000",
+                  "60.9%",
+                  ""
+                ],
+                [
+                  "Bayou Verde",
+                  "Deep well injection",
+                  "60,000",
+                  "8,506",
+                  "14,999",
+                  "56.7%",
+                  "pre-treatment included; disposal, not destruction"
+                ],
+                [
+                  "Tidewater",
+                  "Fuel blending",
+                  "24,000",
+                  "2,930",
+                  "6,000",
+                  "48.8%",
+                  "halogen limit 5.0% by weight; permit renewal decision due 18 December 2026"
+                ],
+                [
+                  "Tidewater",
+                  "Solvent recovery",
+                  "9,000",
+                  "1,057",
+                  "2,250",
+                  "47.0%",
+                  "Tidewater"
+                ],
+                [
+                  "Cypress Landing",
+                  "Aerosol processing",
+                  "3,000",
+                  "286",
+                  "750",
+                  "38.1%",
+                  "opened 14 September 2026"
+                ],
+                [
+                  "Cypress Landing",
+                  "Cylinder processing",
+                  "900",
+                  "70",
+                  "225",
+                  "31.1%",
+                  "opened 14 September 2026"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "id": "t-prior-pricing-2024-4",
+          "heading": "S-5 Approvals and contract dates",
+          "body": "",
+          "from": "You · Approval level, who signs, contract start and end, price review clause.",
+          "role": "free",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-prior-pricing-2024-5",
+          "heading": "Open items",
+          "body": "• Port Terrell has not published its first-quarter 2027 plan; the alternative is stated in the schedule and the stream moves there at the first contract review if the plan shows room.\n• Halden's EPA identification number is applied for and not issued; no manifest moves until it is, whatever the contract date.\n• Tidewater's permit renewal decision is due 18 December; the solvent is not quoted there, so nothing in the quote rests on it.",
+          "from": "Gaps and open questions, Agent Compass",
+          "role": "assumptions",
+          "included": true,
+          "visual": null
+        },
+        {
+          "id": "t-prior-pricing-2024-6",
+          "heading": "Evidence index",
+          "body": "• Released results for the six profiles (table: ironbridge_ops.profile_analytical, 2026-10-29)\n• Destruction with a certificate; deep well and landfill not acceptable (document: Halden_Quality_Requirement_QR-14_Waste_Destruction.pdf, 2026-10-20)\n• Bookings by unit, weeks 40 to 52 (table: ironbridge_ops.capacity_booking, 2026-11-03)\n• No new pharmaceutical volume on Port Terrell until its first-quarter plan is published (document: Capacity_Committee_Q3_2026_minutes.pdf, 2026-10-17)\n• Director: Granger unless Port Terrell publishes a plan (mail: Thread A1, 2026-10-23)\n• Full cost a ton by route: treatment, handling, fee, lane (table: ironbridge_fin.treatment_cost, transport_lane, state_fee, price_book, 2026-11-01)\n• The floor at the quoted routing; no stream below 15% (document: Pricing_and_Margin_Policy_2026.pdf, 2026-01-05)\n• The four tests and the approval levels (document: Waste_Acceptance_Policy_2025.pdf, 2025-02-01)\n• Compliance: no manifest until the number is issued (mail: Thread E1, 2026-10-28)",
+          "from": "Evidence lines, Agent Compass",
+          "role": "evidence",
+          "included": true,
+          "visual": null
+        }
+      ],
+      "createdBy": "Nishant Srivastav",
+      "createdAt": "2026-11-02T16:12:00Z",
+      "log": [
+        {
+          "at": "2026-11-02T16:12:00Z",
+          "who": "Agent Compass",
+          "what": "Recommended this submission from the goal \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\" because the template \"Pricing schedule, Delmar Chemical 2024 to 2026 (as approved).xlsx\" is in the library."
+        },
+        {
+          "at": "2026-11-02T16:15:00Z",
+          "who": "Nishant Srivastav",
+          "what": "Confirmed the brief and the template; outline filled from the goal."
+        },
+        {
+          "at": "2026-11-03T14:33:18Z",
+          "who": "Nishant Srivastav",
+          "what": "Built the draft."
+        }
+      ]
+    }
+  ]
+}

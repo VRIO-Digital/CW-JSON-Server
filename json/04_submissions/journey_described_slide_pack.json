@@ -1,0 +1,183 @@
+{
+  "_meta": {
+    "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+    "tenant": "Ironbridge Environmental Services (fictional; the Waste Stream Analyst demo world)",
+    "dataset": "IRONBRIDGE",
+    "asOf": "2026-11-03",
+    "today": "2026-11-03",
+    "exported_from": "Composed by _build/submissions_waste.py from the datasets and the Goals layer (no prototype).",
+    "note": "A slide pack described in the author's words for the Halden goal, read into an outline the author edits. Two phrases cannot be placed: competitor pricing is not a connected source, and the Caldwell Bend second line is not a finding."
+  },
+  "steps": [
+    {
+      "step": 1,
+      "screen": "Goal › Outputs, or Submissions › New submission › From a goal",
+      "action": "Pick the goal and \"Describe a new output\"",
+      "goalId": "g-halden-proposal",
+      "goal": "Halden Biopharma proposal: six streams, three years, for Priya by Friday",
+      "agent": "Agent Compass"
+    },
+    {
+      "step": 2,
+      "screen": "New submission › Describe a new output",
+      "action": "Pick the format",
+      "format": "Slide pack",
+      "formats_offered": [
+        "Slide pack",
+        "Dashboard",
+        "Document",
+        "Memo",
+        "Workbook",
+        "Email"
+      ]
+    },
+    {
+      "step": 3,
+      "screen": "New submission › Describe a new output",
+      "action": "Describe what it should cover (or use the example)",
+      "description": "A slide pack for the Capacity Committee on 19 November. One slide with the proposal at a glance and the margin a year. One slide on the six streams and what they are. One slide on where each stream goes and the capacity behind it. One slide on the price, full cost and margin against the floor. One slide comparing our price per ton with competitor pricing for each stream. One slide on the Caldwell Bend second line and what it adds from 2028. Close with the decision asked, then the sources."
+    },
+    {
+      "step": 4,
+      "screen": "New submission › Describe a new output",
+      "action": "Propose the structure (about 1.4 s)",
+      "agent_reading": [
+        "\"A slide pack for the Capacity Committee on 19 November\" → who it is for: Capacity Committee.",
+        "\"One slide with the proposal at a glance and the margin a year\" → one slide: the headline position and recommendation.",
+        "\"One slide on the six streams and what they are\" → one slide: findings and figures from the analysis.",
+        "\"One slide on where each stream goes and the capacity behind it\" → one slide: findings and figures from the analysis.",
+        "\"One slide on the price, full cost and margin against the floor\" → one slide: findings and figures from the analysis.",
+        "\"One slide comparing our price per ton with competitor pricing for each stream\" → needs competitor pricing, which is not a connected source; nothing in the graph can fill this slide.",
+        "\"One slide on the Caldwell Bend second line and what it adds from 2028\" → needs Halden's expansion plans, which is not a connected source; nothing in the graph can fill this slide.",
+        "\"Close with the decision asked\" → one slide: a decision the reader takes.",
+        "\"the sources\" → one slide: the evidence lines.",
+        "Could not place: \"One slide comparing our price per ton with competitor pricing for each stream\", \"One slide on the Caldwell Bend second line and what it adds from 2028\". Add a section for it below if it matters.",
+        "Content comes from \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\" (Agent Compass): 4 findings, 3 recommendations."
+      ],
+      "unread_phrases": [
+        "One slide comparing our price per ton with competitor pricing for each stream",
+        "One slide on the Caldwell Bend second line and what it adds from 2028"
+      ]
+    },
+    {
+      "step": 5,
+      "screen": "Outline",
+      "action": "Edit the outline, then build",
+      "sections": [
+        {
+          "heading": "Proposal at a glance and the margin a year",
+          "role": "summary",
+          "because": "One slide with the proposal at a glance and the margin a year",
+          "visual": {
+            "kind": "waterfall",
+            "title": "Halden Biopharma: quote a year to margin on full cost ($M a year)"
+          }
+        },
+        {
+          "heading": "Six streams and what they are",
+          "role": "findings",
+          "because": "One slide on the six streams and what they are",
+          "visual": {
+            "kind": "table",
+            "title": "The six Halden streams on released results"
+          }
+        },
+        {
+          "heading": "Where each stream goes and the capacity behind it",
+          "role": "findings",
+          "because": "One slide on where each stream goes and the capacity behind it",
+          "visual": {
+            "kind": "table",
+            "title": "Booked against permitted, fourth quarter, for the units the quote uses"
+          }
+        },
+        {
+          "heading": "Price, full cost and margin against the floor",
+          "role": "findings",
+          "because": "One slide on the price, full cost and margin against the floor",
+          "visual": {
+            "kind": "table",
+            "title": "Price, full cost and margin by stream"
+          }
+        },
+        {
+          "heading": "Decision asked",
+          "role": "purpose",
+          "because": "Close with the decision asked",
+          "visual": {
+            "kind": "waterfall",
+            "title": "Halden Biopharma: quote a year to margin on full cost ($M a year)"
+          }
+        },
+        {
+          "heading": "Sources",
+          "role": "evidence",
+          "because": "the sources",
+          "visual": {
+            "kind": "diagram",
+            "title": "What the findings rest on"
+          }
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "screen": "Outline",
+      "action": "Save as template (optional)",
+      "note": "The outline goes into the library as a \"Described for a goal\" template; the next recommendation can rest on it."
+    }
+  ],
+  "proposal": {
+    "format": "Slide pack",
+    "audience": "Capacity Committee",
+    "sections": [
+      {
+        "heading": "Proposal at a glance and the margin a year",
+        "role": "summary",
+        "because": "One slide with the proposal at a glance and the margin a year"
+      },
+      {
+        "heading": "Six streams and what they are",
+        "role": "findings",
+        "because": "One slide on the six streams and what they are"
+      },
+      {
+        "heading": "Where each stream goes and the capacity behind it",
+        "role": "findings",
+        "because": "One slide on where each stream goes and the capacity behind it"
+      },
+      {
+        "heading": "Price, full cost and margin against the floor",
+        "role": "findings",
+        "because": "One slide on the price, full cost and margin against the floor"
+      },
+      {
+        "heading": "Decision asked",
+        "role": "purpose",
+        "because": "Close with the decision asked"
+      },
+      {
+        "heading": "Sources",
+        "role": "evidence",
+        "because": "the sources"
+      }
+    ],
+    "reading": [
+      "\"A slide pack for the Capacity Committee on 19 November\" → who it is for: Capacity Committee.",
+      "\"One slide with the proposal at a glance and the margin a year\" → one slide: the headline position and recommendation.",
+      "\"One slide on the six streams and what they are\" → one slide: findings and figures from the analysis.",
+      "\"One slide on where each stream goes and the capacity behind it\" → one slide: findings and figures from the analysis.",
+      "\"One slide on the price, full cost and margin against the floor\" → one slide: findings and figures from the analysis.",
+      "\"One slide comparing our price per ton with competitor pricing for each stream\" → needs competitor pricing, which is not a connected source; nothing in the graph can fill this slide.",
+      "\"One slide on the Caldwell Bend second line and what it adds from 2028\" → needs Halden's expansion plans, which is not a connected source; nothing in the graph can fill this slide.",
+      "\"Close with the decision asked\" → one slide: a decision the reader takes.",
+      "\"the sources\" → one slide: the evidence lines.",
+      "Could not place: \"One slide comparing our price per ton with competitor pricing for each stream\", \"One slide on the Caldwell Bend second line and what it adds from 2028\". Add a section for it below if it matters.",
+      "Content comes from \"Halden Biopharma proposal: six streams, three years, for Priya by Friday\" (Agent Compass): 4 findings, 3 recommendations."
+    ],
+    "unreadPhrases": [
+      "One slide comparing our price per ton with competitor pricing for each stream",
+      "One slide on the Caldwell Bend second line and what it adds from 2028"
+    ]
+  }
+}

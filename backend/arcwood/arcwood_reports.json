@@ -1,0 +1,3106 @@
+{
+  "reports": {
+    "meta": {
+      "persona_name": "Raj Mehta",
+      "persona_role": "Pricing and Margin Manager · Ironbridge Environmental Services",
+      "persona_initials": "RM",
+      "entity_plural": "generators",
+      "scope_line": "the Ironbridge generator book",
+      "source_trace": "Traces to: ironbridge_fin.fin.invoice_line, ironbridge_ops.ops.waste_profile, ironbridge_fin.fin.treatment_cost, ironbridge_ops.ops.capacity_booking, as of 2026-11-03."
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Generator",
+        "kind": "text",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "cat",
+        "label": "Industry",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "bu",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "phase",
+        "label": "Tier",
+        "kind": "cat",
+        "filterable": true,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "spend",
+        "label": "Revenue to September",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "on",
+        "label": "Margin",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      },
+      {
+        "key": "off",
+        "label": "Full cost",
+        "kind": "num",
+        "filterable": false,
+        "avail": true,
+        "note": null
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "book",
+        "label": "all 1363 generators on the book"
+      },
+      "measure": {
+        "value": "on",
+        "label": "margin on full cost at the approved route"
+      },
+      "horizon": {
+        "value": "ytd",
+        "label": "January to September 2026"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which generators to include?",
+        "options": [
+          {
+            "value": "book",
+            "label": "all 1363 generators on the book",
+            "d": "Everyone with a shipment this year"
+          },
+          {
+            "value": "tier1",
+            "label": "tier 1 generators",
+            "d": "The named accounts only"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Margin\" measured against?",
+        "options": [
+          {
+            "value": "on",
+            "label": "margin on full cost at the approved route",
+            "d": "Pricing policy section 5"
+          },
+          {
+            "value": "book",
+            "label": "price against the book",
+            "d": "Discount from the 2026 book"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "ytd",
+            "label": "January to September 2026",
+            "d": "Invoice date"
+          },
+          {
+            "value": "q3",
+            "label": "Third quarter",
+            "d": "July to September"
+          }
+        ]
+      }
+    },
+    "slice_default": [
+      "bu",
+      "cat",
+      "phase"
+    ],
+    "summary_catalog": [
+      {
+        "key": "count",
+        "label": "generators in view",
+        "tone": null,
+        "agg": "rows",
+        "field": null,
+        "format": "int",
+        "def": "Generators the scope admits",
+        "scope_class": "count"
+      },
+      {
+        "key": "spend",
+        "label": "revenue to September",
+        "tone": null,
+        "agg": "sum",
+        "field": "spend",
+        "format": "money_m",
+        "def": "Invoice lines January to September",
+        "scope_class": "sum"
+      },
+      {
+        "key": "on",
+        "label": "margin to September",
+        "tone": "warn",
+        "agg": "sum",
+        "field": "on",
+        "format": "money_m",
+        "def": "Revenue minus full cost",
+        "scope_class": "sum"
+      },
+      {
+        "key": "under",
+        "label": "generators under 28%",
+        "tone": "crit",
+        "agg": "count_eq",
+        "field": "status",
+        "format": "int",
+        "def": "Margin under the contract floor",
+        "scope_class": "count"
+      }
+    ],
+    "summary_default": [],
+    "data": {
+      "projects": [
+        {
+          "n": "Bexley Specialty Chemicals North",
+          "reg": "NC",
+          "cat": "Chemical manufacturing",
+          "bu": "Midwest",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        },
+        {
+          "n": "Halford Specialty Chemicals Works",
+          "reg": "VA",
+          "cat": "Chemical manufacturing",
+          "bu": "Gulf",
+          "phase": "Tier 2",
+          "comp": "Tier 2"
+        },
+        {
+          "n": "Carrick Plating West",
+          "reg": "OH",
+          "cat": "Metal finishing",
+          "bu": "Midwest",
+          "phase": "Tier 2",
+          "comp": "Tier 2"
+        },
+        {
+          "n": "Halford Retail Services South",
+          "reg": "TX-Gulf",
+          "cat": "Retail and distribution",
+          "bu": "Gulf",
+          "phase": "Tier 2",
+          "comp": "Tier 2"
+        },
+        {
+          "n": "Gulf Coast Specialty Chemicals Valley",
+          "reg": "IN",
+          "cat": "Chemical manufacturing",
+          "bu": "Midwest",
+          "phase": "Tier 2",
+          "comp": "Tier 2"
+        },
+        {
+          "n": "Fenwick Castings",
+          "reg": "OK",
+          "cat": "Automotive and parts",
+          "bu": "Gulf",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        },
+        {
+          "n": "Yardley Therapeutics Valley",
+          "reg": "OK",
+          "cat": "Pharmaceutical manufacturing",
+          "bu": "Midwest",
+          "phase": "Tier 3",
+          "comp": "Tier 3"
+        },
+        {
+          "n": "Kimball Aerostructures Lakes",
+          "reg": "IN",
+          "cat": "Aerospace",
+          "bu": "Midwest",
+          "phase": "Tier 2",
+          "comp": "Tier 2"
+        },
+        {
+          "n": "Greyson Coatings Works",
+          "reg": "LA",
+          "cat": "Coatings and inks",
+          "bu": "Gulf",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        },
+        {
+          "n": "Norwood Refining",
+          "reg": "LA",
+          "cat": "Petrochemical and refining",
+          "bu": "Gulf",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        },
+        {
+          "n": "Kestrel Plating Partners",
+          "reg": "TX-North",
+          "cat": "Metal finishing",
+          "bu": "Gulf",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        },
+        {
+          "n": "Pinecrest Polymers Technologies",
+          "reg": "MI",
+          "cat": "Chemical manufacturing",
+          "bu": "Midwest",
+          "phase": "Tier 1",
+          "comp": "Tier 1"
+        }
+      ],
+      "contracts": [
+        {
+          "id": "pkg_q_2026_0141",
+          "no": "Q-2026-0141",
+          "project": "gen_g11100",
+          "projectCode": "G11100",
+          "projectName": "Halden Biopharma",
+          "title": "Quote Q-2026-0141 · Halden Biopharma",
+          "form": "Contract quote",
+          "role": "Generator",
+          "contractor": "Halden Biopharma",
+          "contractorId": "org_halden_biopharma",
+          "value": null,
+          "effective": null,
+          "doc": "gdrive://Technical Solutions/01_Halden Biopharma proposal/Q-2026-0141.pdf",
+          "documentSource": "src_gdrive",
+          "resolvedTo": "e_quote",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Generator, due date, lines and annual value read from the quote header."
+        },
+        {
+          "id": "pkg_q_2026_0001",
+          "no": "Q-2026-0001",
+          "project": "gen_g10505",
+          "projectCode": "G10505",
+          "projectName": "Zephyr Power Valley",
+          "title": "Quote Q-2026-0001 · Zephyr Power Valley",
+          "form": "Contract quote",
+          "role": "Generator",
+          "contractor": "Zephyr Power Valley",
+          "contractorId": "org_zephyr_power_valley",
+          "value": 233914.83,
+          "effective": "2026-08-15",
+          "doc": "gdrive://Technical Solutions/01_Halden Biopharma proposal/Q-2026-0001.pdf",
+          "documentSource": "src_gdrive",
+          "resolvedTo": "e_quote",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Generator, due date, lines and annual value read from the quote header."
+        },
+        {
+          "id": "pkg_q_2026_0002",
+          "no": "Q-2026-0002",
+          "project": "gen_g10124",
+          "projectCode": "G10124",
+          "projectName": "Osprey Power Gulf",
+          "title": "Quote Q-2026-0002 · Osprey Power Gulf",
+          "form": "Contract quote",
+          "role": "Generator",
+          "contractor": "Osprey Power Gulf",
+          "contractorId": "org_osprey_power_gulf",
+          "value": 73996.83,
+          "effective": "2026-09-24",
+          "doc": "gdrive://Technical Solutions/01_Halden Biopharma proposal/Q-2026-0002.pdf",
+          "documentSource": "src_gdrive",
+          "resolvedTo": "e_quote",
+          "buildTime": true,
+          "method": "extracted",
+          "methodNote": "Generator, due date, lines and annual value read from the quote header."
+        }
+      ],
+      "changeOrders": [],
+      "business_units": [
+        "MID - Ironbridge Midwest",
+        "GLF - Ironbridge Gulf",
+        "EAS - Ironbridge East"
+      ],
+      "regions": [
+        "CA",
+        "IL",
+        "IN",
+        "KY",
+        "LA",
+        "MA",
+        "MI",
+        "NC",
+        "NJ",
+        "OH",
+        "OK",
+        "PA",
+        "TX-Gulf",
+        "TX-North",
+        "VA",
+        "WA"
+      ],
+      "categories": [
+        "Aerospace",
+        "Automotive and parts",
+        "Chemical manufacturing",
+        "Coatings and inks",
+        "Electronics",
+        "Food and beverage",
+        "Metal finishing",
+        "Petrochemical and refining",
+        "Pharmaceutical manufacturing",
+        "Retail and distribution",
+        "Universities and laboratories",
+        "Utilities"
+      ],
+      "profiles": []
+    },
+    "reports": [
+      {
+        "report_id": "rep_ib_network",
+        "report_tag": "network-position",
+        "subject": "profile × business",
+        "title": "Network Position",
+        "question": "Show revenue against plan by business, margin on full cost, what went to third-party outlets, and the profiles under the stream floor.",
+        "spine": "profiles",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_stream_margin",
+        "measure_label": "Stream margin",
+        "reading": {
+          "template": "Show revenue against plan by business, margin on full cost, what went to third-party outlets, and the profiles under the stream floor. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Revenue and margin, January to September 2026",
+            "grain": "network",
+            "source": "revenue",
+            "figures": [
+              {
+                "key": "posted",
+                "label": "Invoiced to September",
+                "measure": "m_revenue",
+                "measureLabel": "Invoiced to September",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 192324032.13,
+                "display": "$192.3M",
+                "exact": "$192,324,032",
+                "note": null,
+                "prov": "pv_iba1101"
+              },
+              {
+                "key": "plan",
+                "label": "Plan to September",
+                "measure": "m_revenue_plan",
+                "measureLabel": "Plan to September",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 198200000,
+                "display": "$198.2M",
+                "exact": "$198,200,000",
+                "note": null,
+                "prov": "pv_ib99956"
+              },
+              {
+                "key": "margin",
+                "label": "Margin on full cost",
+                "measure": "m_network_margin",
+                "measureLabel": "Margin on full cost",
+                "unit": "PCT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 37.54849096091509,
+                "display": "37.5%",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ibdcf2f"
+              },
+              {
+                "key": "tp",
+                "label": "Sent to third-party outlets",
+                "measure": "m_third_party_spend",
+                "measureLabel": "Sent to third-party outlets",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2895218.76,
+                "display": "$2.9M",
+                "exact": "$2,895,219",
+                "note": null,
+                "prov": "pv_ib7b069"
+              },
+              {
+                "key": "below",
+                "label": "Approved profiles under the stream floor",
+                "measure": "m_streams_below_floor",
+                "measureLabel": "Approved profiles under the stream floor",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2,
+                "display": "2",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ib96cc4"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Invoice lines of shipments received January to September; margin is price minus full cost at the approved route.",
+            "combines": false,
+            "combinesNote": "Revenue, margin and outlet cost are different measures and are not added.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 33166,
+              "label": "the 33,166 invoice lines January to September",
+              "note": "Port Terrell has not published its first-quarter 2027 plan."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Invoiced to September as a share of the plan for those months, by business",
+            "grain": "business",
+            "source": "revenue",
+            "chartType": "bar",
+            "axis": [
+              "Midwest",
+              "Gulf",
+              "East"
+            ],
+            "axisLabel": "percent of plan to September",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "share",
+                "label": "Invoiced ÷ plan",
+                "measure": "m_plan_share",
+                "unit": "PCT",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 95.5,
+                    "display": "95.5%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 101.8,
+                    "display": "101.8%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 92.9,
+                    "display": "92.9%",
+                    "unit": "PCT",
+                    "exact": null
+                  }
+                ],
+                "total": null,
+                "noTotal": "Shares per business are not summed."
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": false,
+            "failure": null,
+            "note": "Gulf is the only business above its plan; East is furthest under while the acquisitions settle.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 33166,
+              "label": "the 33,166 invoice lines January to September",
+              "note": "Port Terrell has not published its first-quarter 2027 plan."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "network",
+            "source": "revenue",
+            "role": "caveat",
+            "body": "Revenue is $5.9M under plan to September at 37.5% margin on full cost, above the 28% floor at every unit except Riverbend stabilization. $2.9M went to third-party outlets; the two Meridian West overflow approvals expire on 30 November. The Illinois fee rise on 1 November put two Riverbend streams under the stream floor.",
+            "parts": [
+              {
+                "text": "Revenue is $5.9M under plan to September at 37.5% margin on full cost, above the 28% floor at every unit except Riverbend stabilization. $2.9M went to third-party outlets; the two Meridian West overflow approvals expire on 30 November. The Illinois fee rise on 1 November put two Riverbend streams under the stream floor."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 33166,
+              "label": "the 33,166 invoice lines January to September",
+              "note": "Port Terrell has not published its first-quarter 2027 plan."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this report",
+            "grain": "network",
+            "source": "revenue",
+            "suggestions": [
+              "What did we invoice this year by business, against the plan, and at what margin?",
+              "Which approved profiles are under the 15% stream floor at today's fees?",
+              "What do third-party outlets cost us this year, and which approvals expire next?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_ib_waste_stream_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-11-03T07:00:00Z",
+              "reportId": "rep_ib_network"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 33166,
+              "label": "the 33,166 invoice lines January to September",
+              "note": "Port Terrell has not published its first-quarter 2027 plan."
+            }
+          }
+        ],
+        "heading": "Network Position",
+        "subtitle": "Show revenue against plan by business, margin on full cost, what went to third-party outlets, and the profiles under the stream floor.",
+        "badge": "Network",
+        "note": "Show revenue against plan by business, margin on full cost, what went to third-party outlets, and the profiles under the stream floor.",
+        "tiles": [
+          {
+            "label": "Invoiced to September",
+            "value": "$192.3M",
+            "unit": "plan $198.2M",
+            "tone": "warn",
+            "exact": "$192,324,032",
+            "measure": "m_revenue"
+          },
+          {
+            "label": "Margin on full cost",
+            "value": "37.5%",
+            "unit": "floor 28% on new contracts",
+            "tone": "good",
+            "exact": null,
+            "measure": "m_network_margin"
+          },
+          {
+            "label": "Third-party outlets",
+            "value": "$2.9M",
+            "unit": "5,268 tons this year",
+            "tone": "warn",
+            "exact": "$2,895,219",
+            "measure": "m_third_party_spend"
+          },
+          {
+            "label": "Under the stream floor",
+            "value": "2",
+            "unit": "Riverbend stabilization, no clause 9.2",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_streams_below_floor"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-11-03, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_ib_waste_stream_analyst v1 · role Waste Stream Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "Port Terrell has not published its first-quarter 2027 plan; its fourth quarter is not read as the first."
+          },
+          {
+            "label": "Served",
+            "text": "Network Position · 1 · Marcus Feld (Domain Architect) under Author -- full · 33,166 of 33,166 rows · as of 2026-11-03"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_ib_network",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Domain Architect",
+          "rows_served": 33166,
+          "rows_total": 33166,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-11-03",
+          "as_of_line": "As of 2026-11-03 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Network Position · 1 · Marcus Feld (Domain Architect) under Author -- full · 33,166 of 33,166 rows · as of 2026-11-03",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/ib-report.html?report=rep_ib_network"
+      },
+      {
+        "report_id": "rep_ib_capacity",
+        "report_tag": "capacity-and-outlets",
+        "subject": "profile × business",
+        "title": "Capacity and Outlets",
+        "question": "Show which units are booked above capacity, which shipments have no outlet at the nightly load, and which outlet approvals expire next.",
+        "spine": "profiles",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_stream_margin",
+        "measure_label": "Stream margin",
+        "reading": {
+          "template": "Show which units are booked above capacity, which shipments have no outlet at the nightly load, and which outlet approvals expire next. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Capacity and outlets at the 4 November load",
+            "grain": "network",
+            "source": "capacity",
+            "figures": [
+              {
+                "key": "prof",
+                "label": "Approved profiles",
+                "measure": "m_profiles_approved",
+                "measureLabel": "Approved profiles",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 3098,
+                "display": "3,098",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ib0461b"
+              },
+              {
+                "key": "open",
+                "label": "Open manifests",
+                "measure": "m_open_manifests",
+                "measureLabel": "Open manifests",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 554,
+                "display": "554",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ibb3988"
+              },
+              {
+                "key": "stranded",
+                "label": "Shipments without an outlet, 4 November",
+                "measure": "m_stranded_manifests",
+                "measureLabel": "Shipments without an outlet, 4 November",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 14,
+                "display": "14",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ib40b6e"
+              },
+              {
+                "key": "expiring",
+                "label": "Outlet approvals expiring in 60 days",
+                "measure": "m_tp_approval_expiry",
+                "measureLabel": "Outlet approvals expiring in 60 days",
+                "unit": "COUNT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 38,
+                "display": "38",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ib91f73"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Manifests, bookings and approvals at the nightly load; a permit or a plan is not capacity.",
+            "combines": false,
+            "combinesNote": "Counts of profiles, manifests and approvals; not added across measures.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 3098,
+              "label": "the 3,098 approved waste profiles",
+              "note": "A permitted code is not an outlet; capacity is read from the bookings."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Booked against fourth-quarter capacity, the units above 70%",
+            "grain": "unit",
+            "source": "capacity",
+            "chartType": "bar",
+            "axis": [
+              "Port Terrell · organic liquids",
+              "Port Terrell · aqueous liquids",
+              "Port Terrell · solids and sludges",
+              "Granger · organic liquids",
+              "Fox Hollow · fuel blending",
+              "Granger · solids and sludges",
+              "Granger · aqueous liquids"
+            ],
+            "axisLabel": "percent of capacity",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "share",
+                "label": "Booked share",
+                "measure": "m_booked_vs_permitted",
+                "unit": "PCT",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 94.9,
+                    "display": "94.9%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 94.4,
+                    "display": "94.4%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 93,
+                    "display": "93.0%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 86.1,
+                    "display": "86.1%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 74,
+                    "display": "74.0%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 72.2,
+                    "display": "72.2%",
+                    "unit": "PCT",
+                    "exact": null
+                  },
+                  {
+                    "raw": 70.9,
+                    "display": "70.9%",
+                    "unit": "PCT",
+                    "exact": null
+                  }
+                ],
+                "total": null,
+                "noTotal": "Shares per unit are not summed."
+              }
+            ],
+            "baseline": {
+              "value": 90,
+              "label": "90%: the committee watch line"
+            },
+            "stackTotalCombines": false,
+            "failure": null,
+            "note": "All three Port Terrell units are above 90% and down to 14 November; Granger carries the headroom.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 3098,
+              "label": "the 3,098 approved waste profiles",
+              "note": "A permitted code is not an outlet; capacity is read from the bookings."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "What the load shows",
+            "grain": "network",
+            "source": "capacity",
+            "role": "caveat",
+            "body": "14 shipments, 911 tons and $0.7M of revenue, are booked for Port Terrell units that are down; six are on the pad at Galena Shores and the first clock runs out on 11 November. Granger takes nine within its headroom and Northstar one. Two Meridian West approvals expire on 30 November.",
+            "parts": [
+              {
+                "text": "14 shipments, 911 tons and $0.7M of revenue, are booked for Port Terrell units that are down; six are on the pad at Galena Shores and the first clock runs out on 11 November. Granger takes nine within its headroom and Northstar one. Two Meridian West approvals expire on 30 November."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 3098,
+              "label": "the 3,098 approved waste profiles",
+              "note": "A permitted code is not an outlet; capacity is read from the bookings."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about capacity and outlets",
+            "grain": "network",
+            "source": "capacity",
+            "suggestions": [
+              "Which units are booked above 90% of capacity for the fourth quarter?",
+              "What does the Port Terrell outage strand, and where can each shipment go?",
+              "Which third-party approvals expire in the next 60 days, and which streams depend on them?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_ib_waste_stream_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-11-03T07:00:00Z",
+              "reportId": "rep_ib_capacity"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 3098,
+              "label": "the 3,098 approved waste profiles",
+              "note": "A permitted code is not an outlet; capacity is read from the bookings."
+            }
+          }
+        ],
+        "heading": "Capacity and Outlets",
+        "subtitle": "Show which units are booked above capacity, which shipments have no outlet at the nightly load, and which outlet approvals expire next.",
+        "badge": "Business",
+        "note": "Show which units are booked above capacity, which shipments have no outlet at the nightly load, and which outlet approvals expire next.",
+        "tiles": [
+          {
+            "label": "Without an outlet",
+            "value": "14",
+            "unit": "of 554 open manifests",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_stranded_manifests"
+          },
+          {
+            "label": "Port Terrell",
+            "value": "down",
+            "unit": "kiln back on feed 15 November",
+            "tone": "crit",
+            "exact": null,
+            "measure": "m_outage_impact"
+          },
+          {
+            "label": "Approvals expiring",
+            "value": "38",
+            "unit": "Meridian West, 30 November",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_tp_approval_expiry"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-11-04, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_ib_waste_stream_analyst v1 · role Waste Stream Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "A permit, a plan or an outlet letter is quoted as a statement; capacity is read from the bookings only."
+          },
+          {
+            "label": "Served",
+            "text": "Capacity and Outlets · 1 · Marcus Feld (Domain Architect) under Author -- full · 3,098 of 3,098 rows · as of 2026-11-04"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_ib_capacity",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Business User -- Executive",
+          "rows_served": 3098,
+          "rows_total": 3098,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-11-04",
+          "as_of_line": "As of 2026-11-04 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Capacity and Outlets · 1 · Marcus Feld (Domain Architect) under Author -- full · 3,098 of 3,098 rows · as of 2026-11-04",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/ib-report.html?report=rep_ib_capacity"
+      },
+      {
+        "report_id": "rep_ib_halden",
+        "report_tag": "halden-proposal",
+        "subject": "profile × business",
+        "title": "Halden Proposal",
+        "question": "Show what the six Halden streams earn a year on the quoted routing, stream by stream, with the alternative stated and the gaps kept apart.",
+        "spine": "profiles",
+        "scope": "sc_author_all",
+        "scope_label": "Author -- all data",
+        "measure": "m_stream_margin",
+        "measure_label": "Stream margin",
+        "reading": {
+          "template": "Show what the six Halden streams earn a year on the quoted routing, stream by stream, with the alternative stated and the gaps kept apart. Read over {scope}, by {measure}.",
+          "slots": [
+            "scope",
+            "measure"
+          ]
+        },
+        "blocks": [
+          {
+            "id": "b1",
+            "type": "figRow",
+            "label": "Halden Biopharma, six streams, a year",
+            "grain": "quote",
+            "source": "proposal",
+            "figures": [
+              {
+                "key": "rev",
+                "label": "Quote a year at the book",
+                "measure": "m_customer_revenue",
+                "measureLabel": "Quote a year at the book",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 3557610,
+                "display": "$3.6M",
+                "exact": "$3,557,610",
+                "note": null,
+                "prov": "pv_ib6711a"
+              },
+              {
+                "key": "cost",
+                "label": "Full cost on the Granger routing",
+                "measure": "m_stream_full_cost",
+                "measureLabel": "Full cost on the Granger routing",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 2322454.52,
+                "display": "$2.3M",
+                "exact": "$2,322,455",
+                "note": null,
+                "prov": "pv_iba2850"
+              },
+              {
+                "key": "margin",
+                "label": "Margin a year",
+                "measure": "m_contract_margin",
+                "measureLabel": "Margin a year",
+                "unit": "USD",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 1235155.48,
+                "display": "$1.2M",
+                "exact": "$1,235,155",
+                "note": null,
+                "prov": "pv_ib694bb"
+              },
+              {
+                "key": "mpct",
+                "label": "Margin on full cost",
+                "measure": "m_contract_margin",
+                "measureLabel": "Margin on full cost",
+                "unit": "PCT",
+                "signed": false,
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "coordProblems": [],
+                "expr": null,
+                "exprError": null,
+                "exprReads": null,
+                "raw": 34.72,
+                "display": "34.7%",
+                "exact": null,
+                "note": null,
+                "prov": "pv_ib3e948"
+              }
+            ],
+            "basesPresent": [
+              "record"
+            ],
+            "basisNote": "Prices from the 2026 book; full cost on the route each stream will take; the alternative routing is stated, not costed.",
+            "combines": true,
+            "combinesNote": "Margin = quote − full cost.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 6,
+              "label": "the 6 Halden Biopharma streams",
+              "note": "Results released 29 October; prices from the 2026 book; full cost on the quoted route."
+            }
+          },
+          {
+            "id": "b2",
+            "type": "bar",
+            "label": "Margin a year by stream",
+            "grain": "stream",
+            "source": "proposal",
+            "chartType": "bar",
+            "axis": [
+              "H1 API process wastewater",
+              "H2 Methanol and DMSO solvent waste",
+              "H3 Expired and off-specification product in vials",
+              "H4 Aerosol cans, cleaning and lubricant",
+              "H5 API-contaminated solids and PPE",
+              "H6 Caustic scrubber blowdown"
+            ],
+            "axisLabel": "USD a year",
+            "coord": {
+              "basis": "record",
+              "period_frame": "single"
+            },
+            "coordStated": "record basis · this period",
+            "series": [
+              {
+                "key": "margin",
+                "label": "Margin",
+                "measure": "m_contract_margin",
+                "unit": "USD",
+                "coord": {
+                  "basis": "record",
+                  "period_frame": "single"
+                },
+                "coordStated": "record basis · this period",
+                "values": [
+                  {
+                    "raw": 770994,
+                    "display": "$770,994",
+                    "unit": "USD",
+                    "exact": "$770,994"
+                  },
+                  {
+                    "raw": 89510.4,
+                    "display": "$89,510",
+                    "unit": "USD",
+                    "exact": "$89,510"
+                  },
+                  {
+                    "raw": 92128.1,
+                    "display": "$92,128",
+                    "unit": "USD",
+                    "exact": "$92,128"
+                  },
+                  {
+                    "raw": 29285.84,
+                    "display": "$29,286",
+                    "unit": "USD",
+                    "exact": "$29,286"
+                  },
+                  {
+                    "raw": 164762.6,
+                    "display": "$164,763",
+                    "unit": "USD",
+                    "exact": "$164,763"
+                  },
+                  {
+                    "raw": 88474.54,
+                    "display": "$88,475",
+                    "unit": "USD",
+                    "exact": "$88,475"
+                  }
+                ],
+                "total": {
+                  "raw": 1235155.48,
+                  "display": "$1.2M"
+                },
+                "noTotal": null
+              }
+            ],
+            "baseline": null,
+            "stackTotalCombines": true,
+            "failure": null,
+            "note": "The process water carries most of the margin; the solvent is the lowest stream at 25.0% and still above the 15% floor.",
+            "coverage": null,
+            "population": {
+              "kind": "declared",
+              "n": 6,
+              "label": "the 6 Halden Biopharma streams",
+              "note": "Results released 29 October; prices from the 2026 book; full cost on the quoted route."
+            }
+          },
+          {
+            "id": "b3",
+            "type": "narrative",
+            "label": "Reading",
+            "grain": "quote",
+            "source": "proposal",
+            "role": "caveat",
+            "body": "The QR-14 streams are quoted on Granger because Port Terrell has no first-quarter plan and the committee ruled out new pharmaceutical volume there; Port Terrell is the stated alternative. Deep well is not offered for the process water. Halden's EPA identification number is not yet issued; no manifest moves until it is.",
+            "parts": [
+              {
+                "text": "The QR-14 streams are quoted on Granger because Port Terrell has no first-quarter plan and the committee ruled out new pharmaceutical volume there; Port Terrell is the stated alternative. Deep well is not offered for the process water. Halden's EPA identification number is not yet issued; no manifest moves until it is."
+              }
+            ],
+            "figures": [],
+            "unbound": null,
+            "unboundNote": null,
+            "cites": null,
+            "population": {
+              "kind": "declared",
+              "n": 6,
+              "label": "the 6 Halden Biopharma streams",
+              "note": "Results released 29 October; prices from the 2026 book; full cost on the quoted route."
+            }
+          },
+          {
+            "id": "b4",
+            "type": "ask",
+            "label": "Ask about this proposal",
+            "grain": "quote",
+            "source": "proposal",
+            "suggestions": [
+              "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+              "Can Port Terrell carry the Halden process wastewater in the first quarter, on what is booked?",
+              "Which Halden streams carry a laboratory finding the profile did not say?"
+            ],
+            "unresolved": null,
+            "unresolvedWhy": null,
+            "enabled": true,
+            "disabledWhy": null,
+            "binding": {
+              "graph": "g_ib_waste_stream_analyst",
+              "scope": "sc_author_all",
+              "asOf": "2026-11-03T07:00:00Z",
+              "reportId": "rep_ib_halden"
+            },
+            "population": {
+              "kind": "declared",
+              "n": 6,
+              "label": "the 6 Halden Biopharma streams",
+              "note": "Results released 29 October; prices from the 2026 book; full cost on the quoted route."
+            }
+          }
+        ],
+        "heading": "Halden Proposal",
+        "subtitle": "Show what the six Halden streams earn a year on the quoted routing, stream by stream, with the alternative stated and the gaps kept apart.",
+        "badge": "Quote",
+        "note": "Show what the six Halden streams earn a year on the quoted routing, stream by stream, with the alternative stated and the gaps kept apart.",
+        "tiles": [
+          {
+            "label": "Quote a year",
+            "value": "$3.6M",
+            "unit": "34.7% margin on full cost",
+            "tone": "good",
+            "exact": "$3,557,610",
+            "measure": "m_customer_revenue"
+          },
+          {
+            "label": "On Port Terrell",
+            "value": "43.0%",
+            "unit": "capacity not confirmed",
+            "tone": "warn",
+            "exact": null,
+            "measure": "m_contract_margin"
+          },
+          {
+            "label": "Quote due",
+            "value": "6 Nov",
+            "unit": "Halden decides by 20 November",
+            "tone": "neutral",
+            "exact": null,
+            "measure": "m_quote_turnaround"
+          }
+        ],
+        "footer": [
+          {
+            "label": "As of",
+            "text": "As of 2026-10-29, the age of its stalest input. Fresher datasets contributed but cannot lift the floor."
+          },
+          {
+            "label": "Bound to",
+            "text": "g_ib_waste_stream_analyst v1 · role Waste Stream Analyst"
+          },
+          {
+            "label": "Caveat",
+            "text": "The quote is restricted to the account team and Technical Solutions until it is sent."
+          },
+          {
+            "label": "Served",
+            "text": "Halden Proposal · 1 · Marcus Feld (Domain Architect) under Author -- full · 6 of 6 rows · as of 2026-10-29"
+          }
+        ],
+        "source_file": "src/report/report_resolved.json#rep_ib_halden",
+        "summary_keys": [],
+        "resolved": {
+          "version": 1,
+          "status": "published",
+          "persona": "Data Analyst",
+          "rows_served": 6,
+          "rows_total": 6,
+          "rows_note": null,
+          "blocks_served": 4,
+          "blocks_total": 4,
+          "as_of": "2026-10-29",
+          "as_of_line": "As of 2026-10-29 - the age of the stalest of 3 contributing datasets. Fresher datasets contributed and cannot lift the floor.",
+          "watermark": "Halden Proposal · 1 · Marcus Feld (Domain Architect) under Author -- full · 6 of 6 rows · as of 2026-10-29",
+          "export_formats": [
+            "PDF",
+            "XLSX",
+            "CSV"
+          ],
+          "empty": false,
+          "empty_cause": null
+        },
+        "rendered_href": "/report/ib-report.html?report=rep_ib_halden"
+      }
+    ],
+    "saved": [],
+    "governance": {
+      "statuses": [
+        {
+          "key": "published",
+          "label": "Published",
+          "tone": "good"
+        },
+        {
+          "key": "draft",
+          "label": "Draft",
+          "tone": "neutral"
+        },
+        {
+          "key": "scheduled",
+          "label": "Scheduled",
+          "tone": "neutral"
+        },
+        {
+          "key": "unpublished",
+          "label": "Unpublished",
+          "tone": "warn"
+        }
+      ],
+      "reports": [
+        {
+          "report_id": "rep_ib_network",
+          "status": "published",
+          "version": "v1",
+          "author": "Marcus Feld",
+          "category": "Network",
+          "as_of": "2026-11-03T07:00:00Z",
+          "schedule": "Refreshes daily · 07:00 UTC",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "The schedule covers invoice lines, bookings and plan blocks; correspondence is read at open time.",
+          "link": "contextweave.ironbridge-environmental.example/r/network-position",
+          "readers": [
+            {
+              "email": "dana.whitfield@vriodigital.com",
+              "name": "Dana Whitfield",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "raj.mehta@vriodigital.com",
+              "name": "Raj Mehta",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope, account manager names masked"
+              }
+            },
+            {
+              "email": "marcus.oyelaran@vriodigital.com",
+              "name": "Marcus Oyelaran",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_ib_capacity",
+          "status": "published",
+          "version": "v1",
+          "author": "Nishant Srivastav",
+          "category": "Business",
+          "as_of": "2026-11-04T07:00:00Z",
+          "schedule": "After every nightly load",
+          "approval": "none",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "Capacity is read from the bookings only.",
+          "link": "contextweave.ironbridge-environmental.example/r/capacity-and-outlets",
+          "readers": [
+            {
+              "email": "elena.vasquez@vriodigital.com",
+              "name": "Elena Vasquez",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "rules",
+                "projects_admitted": 1158,
+                "detail": "Business = Gulf"
+              }
+            },
+            {
+              "email": "dana.whitfield@vriodigital.com",
+              "name": "Dana Whitfield",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "marcus.oyelaran@vriodigital.com",
+              "name": "Marcus Oyelaran",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            }
+          ]
+        },
+        {
+          "report_id": "rep_ib_halden",
+          "status": "published",
+          "version": "v1",
+          "author": "Priya Natarajan",
+          "category": "Quote",
+          "as_of": "2026-10-29T07:00:00Z",
+          "schedule": "Only when it’s opened",
+          "approval": "Director of Technical Solutions sign-off",
+          "audience": [
+            "business_user_exec",
+            "analyst",
+            "architect"
+          ],
+          "note": "The quote is restricted to the account team and Technical Solutions until it is sent.",
+          "link": "contextweave.ironbridge-environmental.example/r/halden-proposal",
+          "readers": [
+            {
+              "email": "dana.whitfield@vriodigital.com",
+              "name": "Dana Whitfield",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "nishant.srivastav@vriodigital.com",
+              "name": "Nishant Srivastav",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope"
+              }
+            },
+            {
+              "email": "raj.mehta@vriodigital.com",
+              "name": "Raj Mehta",
+              "gate1_entitled": true,
+              "gate2": {
+                "kind": "full",
+                "projects_admitted": 3098,
+                "detail": "Full scope, quote values masked"
+              }
+            }
+          ]
+        }
+      ],
+      "data_scope": [
+        {
+          "role_id": "dana_whitfield",
+          "scope": "All 3,098",
+          "predicate": "Full scope",
+          "grain": "profile",
+          "masked": "",
+          "may_author": false,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "dana.whitfield@vriodigital.com",
+          "name": "Dana Whitfield",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "nishant_srivastav",
+          "scope": "All 3,098",
+          "predicate": "Full scope",
+          "grain": "profile",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "nishant.srivastav@vriodigital.com",
+          "name": "Nishant Srivastav",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "marcus_oyelaran",
+          "scope": "All 3,098",
+          "predicate": "Full scope",
+          "grain": "profile",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "marcus.oyelaran@vriodigital.com",
+          "name": "Marcus Oyelaran",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "priya_natarajan",
+          "scope": "All 3,098",
+          "predicate": "Full scope",
+          "grain": "profile",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "priya.natarajan@vriodigital.com",
+          "name": "Priya Natarajan",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "raj_mehta",
+          "scope": "All 3,098, masked",
+          "predicate": "Account manager names and quote values masked",
+          "grain": "profile",
+          "masked": "account manager names, quote values",
+          "may_author": false,
+          "full": true,
+          "mask": true,
+          "rule": null,
+          "email": "raj.mehta@vriodigital.com",
+          "name": "Raj Mehta",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "marcus_feld",
+          "scope": "All 3,098",
+          "predicate": "Full scope",
+          "grain": "profile",
+          "masked": "",
+          "may_author": true,
+          "full": true,
+          "mask": false,
+          "rule": null,
+          "email": "marcus.feld@vriodigital.com",
+          "name": "Marcus Feld",
+          "projects_admitted": 3098,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        },
+        {
+          "role_id": "elena_vasquez",
+          "scope": "1,158 of 3,098",
+          "predicate": "Business = Gulf",
+          "grain": "profile",
+          "masked": "",
+          "may_author": false,
+          "full": false,
+          "mask": false,
+          "rule": {
+            "basis": "business",
+            "values": [
+              "Gulf"
+            ]
+          },
+          "email": "elena.vasquez@vriodigital.com",
+          "name": "Elena Vasquez",
+          "projects_admitted": 1158,
+          "of_total": 3098,
+          "computed_from": "approved profiles[] at paint time"
+        }
+      ],
+      "gate_notes": {
+        "both": "The two are administered in two separate places: audience at publish time, data scope on the reader's row.",
+        "entitlement": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address.",
+        "data_scope": "Which rows does this viewer's predicate admit? Managed on the reader's row; follows the person everywhere.",
+        "author": "Writing a report definition is a separate permission from reading one.",
+        "cannot_be_front_end": "If the browser receives 3,098 rows and shows 1,158, the other rows have leaked. The server filters before it serves."
+      },
+      "publishing": {
+        "title": "Publish this report",
+        "republish_title": "Publish your changes",
+        "lead": "It goes live to the people you pick - nobody else is told it exists.",
+        "name": {
+          "label": "Report name",
+          "help": "Give it a name your audience will recognise.",
+          "placeholder": "e.g. Capacity and Outlets - November"
+        },
+        "readers": {
+          "label": "Who can open it",
+          "placeholder": "Type a name or email address…",
+          "empty": "Nobody yet - this report stays private until you add a reader.",
+          "note": "Each person sees only what their data access allows.",
+          "caveat": "This narrows who is shown the report. It is not access control.",
+          "local_caveat": "Readers are recorded on the artifact; their data scope is managed in Audit & Governance.",
+          "presets": [
+            "Dana Whitfield",
+            "Marcus Oyelaran",
+            "Elena Vasquez",
+            "Priya Natarajan",
+            "Raj Mehta",
+            "Marcus Feld"
+          ],
+          "default": []
+        },
+        "freshness": {
+          "label": "Keep it fresh",
+          "presets": [
+            {
+              "id": "open",
+              "label": "Only when it’s opened",
+              "sentence": "Only when it’s opened"
+            },
+            {
+              "id": "daily",
+              "label": "Every weekday (Mon to Fri) at 7:00 AM",
+              "sentence": "Every weekday at 7:00 AM"
+            },
+            {
+              "id": "monday",
+              "label": "Weekly on Monday at 6:00 AM",
+              "sentence": "Weekly on Monday at 6:00 AM"
+            },
+            {
+              "id": "monthly",
+              "label": "Monthly on the 1st at 6:00 AM",
+              "sentence": "Monthly on the 1st at 6:00 AM"
+            },
+            {
+              "id": "custom",
+              "label": "Custom…",
+              "sentence": "Custom schedule"
+            }
+          ],
+          "days": [
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun"
+          ],
+          "times": [
+            "6:00 AM",
+            "7:00 AM",
+            "8:00 AM",
+            "12:00 PM",
+            "6:00 PM"
+          ],
+          "units": [
+            "day",
+            "week",
+            "month"
+          ],
+          "default": "open",
+          "default_detail": {
+            "preset": "open",
+            "every": 1,
+            "unit": "week",
+            "days": [
+              "Mon"
+            ],
+            "time": "6:00 AM"
+          },
+          "no_day_error": "A custom weekly schedule with no day selected blocks publishing."
+        },
+        "foot": "Live immediately after you publish.",
+        "buttons": {
+          "publish": "Publish report",
+          "republish": "Publish changes",
+          "cancel": "Cancel",
+          "unpublish": "Unpublish",
+          "manage": "Manage publishing…"
+        }
+      },
+      "audit": {
+        "copy": {
+          "title": "Audit & Governance",
+          "lead": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which businesses and facilities each person can see - and every open is logged.",
+          "not_enforced": "A rule is recorded, not enforced, until the server filters on it. No report on this demo serves a row a reader's rule excludes.",
+          "gates": [
+            {
+              "key": "open",
+              "title": "Who can open",
+              "detail": "May this viewer see that this report EXISTS? Set by the author at publish time, by email address."
+            },
+            {
+              "key": "inside",
+              "title": "What they see inside",
+              "detail": "Data access per person, managed on the reader's row - business, facility, state or process."
+            },
+            {
+              "key": "log",
+              "title": "Every open is logged",
+              "detail": "Who opened what, what their access resolved to, and every access change - in the audit trail."
+            }
+          ],
+          "empty_log": "Nothing recorded yet. Change a rule or open a report and it appears here.",
+          "log_note": "Nothing in the log is editable; the trail is append-only.",
+          "basis_note": "A field qualifies as a restriction basis only if every one of its values is known on every row."
+        },
+        "categories": [
+          {
+            "key": "all",
+            "label": "All",
+            "id": "all"
+          },
+          {
+            "key": "pub",
+            "label": "Publishing",
+            "id": "pub"
+          },
+          {
+            "key": "open",
+            "label": "Opens",
+            "id": "open"
+          },
+          {
+            "key": "rule",
+            "label": "Rule changes",
+            "id": "rule"
+          },
+          {
+            "key": "ref",
+            "label": "Refreshes",
+            "id": "ref"
+          },
+          {
+            "key": "export",
+            "label": "Exports",
+            "id": "export"
+          }
+        ],
+        "events": [
+          {
+            "actor": "Elena Vasquez",
+            "action": "Opened Capacity and Outlets",
+            "resource": "Capacity and Outlets",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:52",
+            "detail": "Her access resolved: business = Gulf - 1,158 of 3,098 approved profiles; no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "Dana Whitfield",
+            "action": "Opened Network Position",
+            "resource": "Network Position",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 08:31",
+            "detail": "Her access resolved: all 3,098 approved profiles, all three businesses, no masks.",
+            "category": "open"
+          },
+          {
+            "actor": "system",
+            "action": "Scheduled refresh ran on Network Position",
+            "resource": "Network Position",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Today 07:00",
+            "detail": "Invoice lines, bookings and plan blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. Port Terrell first-quarter plan still missing.",
+            "category": "ref"
+          },
+          {
+            "actor": "Nishant Srivastav",
+            "action": "Started submission 'Pricing schedule: Halden Biopharma 2027 to 2029' from a goal",
+            "resource": "submission sub-pricing-schedule-halden-2027",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Nov 2 16:12",
+            "detail": "Built from the goal g-halden-proposal on the template Pricing schedule, Delmar Chemical 2024 to 2026.",
+            "category": "pub"
+          },
+          {
+            "actor": "Dana Whitfield",
+            "action": "Armed the goal 'Every accepted stream has an outlet with capacity and stays above the floor'",
+            "resource": "goal g-rule-outlet-watch",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 26 15:10",
+            "detail": "Fires on each nightly load of profiles, manifests, bookings, approvals and the price book; checks every open manifest for a permitted outlet with capacity.",
+            "category": "pub"
+          },
+          {
+            "actor": "Marcus Feld",
+            "action": "Published graph Waste Stream Analyst v1",
+            "resource": "graph v1",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 24 16:02",
+            "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+            "category": "pub"
+          },
+          {
+            "actor": "Marcus Feld",
+            "action": "Changed rule for Elena Vasquez",
+            "resource": "data access rule",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 24 11:10",
+            "detail": "Restriction basis = business (Gulf).",
+            "category": "rule"
+          },
+          {
+            "actor": "Priya Natarajan",
+            "action": "Exported Halden Proposal (XLSX)",
+            "resource": "Halden Proposal",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 30 12:18",
+            "detail": "Export carries the watermark and the as-of line; the quote is restricted to the account team and Technical Solutions until it is sent.",
+            "category": "export"
+          },
+          {
+            "actor": "system",
+            "action": "Sealed trace for 'What would the six Halden streams earn a year by route, at the price book, on full cost?'",
+            "resource": "trace_ib01",
+            "severity": "Info",
+            "tone": "neutral",
+            "at": "Oct 30 10:22",
+            "detail": "5 spans · $0.17 · confidence 0.90",
+            "category": "ref"
+          },
+          {
+            "actor": "Sam Whitaker",
+            "action": "Changed persona access for Business User - Executive",
+            "resource": "settings",
+            "severity": "Medium",
+            "tone": "warn",
+            "at": "Oct 23 09:30",
+            "detail": "Reports hidden from the sidebar for all personas (beta).",
+            "category": "rule"
+          }
+        ],
+        "restriction_bases": [
+          {
+            "id": "business",
+            "label": "Business",
+            "values": 3
+          },
+          {
+            "id": "facility",
+            "label": "Facility",
+            "values": 13
+          },
+          {
+            "id": "state",
+            "label": "State",
+            "values": 10
+          },
+          {
+            "id": "process",
+            "label": "Process",
+            "values": 12
+          }
+        ],
+        "excluded_bases": {
+          "fields": [
+            "tons",
+            "price",
+            "margin_pct",
+            "booked_share"
+          ],
+          "reason": "Continuous. A rule written on them re-resolves every time a figure moves, so a reader's scope would change without anyone changing the rule."
+        }
+      },
+      "document": {
+        "document_id": "GOVERNANCE_AUDIT_IB",
+        "file": "governance_audit_ib.html",
+        "title": "Context Weave - Audit & Governance · Ironbridge Environmental Services",
+        "heading": "⛨ Audit & Governance",
+        "subtitle": "One place for who sees what. Authors decide who can open a report when they publish it; you decide which rows each reader may see.",
+        "tabs": [
+          {
+            "key": "0",
+            "label": "Reports"
+          },
+          {
+            "key": "1",
+            "label": "Audit log"
+          }
+        ],
+        "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+        "screen": "08 - Audit & Governance",
+        "generated": "2026-11-01",
+        "roster_total": 3098
+      }
+    },
+    "authoring_fixture": {
+      "_note": "The generator fixture the authoring screen previews against: the generators with the most revenue January to September 2026, in USD millions, read from the drill data. Field keys keep the shapes the app reads: auth and comm are margin, proj is revenue, varD and varP are the margin amount and share, gm is full cost.",
+      "projects": [
+        {
+          "name": "Bexley Specialty Chemicals North",
+          "auth": 0.52,
+          "comm": 0.52,
+          "proj": 1.38,
+          "portfolio": "Chemical manufacturing",
+          "region": "NC",
+          "phase": "Tier 1",
+          "owner": "Fiona Marsh",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Halford Specialty Chemicals Works",
+          "auth": 0.53,
+          "comm": 0.53,
+          "proj": 1.36,
+          "portfolio": "Chemical manufacturing",
+          "region": "VA",
+          "phase": "Tier 2",
+          "owner": "Victor Hale",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Carrick Plating West",
+          "auth": 0.6,
+          "comm": 0.6,
+          "proj": 1.36,
+          "portfolio": "Metal finishing",
+          "region": "OH",
+          "phase": "Tier 2",
+          "owner": "Caleb Nwosu",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Halford Retail Services South",
+          "auth": 0.62,
+          "comm": 0.62,
+          "proj": 1.3,
+          "portfolio": "Retail and distribution",
+          "region": "TX-Gulf",
+          "phase": "Tier 2",
+          "owner": "Priya Natarajan",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Gulf Coast Specialty Chemicals Valley",
+          "auth": 0.46,
+          "comm": 0.46,
+          "proj": 1.2,
+          "portfolio": "Chemical manufacturing",
+          "region": "IN",
+          "phase": "Tier 2",
+          "owner": "Anita Rao",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Fenwick Castings",
+          "auth": 0.41,
+          "comm": 0.41,
+          "proj": 1.19,
+          "portfolio": "Automotive and parts",
+          "region": "OK",
+          "phase": "Tier 1",
+          "owner": "Luis Carvalho",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Yardley Therapeutics Valley",
+          "auth": 0.47,
+          "comm": 0.47,
+          "proj": 1.17,
+          "portfolio": "Pharmaceutical manufacturing",
+          "region": "OK",
+          "phase": "Tier 3",
+          "owner": "Priya Natarajan",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Kimball Aerostructures Lakes",
+          "auth": 0.49,
+          "comm": 0.49,
+          "proj": 1.13,
+          "portfolio": "Aerospace",
+          "region": "IN",
+          "phase": "Tier 2",
+          "owner": "Caleb Nwosu",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Greyson Coatings Works",
+          "auth": 0.4,
+          "comm": 0.4,
+          "proj": 1.12,
+          "portfolio": "Coatings and inks",
+          "region": "LA",
+          "phase": "Tier 1",
+          "owner": "Priya Natarajan",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Norwood Refining",
+          "auth": 0.42,
+          "comm": 0.42,
+          "proj": 1.11,
+          "portfolio": "Petrochemical and refining",
+          "region": "LA",
+          "phase": "Tier 1",
+          "owner": "Priya Natarajan",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Kestrel Plating Partners",
+          "auth": 0.39,
+          "comm": 0.39,
+          "proj": 1.08,
+          "portfolio": "Metal finishing",
+          "region": "TX-North",
+          "phase": "Tier 1",
+          "owner": "Priya Natarajan",
+          "funding": "Gulf",
+          "partner": "Gulf",
+          "contract": "Small",
+          "reason": "Above floor"
+        },
+        {
+          "name": "Pinecrest Polymers Technologies",
+          "auth": 0.31,
+          "comm": 0.31,
+          "proj": 1.03,
+          "portfolio": "Chemical manufacturing",
+          "region": "MI",
+          "phase": "Tier 1",
+          "owner": "Derek Shaw",
+          "funding": "Midwest",
+          "partner": "Midwest",
+          "contract": "Small",
+          "reason": "Under 32%"
+        }
+      ],
+      "derived": {
+        "Bexley Specialty Chemicals North": {
+          "status": "Above floor",
+          "variancePoints": 37.5,
+          "varianceDollarsM": 0.52,
+          "gmPct": 37.5
+        },
+        "Halford Specialty Chemicals Works": {
+          "status": "Above floor",
+          "variancePoints": 38.5,
+          "varianceDollarsM": 0.53,
+          "gmPct": 38.5
+        },
+        "Carrick Plating West": {
+          "status": "Above floor",
+          "variancePoints": 44.2,
+          "varianceDollarsM": 0.6,
+          "gmPct": 44.2
+        },
+        "Halford Retail Services South": {
+          "status": "Above floor",
+          "variancePoints": 47.3,
+          "varianceDollarsM": 0.62,
+          "gmPct": 47.3
+        },
+        "Gulf Coast Specialty Chemicals Valley": {
+          "status": "Above floor",
+          "variancePoints": 38.5,
+          "varianceDollarsM": 0.46,
+          "gmPct": 38.5
+        },
+        "Fenwick Castings": {
+          "status": "Above floor",
+          "variancePoints": 34.6,
+          "varianceDollarsM": 0.41,
+          "gmPct": 34.6
+        },
+        "Yardley Therapeutics Valley": {
+          "status": "Above floor",
+          "variancePoints": 40.5,
+          "varianceDollarsM": 0.47,
+          "gmPct": 40.5
+        },
+        "Kimball Aerostructures Lakes": {
+          "status": "Above floor",
+          "variancePoints": 43.2,
+          "varianceDollarsM": 0.49,
+          "gmPct": 43.2
+        },
+        "Greyson Coatings Works": {
+          "status": "Above floor",
+          "variancePoints": 35.4,
+          "varianceDollarsM": 0.4,
+          "gmPct": 35.4
+        },
+        "Norwood Refining": {
+          "status": "Above floor",
+          "variancePoints": 37.6,
+          "varianceDollarsM": 0.42,
+          "gmPct": 37.6
+        },
+        "Kestrel Plating Partners": {
+          "status": "Above floor",
+          "variancePoints": 35.8,
+          "varianceDollarsM": 0.39,
+          "gmPct": 35.8
+        },
+        "Pinecrest Polymers Technologies": {
+          "status": "Watch",
+          "variancePoints": 30.3,
+          "varianceDollarsM": 0.31,
+          "gmPct": 30.3
+        }
+      },
+      "unit": "USD millions and percent",
+      "derivationRules": {
+        "variancePoints": "margin ÷ revenue × 100",
+        "varianceDollarsM": "revenue minus full cost",
+        "status": "margin < 28% -> Under floor; < 32% -> Watch; else Above floor",
+        "gmPct": "margin share"
+      }
+    },
+    "register": {
+      "roster": "generators",
+      "identity": "n",
+      "fields": [
+        {
+          "key": "n",
+          "label": "Generator",
+          "kind": "text",
+          "filterable": false,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "reg",
+          "label": "Origin region",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "bu",
+          "label": "Main business",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        },
+        {
+          "key": "comp",
+          "label": "Tier",
+          "kind": "cat",
+          "filterable": true,
+          "avail": true,
+          "note": null
+        }
+      ]
+    },
+    "documents": [
+      {
+        "document_id": "R1",
+        "report_id": "rep_ib_network",
+        "file": "R1_network_position.html",
+        "title": "Network Position",
+        "subtitle": "Show revenue against plan by business, margin on full cost, what went to third-party outlets, and the profiles under the stream floor.",
+        "category": "Network",
+        "status": "published",
+        "version": "v1",
+        "slug": "network-position",
+        "author": "pp_feld",
+        "refresh": "Daily 07:00 UTC",
+        "updated_at": "2026-11-01T16:10:00Z",
+        "spec_file": "Network_Position_Specification.html"
+      },
+      {
+        "document_id": "R2",
+        "report_id": "rep_ib_capacity",
+        "file": "R2_capacity_and_outlets.html",
+        "title": "Capacity and Outlets",
+        "subtitle": "Show which units are booked above capacity, which shipments have no outlet at the nightly load, and which outlet approvals expire next.",
+        "category": "Business",
+        "status": "published",
+        "version": "v1",
+        "slug": "capacity-and-outlets",
+        "author": "pp_srivastav",
+        "refresh": "After every nightly load",
+        "updated_at": "2026-11-02T16:11:00Z",
+        "spec_file": "Capacity_and_Outlets_Specification.html"
+      },
+      {
+        "document_id": "R3",
+        "report_id": "rep_ib_halden",
+        "file": "R3_halden_proposal.html",
+        "title": "Halden Proposal",
+        "subtitle": "Show what the six Halden streams earn a year on the quoted routing, stream by stream, with the alternative stated and the gaps kept apart.",
+        "category": "Quote",
+        "status": "published",
+        "version": "v1",
+        "slug": "halden-proposal",
+        "author": "pp_natarajan",
+        "refresh": "On open",
+        "updated_at": "2026-11-03T16:12:00Z",
+        "spec_file": "Halden_Proposal_Specification.html"
+      }
+    ],
+    "authoring_document": "report_authoring_simplified_v3.html"
+  },
+  "reports_prototype": {
+    "meta": {
+      "persona_name": "Raj Mehta",
+      "persona_role": "Pricing and Margin Manager · Ironbridge Environmental Services",
+      "persona_initials": "RM",
+      "entity_plural": "generators",
+      "scope_line": "the Ironbridge generator book",
+      "source_trace": "Traces to: ironbridge_fin.fin.invoice_line, ironbridge_ops.ops.waste_profile, as of 2026-11-03.",
+      "entity_singular": "generator",
+      "ask_placeholder": "e.g. Which generators earn less than the 28% floor on full cost this year?"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "label": "Generator",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "portfolio",
+        "label": "Industry",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "region",
+        "label": "Origin region",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "phase",
+        "label": "Tier",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "owner",
+        "label": "Account manager",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "funding",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "partner",
+        "label": "Main business",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "contract",
+        "label": "Size",
+        "kind": "cat",
+        "filterable": true
+      },
+      {
+        "key": "reason",
+        "label": "Position",
+        "kind": "text",
+        "filterable": false
+      },
+      {
+        "key": "auth",
+        "label": "Margin ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "comm",
+        "label": "Margin ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "proj",
+        "label": "Revenue ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varD",
+        "label": "Margin ($M)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "varP",
+        "label": "Margin (%)",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "pct",
+        "label": "Margin share %",
+        "kind": "num",
+        "filterable": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "kind": "cat",
+        "filterable": true
+      }
+    ],
+    "assumptions": {
+      "scope": {
+        "value": "active",
+        "label": "the generators in the fixture"
+      },
+      "measure": {
+        "value": "varP",
+        "label": "margin on full cost"
+      },
+      "horizon": {
+        "value": "ytd",
+        "label": "January to September 2026"
+      },
+      "graph": {
+        "value": "ib_wsa",
+        "label": "the Waste Stream Analyst graph"
+      }
+    },
+    "opts": {
+      "scope": {
+        "q": "Which generators to include?",
+        "options": [
+          {
+            "value": "active",
+            "label": "the generators in the fixture",
+            "d": "The largest by revenue"
+          },
+          {
+            "value": "gulf",
+            "label": "Gulf only",
+            "d": "Generators whose main business is Gulf"
+          }
+        ]
+      },
+      "measure": {
+        "q": "\"Margin\" measured against?",
+        "options": [
+          {
+            "value": "varP",
+            "label": "margin on full cost",
+            "d": "At the approved route"
+          }
+        ]
+      },
+      "horizon": {
+        "q": "Over what period?",
+        "options": [
+          {
+            "value": "ytd",
+            "label": "January to September 2026",
+            "d": "Invoice date"
+          }
+        ]
+      },
+      "graph": {
+        "q": "Which published graph should this run against?",
+        "options": [
+          {
+            "value": "ib_wsa",
+            "label": "the Waste Stream Analyst graph",
+            "short": "Waste Stream Analyst",
+            "d": "Published · BigQuery ops, fin and legacy + Google Drive + Gmail · refreshed today"
+          }
+        ]
+      }
+    },
+    "generators": [
+      {
+        "name": "Bexley Specialty Chemicals North",
+        "auth": 0.52,
+        "comm": 0.52,
+        "proj": 1.38,
+        "portfolio": "Chemical manufacturing",
+        "region": "NC",
+        "phase": "Tier 1",
+        "owner": "Fiona Marsh",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.52,
+        "varP": 37.5,
+        "pct": 37.5,
+        "sales": 1.38,
+        "gm": 0.86,
+        "status": "Above floor"
+      },
+      {
+        "name": "Halford Specialty Chemicals Works",
+        "auth": 0.53,
+        "comm": 0.53,
+        "proj": 1.36,
+        "portfolio": "Chemical manufacturing",
+        "region": "VA",
+        "phase": "Tier 2",
+        "owner": "Victor Hale",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.53,
+        "varP": 38.5,
+        "pct": 38.5,
+        "sales": 1.36,
+        "gm": 0.84,
+        "status": "Above floor"
+      },
+      {
+        "name": "Carrick Plating West",
+        "auth": 0.6,
+        "comm": 0.6,
+        "proj": 1.36,
+        "portfolio": "Metal finishing",
+        "region": "OH",
+        "phase": "Tier 2",
+        "owner": "Caleb Nwosu",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.6,
+        "varP": 44.2,
+        "pct": 44.2,
+        "sales": 1.36,
+        "gm": 0.76,
+        "status": "Above floor"
+      },
+      {
+        "name": "Halford Retail Services South",
+        "auth": 0.62,
+        "comm": 0.62,
+        "proj": 1.3,
+        "portfolio": "Retail and distribution",
+        "region": "TX-Gulf",
+        "phase": "Tier 2",
+        "owner": "Priya Natarajan",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.62,
+        "varP": 47.3,
+        "pct": 47.3,
+        "sales": 1.3,
+        "gm": 0.69,
+        "status": "Above floor"
+      },
+      {
+        "name": "Gulf Coast Specialty Chemicals Valley",
+        "auth": 0.46,
+        "comm": 0.46,
+        "proj": 1.2,
+        "portfolio": "Chemical manufacturing",
+        "region": "IN",
+        "phase": "Tier 2",
+        "owner": "Anita Rao",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.46,
+        "varP": 38.5,
+        "pct": 38.5,
+        "sales": 1.2,
+        "gm": 0.74,
+        "status": "Above floor"
+      },
+      {
+        "name": "Fenwick Castings",
+        "auth": 0.41,
+        "comm": 0.41,
+        "proj": 1.19,
+        "portfolio": "Automotive and parts",
+        "region": "OK",
+        "phase": "Tier 1",
+        "owner": "Luis Carvalho",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.41,
+        "varP": 34.6,
+        "pct": 34.6,
+        "sales": 1.19,
+        "gm": 0.78,
+        "status": "Above floor"
+      },
+      {
+        "name": "Yardley Therapeutics Valley",
+        "auth": 0.47,
+        "comm": 0.47,
+        "proj": 1.17,
+        "portfolio": "Pharmaceutical manufacturing",
+        "region": "OK",
+        "phase": "Tier 3",
+        "owner": "Priya Natarajan",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.47,
+        "varP": 40.5,
+        "pct": 40.5,
+        "sales": 1.17,
+        "gm": 0.69,
+        "status": "Above floor"
+      },
+      {
+        "name": "Kimball Aerostructures Lakes",
+        "auth": 0.49,
+        "comm": 0.49,
+        "proj": 1.13,
+        "portfolio": "Aerospace",
+        "region": "IN",
+        "phase": "Tier 2",
+        "owner": "Caleb Nwosu",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.49,
+        "varP": 43.2,
+        "pct": 43.2,
+        "sales": 1.13,
+        "gm": 0.64,
+        "status": "Above floor"
+      },
+      {
+        "name": "Greyson Coatings Works",
+        "auth": 0.4,
+        "comm": 0.4,
+        "proj": 1.12,
+        "portfolio": "Coatings and inks",
+        "region": "LA",
+        "phase": "Tier 1",
+        "owner": "Priya Natarajan",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.4,
+        "varP": 35.4,
+        "pct": 35.4,
+        "sales": 1.12,
+        "gm": 0.73,
+        "status": "Above floor"
+      },
+      {
+        "name": "Norwood Refining",
+        "auth": 0.42,
+        "comm": 0.42,
+        "proj": 1.11,
+        "portfolio": "Petrochemical and refining",
+        "region": "LA",
+        "phase": "Tier 1",
+        "owner": "Priya Natarajan",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.42,
+        "varP": 37.6,
+        "pct": 37.6,
+        "sales": 1.11,
+        "gm": 0.69,
+        "status": "Above floor"
+      },
+      {
+        "name": "Kestrel Plating Partners",
+        "auth": 0.39,
+        "comm": 0.39,
+        "proj": 1.08,
+        "portfolio": "Metal finishing",
+        "region": "TX-North",
+        "phase": "Tier 1",
+        "owner": "Priya Natarajan",
+        "funding": "Gulf",
+        "partner": "Gulf",
+        "contract": "Small",
+        "reason": "Above floor",
+        "varD": 0.39,
+        "varP": 35.8,
+        "pct": 35.8,
+        "sales": 1.08,
+        "gm": 0.69,
+        "status": "Above floor"
+      },
+      {
+        "name": "Pinecrest Polymers Technologies",
+        "auth": 0.31,
+        "comm": 0.31,
+        "proj": 1.03,
+        "portfolio": "Chemical manufacturing",
+        "region": "MI",
+        "phase": "Tier 1",
+        "owner": "Derek Shaw",
+        "funding": "Midwest",
+        "partner": "Midwest",
+        "contract": "Small",
+        "reason": "Under 32%",
+        "varD": 0.31,
+        "varP": 30.3,
+        "pct": 30.3,
+        "sales": 1.03,
+        "gm": 0.72,
+        "status": "Watch"
+      }
+    ],
+    "facilities": [],
+    "quarters": [],
+    "traces": [],
+    "starters": [
+      {
+        "id": "rep_q_under28",
+        "report_tag": "generators-under-the-floor",
+        "label": "Generators under the floor",
+        "title": "Generators under the floor",
+        "q": "Show which generators earn less than 28% margin on full cost at the approved route this year.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varP"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_generator_360",
+        "report_tag": "generator-360",
+        "label": "Generator 360",
+        "title": "Generator 360",
+        "q": "Give one generator's full position: profiles, tons, revenue, margin, open manifests and approvals expiring.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "proj"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "rep_capacity_outlets",
+        "report_tag": "capacity-and-outlets",
+        "label": "Capacity and Outlets",
+        "title": "Capacity and Outlets",
+        "q": "Show which shipments have no outlet with capacity at the nightly load, and keep permits and plans apart from capacity.",
+        "spine": "generators",
+        "reading": {
+          "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+          "slots": [
+            "graph",
+            "scope",
+            "measure",
+            "horizon"
+          ]
+        },
+        "blocks": [
+          {
+            "type": "kpis",
+            "title": "Summary",
+            "kpis": [
+              "count",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          },
+          {
+            "type": "chart",
+            "title": "Ranked by measure",
+            "chartType": "bar",
+            "measure": "varP"
+          },
+          {
+            "type": "table",
+            "title": "Detail",
+            "cols": [
+              "name",
+              "status",
+              "auth",
+              "proj",
+              "varD",
+              "varP"
+            ]
+          }
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "label": "Summary tiles",
+        "d": "Generators, revenue, margin, share",
+        "block": {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      },
+      {
+        "label": "Margin chart",
+        "d": "Generators ranked by margin share",
+        "block": {
+          "type": "chart",
+          "title": "Margin on full cost by generator",
+          "chartType": "bar",
+          "measure": "varP"
+        }
+      },
+      {
+        "label": "Revenue chart",
+        "d": "Revenue to September per generator",
+        "block": {
+          "type": "chart",
+          "title": "Revenue by generator",
+          "chartType": "column",
+          "measure": "proj"
+        }
+      },
+      {
+        "label": "Generator detail",
+        "d": "One row per generator, with status and the figures behind it",
+        "block": {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      }
+    ],
+    "slice_default": [
+      "portfolio",
+      "region",
+      "phase",
+      "status"
+    ],
+    "audiences": [
+      {
+        "key": "business_user_exec",
+        "label": "Business User -- Executive",
+        "d": "All businesses, all generators, all revenue."
+      },
+      {
+        "key": "analyst",
+        "label": "Data Analyst",
+        "d": "All generators and revenue. Account manager names masked (PII)."
+      },
+      {
+        "key": "architect",
+        "label": "Domain Architect",
+        "d": "Everything, at every grain, including quote values."
+      },
+      {
+        "key": "admin",
+        "label": "Platform Admin",
+        "d": "Structure, lineage, cost and access. No financial values."
+      }
+    ],
+    "library": [],
+    "row_model": {
+      "label": "name",
+      "sublabel": "{portfolio} · {phase} · {owner}",
+      "status": "status",
+      "tones": {
+        "Under floor": "over",
+        "Watch": "warn",
+        "Above floor": "ok"
+      },
+      "scopes": {
+        "active": {},
+        "gulf": {
+          "field": "funding",
+          "op": "eq",
+          "value": "Gulf"
+        }
+      },
+      "measures": [
+        "varP",
+        "varD",
+        "pct",
+        "proj",
+        "auth",
+        "comm"
+      ],
+      "kpis": [
+        {
+          "key": "count",
+          "label": "Generators in scope",
+          "agg": "rows"
+        },
+        {
+          "key": "auth",
+          "label": "Margin",
+          "agg": "sum",
+          "field": "auth",
+          "format": "money_m"
+        },
+        {
+          "key": "proj",
+          "label": "Revenue",
+          "agg": "sum",
+          "field": "proj",
+          "format": "money_m"
+        },
+        {
+          "key": "varP",
+          "label": "Margin share",
+          "agg": "avg",
+          "field": "varP",
+          "format": "pct"
+        },
+        {
+          "key": "over",
+          "label": "Under floor",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Under floor",
+          "tone": "bad"
+        },
+        {
+          "key": "atrisk",
+          "label": "Watch",
+          "agg": "count_eq",
+          "field": "status",
+          "value": "Watch",
+          "tone": "warn"
+        }
+      ],
+      "formats": {
+        "auth": "money_m",
+        "comm": "money_m",
+        "proj": "money_m",
+        "varD": "money_m",
+        "varP": "pct",
+        "pct": "pct",
+        "status": "text"
+      },
+      "labels": {},
+      "pills": {},
+      "blocks": [
+        "kpis",
+        "chart",
+        "table"
+      ],
+      "footer": []
+    }
+  }
+}

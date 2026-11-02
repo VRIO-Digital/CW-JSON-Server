@@ -1,0 +1,21 @@
+{
+  "registeredGoals": [
+    {
+      "id": "g-halden-proposal",
+      "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday",
+      "status": "accepted",
+      "agent": {
+        "name": "Agent Compass",
+        "icon": "compass",
+        "colour": "#0f5c7b"
+      },
+      "acceptedFindings": [
+        "f1",
+        "f3",
+        "f2",
+        "f4"
+      ],
+      "recommendation": "Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature"
+    }
+  ]
+}

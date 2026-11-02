@@ -1,0 +1,732 @@
+{
+  "meta": {
+    "persona_name": "Raj Mehta",
+    "persona_role": "Pricing and Margin Manager · Ironbridge Environmental Services",
+    "persona_initials": "RM",
+    "entity_plural": "generators",
+    "scope_line": "the Ironbridge generator book",
+    "source_trace": "Traces to: ironbridge_fin.fin.invoice_line, ironbridge_ops.ops.waste_profile, as of 2026-11-03.",
+    "entity_singular": "generator",
+    "ask_placeholder": "e.g. Which generators earn less than the 28% floor on full cost this year?"
+  },
+  "fields": [
+    {
+      "key": "name",
+      "label": "Generator",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "portfolio",
+      "label": "Industry",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "region",
+      "label": "Origin region",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "phase",
+      "label": "Tier",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "owner",
+      "label": "Account manager",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "funding",
+      "label": "Main business",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "partner",
+      "label": "Main business",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "contract",
+      "label": "Size",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "reason",
+      "label": "Position",
+      "kind": "text",
+      "filterable": false
+    },
+    {
+      "key": "auth",
+      "label": "Margin ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "comm",
+      "label": "Margin ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "proj",
+      "label": "Revenue ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varD",
+      "label": "Margin ($M)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "varP",
+      "label": "Margin (%)",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "pct",
+      "label": "Margin share %",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "status",
+      "label": "Status",
+      "kind": "cat",
+      "filterable": true
+    }
+  ],
+  "assumptions": {
+    "scope": {
+      "value": "active",
+      "label": "the generators in the fixture"
+    },
+    "measure": {
+      "value": "varP",
+      "label": "margin on full cost"
+    },
+    "horizon": {
+      "value": "ytd",
+      "label": "January to September 2026"
+    },
+    "graph": {
+      "value": "ib_wsa",
+      "label": "the Waste Stream Analyst graph"
+    }
+  },
+  "opts": {
+    "scope": {
+      "q": "Which generators to include?",
+      "options": [
+        {
+          "value": "active",
+          "label": "the generators in the fixture",
+          "d": "The largest by revenue"
+        },
+        {
+          "value": "gulf",
+          "label": "Gulf only",
+          "d": "Generators whose main business is Gulf"
+        }
+      ]
+    },
+    "measure": {
+      "q": "\"Margin\" measured against?",
+      "options": [
+        {
+          "value": "varP",
+          "label": "margin on full cost",
+          "d": "At the approved route"
+        }
+      ]
+    },
+    "horizon": {
+      "q": "Over what period?",
+      "options": [
+        {
+          "value": "ytd",
+          "label": "January to September 2026",
+          "d": "Invoice date"
+        }
+      ]
+    },
+    "graph": {
+      "q": "Which published graph should this run against?",
+      "options": [
+        {
+          "value": "ib_wsa",
+          "label": "the Waste Stream Analyst graph",
+          "short": "Waste Stream Analyst",
+          "d": "Published · BigQuery ops, fin and legacy + Google Drive + Gmail · refreshed today"
+        }
+      ]
+    }
+  },
+  "generators": [
+    {
+      "name": "Bexley Specialty Chemicals North",
+      "auth": 0.52,
+      "comm": 0.52,
+      "proj": 1.38,
+      "portfolio": "Chemical manufacturing",
+      "region": "NC",
+      "phase": "Tier 1",
+      "owner": "Fiona Marsh",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.52,
+      "varP": 37.5,
+      "pct": 37.5,
+      "sales": 1.38,
+      "gm": 0.86,
+      "status": "Above floor"
+    },
+    {
+      "name": "Halford Specialty Chemicals Works",
+      "auth": 0.53,
+      "comm": 0.53,
+      "proj": 1.36,
+      "portfolio": "Chemical manufacturing",
+      "region": "VA",
+      "phase": "Tier 2",
+      "owner": "Victor Hale",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.53,
+      "varP": 38.5,
+      "pct": 38.5,
+      "sales": 1.36,
+      "gm": 0.84,
+      "status": "Above floor"
+    },
+    {
+      "name": "Carrick Plating West",
+      "auth": 0.6,
+      "comm": 0.6,
+      "proj": 1.36,
+      "portfolio": "Metal finishing",
+      "region": "OH",
+      "phase": "Tier 2",
+      "owner": "Caleb Nwosu",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.6,
+      "varP": 44.2,
+      "pct": 44.2,
+      "sales": 1.36,
+      "gm": 0.76,
+      "status": "Above floor"
+    },
+    {
+      "name": "Halford Retail Services South",
+      "auth": 0.62,
+      "comm": 0.62,
+      "proj": 1.3,
+      "portfolio": "Retail and distribution",
+      "region": "TX-Gulf",
+      "phase": "Tier 2",
+      "owner": "Priya Natarajan",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.62,
+      "varP": 47.3,
+      "pct": 47.3,
+      "sales": 1.3,
+      "gm": 0.69,
+      "status": "Above floor"
+    },
+    {
+      "name": "Gulf Coast Specialty Chemicals Valley",
+      "auth": 0.46,
+      "comm": 0.46,
+      "proj": 1.2,
+      "portfolio": "Chemical manufacturing",
+      "region": "IN",
+      "phase": "Tier 2",
+      "owner": "Anita Rao",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.46,
+      "varP": 38.5,
+      "pct": 38.5,
+      "sales": 1.2,
+      "gm": 0.74,
+      "status": "Above floor"
+    },
+    {
+      "name": "Fenwick Castings",
+      "auth": 0.41,
+      "comm": 0.41,
+      "proj": 1.19,
+      "portfolio": "Automotive and parts",
+      "region": "OK",
+      "phase": "Tier 1",
+      "owner": "Luis Carvalho",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.41,
+      "varP": 34.6,
+      "pct": 34.6,
+      "sales": 1.19,
+      "gm": 0.78,
+      "status": "Above floor"
+    },
+    {
+      "name": "Yardley Therapeutics Valley",
+      "auth": 0.47,
+      "comm": 0.47,
+      "proj": 1.17,
+      "portfolio": "Pharmaceutical manufacturing",
+      "region": "OK",
+      "phase": "Tier 3",
+      "owner": "Priya Natarajan",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.47,
+      "varP": 40.5,
+      "pct": 40.5,
+      "sales": 1.17,
+      "gm": 0.69,
+      "status": "Above floor"
+    },
+    {
+      "name": "Kimball Aerostructures Lakes",
+      "auth": 0.49,
+      "comm": 0.49,
+      "proj": 1.13,
+      "portfolio": "Aerospace",
+      "region": "IN",
+      "phase": "Tier 2",
+      "owner": "Caleb Nwosu",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.49,
+      "varP": 43.2,
+      "pct": 43.2,
+      "sales": 1.13,
+      "gm": 0.64,
+      "status": "Above floor"
+    },
+    {
+      "name": "Greyson Coatings Works",
+      "auth": 0.4,
+      "comm": 0.4,
+      "proj": 1.12,
+      "portfolio": "Coatings and inks",
+      "region": "LA",
+      "phase": "Tier 1",
+      "owner": "Priya Natarajan",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.4,
+      "varP": 35.4,
+      "pct": 35.4,
+      "sales": 1.12,
+      "gm": 0.73,
+      "status": "Above floor"
+    },
+    {
+      "name": "Norwood Refining",
+      "auth": 0.42,
+      "comm": 0.42,
+      "proj": 1.11,
+      "portfolio": "Petrochemical and refining",
+      "region": "LA",
+      "phase": "Tier 1",
+      "owner": "Priya Natarajan",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.42,
+      "varP": 37.6,
+      "pct": 37.6,
+      "sales": 1.11,
+      "gm": 0.69,
+      "status": "Above floor"
+    },
+    {
+      "name": "Kestrel Plating Partners",
+      "auth": 0.39,
+      "comm": 0.39,
+      "proj": 1.08,
+      "portfolio": "Metal finishing",
+      "region": "TX-North",
+      "phase": "Tier 1",
+      "owner": "Priya Natarajan",
+      "funding": "Gulf",
+      "partner": "Gulf",
+      "contract": "Small",
+      "reason": "Above floor",
+      "varD": 0.39,
+      "varP": 35.8,
+      "pct": 35.8,
+      "sales": 1.08,
+      "gm": 0.69,
+      "status": "Above floor"
+    },
+    {
+      "name": "Pinecrest Polymers Technologies",
+      "auth": 0.31,
+      "comm": 0.31,
+      "proj": 1.03,
+      "portfolio": "Chemical manufacturing",
+      "region": "MI",
+      "phase": "Tier 1",
+      "owner": "Derek Shaw",
+      "funding": "Midwest",
+      "partner": "Midwest",
+      "contract": "Small",
+      "reason": "Under 32%",
+      "varD": 0.31,
+      "varP": 30.3,
+      "pct": 30.3,
+      "sales": 1.03,
+      "gm": 0.72,
+      "status": "Watch"
+    }
+  ],
+  "facilities": [],
+  "quarters": [],
+  "traces": [],
+  "starters": [
+    {
+      "id": "rep_q_under28",
+      "report_tag": "generators-under-the-floor",
+      "label": "Generators under the floor",
+      "title": "Generators under the floor",
+      "q": "Show which generators earn less than 28% margin on full cost at the approved route this year.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varP"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_generator_360",
+      "report_tag": "generator-360",
+      "label": "Generator 360",
+      "title": "Generator 360",
+      "q": "Give one generator's full position: profiles, tons, revenue, margin, open manifests and approvals expiring.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "proj"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rep_capacity_outlets",
+      "report_tag": "capacity-and-outlets",
+      "label": "Capacity and Outlets",
+      "title": "Capacity and Outlets",
+      "q": "Show which shipments have no outlet with capacity at the nightly load, and keep permits and plans apart from capacity.",
+      "spine": "generators",
+      "reading": {
+        "template": "Using {graph}, over {scope}, by {measure}, {horizon}.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Ranked by measure",
+          "chartType": "bar",
+          "measure": "varP"
+        },
+        {
+          "type": "table",
+          "title": "Detail",
+          "cols": [
+            "name",
+            "status",
+            "auth",
+            "proj",
+            "varD",
+            "varP"
+          ]
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "label": "Summary tiles",
+      "d": "Generators, revenue, margin, share",
+      "block": {
+        "type": "kpis",
+        "title": "Summary",
+        "kpis": [
+          "count",
+          "proj",
+          "varD",
+          "varP"
+        ]
+      }
+    },
+    {
+      "label": "Margin chart",
+      "d": "Generators ranked by margin share",
+      "block": {
+        "type": "chart",
+        "title": "Margin on full cost by generator",
+        "chartType": "bar",
+        "measure": "varP"
+      }
+    },
+    {
+      "label": "Revenue chart",
+      "d": "Revenue to September per generator",
+      "block": {
+        "type": "chart",
+        "title": "Revenue by generator",
+        "chartType": "column",
+        "measure": "proj"
+      }
+    },
+    {
+      "label": "Generator detail",
+      "d": "One row per generator, with status and the figures behind it",
+      "block": {
+        "type": "table",
+        "title": "Detail",
+        "cols": [
+          "name",
+          "status",
+          "auth",
+          "proj",
+          "varD",
+          "varP"
+        ]
+      }
+    }
+  ],
+  "slice_default": [
+    "portfolio",
+    "region",
+    "phase",
+    "status"
+  ],
+  "audiences": [
+    {
+      "key": "business_user_exec",
+      "label": "Business User -- Executive",
+      "d": "All businesses, all generators, all revenue."
+    },
+    {
+      "key": "analyst",
+      "label": "Data Analyst",
+      "d": "All generators and revenue. Account manager names masked (PII)."
+    },
+    {
+      "key": "architect",
+      "label": "Domain Architect",
+      "d": "Everything, at every grain, including quote values."
+    },
+    {
+      "key": "admin",
+      "label": "Platform Admin",
+      "d": "Structure, lineage, cost and access. No financial values."
+    }
+  ],
+  "library": [],
+  "row_model": {
+    "label": "name",
+    "sublabel": "{portfolio} · {phase} · {owner}",
+    "status": "status",
+    "tones": {
+      "Under floor": "over",
+      "Watch": "warn",
+      "Above floor": "ok"
+    },
+    "scopes": {
+      "active": {},
+      "gulf": {
+        "field": "funding",
+        "op": "eq",
+        "value": "Gulf"
+      }
+    },
+    "measures": [
+      "varP",
+      "varD",
+      "pct",
+      "proj",
+      "auth",
+      "comm"
+    ],
+    "kpis": [
+      {
+        "key": "count",
+        "label": "Generators in scope",
+        "agg": "rows"
+      },
+      {
+        "key": "auth",
+        "label": "Margin",
+        "agg": "sum",
+        "field": "auth",
+        "format": "money_m"
+      },
+      {
+        "key": "proj",
+        "label": "Revenue",
+        "agg": "sum",
+        "field": "proj",
+        "format": "money_m"
+      },
+      {
+        "key": "varP",
+        "label": "Margin share",
+        "agg": "avg",
+        "field": "varP",
+        "format": "pct"
+      },
+      {
+        "key": "over",
+        "label": "Under floor",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "Under floor",
+        "tone": "bad"
+      },
+      {
+        "key": "atrisk",
+        "label": "Watch",
+        "agg": "count_eq",
+        "field": "status",
+        "value": "Watch",
+        "tone": "warn"
+      }
+    ],
+    "formats": {
+      "auth": "money_m",
+      "comm": "money_m",
+      "proj": "money_m",
+      "varD": "money_m",
+      "varP": "pct",
+      "pct": "pct",
+      "status": "text"
+    },
+    "labels": {},
+    "pills": {},
+    "blocks": [
+      "kpis",
+      "chart",
+      "table"
+    ],
+    "footer": []
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "_about": "What each job description in uploads/01_new_role actually says, as the New Role step 2 shows it. It is not in the merged db.",
+  "readings": [
+    {
+      "file": "Ironbridge_Job_Description_Waste_Stream_Analyst.pdf",
+      "role_id": "wsa",
+      "role": "Waste Stream Analyst",
+      "pages": 4,
+      "findings": [
+        {
+          "id": "j1",
+          "kind": "confirm",
+          "text": "Confirms all 6 of your areas: classification, exposure, routing, economics, the watch and submissions.",
+          "quote": "“Characterises new waste streams, finds the unit in the network that can take them, prices them on full cost and keeps every accepted stream with an outlet.”"
+        },
+        {
+          "id": "j2",
+          "kind": "task",
+          "area": "route",
+          "text": "Add a task to Route in the network: confirm the slot with the plant manager before a re-route is booked.",
+          "quote": "“Confirms the receiving slot with the plant manager before transport is booked for a re-routed shipment.”",
+          "value": "Confirm the slot with the plant manager before a re-route is booked"
+        },
+        {
+          "id": "j3",
+          "kind": "scope",
+          "area": "classify",
+          "text": "Take the laboratory part of Characterise and classify out of scope. The Riverbend laboratory releases results; the analyst reads them.",
+          "quote": "“Analytical results are released by the Laboratory Manager; the analyst reads released results and never approves on a preliminary one.”",
+          "reason": "Done by another team"
+        },
+        {
+          "id": "j4",
+          "kind": "threshold",
+          "metric": "m15",
+          "area": "price",
+          "text": "Set the threshold on Contract margin: a quote under 28% on full cost needs the Pricing and Margin Manager's exception.",
+          "quote": "§4.2 “No contract is quoted below 28% margin on full cost without a written exception from the Pricing and Margin Manager.”",
+          "value": "Below 28% without a written exception"
+        },
+        {
+          "id": "j5",
+          "kind": "routine",
+          "area": "watch",
+          "text": "Add a routine: a weekly outlet call with Third-Party Approvals for the eight weeks before an approval expires.",
+          "quote": "“For the eight weeks before a third-party approval expires, joins the weekly outlet call with the Third-Party Approvals Lead.”",
+          "routine": {
+            "id": "r_jd1",
+            "area": "watch",
+            "name": "Outlet approval call",
+            "cadence": "Weekly, eight weeks before an approval expires",
+            "to": "dimitriou",
+            "output": "Approvals list with the move for each stream"
+          }
+        },
+        {
+          "id": "j6",
+          "kind": "people",
+          "text": "Add Linda Choi to the people it works for. The description says permit conditions are read with Compliance.",
+          "quote": "“Reads permit conditions and feed limits with the Compliance Manager before a routing is approved.”",
+          "person": "choi"
+        }
+      ],
+      "source": "uploads/01_new_role/Ironbridge_Job_Description_Waste_Stream_Analyst.pdf"
+    },
+    {
+      "file": "Ironbridge_Job_Description_Compliance_Analyst.pdf",
+      "role_id": "ca",
+      "role": "Compliance Analyst",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "cj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Checks receipts against permits, keeps the transfer clocks and tracks renewals.”"
+        },
+        {
+          "id": "cj2",
+          "kind": "task",
+          "area": "permits",
+          "text": "Add a task to Permit compliance: reconcile the chlorine feed log with the manifests each week.",
+          "quote": "“Reconciles the kiln chlorine feed log with the manifests received each week.”",
+          "value": "Reconcile the chlorine feed log with the manifests weekly"
+        }
+      ],
+      "source": "uploads/01_new_role/Ironbridge_Job_Description_Compliance_Analyst.pdf"
+    },
+    {
+      "file": "Ironbridge_Job_Description_Pricing_Analyst.pdf",
+      "role_id": "pa",
+      "role": "Pricing Analyst",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "pj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Keeps the price book, reviews quotes and re-prices on fee and cost changes.”"
+        },
+        {
+          "id": "pj2",
+          "kind": "task",
+          "area": "book",
+          "text": "Add a task to Price book: keep the transport rate card current with Transportation before each review.",
+          "quote": "“Keeps the lane rate card current with the Transportation Manager.”",
+          "value": "Keep the lane rate card current"
+        }
+      ],
+      "source": "uploads/01_new_role/Ironbridge_Job_Description_Pricing_Analyst.pdf"
+    },
+    {
+      "file": "Ironbridge_Job_Description_Logistics_Planner.pdf",
+      "role_id": "lp",
+      "role": "Logistics Planner",
+      "pages": 3,
+      "findings": [
+        {
+          "id": "lj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Plans trucks and slots, keeps the service centers inside the transfer limit and maintains the lane rate card.”"
+        },
+        {
+          "id": "lj2",
+          "kind": "task",
+          "area": "centers",
+          "text": "Add a task to Service centers: plan consolidation loads from the pad every Tuesday and Friday.",
+          "quote": "“Plans consolidation loads from each service center twice a week.”",
+          "value": "Plan consolidation loads twice a week"
+        }
+      ],
+      "source": "uploads/01_new_role/Ironbridge_Job_Description_Logistics_Planner.pdf"
+    }
+  ]
+}

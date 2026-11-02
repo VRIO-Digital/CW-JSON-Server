@@ -57,6 +57,7 @@ const DATASET_FILES: Record<string, { goals: string; submission: string }> = {
   KEOLIS: { goals: 'Keolis_Goals.html', submission: 'Keolis_Submissions.html' },
   CAPEX: { goals: 'Capex-Goals.html', submission: 'Capex-Submission.html' },
   SUPPLYCHAIN: { goals: 'Supply_chain_goals.html', submission: 'Supply_chain_submission.html' },
+  ARCWOOD: { goals: 'Arcwood_goals.html', submission: 'Arcwood_submission.html' },
 }
 const FILES = DATASET_FILES[currentDataset().toUpperCase()] ?? DATASET_FILES.KEOLIS
 
@@ -235,7 +236,7 @@ const CAPEX_NOTICES: SimNotice[] = [
 /* SUPPLYCHAIN has none yet: its scenario is a different load (the Bramwell nightly one) and the
    Keolis notices name projects it does not have, so an empty list beats a foreign one. */
 const SIM_NOTICES: SimNotice[] =
-  { CAPEX: CAPEX_NOTICES, SUPPLYCHAIN: [] as SimNotice[] }[currentDataset().toUpperCase()] ?? KEOLIS_NOTICES
+  { CAPEX: CAPEX_NOTICES, SUPPLYCHAIN: [] as SimNotice[], ARCWOOD: [] as SimNotice[] }[currentDataset().toUpperCase()] ?? KEOLIS_NOTICES
 
 /* The bell's own antd badge never drew, so this frame paints a count of its own. It is a fixed element
    on the document body, placed from the bell's bounding box, rather than a child of the button: the

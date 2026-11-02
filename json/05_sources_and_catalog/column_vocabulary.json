@@ -1,0 +1,302 @@
+[
+  {
+    "name": "facility_code",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "generator_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "profile_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "manifest_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "outlet_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "tp_manifest_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "quote_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "invoice_no",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "legacy_profile_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "ironbridge_profile_id",
+    "type": "string",
+    "class": "identifier",
+    "confidence": 0.97
+  },
+  {
+    "name": "permitted_tons_year",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "treatment_cost_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "booked_tons",
+    "type": "decimal",
+    "class": "measure_commitment",
+    "confidence": 0.9
+  },
+  {
+    "name": "capacity_tons",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "annual_tons",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "price_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "heat_value_btu_lb",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "total_halogens_pct",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "ph",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "flash_point_f",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "value",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "tons",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "revenue_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "full_cost_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "surcharge_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "days_held",
+    "type": "int64",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "cost_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "cost_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "handling_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "turnaround_days",
+    "type": "int64",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "annual_value_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "book_price_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "loaded_miles",
+    "type": "int64",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "rate_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "fee_usd_ton",
+    "type": "decimal",
+    "class": "measure",
+    "confidence": 0.9
+  },
+  {
+    "name": "amount_usd",
+    "type": "decimal",
+    "class": "measure_record",
+    "confidence": 0.9
+  },
+  {
+    "name": "plan_usd",
+    "type": "decimal",
+    "class": "measure_projection",
+    "confidence": 0.9
+  },
+  {
+    "name": "facility_name",
+    "type": "string",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "business_code",
+    "type": "string",
+    "class": "code",
+    "confidence": 0.88
+  },
+  {
+    "name": "state",
+    "type": "string",
+    "class": "code",
+    "confidence": 0.88
+  },
+  {
+    "name": "facility_kind",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  },
+  {
+    "name": "acquired_from",
+    "type": "string",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "acquired_on",
+    "type": "date",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "process_code",
+    "type": "string",
+    "class": "code",
+    "confidence": 0.88
+  },
+  {
+    "name": "unit_note",
+    "type": "string",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "waste_code",
+    "type": "string",
+    "class": "code",
+    "confidence": 0.88
+  },
+  {
+    "name": "iso_week",
+    "type": "int64",
+    "class": "date",
+    "confidence": 0.88
+  },
+  {
+    "name": "outage",
+    "type": "boolean",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "generator_name",
+    "type": "string",
+    "class": "attribute",
+    "confidence": 0.88
+  },
+  {
+    "name": "industry",
+    "type": "string",
+    "class": "category",
+    "confidence": 0.88
+  }
+]

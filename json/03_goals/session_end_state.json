@@ -1,0 +1,194 @@
+{
+  "order": [
+    "g-monthly-network-position-and-open-quo-ib799855",
+    "g-what-is-the-carbon-footprint-of-hauli-ib3d517f",
+    "g-fourteen-shipments-in-the-4-november-ib46177d",
+    "g-every-accepted-stream-has-an-outlet-w-ib5f1053",
+    "g-halden-biopharma-proposal-six-streams-ibb197b5",
+    "g-halden-biopharma-proposal-six-streams-ib289276",
+    "g-rule-outlet-watch"
+  ],
+  "saved": [
+    {
+      "id": "ap-new-generator-proposal-classify-route-ib536a05",
+      "name": "New generator proposal: classify, route, cost, price, accept",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Priya needs the Halden Biopharma proposal by Friday 6 November: six new waste streams from their Caldwell Bend plant, 4,860 tons a year from February 2027, three-year contract. Characterise and classify each stream, work out which of our units can take it under its permit, its capacity and Halden's destruction requirement, cost every route and price it from the price book, test the margin against the floor, and draft the acceptance memo, the quote letter and the pricing schedule in the Delmar structure. Attached: the six profiles and the Delmar pricing schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Halden_Waste_Profiles_2026-10-22.xlsx",
+          "s": "64 KB"
+        },
+        {
+          "id": "seed",
+          "n": "Pricing_Schedule_Delmar_Chemical_2024-2026.xlsx",
+          "s": "212 KB"
+        }
+      ],
+      "steps": [
+        "Characterise and classify the six streams",
+        "Check the network: permits, capacity and the fallback for each stream",
+        "Cost every route and price each stream from the book",
+        "Check acceptance and what has to be in place before the first shipment",
+        "Three ways to quote",
+        "Draft the acceptance memo, the quote letter and the pricing schedule"
+      ],
+      "from": "Halden Biopharma proposal: six streams, three years, for Priya by Friday",
+      "by": "You",
+      "at": "3 Nov 2026",
+      "case": "once"
+    },
+    {
+      "id": "ap-proposal",
+      "name": "New generator proposal: classify, route, cost, price, accept",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Priya needs the Halden Biopharma proposal by Friday 6 November: six new waste streams from their Caldwell Bend plant, 4,860 tons a year from February 2027, three-year contract. Characterise and classify each stream, work out which of our units can take it under its permit, its capacity and Halden's destruction requirement, cost every route and price it from the price book, test the margin against the floor, and draft the acceptance memo, the quote letter and the pricing schedule in the Delmar structure. Attached: the six profiles and the Delmar pricing schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "Halden_Waste_Profiles_2026-10-22.xlsx",
+          "s": "64 KB"
+        },
+        {
+          "id": "seed",
+          "n": "Pricing_Schedule_Delmar_Chemical_2024-2026.xlsx",
+          "s": "212 KB"
+        }
+      ],
+      "steps": [
+        "Characterise and classify the six streams",
+        "Check the network: permits, capacity and the fallback for each stream",
+        "Cost every route and price each stream from the book",
+        "Check acceptance and what has to be in place before the first shipment",
+        "Three ways to quote",
+        "Draft the acceptance memo, the quote letter and the pricing schedule"
+      ],
+      "from": "Delmar Chemical proposal 2024 to 2026",
+      "by": "Dana Whitfield",
+      "at": "20 Nov 2023",
+      "case": "once"
+    },
+    {
+      "id": "ap-outlet",
+      "name": "Outlet loss: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Keep every accepted stream with a permitted outlet that has capacity when it arrives, and keep every stream above the margin floor. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out, or a stream falls under the floor, size it, look at what the rest of the network can take, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the load flagged, and size it",
+        "Why it happened, and whether anyone is on it",
+        "Look across the network: headroom, holds, outlets, clauses",
+        "What can still be done, including nothing",
+        "Notice to the people you chose"
+      ],
+      "from": "Shipment without a permitted outlet with capacity",
+      "by": "Dana Whitfield",
+      "at": "26 Oct 2026",
+      "case": "watch"
+    }
+  ],
+  "goals": {
+    "g-monthly-network-position-and-open-quo-ib799855": {
+      "id": "g-monthly-network-position-and-open-quo-ib799855",
+      "title": "Monthly network position and open quotes: after every month-end close",
+      "mode": "watch",
+      "kind": "schedule",
+      "case": "schedule",
+      "stage": "armed",
+      "status": "ready",
+      "agent": "Agent Ledger",
+      "chosen": null,
+      "runs": [
+        {
+          "id": "r1",
+          "at": "3 Nov, 14:34",
+          "label": "Scheduled run · after the 6 November close",
+          "status": "ready"
+        }
+      ]
+    },
+    "g-what-is-the-carbon-footprint-of-hauli-ib3d517f": {
+      "id": "g-what-is-the-carbon-footprint-of-hauli-ib3d517f",
+      "title": "What is the carbon footprint of hauling the Halden streams to Granger …",
+      "mode": "once",
+      "kind": "once",
+      "case": "generic",
+      "stage": "running",
+      "status": "ready",
+      "agent": "Agent Harbour",
+      "chosen": null,
+      "runs": []
+    },
+    "g-fourteen-shipments-in-the-4-november-ib46177d": {
+      "id": "g-fourteen-shipments-in-the-4-november-ib46177d",
+      "title": "Fourteen shipments in the 4 November load with no outlet before they arrive",
+      "mode": "once",
+      "kind": "once",
+      "case": "overrun-once",
+      "stage": "running",
+      "status": "accepted",
+      "agent": "Agent Sentinel",
+      "chosen": "r2",
+      "runs": []
+    },
+    "g-every-accepted-stream-has-an-outlet-w-ib5f1053": {
+      "id": "g-every-accepted-stream-has-an-outlet-w-ib5f1053",
+      "title": "Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "armed",
+      "agent": "Agent Keel",
+      "chosen": null,
+      "runs": []
+    },
+    "g-halden-biopharma-proposal-six-streams-ibb197b5": {
+      "id": "g-halden-biopharma-proposal-six-streams-ibb197b5",
+      "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "ready",
+      "agent": "Agent Beacon",
+      "chosen": null,
+      "runs": []
+    },
+    "g-halden-biopharma-proposal-six-streams-ib289276": {
+      "id": "g-halden-biopharma-proposal-six-streams-ib289276",
+      "title": "Halden Biopharma proposal: six streams, three years, for Priya by Friday",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "accepted",
+      "agent": "Agent Compass",
+      "chosen": "r1",
+      "runs": []
+    },
+    "g-rule-outlet-watch": {
+      "id": "g-rule-outlet-watch",
+      "title": "Every accepted stream has an outlet with capacity and stays above the floor: check every nightly load",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "executed",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "runs": [
+        {
+          "id": "r1",
+          "at": "4 Nov, 02:10",
+          "label": "Nightly load, 4 November · 18 positions flagged",
+          "status": "executed"
+        }
+      ]
+    }
+  }
+}

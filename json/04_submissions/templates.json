@@ -1,0 +1,486 @@
+{
+  "_meta": {
+    "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+    "tenant": "Ironbridge Environmental Services (fictional; the Waste Stream Analyst demo world)",
+    "dataset": "IRONBRIDGE",
+    "asOf": "2026-11-03",
+    "today": "2026-11-03",
+    "exported_from": "Composed by _build/submissions_waste.py from the datasets and the Goals layer (no prototype).",
+    "note": "The template library. A recommendation always rests on a template that exists here (templateId). The file is in templates/ at the package root."
+  },
+  "section_roles": [
+    "purpose",
+    "summary",
+    "findings",
+    "options",
+    "why",
+    "evidence",
+    "assumptions",
+    "next",
+    "free"
+  ],
+  "stages": [
+    "brief",
+    "template",
+    "outline",
+    "draft",
+    "reviewed"
+  ],
+  "families": [
+    "Technical Solutions",
+    "Customer",
+    "Capacity Committee",
+    "Your prior deliverables",
+    "Described for a goal",
+    "Your file"
+  ],
+  "templates": [
+    {
+      "id": "t-prior-pricing-2024",
+      "name": "Pricing schedule, Delmar Chemical 2024 to 2026 (as approved).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your 2023 pricing schedule for the Delmar Chemical contract, structure read from the file: S-1 to S-5, open items and an evidence index.",
+      "file": "Pricing_Schedule_Delmar_Chemical_2024-2026.xlsx",
+      "sections": [
+        {
+          "heading": "S-1 Contract summary",
+          "role": "summary"
+        },
+        {
+          "heading": "S-2 Streams and routing",
+          "role": "findings",
+          "hint": "Each stream with its codes, tons a year, the unit that takes it and the fallback."
+        },
+        {
+          "heading": "S-3 Price and full cost by stream",
+          "role": "findings",
+          "hint": "Price a ton from the book, treatment, transport and fees, margin a ton and a year, against the floor."
+        },
+        {
+          "heading": "S-4 Capacity and fallback",
+          "role": "findings",
+          "hint": "Booked against permitted for each unit the contract uses, and where each stream goes if its unit is down."
+        },
+        {
+          "heading": "S-5 Approvals and contract dates",
+          "role": "free",
+          "hint": "Approval level, who signs, contract start and end, price review clause."
+        },
+        {
+          "heading": "Open items",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-cc-q3",
+      "name": "Capacity Committee, Q3 2026 pack.pptx",
+      "family": "Your prior deliverables",
+      "format": "Slide pack",
+      "note": "Your Q3 pack to the Capacity Committee, structure read from the file: a title slide and six slides.",
+      "file": "Capacity Committee, Q3 2026 pack.pptx",
+      "sections": [
+        {
+          "heading": "Network at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "Booked against permitted by unit",
+          "role": "findings"
+        },
+        {
+          "heading": "Revenue and margin against plan by business",
+          "role": "findings"
+        },
+        {
+          "heading": "Decisions for the committee",
+          "role": "purpose"
+        },
+        {
+          "heading": "Outlets and renewals",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Appendix: sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-approvals-register",
+      "name": "Third-party approvals register, Q3 2026 (as issued).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your Q3 register of third-party outlet approvals for Carla Dimitriou, structure read from the file: cover, three sheets, evidence index.",
+      "file": "Third-party approvals register, Q3 2026 (as issued).xlsx",
+      "sections": [
+        {
+          "heading": "Cover",
+          "role": "purpose"
+        },
+        {
+          "heading": "Approvals by outlet and expiry",
+          "role": "findings"
+        },
+        {
+          "heading": "Tons and spend by outlet",
+          "role": "findings"
+        },
+        {
+          "heading": "Audit status",
+          "role": "free",
+          "hint": "Last audit, next audit, open findings per outlet."
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-acceptance-memo",
+      "name": "Acceptance memo",
+      "family": "Technical Solutions",
+      "format": "Document",
+      "note": "The memo the Director of Technical Solutions and the Vice President, Sales read before a new generator is accepted above $2M a year: the streams, the routing, the economics, the gaps.",
+      "file": "Waste_acceptance_decision_memo_template.docx",
+      "sections": [
+        {
+          "heading": "Decision asked and approval level",
+          "role": "purpose"
+        },
+        {
+          "heading": "The streams and what they are",
+          "role": "findings",
+          "hint": "Each stream with its codes, form, tons a year and the requirement that binds it."
+        },
+        {
+          "heading": "Where each stream goes and the capacity behind it",
+          "role": "findings",
+          "hint": "The unit for each stream, booked against permitted, and the fallback."
+        },
+        {
+          "heading": "Price, full cost and margin against the floor",
+          "role": "findings",
+          "hint": "Price a ton from the book, full cost on the route the stream will take, margin against the 28% contract floor and the 15% stream floor."
+        },
+        {
+          "heading": "Options considered",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        },
+        {
+          "heading": "Assumptions and open points",
+          "role": "assumptions"
+        }
+      ]
+    },
+    {
+      "id": "t-cust-quote-letter",
+      "name": "Quote letter",
+      "family": "Customer",
+      "format": "Document",
+      "note": "The letter the account manager sends with the pricing schedule: what we accept, where it goes, the price a ton, what has to be in place.",
+      "file": "Customer_quote_letter_template.docx",
+      "sections": [
+        {
+          "heading": "What we are quoting",
+          "role": "purpose"
+        },
+        {
+          "heading": "The streams accepted and where they go",
+          "role": "findings",
+          "hint": "Each stream, the facility named in the quote and the alternative."
+        },
+        {
+          "heading": "Price per ton by stream",
+          "role": "findings",
+          "hint": "The price a ton for each stream and the fee pass-through."
+        },
+        {
+          "heading": "Before the first shipment",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-pricing-schedule",
+      "name": "Pricing schedule",
+      "family": "Technical Solutions",
+      "format": "Workbook",
+      "note": "The schedule behind every contract quote: streams, routing, price and full cost, capacity and fallback, approvals.",
+      "file": "Pricing_schedule_template.xlsx",
+      "sections": [
+        {
+          "heading": "Contract summary",
+          "role": "summary"
+        },
+        {
+          "heading": "Streams and routing",
+          "role": "findings",
+          "hint": "Each stream with its codes, tons a year, unit and fallback."
+        },
+        {
+          "heading": "Price and full cost by stream",
+          "role": "findings"
+        },
+        {
+          "heading": "Capacity and fallback",
+          "role": "findings"
+        },
+        {
+          "heading": "Approvals and dates",
+          "role": "free"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-cc-decision-paper",
+      "name": "Capacity Committee decision paper",
+      "family": "Capacity Committee",
+      "format": "Document",
+      "note": "What the committee reads before it commits capacity: the volume, the unit, the economics, the alternatives, the risks.",
+      "file": "Capacity_Committee_decision_paper_template.docx",
+      "sections": [
+        {
+          "heading": "Decision asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "The volume and where it goes",
+          "role": "findings"
+        },
+        {
+          "heading": "Economics on full cost",
+          "role": "findings"
+        },
+        {
+          "heading": "Alternatives",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        },
+        {
+          "heading": "Risks and open points",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-cc-quarterly-pack",
+      "name": "Capacity Committee quarterly pack",
+      "family": "Capacity Committee",
+      "format": "Slide pack",
+      "note": "The quarterly pack: booked against permitted, revenue and margin against plan, outlets, renewals, decisions.",
+      "file": "Capacity_Committee_quarterly_pack_template.pptx",
+      "sections": [
+        {
+          "heading": "Network at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "Booked against permitted by unit",
+          "role": "findings"
+        },
+        {
+          "heading": "Revenue and margin against plan",
+          "role": "findings"
+        },
+        {
+          "heading": "Decisions for the committee",
+          "role": "purpose"
+        },
+        {
+          "heading": "Outlets and renewals",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-reroute-notice",
+      "name": "Re-route notice",
+      "family": "Technical Solutions",
+      "format": "Memo",
+      "note": "One page to the plant managers, the service centers and transport when shipments lose their outlet: the positions, the cause, the moves, the ask.",
+      "file": "Re-route_notice_template.docx",
+      "sections": [
+        {
+          "heading": "What we ask, and by when",
+          "role": "purpose"
+        },
+        {
+          "heading": "The shipments and their exposure",
+          "role": "findings",
+          "hint": "Shipments without an outlet before they arrive: tons, revenue, where they are and when their clock runs out."
+        },
+        {
+          "heading": "Why it happened",
+          "role": "findings",
+          "hint": "The outage, the approvals that expire and the fee behind the floor positions."
+        },
+        {
+          "heading": "Options",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-reroute-list",
+      "name": "Re-route and outlet list",
+      "family": "Technical Solutions",
+      "format": "Workbook",
+      "note": "What transport books the trucks and the outlets from: every shipment with its new unit, haul, cost and who confirms.",
+      "file": "Re-route_and_outlet_list_template.xlsx",
+      "sections": [
+        {
+          "heading": "Cover: what moves, where, by when",
+          "role": "purpose"
+        },
+        {
+          "heading": "Re-routes inside the network",
+          "role": "findings",
+          "hint": "Manifest, generator, tons, from unit, to unit, extra haul, new full cost, clock."
+        },
+        {
+          "heading": "Outlet loads and holds",
+          "role": "findings",
+          "hint": "Shipments to third-party outlets with the outlet price, and shipments held on the pad with their clock."
+        },
+        {
+          "heading": "Confirmations",
+          "role": "next",
+          "hint": "Who confirms each slot, each truck and each outlet load, and by when."
+        },
+        {
+          "heading": "Sources per line",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-monthly-outlet-review",
+      "name": "Monthly outlet review",
+      "family": "Technical Solutions",
+      "format": "Slide pack",
+      "note": "The monthly review with Dana and the plant managers: what lost its outlet, why, what it cost, what changes.",
+      "file": "Monthly_outlet_review_template.pptx",
+      "sections": [
+        {
+          "heading": "The month in one line",
+          "role": "summary"
+        },
+        {
+          "heading": "Shipments re-routed this month",
+          "role": "findings"
+        },
+        {
+          "heading": "Causes by facility",
+          "role": "findings"
+        },
+        {
+          "heading": "What we changed",
+          "role": "options"
+        },
+        {
+          "heading": "Next month",
+          "role": "next"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-profile-review",
+      "name": "Profile review",
+      "family": "Technical Solutions",
+      "format": "Document",
+      "note": "What the approval chemist needs when a profile comes back for review: the stream, the results, the codes, the outlet, the price.",
+      "file": "Profile_review_template.docx",
+      "sections": [
+        {
+          "heading": "The profile and why it is back",
+          "role": "purpose"
+        },
+        {
+          "heading": "Results against the profile",
+          "role": "findings"
+        },
+        {
+          "heading": "Permitted units and capacity",
+          "role": "findings"
+        },
+        {
+          "heading": "Questions for the generator",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-ts-price-change",
+      "name": "Price change request",
+      "family": "Technical Solutions",
+      "format": "Document",
+      "note": "What Pricing and Margin needs to change a price, a fee pass-through or a floor exception on a contract.",
+      "file": "Price_change_request_template.docx",
+      "sections": [
+        {
+          "heading": "Change asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Why: the margin as it stands",
+          "role": "findings"
+        },
+        {
+          "heading": "Contracts, streams and profiles affected",
+          "role": "free",
+          "hint": "Contract, generator, profile, current price, change."
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    }
+  ]
+}

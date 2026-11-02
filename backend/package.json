@@ -27,6 +27,7 @@
     "ingest:capex-graph": "node scripts/ingest-capex-graph.js",
     "ingest:keolis": "node scripts/ingest-keolis.mjs",
     "ingest:supplychain": "node scripts/ingest-supplychain-json.mjs",
+    "ingest:arcwood": "node scripts/ingest-arcwood-json.mjs",
     "build:keolis-ai": "node scripts/build-keolis-ai-submissions.mjs",
     "ingest:queries": "node scripts/ingest-queries.js",
     "scale:capex": "node scripts/scale-capex-reports.js",

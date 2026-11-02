@@ -1,0 +1,365 @@
+[
+  {
+    "persona_id": "ts-director",
+    "name": "Director of Technical Solutions",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "acceptance",
+      "outlet",
+      "capacity",
+      "routing",
+      "committee",
+      "profile"
+    ],
+    "focus": "Owns the Technical Solutions desk. Asks whether every accepted stream has an outlet with capacity, where new volume should go, and what goes to the Capacity Committee.",
+    "top_questions": [
+      "hq2",
+      "hq12",
+      "hq19",
+      "hq37",
+      "hq43",
+      "hq44"
+    ]
+  },
+  {
+    "persona_id": "vp-sales",
+    "name": "Vice President, Sales (Capacity Committee chair)",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "quote",
+      "margin",
+      "contract",
+      "committee",
+      "pipeline"
+    ],
+    "focus": "Chairs the Capacity Committee and signs contracts above $2M. Asks what a proposal earns, what capacity it rests on, and how revenue compares with the plan.",
+    "top_questions": [
+      "hq18",
+      "hq24",
+      "hq32",
+      "hq40"
+    ]
+  },
+  {
+    "persona_id": "account-manager",
+    "name": "Account Manager",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "quote",
+      "customer",
+      "price",
+      "profile",
+      "requirement",
+      "turnaround"
+    ],
+    "focus": "Owns the generator relationship. Asks what a stream will be priced at, which facility it goes to, what the customer requires, and how long the quote takes.",
+    "top_questions": [
+      "hq17",
+      "hq20",
+      "hq35",
+      "hq41"
+    ]
+  },
+  {
+    "persona_id": "approval-chemist",
+    "name": "Approval Chemist",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "profile",
+      "waste code",
+      "analytical",
+      "permit",
+      "approve",
+      "understood"
+    ],
+    "focus": "Approves profiles at a facility. Asks whether a waste is understood, whether its codes are on the permit for the unit, and what the laboratory released.",
+    "top_questions": [
+      "hq7",
+      "hq10",
+      "hq38"
+    ]
+  },
+  {
+    "persona_id": "plant-manager",
+    "name": "Plant Manager, Incineration",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "booking",
+      "capacity",
+      "feed",
+      "outage",
+      "headroom",
+      "kiln"
+    ],
+    "focus": "Runs an incinerator. Asks what is booked against the unit's capacity, what headroom is left, and what an outage strands.",
+    "top_questions": [
+      "hq8",
+      "hq11",
+      "hq31",
+      "hq45"
+    ]
+  },
+  {
+    "persona_id": "csc",
+    "name": "Customer Solutions Coordinator",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "manifest",
+      "ten-day",
+      "service center",
+      "hold",
+      "shipment",
+      "discrepancy"
+    ],
+    "focus": "Runs a service center. Asks which shipments are on the pad, how long, and where each one goes next.",
+    "top_questions": [
+      "hq15",
+      "hq30"
+    ]
+  },
+  {
+    "persona_id": "compliance-director",
+    "name": "Director of Compliance",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "permit",
+      "renewal",
+      "LDR",
+      "condition",
+      "manifest",
+      "EPA identification"
+    ],
+    "focus": "Owns permits and compliance. Asks which permits are up for renewal, which conditions bind a routing, and whether a generator can ship.",
+    "top_questions": [
+      "hq6",
+      "hq25",
+      "hq33",
+      "hq42"
+    ]
+  },
+  {
+    "persona_id": "pricing-manager",
+    "name": "Pricing and Margin Manager",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "margin",
+      "floor",
+      "price book",
+      "fee",
+      "full cost",
+      "discount"
+    ],
+    "focus": "Owns the price book and the floor. Asks what each stream earns on full cost, which contracts are under the floor, and what a fee change does.",
+    "top_questions": [
+      "hq3",
+      "hq22",
+      "hq28"
+    ]
+  },
+  {
+    "persona_id": "lab-manager",
+    "name": "Laboratory Manager",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "analytical",
+      "released",
+      "halogen",
+      "pH",
+      "sample",
+      "result"
+    ],
+    "focus": "Runs the laboratory. Asks which results are released, which profiles wait on a result, and where the lab and the profile disagree.",
+    "top_questions": [
+      "hq21"
+    ]
+  },
+  {
+    "persona_id": "transport-manager",
+    "name": "Transportation Manager",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "lane",
+      "haul",
+      "miles",
+      "truck",
+      "rate card",
+      "re-route"
+    ],
+    "focus": "Moves the waste. Asks what a re-route costs on the rate card, which lanes carry the most tons, and what trucks are needed.",
+    "top_questions": [
+      "hq14",
+      "hq29"
+    ]
+  },
+  {
+    "persona_id": "tp-approvals-lead",
+    "name": "Third-Party Approvals Lead",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "outlet",
+      "approval",
+      "expiry",
+      "third-party",
+      "audit"
+    ],
+    "focus": "Keeps the outside outlets approved. Asks which approvals expire, what the outlets cost, and which streams depend on them.",
+    "top_questions": [
+      "hq4",
+      "hq13"
+    ]
+  },
+  {
+    "persona_id": "landfill-pm",
+    "name": "Landfill Program Manager",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "landfill",
+      "LDR",
+      "stabilized",
+      "airspace",
+      "Millhaven"
+    ],
+    "focus": "Runs the secure landfill. Asks what arrives stabilized and compliant, and how much airspace the bookings use.",
+    "top_questions": []
+  },
+  {
+    "persona_id": "regional-president",
+    "name": "Business President",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "business",
+      "revenue",
+      "margin",
+      "facility",
+      "plan"
+    ],
+    "focus": "Runs one of the three businesses. Asks what the business earns, at which facilities, and how it compares with the plan.",
+    "top_questions": [
+      "hq9",
+      "hq36"
+    ]
+  },
+  {
+    "persona_id": "cfo",
+    "name": "Chief Financial Officer",
+    "domains": [
+      "waste-stream",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "revenue",
+      "plan",
+      "margin",
+      "third-party spend",
+      "exposure"
+    ],
+    "focus": "Asks revenue against plan, margin by business and facility, and what third-party outlets cost.",
+    "top_questions": [
+      "hq1",
+      "hq26",
+      "hq39"
+    ]
+  },
+  {
+    "persona_id": "internal-audit",
+    "name": "Internal Audit",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "exception",
+      "policy",
+      "control",
+      "unreleased",
+      "discount"
+    ],
+    "focus": "Tests the acceptance and pricing controls. Asks how many profiles were approved on unreleased results and how many quotes went below the book.",
+    "top_questions": [
+      "hq23",
+      "hq27"
+    ]
+  },
+  {
+    "persona_id": "integration-lead",
+    "name": "Integration Lead, Acquisitions",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "legacy",
+      "migration",
+      "Harbor Line",
+      "Tidewater",
+      "reviewed"
+    ],
+    "focus": "Brings the acquired companies in. Asks how many profiles are still on the legacy system and which have been reviewed.",
+    "top_questions": [
+      "hq16",
+      "hq34"
+    ]
+  },
+  {
+    "persona_id": "ehs-manager",
+    "name": "Environmental Health and Safety Manager",
+    "domains": [
+      "waste-stream",
+      "compliance-permits"
+    ],
+    "keywords": [
+      "discrepancy",
+      "off-spec",
+      "reactive",
+      "cylinder",
+      "incident"
+    ],
+    "focus": "Keeps receipts safe. Asks which generators send off-spec loads and which discrepancies repeat.",
+    "top_questions": [
+      "hq5"
+    ]
+  }
+]

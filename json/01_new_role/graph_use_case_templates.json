@@ -1,0 +1,65 @@
+[
+  {
+    "template_id": "waste-stream-analyst",
+    "use_case_id": "uc_waste_stream_analyst",
+    "name": "Waste Stream Analyst",
+    "description": "One graph over profiles, permitted codes, capacity bookings, manifests, cost rates and the price book across every facility, so a routing question resolves once and states which permit, which booking and which cost it read.",
+    "match_phrases": [
+      "waste stream",
+      "waste profile",
+      "permitted outlet",
+      "capacity booked",
+      "full cost",
+      "margin floor",
+      "re-route",
+      "ten-day"
+    ],
+    "personas": [
+      "ts-director",
+      "vp-sales",
+      "account-manager",
+      "approval-chemist",
+      "plant-manager",
+      "csc",
+      "compliance-director",
+      "pricing-manager",
+      "lab-manager",
+      "transport-manager",
+      "tp-approvals-lead",
+      "landfill-pm",
+      "regional-president",
+      "cfo",
+      "internal-audit",
+      "integration-lead",
+      "ehs-manager"
+    ],
+    "metrics": [
+      "booked-vs-permitted",
+      "unit-headroom",
+      "outlets-for-stream",
+      "stream-full-cost",
+      "stream-margin",
+      "contract-margin",
+      "streams-below-floor",
+      "revenue-vs-plan",
+      "margin-by-facility",
+      "profiles-pending",
+      "profiles-expiring",
+      "approval-cycle-time"
+    ],
+    "hero_questions": [
+      "hq1",
+      "hq2",
+      "hq3",
+      "hq4",
+      "hq5",
+      "hq6",
+      "hq7",
+      "hq8",
+      "hq9",
+      "hq10",
+      "hq11",
+      "hq12"
+    ]
+  }
+]

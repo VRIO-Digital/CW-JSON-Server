@@ -1,0 +1,665 @@
+{
+  "suggestions": [
+    {
+      "suggestion_id": "sg_ib_legacy_merge",
+      "from_table_key": "legacy.legacy_profile",
+      "from_column": "ironbridge_profile_id",
+      "to_table_key": "ops.waste_profile",
+      "to_column": "profile_id",
+      "relationship_type": "SAME_PROFILE_AS",
+      "relationship_type_alternatives": [
+        "SUPERSEDED_BY"
+      ],
+      "cardinality_hint": "1:1",
+      "rationale": "Every legacy profile has a mirror in the operations system marked legacy. Treating the mirror as an approved Ironbridge profile would count 578 unreviewed profiles as approved; keep the legacy flag until an Approval Chemist reviews each one.",
+      "confidence": 0.7
+    },
+    {
+      "suggestion_id": "sg_ib_permit_as_outlet",
+      "from_table_key": "ops.facility_permit_code",
+      "from_column": "facility_code",
+      "to_table_key": "ops.capacity_booking",
+      "to_column": "facility_code",
+      "relationship_type": "AVAILABLE_AT",
+      "relationship_type_alternatives": [
+        "PERMITTED_AT"
+      ],
+      "cardinality_hint": "N:N",
+      "rationale": "A permitted code joined to a unit says the unit may take the code; the booking says whether it can in the week. The join on facility alone would make every permitted unit an outlet whatever its bookings, which is the error the acceptance policy rules out.",
+      "confidence": 0.58
+    },
+    {
+      "suggestion_id": "sg_ib_requirement_column",
+      "from_table_key": "ops.waste_profile",
+      "from_column": "customer_requirement",
+      "to_table_key": "ops.facility_permit_code",
+      "to_column": "process_code",
+      "relationship_type": "EXCLUDES",
+      "relationship_type_alternatives": [
+        "CONSTRAINS"
+      ],
+      "cardinality_hint": "N:N",
+      "rationale": "A requirement such as destruction rules out deep well, landfill and discharge treatment for the stream; the column is free text on 0.2% of profiles, and the binding statement is in QR-14 in Drive.",
+      "confidence": 0.66
+    },
+    {
+      "suggestion_id": "sg_ib_manifest_hold",
+      "from_table_key": "ops.manifest",
+      "from_column": "via_center",
+      "to_table_key": "ops.transfer_hold",
+      "to_column": "center_code",
+      "relationship_type": "ON_PAD_AT",
+      "relationship_type_alternatives": [
+        "PASSED_THROUGH"
+      ],
+      "cardinality_hint": "1:1",
+      "rationale": "A manifest through a service center has one hold; the hold carries the clock. Joining on center alone would attach every hold at the center to the manifest.",
+      "confidence": 0.72
+    },
+    {
+      "suggestion_id": "sg_ib_booking_fee",
+      "from_table_key": "fin.state_fee",
+      "from_column": "state",
+      "to_table_key": "ops.facility",
+      "to_column": "state",
+      "relationship_type": "CHARGED_AT",
+      "relationship_type_alternatives": [
+        "APPLIES_TO"
+      ],
+      "cardinality_hint": "1:N",
+      "rationale": "The fee follows the receiving facility's state and its validity dates; a re-route changes the fee with the state, which full cost has to carry.",
+      "confidence": 0.74
+    }
+  ],
+  "entities": [
+    {
+      "entity_id": "ent-ops-facility-ib4250c",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.facility",
+      "entity_name": "facility",
+      "description": "Entity for facility, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.business",
+          "from_columns": [
+            "business_code"
+          ],
+          "to_columns": [
+            "business_code"
+          ],
+          "relationship_type": "RUN_BY",
+          "cardinality_hint": "N:1",
+          "rationale": "Each facility belongs to one business.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T09:00:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-process-unit-ibd4b89",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.process_unit",
+      "entity_name": "process_unit",
+      "description": "Entity for process_unit, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.facility",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "UNIT_OF",
+          "cardinality_hint": "N:1",
+          "rationale": "A unit belongs to one facility.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T10:07:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-facility-permit-code-ib0979f",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.facility_permit_code",
+      "entity_name": "facility_permit_code",
+      "description": "Entity for facility_permit_code, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.process_unit",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "PERMITS",
+          "cardinality_hint": "N:1",
+          "rationale": "A permitted code names the unit it applies to (facility and process).",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T11:14:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-capacity-booking-ibd489c",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.capacity_booking",
+      "entity_name": "capacity_booking",
+      "description": "Entity for capacity_booking, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.process_unit",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "BOOKS",
+          "cardinality_hint": "N:1",
+          "rationale": "Bookings are per unit and week.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T12:21:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-generator-ib27307",
+      "confirmed_by": null,
+      "table_key": "ops.generator",
+      "entity_name": "generator",
+      "description": "Entity for generator, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T13:28:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-waste-profile-ib62e31",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.waste_profile",
+      "entity_name": "waste_profile",
+      "description": "Entity for waste_profile, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.generator",
+          "from_columns": [
+            "generator_id"
+          ],
+          "to_columns": [
+            "generator_id"
+          ],
+          "relationship_type": "PROFILED_BY",
+          "cardinality_hint": "N:1",
+          "rationale": "A profile belongs to one generator.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "ops.process_unit",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "APPROVED_OUTLET",
+          "cardinality_hint": "N:1",
+          "rationale": "An approved profile names its outlet unit; a pending profile names none.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T14:35:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-profile-analytical-ib5551f",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.profile_analytical",
+      "entity_name": "profile_analytical",
+      "description": "Entity for profile_analytical, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.waste_profile",
+          "from_columns": [
+            "profile_id"
+          ],
+          "to_columns": [
+            "profile_id"
+          ],
+          "relationship_type": "RESULT_FOR",
+          "cardinality_hint": "N:1",
+          "rationale": "A released result belongs to one profile.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T15:42:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-manifest-ibb2d5f",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.manifest",
+      "entity_name": "manifest",
+      "description": "Entity for manifest, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.waste_profile",
+          "from_columns": [
+            "profile_id"
+          ],
+          "to_columns": [
+            "profile_id"
+          ],
+          "relationship_type": "SHIPS",
+          "cardinality_hint": "N:1",
+          "rationale": "A manifest ships one profile.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "ops.process_unit",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "RECEIVED_AT",
+          "cardinality_hint": "N:1",
+          "rationale": "A manifest is received at one unit.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "ops.generator",
+          "from_columns": [
+            "generator_id"
+          ],
+          "to_columns": [
+            "generator_id"
+          ],
+          "relationship_type": "SHIPPED_BY",
+          "cardinality_hint": "N:1",
+          "rationale": "A manifest is shipped by one generator.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T16:49:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-receipt-discrepancy-ibc78fb",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.receipt_discrepancy",
+      "entity_name": "receipt_discrepancy",
+      "description": "Entity for receipt_discrepancy, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.manifest",
+          "from_columns": [
+            "manifest_id"
+          ],
+          "to_columns": [
+            "manifest_id"
+          ],
+          "relationship_type": "FOUND_ON",
+          "cardinality_hint": "N:1",
+          "rationale": "A discrepancy is recorded on one manifest.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T09:56:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-transfer-hold-ibf1bfb",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.transfer_hold",
+      "entity_name": "transfer_hold",
+      "description": "Entity for transfer_hold, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.manifest",
+          "from_columns": [
+            "manifest_id"
+          ],
+          "to_columns": [
+            "manifest_id"
+          ],
+          "relationship_type": "HELD",
+          "cardinality_hint": "N:1",
+          "rationale": "A hold is one manifest's time at a service center.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T10:03:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-third-party-outlet-ib89f4d",
+      "confirmed_by": null,
+      "table_key": "ops.third_party_outlet",
+      "entity_name": "third_party_outlet",
+      "description": "Entity for third_party_outlet, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T11:10:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-third-party-manifest-ib4a6ef",
+      "confirmed_by": null,
+      "table_key": "ops.third_party_manifest",
+      "entity_name": "third_party_manifest",
+      "description": "Entity for third_party_manifest, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T12:17:12.000Z"
+    },
+    {
+      "entity_id": "ent-ops-third-party-approval-ib6e514",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "ops.third_party_approval",
+      "entity_name": "third_party_approval",
+      "description": "Entity for third_party_approval, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.third_party_outlet",
+          "from_columns": [
+            "outlet_id"
+          ],
+          "to_columns": [
+            "outlet_id"
+          ],
+          "relationship_type": "APPROVED_AT",
+          "cardinality_hint": "N:1",
+          "rationale": "An approval is at one outlet.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "ops.waste_profile",
+          "from_columns": [
+            "profile_id"
+          ],
+          "to_columns": [
+            "profile_id"
+          ],
+          "relationship_type": "COVERS",
+          "cardinality_hint": "N:1",
+          "rationale": "An approval covers one profile.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T13:24:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-price-book-ib1b0a8",
+      "confirmed_by": null,
+      "table_key": "fin.price_book",
+      "entity_name": "price_book",
+      "description": "Entity for price_book, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T14:31:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-quote-ib89c74",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.quote",
+      "entity_name": "quote",
+      "description": "Entity for quote, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.generator",
+          "from_columns": [
+            "generator_id"
+          ],
+          "to_columns": [
+            "generator_id"
+          ],
+          "relationship_type": "QUOTED_TO",
+          "cardinality_hint": "N:1",
+          "rationale": "A quote is to one generator.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T15:38:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-quote-line-iba363a",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.quote_line",
+      "entity_name": "quote_line",
+      "description": "Entity for quote_line, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "fin.quote",
+          "from_columns": [
+            "quote_id"
+          ],
+          "to_columns": [
+            "quote_id"
+          ],
+          "relationship_type": "LINE_OF",
+          "cardinality_hint": "N:1",
+          "rationale": "A line belongs to one quote.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        },
+        {
+          "target_table_key": "ops.waste_profile",
+          "from_columns": [
+            "profile_id"
+          ],
+          "to_columns": [
+            "profile_id"
+          ],
+          "relationship_type": "PRICES",
+          "cardinality_hint": "N:1",
+          "rationale": "A line prices one profile.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T16:45:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-treatment-cost-ib5630a",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.treatment_cost",
+      "entity_name": "treatment_cost",
+      "description": "Entity for treatment_cost, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.process_unit",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "COSTS",
+          "cardinality_hint": "N:1",
+          "rationale": "One cost rate per unit.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T09:52:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-transport-lane-ib38be6",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.transport_lane",
+      "entity_name": "transport_lane",
+      "description": "Entity for transport_lane, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.facility",
+          "from_columns": [
+            "facility_code"
+          ],
+          "to_columns": [
+            "facility_code"
+          ],
+          "relationship_type": "DELIVERS_TO",
+          "cardinality_hint": "N:1",
+          "rationale": "A lane ends at one facility.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T10:59:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-state-fee-ib6d2fc",
+      "confirmed_by": null,
+      "table_key": "fin.state_fee",
+      "entity_name": "state_fee",
+      "description": "Entity for state_fee, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T11:06:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-invoice-line-ibf0f04",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.invoice_line",
+      "entity_name": "invoice_line",
+      "description": "Entity for invoice_line, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.manifest",
+          "from_columns": [
+            "manifest_id"
+          ],
+          "to_columns": [
+            "manifest_id"
+          ],
+          "relationship_type": "BILLS",
+          "cardinality_hint": "N:1",
+          "rationale": "An invoice line bills one manifest.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-28T12:13:12.000Z"
+    },
+    {
+      "entity_id": "ent-fin-revenue-plan-iba20f7",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "fin.revenue_plan",
+      "entity_name": "revenue_plan",
+      "description": "Entity for revenue_plan, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.business",
+          "from_columns": [
+            "business_code"
+          ],
+          "to_columns": [
+            "business_code"
+          ],
+          "relationship_type": "PLANS_FOR",
+          "cardinality_hint": "N:1",
+          "rationale": "The plan is by business and month.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-29T13:20:12.000Z"
+    },
+    {
+      "entity_id": "ent-legacy-legacy-profile-iba65bd",
+      "confirmed_by": "nishant.srivastav@vriodigital.com",
+      "table_key": "legacy.legacy_profile",
+      "entity_name": "legacy_profile",
+      "description": "Entity for legacy_profile, created to anchor a declared relationship.",
+      "business_purpose": null,
+      "grain_description": null,
+      "attributes": [],
+      "relationships": [
+        {
+          "target_table_key": "ops.waste_profile",
+          "from_columns": [
+            "ironbridge_profile_id"
+          ],
+          "to_columns": [
+            "profile_id"
+          ],
+          "relationship_type": "MIRRORS",
+          "cardinality_hint": "1:1",
+          "rationale": "A legacy profile is mirrored by one profile marked legacy in the operations system.",
+          "confirmed_by": "nishant.srivastav@vriodigital.com"
+        }
+      ],
+      "cross_attributes": [],
+      "updated_at": "2026-10-27T14:27:12.000Z"
+    }
+  ]
+}

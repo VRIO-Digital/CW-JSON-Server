@@ -1,0 +1,52 @@
+[
+  {
+    "signal_id": "sig-ib-01",
+    "kind": "missing_instances",
+    "severity": "serious",
+    "dataset": "g_ib_waste_stream_analyst",
+    "table": "Carrier tracking is not connected",
+    "detail": "Truck positions and arrival times cannot be read. Arrival questions are declined; the manifest's expected arrival is answered instead.",
+    "action": "Never infer an arrival from an expected date or a mail.",
+    "detected": "2026-10-29"
+  },
+  {
+    "signal_id": "sig-ib-02",
+    "kind": "missing_instances",
+    "severity": "serious",
+    "dataset": "g_ib_waste_stream_analyst",
+    "table": "The laboratory information system is not connected",
+    "detail": "Only released results are in ops.profile_analytical. A result in progress at the laboratory is not visible and is not a result.",
+    "action": "Do not approve or classify on a pending result; say the result is not released.",
+    "detected": "2026-10-29"
+  },
+  {
+    "signal_id": "sig-ib-03",
+    "kind": "stale_source",
+    "severity": "warning",
+    "dataset": "ops.capacity_booking",
+    "table": "Port Terrell has no first-quarter 2027 plan",
+    "detail": "First-quarter plans are due from the plants by 20 November; Port Terrell has not submitted one, and its fourth quarter is 94% booked.",
+    "action": "Mark any first-quarter figure for Port Terrell as a repeat of the fourth quarter; never present it as a plan.",
+    "detected": "2026-10-10"
+  },
+  {
+    "signal_id": "sig-ib-04",
+    "kind": "shallow_chain",
+    "severity": "warning",
+    "dataset": "legacy.legacy_profile",
+    "table": "Legacy profiles not reviewed",
+    "detail": "578 Harbor Line and Tidewater profiles are in LegacyTrack with the acquired companies' prices; none has been reviewed by an Approval Chemist.",
+    "action": "Keep them marked legacy in every count; never count them as approved Ironbridge profiles.",
+    "detected": "2026-10-26"
+  },
+  {
+    "signal_id": "sig-ib-05",
+    "kind": "sampling_limit",
+    "severity": "warning",
+    "dataset": "ops.waste_profile",
+    "table": "Customer requirements are free text",
+    "detail": "customer_requirement is filled on 0.2% of profiles; for Halden the binding statement is QR-14 in Drive.",
+    "action": "Read the requirement from the document when the column is empty; never treat an empty column as no requirement.",
+    "detected": "2026-10-29"
+  }
+]

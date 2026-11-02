@@ -1,0 +1,217 @@
+{
+  "_meta": {
+    "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+    "tenant": "Ironbridge Environmental Services (fictional; the Waste Stream Analyst demo world)",
+    "dataset": "IRONBRIDGE",
+    "asOf": "2026-11-03",
+    "today": "2026-11-03",
+    "exported_from": "Composed by _build/submissions_waste.py from the datasets and the Goals layer (no prototype).",
+    "note": "The three ways a submission starts and the formats an author can describe. A described output has no template until the author saves its outline as one."
+  },
+  "origins": [
+    "recommendation",
+    "described",
+    "template"
+  ],
+  "formats": [
+    {
+      "key": "Slide pack",
+      "label": "Slide pack",
+      "icon": "slides",
+      "unit": "slide",
+      "goodFor": "A committee or a review: one idea per slide, figures large, the decision on its own slide.",
+      "skeleton": [
+        {
+          "heading": "Title and position in one line",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Decisions asked",
+          "role": "purpose",
+          "position": "end"
+        },
+        {
+          "heading": "Sources and as-of dates",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Dashboard",
+      "label": "Dashboard",
+      "icon": "dashboard",
+      "unit": "panel",
+      "goodFor": "Something people come back to: figures as tiles, one chart per question, exceptions as a list, every tile drilling to its rows.",
+      "skeleton": [
+        {
+          "heading": "Headline tiles",
+          "role": "summary",
+          "hint": "The three or four figures that say where things stand; each tile opens its rows.",
+          "position": "start"
+        },
+        {
+          "heading": "Open decisions",
+          "role": "purpose",
+          "position": "end"
+        },
+        {
+          "heading": "Data behind the panels",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Document",
+      "label": "Document",
+      "icon": "document",
+      "unit": "section",
+      "goodFor": "A report someone reads end to end: context, findings, options, recommendation, evidence.",
+      "skeleton": [
+        {
+          "heading": "Purpose and decision asked",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Summary",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence",
+          "position": "end"
+        },
+        {
+          "heading": "Assumptions and open items",
+          "role": "assumptions",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Memo",
+      "label": "Memo",
+      "icon": "memo",
+      "unit": "paragraph",
+      "goodFor": "One page to one reader: the ask first, the reasons, what happens next.",
+      "skeleton": [
+        {
+          "heading": "The ask",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "In short",
+          "role": "summary",
+          "position": "start"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Workbook",
+      "label": "Spreadsheet",
+      "icon": "sheet",
+      "unit": "sheet",
+      "goodFor": "Figures people will sort, filter and reconcile: one sheet per table, a cover that says what is in it.",
+      "skeleton": [
+        {
+          "heading": "Cover: what this workbook holds and as of when",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Sources per line",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    },
+    {
+      "key": "Email",
+      "label": "Email",
+      "icon": "email",
+      "unit": "paragraph",
+      "goodFor": "A message one person reads on a phone: the ask in the first line, three short paragraphs, the figures attached.",
+      "skeleton": [
+        {
+          "heading": "Subject and the ask in one line",
+          "role": "purpose",
+          "position": "start"
+        },
+        {
+          "heading": "Attachments and where the figures come from",
+          "role": "evidence",
+          "position": "end"
+        }
+      ]
+    }
+  ],
+  "example_briefs": [
+    {
+      "goalId": "g-halden-proposal",
+      "format": "Slide pack",
+      "description": "A slide pack for the Capacity Committee on 19 November. One slide with the proposal at a glance and the margin a year. One slide on the six streams and what they are. One slide on where each stream goes and the capacity behind it. One slide on the price, full cost and margin against the floor. One slide comparing our price per ton with competitor pricing for each stream. One slide on the Caldwell Bend second line and what it adds from 2028. Close with the decision asked, then the sources."
+    },
+    {
+      "goalId": "g-halden-proposal",
+      "format": "Dashboard",
+      "description": "A dashboard for Dana Whitfield. Headline tiles: quote a year, margin a year, margin against the floor and Granger first-quarter headroom. Revenue and full cost by stream. Where each stream goes. Booked against permitted for the units the quote uses. Acceptance of each stream."
+    },
+    {
+      "goalId": "g-halden-proposal",
+      "format": "Email",
+      "description": "An email to Priya Natarajan: the quote we propose and the margin a year in one line, why the QR-14 streams are quoted where they are, the open items and who closes them, and the pricing schedule attached."
+    },
+    {
+      "goalId": "g-rule-outlet-watch",
+      "format": "Slide pack",
+      "description": "A slide pack for Dana Whitfield's Thursday review: the 14 shipments without an outlet in the 4 November load, why they lost it, what the network can take, the three options with their cost, how the agent got there, and the timeline to the restart."
+    },
+    {
+      "goalId": "g-rule-outlet-watch",
+      "format": "Email",
+      "description": "An email to Walt Brennan, Jenna Fairbanks and Hector Ruiz: what we ask each of them to confirm, by Wednesday noon, and the re-route and outlet list attached."
+    },
+    {
+      "goalId": "g-rule-outlet-watch",
+      "format": "Workbook",
+      "description": "A spreadsheet for Hector Ruiz: every re-route with manifest, generator, tons, from unit, to unit, extra haul and new full cost, every outlet load with the outlet and its price, and the source for each line."
+    }
+  ],
+  "actions_on_a_draft": {
+    "share": "A link to the submission (hash route); for a dashboard the link opens the live view, not a copy.",
+    "download_by_format": {
+      "Slide pack": [
+        "PowerPoint (.pptx): title slide + one slide per section, text left, the section picture right"
+      ],
+      "Dashboard": [
+        "PDF (browser print of the dashboard only)",
+        "Image (PNG of the dashboard)"
+      ],
+      "Workbook": [
+        "CSV (all sheets)"
+      ],
+      "Document": [
+        "PDF",
+        "HTML page"
+      ],
+      "Memo": [
+        "PDF",
+        "HTML page"
+      ],
+      "Email": [
+        "HTML page"
+      ]
+    }
+  },
+  "live_dashboard": "A Dashboard is always live: a described dashboard opens on its panels at once (stage draft, no brief step), every panel is computed from the goal and the drill data when the page opens, the banner shows the data as-of date and a refresh time. Evidence is kept out of the panels and shown in the Data lineage drawer."
+}

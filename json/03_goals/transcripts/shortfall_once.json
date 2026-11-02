@@ -1,0 +1,647 @@
+{
+  "note": "The 14 stranded shipments asked as a one-off: no questions, five steps, four findings, option 2 (everything to third-party outlets) chosen.",
+  "journey": {
+    "id": "g-fourteen-shipments-in-the-4-november-ib46177d",
+    "mode": "once",
+    "kind": "once",
+    "case": "overrun-once",
+    "title": "Fourteen shipments in the 4 November load with no outlet before they arrive",
+    "agent": {
+      "name": "Agent Sentinel",
+      "icon": "experiment",
+      "colour": "#3b6e22"
+    },
+    "prompt": "14 inbound shipments in the 4 November load are booked for Port Terrell units that are down: what can still be done before the clocks run out?",
+    "files": [],
+    "stage": "running",
+    "status": "accepted",
+    "rv": [
+      "against",
+      "memory",
+      "watch",
+      "src:policy",
+      "src:ops",
+      "where",
+      "src:cal",
+      "until",
+      "steps"
+    ],
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "A permitted code is not an outlet without capacity · a hold leaves within ten days · an expired approval is not an outlet · nothing below 15%",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Waste_Acceptance_Policy_2025.pdf · Pricing_and_Margin_Policy_2026.pdf",
+        "res": "Outlets need capacity in the period · ten-day transfer · third-party approvals must be current · the floors and clause 9.2",
+        "rv": [
+          "watch",
+          "src:policy"
+        ]
+      },
+      {
+        "tool": "scan ops.manifest · ops.capacity_booking · ops.third_party_approval · fin.state_fee",
+        "res": "3,098 approved profiles · 554 open manifests · bookings by unit and week · approvals with expiry · fees from 1 November",
+        "rv": [
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "read the load calendar",
+        "res": "Profiles, manifests, bookings and the price book load nightly at 02:00. Next: tonight, Wednesday 4 November",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Port Terrell kiln down since 06:40 on 3 November · 14 inbound manifests booked to it · Meridian West approvals to 30 November · Illinois fee up $3.00",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {
+      "acc:W1": "1",
+      "acc:W2": "1",
+      "acc:W3": "1",
+      "acc:W4": "1"
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the load flagged, and size it",
+        "purpose": "Which shipments have lost their outlet, which approvals run out, which streams are under the floor, and by how much.",
+        "how": "Every open manifest against the bookings of its unit for the week it arrives; every approval against its expiry; every approved stream against the floor at the fees in force. Limited to what the load that fired the rule changed.",
+        "draws": [
+          "ops.manifest",
+          "ops.capacity_booking",
+          "ops.third_party_approval",
+          "fin.state_fee"
+        ],
+        "check": "Every flagged position recomputes from the bookings, the approvals and the price book."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone is on it",
+        "purpose": "Is this new, and is someone already handling it.",
+        "how": "The outage notice, the fee change, the approval expiry, and what the plant managers, the service centers and transport have said.",
+        "draws": [
+          "Port_Terrell_Outage_Notice_2026-11-03.pdf",
+          "Gmail: outage, outlets, pricing (F1, F2, F3, B1)",
+          "fin.state_fee"
+        ],
+        "check": "Every cause is dated and sourced."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Look across the network: headroom, holds, outlets, clauses",
+        "purpose": "What the rest of the network can take, what can wait, and what the contracts allow.",
+        "how": "For each shipment: units with the codes on their permit and headroom in the week, the extra cost on the rate card, the ten-day clock at the service center, the approved third-party outlets; for each stream under the floor, the pass-through clause.",
+        "draws": [
+          "ops.capacity_booking (all units)",
+          "ops.facility_permit_code",
+          "fin.transport_lane",
+          "ops.transfer_hold",
+          "Gmail: plants and transport (R1, R2)"
+        ],
+        "check": "No unit is loaded past its headroom; no hold runs past its tenth day."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with what it costs and what it protects, checked against open goals.",
+        "how": "Each option with its cost, the shipments it covers, the revenue it protects, who has to agree, and an honest statement where a load can simply wait; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Halden Biopharma proposal",
+          "Pricing_and_Margin_Policy_2026.pdf"
+        ],
+        "check": "Every option states what it costs and what it covers."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Notice to the people you chose",
+        "purpose": "One page, sent without waiting for you.",
+        "how": "The shipments, why they lost their outlet, what the network holds, the options and the moves; on the re-route notice template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: re-route notice"
+        ],
+        "check": "Every figure in the notice links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "done",
+        "at": "14:27",
+        "text": "Done · 18 flagged · 14 stranded",
+        "caveat": true
+      },
+      "w2": {
+        "state": "done",
+        "at": "14:27",
+        "text": "Done · 3 causes"
+      },
+      "w3": {
+        "state": "done",
+        "at": "14:27",
+        "text": "Done · 9 to Granger, 1 to Northstar",
+        "caveat": true
+      },
+      "w4": {
+        "state": "done",
+        "at": "14:27",
+        "text": "Done · 3 options"
+      },
+      "w5": {
+        "state": "done",
+        "at": "14:27",
+        "text": "Done · notice sent"
+      }
+    },
+    "findings": [
+      "W1",
+      "W2",
+      "W3",
+      "W4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee",
+        "summary": "Walt Brennan confirms the Granger slots for weeks 45 and 46, Hector Ruiz books the trucks from Thursday, Jenna Fairbanks holds the two loads whose clocks reach 15 November, Carla Dimitriou moves the two Meridian West profiles to Granger, and the account managers bill the Illinois fee on the next Riverbend invoices under clause 9.2.",
+        "figures": [
+          {
+            "label": "Extra cost",
+            "value": "$60.9k less $23.9k",
+            "tone": "good"
+          },
+          {
+            "label": "Positions covered",
+            "value": "all 18",
+            "tone": "good"
+          },
+          {
+            "label": "Ten-day clocks",
+            "value": "all kept",
+            "tone": "good"
+          },
+          {
+            "label": "Third-party",
+            "value": "1 load",
+            "tone": null
+          }
+        ],
+        "tradeoff": "Granger runs close to its organic-liquids headroom for two weeks, and the two held loads depend on the kiln being back on 15 November as estimated.",
+        "preferred": false,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The rule fired: 18 positions need a decision after the Port Terrell kiln went down. What can still be done?"
+          },
+          {
+            "kind": "read",
+            "text": "Read every open manifest against the outage weeks and every hold against its clock.",
+            "figure": "14 stranded",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "The kiln failed on 3 November; two approvals and two floor positions were already flagged.",
+            "figure": "feed on 15 November",
+            "ref": {
+              "doc": "DOC:ptr-outage"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: a permitted code is not an outlet without capacity; a hold leaves within ten days.",
+            "ref": {
+              "doc": "DOC:acceptance-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Granger's headroom covers most of it; Northstar the organic liquids beyond it.",
+            "figure": "9 to Granger",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "The overflow streams cost less at Granger than at Meridian West.",
+            "ref": {
+              "thread": "F3"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Move what the network can take, hold what can wait, bring the overflow home, and bill the fee."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Send everything stranded to third-party outlets",
+        "summary": "Leave Granger's bookings as they are and send the stranded shipments to Northstar Thermal and Meridian West at their outlet cost.",
+        "figures": [
+          {
+            "label": "Cost",
+            "value": "$241.9k",
+            "tone": "warn"
+          },
+          {
+            "label": "Cannot go",
+            "value": "8 shipments",
+            "tone": "crit"
+          },
+          {
+            "label": "Negative margin",
+            "value": "6 shipments",
+            "tone": "crit"
+          },
+          {
+            "label": "Meridian West",
+            "value": "expires 30 November",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Keeps Granger's headroom, but the aqueous loads with a destruction requirement have no outlet outside the network, six shipments go negative, and Meridian West's approvals end this month.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the outlets take it all?"
+          },
+          {
+            "kind": "read",
+            "text": "No outlet takes the aqueous loads with a certificate of destruction.",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only as a fallback if Granger will not confirm the slots."
+          }
+        ],
+        "preferred": true
+      },
+      {
+        "id": "r3",
+        "title": "Ask the generators to hold their shipments until 16 November",
+        "summary": "Hold every inbound load at the generator or on the pad until the kiln is back; nothing moves.",
+        "figures": [
+          {
+            "label": "Revenue deferred",
+            "value": "$0.71M",
+            "tone": "crit"
+          },
+          {
+            "label": "Clocks breached",
+            "value": "6",
+            "tone": "crit"
+          },
+          {
+            "label": "Cost",
+            "value": "$0",
+            "tone": "good"
+          },
+          {
+            "label": "Customers",
+            "value": "two with pickup windows",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Costs nothing in haul, but breaches six ten-day clocks at Galena Shores, defers the revenue, and two generators have contractual pickup windows this week.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could everything just wait?"
+          },
+          {
+            "kind": "read",
+            "text": "The first clock runs out on 11 November.",
+            "ref": {
+              "thread": "F2"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only for the loads whose clock reaches the restart."
+          }
+        ],
+        "preferred": false
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-reroute-notice",
+        "label": "Re-route notice: the 4 November load",
+        "audience": "Dana Whitfield, Walt Brennan, Elena Vasquez, Jenna Fairbanks, Hector Ruiz, Carla Dimitriou and Raj Mehta",
+        "purpose": "Confirm the Granger slots, book the trucks and hold the two loads so every stranded shipment has an outlet before its clock runs out",
+        "template": "Technical Solutions: re-route notice",
+        "templateId": "t-ts-reroute-notice",
+        "why": "The slots need Walt Brennan to confirm and the trucks need Hector Ruiz by Wednesday noon so the first loads roll Thursday."
+      },
+      {
+        "id": "sub-reroute-list",
+        "label": "Re-route and outlet list: Port Terrell outage",
+        "audience": "Hector Ruiz, Walt Brennan and the Galena Shores service center",
+        "purpose": "Each shipment with its new destination, tons, the extra cost on the rate card and the date it must leave",
+        "template": "Technical Solutions: re-route and outlet list",
+        "templateId": "t-ts-reroute-list",
+        "why": "Hector books the trucks and Walt confirms the slots from it."
+      }
+    ],
+    "started": [],
+    "gaps": [
+      "Whether Walt Brennan confirms the Granger slots before the trucks are booked on Wednesday noon.",
+      "Whether the kiln is back on feed on 15 November as estimated; the two held loads depend on it.",
+      "Carrier tracking is not connected: arrivals rest on the manifests' expected dates."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "14 inbound shipments in the 4 November load are booked for Port Terrell units that are down: what can still be done before the clocks run out?",
+        "id": "j1-ib98dcb0",
+        "at": "14:27"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "search role memory",
+              "res": "A permitted code is not an outlet without capacity · a hold leaves within ten days · an expired approval is not an outlet · nothing below 15%",
+              "live": false
+            },
+            {
+              "tool": "read Waste_Acceptance_Policy_2025.pdf · Pricing_and_Margin_Policy_2026.pdf",
+              "res": "Outlets need capacity in the period · ten-day transfer · third-party approvals must be current · the floors and clause 9.2",
+              "live": false
+            },
+            {
+              "tool": "scan ops.manifest · ops.capacity_booking · ops.third_party_approval · fin.state_fee",
+              "res": "3,098 approved profiles · 554 open manifests · bookings by unit and week · approvals with expiry · fees from 1 November",
+              "live": false
+            },
+            {
+              "tool": "read the load calendar",
+              "res": "Profiles, manifests, bookings and the price book load nightly at 02:00. Next: tonight, Wednesday 4 November",
+              "live": false
+            },
+            {
+              "tool": "read the latest position",
+              "res": "Port Terrell kiln down since 06:40 on 3 November · 14 inbound manifests booked to it · Meridian West approvals to 30 November · Illinois fee up $3.00",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "5 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j2-ib2bc6e2",
+        "at": "14:27"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it.",
+        "id": "j3-ib96eecf",
+        "at": "14:27"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+        "id": "j4-iba3b6d7",
+        "at": "14:27"
+      },
+      {
+        "who": "me",
+        "text": "Agree and run",
+        "id": "j5-ib0f2321",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Plan agreed · v1 · 14:27",
+        "id": "j6-ibcc9fb3",
+        "at": "14:27"
+      },
+      {
+        "who": "agent",
+        "text": "Agreed, v1. Running the five steps on the 14 shipments now; findings land as each one finishes.",
+        "id": "j7-ib7998d9",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · 18 positions · 14 shipments (911 tons, $0.71M) with no outlet · 6 on the pad at Galena Shores",
+        "id": "j8-ibf0276a",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · six shipments on the pad at Galena Shores; the first clock runs out on 11 November",
+        "id": "j9-ib2beeae",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · the kiln failed at 06:40 on 3 November; the approvals and the floor positions were already flagged",
+        "id": "j10-ibfa5660",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · Granger takes 9 within its headroom, Northstar 1, 2 wait on the pad, 2 stay booked",
+        "id": "j11-ib9f1c4d",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · three options; re-route, hold and bring the overflow home preferred, $60.9k less $23.9k saved",
+        "id": "j12-ib055938",
+        "at": "14:27"
+      },
+      {
+        "who": "event",
+        "text": "Notice sent · waits for your review · 14:28",
+        "id": "j13-ib01adf8",
+        "at": "14:28"
+      },
+      {
+        "who": "agent",
+        "text": "Done, and the notice is out to you. **Fourteen shipments, 911 tons and $0.71M of revenue, are booked for Port Terrell units that are down to 14 November; six are on the pad at Galena Shores and the first clock runs out on 11 November.** Two Meridian West approvals expire on 30 November, and two Riverbend streams fell under the floor when the Illinois fee rose.\n\nI recommend **re-routing 9 shipments to Granger and 1 to Northstar, holding 2 on the pad inside their clocks, bringing the overflow streams home to Granger and billing the fee under clause 9.2**, for $60.9k of extra haul and outlet cost less $23.9k saved, which keeps every clock and every ton of revenue. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+        "card": {
+          "kind": "note"
+        },
+        "id": "j14-ib20d027",
+        "at": "14:28"
+      },
+      {
+        "who": "me",
+        "text": "Accept all findings",
+        "id": "j15-ib46dab9",
+        "at": "14:28"
+      },
+      {
+        "who": "agent",
+        "text": "All 4 findings accepted. Next, the decision: 3 ways forward, and I prefer option 1. \"Why this\" plays how I got there.",
+        "card": {
+          "kind": "decision"
+        },
+        "id": "j16-ib2205a4",
+        "at": "14:28"
+      },
+      {
+        "who": "me",
+        "text": "Choose option 2",
+        "id": "j17-ib54b3cd",
+        "at": "14:28"
+      },
+      {
+        "who": "event",
+        "text": "Recommendation chosen · 14:28",
+        "id": "j18-ib9b978b",
+        "at": "14:28"
+      },
+      {
+        "who": "event",
+        "text": "Executed · decision recorded · 14:28",
+        "id": "j19-ibd440b2",
+        "at": "14:28"
+      },
+      {
+        "who": "agent",
+        "text": "Recorded. **Send everything stranded to third-party outlets.** The notice and the list are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+        "card": {
+          "kind": "send"
+        },
+        "id": "j20-ib39c591",
+        "at": "14:28"
+      }
+    ],
+    "chips": [
+      "Build the notice in Submissions",
+      "Save this plan",
+      "Make it standing"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Steer the run in plain words…"
+    },
+    "log": [
+      {
+        "t": "14:27",
+        "who": "You",
+        "what": "Agreed the plan (v1) and started the run."
+      },
+      {
+        "t": "14:27",
+        "who": "Agent Sentinel",
+        "what": "Step 1 done · 18 positions · 14 shipments (911 tons, $0.71M) with no outlet · 6 on the pad at Galena Shores"
+      },
+      {
+        "t": "14:27",
+        "who": "Agent Sentinel",
+        "what": "Step 2 done · the kiln failed at 06:40 on 3 November; the approvals and the floor positions were already flagged"
+      },
+      {
+        "t": "14:27",
+        "who": "Agent Sentinel",
+        "what": "Step 3 done · Granger takes 9 within its headroom, Northstar 1, 2 wait on the pad, 2 stay booked"
+      },
+      {
+        "t": "14:27",
+        "who": "Agent Sentinel",
+        "what": "Step 4 done · three options; re-route, hold and bring the overflow home preferred, $60.9k less $23.9k saved"
+      },
+      {
+        "t": "14:28",
+        "who": "Agent Sentinel",
+        "what": "Re-route notice sent to you. Waiting for you under Needs you."
+      },
+      {
+        "t": "14:28",
+        "who": "You",
+        "what": "Accepted findings 1, 2, 3, 4."
+      },
+      {
+        "t": "14:28",
+        "who": "You",
+        "what": "Chose the recommendation: Send everything stranded to third-party outlets"
+      }
+    ],
+    "runs": [],
+    "flags": {},
+    "doneCount": 5,
+    "paused": false,
+    "agreedAt": "14:27",
+    "prevStatus": "running",
+    "chosen": "r2",
+    "executedAt": "14:28"
+  }
+}

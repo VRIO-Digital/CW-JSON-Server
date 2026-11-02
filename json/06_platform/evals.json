@@ -1,0 +1,142 @@
+{
+  "stats": [
+    {
+      "label": "Suites",
+      "value": "6",
+      "note": "all derived from package artifacts"
+    },
+    {
+      "label": "Hero questions answerable",
+      "value": "4 of 5",
+      "note": "graph sanity checks",
+      "tone": "warn"
+    },
+    {
+      "label": "High-confidence answers",
+      "value": "44 of 49",
+      "note": "5 medium, 0 low"
+    },
+    {
+      "label": "Must-review graph items",
+      "value": "8",
+      "note": "0 resolved · 1 pivot",
+      "tone": "crit"
+    }
+  ],
+  "runs": [
+    {
+      "suite": "hero-question-answerability",
+      "target": "g_ib_waste_stream_analyst · 5 checks",
+      "checks": 5,
+      "pass_rate": 80,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-24"
+    },
+    {
+      "suite": "answer-confidence",
+      "target": "query set · 49 questions",
+      "checks": 49,
+      "pass_rate": 89.8,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-24"
+    },
+    {
+      "suite": "refusal-correctness",
+      "target": "10 declines",
+      "checks": 10,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-24"
+    },
+    {
+      "suite": "statement-not-promoted",
+      "target": "permits, plans, outlet letters, outage estimates, working notes",
+      "checks": 7,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-24"
+    },
+    {
+      "suite": "citation-validity",
+      "target": "134 citations",
+      "checks": 134,
+      "pass_rate": 100,
+      "status": "Passed",
+      "tone": "good",
+      "ran_at": "2026-10-24"
+    },
+    {
+      "suite": "invoice-reconciliation",
+      "target": "third-quarter invoice lines vs profile prices and receipts",
+      "checks": 12,
+      "pass_rate": 91.7,
+      "status": "Degraded",
+      "tone": "warn",
+      "ran_at": "2026-10-24"
+    }
+  ],
+  "checks": [
+    {
+      "name": "sc1 · What is booked against the capacity of each incineration unit, and what headroom is left in November?",
+      "dataset": "g_ib_waste_stream_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - from the bookings, week by week"
+    },
+    {
+      "name": "sc2 · What would the six Halden streams earn a year by route, at the price book, on full cost?",
+      "dataset": "g_ib_waste_stream_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - full cost at every permitted route, price book, margin floor"
+    },
+    {
+      "name": "sc3 · What does the Port Terrell outage strand, and where can each shipment go?",
+      "dataset": "g_ib_waste_stream_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - open manifests against the outage weeks and the other units' headroom"
+    },
+    {
+      "name": "sc4 · Which of the six Halden streams meet the destruction requirement at which units, and which outlets are ruled out by it?",
+      "dataset": "g_ib_waste_stream_analyst",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "Answerable - the requirement binds the routing"
+    },
+    {
+      "name": "sc5 · Where is the Halford Retail Services tanker right now?",
+      "dataset": "g_ib_waste_stream_analyst",
+      "result": "Refused",
+      "tone": "crit",
+      "detail": "Declined - the position source is not connected"
+    },
+    {
+      "name": "A permitted code not read as an outlet",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq1 held; outlets need capacity in the period and the requirement met"
+    },
+    {
+      "name": "Deep well not read as destruction",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq2 held; QR-14 rules out the deep well route for the process water"
+    },
+    {
+      "name": "Port Terrell's fourth quarter not read as its first-quarter plan",
+      "dataset": "review queue",
+      "result": "Passed",
+      "tone": "good",
+      "detail": "rq3 held; the first quarter stays unconfirmed"
+    }
+  ],
+  "run_trigger": "On graph build and on query-set regeneration",
+  "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (Illinois fee billed from 1 November on a contract without clause 9.2) open with the account manager"
+}

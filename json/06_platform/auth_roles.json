@@ -1,0 +1,22 @@
+[
+  {
+    "role_id": "business_user_exec",
+    "label": "Business User -- Executive",
+    "access_note": "All businesses, all facilities, all prices and costs."
+  },
+  {
+    "role_id": "analyst",
+    "label": "Data Analyst",
+    "access_note": "All facilities and revenue. Account manager and quote owner names masked (PII)."
+  },
+  {
+    "role_id": "architect",
+    "label": "Domain Architect",
+    "access_note": "Everything, at every grain, including cost rates and quoted prices."
+  },
+  {
+    "role_id": "admin",
+    "label": "Platform Admin",
+    "access_note": "Structure, lineage, cost and access. No prices or revenue."
+  }
+]

@@ -1,0 +1,2962 @@
+{
+  "new_role": {
+    "_meta": {
+      "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+      "tenant": "Ironbridge Environmental Services (fictional; the Waste Stream Analyst demo world)",
+      "dataset": "IRONBRIDGE",
+      "asOf": "2026-11-03",
+      "today": "2026-11-03",
+      "exported_from": "Composed by _build/build_new_role.py (no prototype).",
+      "note": "What the New Role wizard offers before the graph pools (graph_personas, graph_metrics, graph_hero_questions) take over. The first screen is \"Add a new role\": no role cards. Six steps; every drafted step waits as model work does. No agent is named anywhere in New Role. The key \"utilities\" keeps the app's name; here it lists the businesses. In discovery, found[].projects carries the approved profiles of each business and approvedB its FY26 revenue plan in $B (keys kept for the app)."
+    },
+    "first_screen": {
+      "heading": "Add a new role",
+      "role_cards": false,
+      "note": "Pick a role, then an industry; the businesses the role covers are found by reading the connected data."
+    },
+    "steps": [
+      {
+        "n": 1,
+        "key": "role",
+        "label": "Role",
+        "fields": [
+          "role",
+          "industry",
+          "businesses (found in the connected data, then selected)",
+          "reports to (any email address)",
+          "role name (filled from role and businesses, editable)"
+        ],
+        "wait_ms": {
+          "per_discovery_line": 850
+        }
+      },
+      {
+        "n": 2,
+        "key": "responsibilities",
+        "label": "Responsibilities",
+        "fields": [
+          "responsibilities with their tasks (keep, take out with a reason, open to change tasks)",
+          "optional job description: suggested changes to accept or dismiss"
+        ],
+        "wait_ms": {
+          "draft": 2600,
+          "job_description": 3200
+        },
+        "draft_stages": [
+          "Read the role library",
+          "Read the businesses and their facilities",
+          "Draft responsibilities and tasks"
+        ],
+        "jd_stages": [
+          "Read the job description",
+          "Compare it with the drafted responsibilities",
+          "Suggest changes"
+        ],
+        "out_reasons": [
+          "Done by another team",
+          "Not something we do here",
+          "Later, not now"
+        ]
+      },
+      {
+        "n": 3,
+        "key": "sources",
+        "label": "Sources",
+        "fields": [
+          "the connected sources (projects, drives, mailbox) as in New Graph; in the live demo they come from the connected environment"
+        ]
+      },
+      {
+        "n": 4,
+        "key": "personas",
+        "label": "Personas",
+        "endpoint": "POST /graph-personas/suggest",
+        "wait_ms": {
+          "suggest": 2200
+        },
+        "pool": "graph_personas"
+      },
+      {
+        "n": 5,
+        "key": "metrics",
+        "label": "Metrics",
+        "endpoint": "POST /graph-metrics/suggest",
+        "wait_ms": {
+          "suggest": 2400
+        },
+        "pool": "graph_metrics",
+        "note": "Offered for the personas kept, each with a \"Matters to\" line; every kept metric shows its SQL."
+      },
+      {
+        "n": 6,
+        "key": "hero_questions",
+        "label": "Hero questions",
+        "endpoint": "POST /graph-questions/suggest and POST /graph-questions/sql",
+        "wait_ms": {
+          "suggest": 2400,
+          "sql": 700
+        },
+        "pool": "graph_hero_questions"
+      }
+    ],
+    "on_save": "Save and build graph commits the role (graph_use_cases, status committed) and opens it in Graph Studio on Build.",
+    "industries": [
+      {
+        "id": "hazwaste",
+        "name": "Hazardous waste management",
+        "note": "Treatment, incineration, disposal and recycling of regulated waste"
+      },
+      {
+        "id": "incineration",
+        "name": "Incineration and thermal treatment",
+        "note": "Rotary kiln and liquid injection incineration"
+      },
+      {
+        "id": "deepwell",
+        "name": "Deep well injection and energy waste",
+        "note": "Class I injection wells with aqueous pre-treatment"
+      },
+      {
+        "id": "recycling",
+        "name": "Solvent recycling and fuel blending",
+        "note": "Solvent recovery and waste-derived fuel"
+      },
+      {
+        "id": "msw",
+        "name": "Municipal solid waste",
+        "note": "Collection routes, transfer stations and municipal landfills"
+      }
+    ],
+    "discovery": {
+      "hazwaste": {
+        "steps": [
+          "Reading ops.facility in the operations data: 13 facilities, 3 business codes",
+          "Matching business codes to the three businesses: Midwest, Gulf and East, with their service centers",
+          "Reading the states, permits and fees for each one",
+          "Counting approved profiles in ops.waste_profile and the FY26 plan in fin.revenue_plan"
+        ],
+        "found": [
+          {
+            "code": "MID",
+            "name": "Ironbridge Midwest",
+            "region": "Indiana, Illinois, Ohio and Michigan",
+            "commission": "State hazardous waste programs under federal authorization; Indiana, Illinois and Ohio disposal fees",
+            "projects": 1749,
+            "approvedB": 0.162,
+            "sites": 5,
+            "preselect": true
+          },
+          {
+            "code": "GLF",
+            "name": "Ironbridge Gulf",
+            "region": "Texas and Louisiana",
+            "commission": "State hazardous waste programs; the Texas disposal fee; the deep well no-migration petition",
+            "projects": 742,
+            "approvedB": 0.075,
+            "sites": 4,
+            "preselect": true
+          },
+          {
+            "code": "EAS",
+            "name": "Ironbridge East",
+            "region": "New Jersey, Massachusetts, Virginia and Pennsylvania",
+            "commission": "State hazardous waste programs; the Tidewater permit renewal due 18 December",
+            "projects": 571,
+            "approvedB": 0.028,
+            "sites": 4,
+            "preselect": true
+          }
+        ]
+      },
+      "incineration": {
+        "steps": [
+          "Reading ops.facility in the operations data: 13 facilities, 3 business codes",
+          "Keeping the businesses with an incineration unit: Midwest (Granger) and Gulf (Port Terrell)"
+        ],
+        "found": [
+          {
+            "code": "MID",
+            "name": "Ironbridge Midwest",
+            "region": "Indiana, Illinois, Ohio and Michigan",
+            "commission": "State hazardous waste programs under federal authorization; Indiana, Illinois and Ohio disposal fees",
+            "projects": 1749,
+            "approvedB": 0.162,
+            "sites": 5,
+            "preselect": true
+          },
+          {
+            "code": "GLF",
+            "name": "Ironbridge Gulf",
+            "region": "Texas and Louisiana",
+            "commission": "State hazardous waste programs; the Texas disposal fee; the deep well no-migration petition",
+            "projects": 742,
+            "approvedB": 0.075,
+            "sites": 4,
+            "preselect": true
+          },
+          {
+            "code": "EAS",
+            "name": "Ironbridge East",
+            "region": "New Jersey, Massachusetts, Virginia and Pennsylvania",
+            "commission": "State hazardous waste programs; the Tidewater permit renewal due 18 December",
+            "projects": 571,
+            "approvedB": 0.028,
+            "sites": 4,
+            "preselect": false
+          }
+        ]
+      },
+      "deepwell": {
+        "steps": [
+          "Reading ops.facility in the operations data: 13 facilities, 3 business codes",
+          "Keeping the business with a Class I injection well: Gulf (Bayou Verde)"
+        ],
+        "found": [
+          {
+            "code": "GLF",
+            "name": "Ironbridge Gulf",
+            "region": "Texas and Louisiana",
+            "commission": "State hazardous waste programs; the Texas disposal fee; the deep well no-migration petition",
+            "projects": 742,
+            "approvedB": 0.075,
+            "sites": 4,
+            "preselect": true
+          },
+          {
+            "code": "MID",
+            "name": "Ironbridge Midwest",
+            "region": "Indiana, Illinois, Ohio and Michigan",
+            "commission": "State hazardous waste programs under federal authorization; Indiana, Illinois and Ohio disposal fees",
+            "projects": 1749,
+            "approvedB": 0.162,
+            "sites": 5,
+            "preselect": false
+          },
+          {
+            "code": "EAS",
+            "name": "Ironbridge East",
+            "region": "New Jersey, Massachusetts, Virginia and Pennsylvania",
+            "commission": "State hazardous waste programs; the Tidewater permit renewal due 18 December",
+            "projects": 571,
+            "approvedB": 0.028,
+            "sites": 4,
+            "preselect": false
+          }
+        ]
+      },
+      "recycling": {
+        "steps": [
+          "Reading ops.facility in the operations data: 13 facilities, 3 business codes",
+          "Keeping the businesses with solvent recovery or fuel blending: Midwest (Fox Hollow) and East (Tidewater, Halesworth)"
+        ],
+        "found": [
+          {
+            "code": "MID",
+            "name": "Ironbridge Midwest",
+            "region": "Indiana, Illinois, Ohio and Michigan",
+            "commission": "State hazardous waste programs under federal authorization; Indiana, Illinois and Ohio disposal fees",
+            "projects": 1749,
+            "approvedB": 0.162,
+            "sites": 5,
+            "preselect": true
+          },
+          {
+            "code": "EAS",
+            "name": "Ironbridge East",
+            "region": "New Jersey, Massachusetts, Virginia and Pennsylvania",
+            "commission": "State hazardous waste programs; the Tidewater permit renewal due 18 December",
+            "projects": 571,
+            "approvedB": 0.028,
+            "sites": 4,
+            "preselect": true
+          },
+          {
+            "code": "GLF",
+            "name": "Ironbridge Gulf",
+            "region": "Texas and Louisiana",
+            "commission": "State hazardous waste programs; the Texas disposal fee; the deep well no-migration petition",
+            "projects": 742,
+            "approvedB": 0.075,
+            "sites": 4,
+            "preselect": false
+          }
+        ]
+      },
+      "msw": {
+        "steps": [
+          "Reading ops.facility in the operations data: 13 facilities, 3 business codes",
+          "Looking for collection routes, transfer stations and municipal landfills"
+        ],
+        "found": [],
+        "none": "No municipal waste operations in the connected data. Ironbridge treats, incinerates, recycles and disposes of regulated waste from industrial generators. A municipal collection company would bring its own routes, transfer stations and tonnage contracts; connect its systems first, or pick Hazardous waste management."
+      }
+    },
+    "domain_of_role": {
+      "wsa": "waste-stream",
+      "ca": "compliance-permits",
+      "pa": "pricing-margin",
+      "lp": "waste-stream"
+    },
+    "roles": [
+      {
+        "id": "wsa",
+        "name": "Waste Stream Analyst",
+        "deep": true,
+        "blurb": "Characterises new waste streams, finds the unit in the network that can take each one under its permit, its capacity and the customer requirement, prices it on full cost against the floors, and keeps every accepted stream with an outlet.",
+        "defaults": {
+          "reportsTo": "whitfield",
+          "worksFor": [
+            "whitfield",
+            "natarajan",
+            "oyelaran",
+            "mehta"
+          ]
+        },
+        "areas": [
+          {
+            "id": "classify",
+            "name": "Characterise and classify",
+            "what": "Reads each new profile against its released results, the codes and the treatment standard, and says what the stream is before anyone prices it.",
+            "tasks": [
+              "Check the profile against released laboratory results and flag what the generator did not say",
+              "Assign federal, state and land disposal codes and the treatment standard",
+              "Read customer requirements that bind the routing",
+              "Return incomplete profiles to the generator with the questions",
+              "Keep approved profiles current before they expire"
+            ]
+          },
+          {
+            "id": "exposure",
+            "name": "Size the exposure",
+            "what": "Puts a number on what a stream, a contract or an event is worth and what it puts at risk.",
+            "tasks": [
+              "Size tons a year and revenue a year for each new generator",
+              "Size what an outage, an expiring approval or a permit decision strands",
+              "Track the revenue riding on profiles that expire in 90 days"
+            ]
+          },
+          {
+            "id": "route",
+            "name": "Route in the network",
+            "what": "Finds the unit that can take a stream under its permit, its capacity in the period and the customer requirement, and names the fallback.",
+            "tasks": [
+              "Match each stream to the permitted units and rule out the ones without capacity in the period",
+              "Name the alternative unit and the third-party outlet for every stream",
+              "Check halogen, mercury and reactive limits before fuel blending or the kiln",
+              "Keep the ten-day transfer clock at the service centers"
+            ]
+          },
+          {
+            "id": "price",
+            "name": "Price the economics",
+            "what": "Costs every route on full cost and prices the stream from the book against the floors.",
+            "tasks": [
+              "Cost treatment, handling, transport and the state fee on the route the stream will take",
+              "Price from the 2026 book and test the 28% contract floor and the 15% stream floor",
+              "Re-price when a fee rises and check the pass-through clause",
+              "Compare quotes with the book and explain the exceptions"
+            ]
+          },
+          {
+            "id": "watch",
+            "name": "Keep watching",
+            "what": "Checks every nightly load so a stream never loses its outlet or falls under the floor without someone knowing.",
+            "tasks": [
+              "Check manifests, bookings, approvals and the price book after every 02:00 load",
+              "Look across the network before a third-party outlet is booked",
+              "Flag approvals and permits coming up for decision"
+            ]
+          },
+          {
+            "id": "submit",
+            "name": "Submissions",
+            "what": "Turns the above into the acceptance memo, the quote, the pricing schedule, the re-route notice and the committee paper.",
+            "tasks": [
+              "Draft the acceptance memo and the quote letter for each new generator",
+              "Build the pricing schedule in the approved structure",
+              "Draft the re-route notice when shipments lose their outlet",
+              "Prepare the quarterly Capacity Committee pack"
+            ]
+          }
+        ],
+        "concepts": {
+          "generator": {
+            "name": "Generator",
+            "desc": "A customer site that produces waste; one company can hold several.",
+            "data": [
+              "d_generator"
+            ]
+          },
+          "profile": {
+            "name": "Waste profile",
+            "desc": "A stream a generator sends: form, codes, tons a year, requirement, price, approved route.",
+            "data": [
+              "d_profile",
+              "d_legacy"
+            ]
+          },
+          "result": {
+            "name": "Laboratory result",
+            "desc": "A released analytical result for a profile: halogens, BTU, pH, flash point, metals.",
+            "data": [
+              "d_analytical"
+            ]
+          },
+          "code": {
+            "name": "Waste code",
+            "desc": "A federal or state hazardous waste code with its treatment standard.",
+            "data": [
+              "d_permit_code"
+            ]
+          },
+          "unit": {
+            "name": "Process unit",
+            "desc": "A permitted process at a facility with tons a year, a cost a ton and its limits.",
+            "data": [
+              "d_unit",
+              "d_facility"
+            ]
+          },
+          "permit": {
+            "name": "Permit condition",
+            "desc": "What a facility permit allows and limits: codes, feed rates, halogens.",
+            "data": [
+              "d_permit_code",
+              "d_permit_docs"
+            ]
+          },
+          "booking": {
+            "name": "Capacity booking",
+            "desc": "Tons booked to a unit in a week against its capacity.",
+            "data": [
+              "d_booking"
+            ]
+          },
+          "manifest": {
+            "name": "Manifest",
+            "desc": "A shipment from a generator to a facility, through a service center or direct.",
+            "data": [
+              "d_manifest",
+              "d_hold"
+            ]
+          },
+          "hold": {
+            "name": "Transfer hold",
+            "desc": "A shipment on the pad at a service center with its ten-day clock.",
+            "data": [
+              "d_hold"
+            ]
+          },
+          "outlet": {
+            "name": "Third-party outlet",
+            "desc": "A facility outside the network with an approval per profile and an expiry.",
+            "data": [
+              "d_outlet",
+              "d_tp_approval"
+            ]
+          },
+          "price": {
+            "name": "Price book",
+            "desc": "The 2026 price a ton by process.",
+            "data": [
+              "d_price_book"
+            ]
+          },
+          "cost": {
+            "name": "Full cost",
+            "desc": "Treatment, handling, transport lane and state fee on the route a stream takes.",
+            "data": [
+              "d_treatment_cost",
+              "d_lane",
+              "d_fee"
+            ]
+          },
+          "quote": {
+            "name": "Quote",
+            "desc": "A priced proposal to a generator with its lines and its due date.",
+            "data": [
+              "d_quote"
+            ]
+          },
+          "invoice": {
+            "name": "Invoice line",
+            "desc": "What was billed for a shipment.",
+            "data": [
+              "d_invoice"
+            ]
+          },
+          "plan": {
+            "name": "Revenue plan",
+            "desc": "The FY26 revenue plan by business and month.",
+            "data": [
+              "d_plan"
+            ]
+          },
+          "requirement": {
+            "name": "Customer requirement",
+            "desc": "A generator condition that binds the routing, such as destruction with a certificate.",
+            "data": [
+              "d_halden_docs"
+            ]
+          },
+          "policy": {
+            "name": "Policy",
+            "desc": "The acceptance policy, the pricing and margin policy and the committee decisions.",
+            "data": [
+              "d_policy_docs"
+            ]
+          },
+          "statement": {
+            "name": "Outlet or facility statement",
+            "desc": "An outage notice, an approval letter, a renewal: quoted, never counted as capacity.",
+            "data": [
+              "d_outlet_docs",
+              "d_mail"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "m1",
+            "area": "classify",
+            "name": "Profiles pending approval",
+            "def": "Profiles received and not yet approved, by age and by what they wait on",
+            "unit": "count",
+            "cadence": "Daily",
+            "threshold": "Any older than 15 days",
+            "concepts": [
+              "profile",
+              "result"
+            ]
+          },
+          {
+            "id": "m2",
+            "area": "classify",
+            "name": "Result release lag",
+            "def": "Days from sample receipt to released result",
+            "unit": "days",
+            "cadence": "Weekly",
+            "threshold": "Above 7",
+            "concepts": [
+              "result"
+            ]
+          },
+          {
+            "id": "m3",
+            "area": "classify",
+            "name": "Approval cycle time",
+            "def": "Days from profile receipt to approval",
+            "unit": "days",
+            "cadence": "Monthly",
+            "threshold": "Median above 10",
+            "concepts": [
+              "profile"
+            ]
+          },
+          {
+            "id": "m4",
+            "area": "classify",
+            "name": "Profiles expiring in 90 days",
+            "def": "Approved profiles whose approval ends within 90 days, and the revenue riding on them",
+            "unit": "count and $",
+            "cadence": "Weekly",
+            "threshold": "",
+            "concepts": [
+              "profile",
+              "invoice"
+            ]
+          },
+          {
+            "id": "m5",
+            "area": "exposure",
+            "name": "Outage impact",
+            "def": "Tons and revenue booked to units that are down, and the lost margin a day",
+            "unit": "$",
+            "cadence": "Each outage",
+            "threshold": "",
+            "concepts": [
+              "unit",
+              "manifest",
+              "booking"
+            ]
+          },
+          {
+            "id": "m6",
+            "area": "exposure",
+            "name": "Fee exposure",
+            "def": "Tons on contracts without a pass-through clause in a state whose fee changed",
+            "unit": "tons and $",
+            "cadence": "Each fee change",
+            "threshold": "",
+            "concepts": [
+              "cost",
+              "invoice"
+            ]
+          },
+          {
+            "id": "m7",
+            "area": "route",
+            "name": "Booked against permitted",
+            "def": "Tons booked to a unit in the period / its capacity in the period",
+            "unit": "%",
+            "cadence": "Weekly",
+            "threshold": "Above 90%",
+            "concepts": [
+              "booking",
+              "unit"
+            ]
+          },
+          {
+            "id": "m8",
+            "area": "route",
+            "name": "Unit headroom",
+            "def": "Capacity in the period minus tons booked, by unit and week",
+            "unit": "tons",
+            "cadence": "Weekly",
+            "threshold": "Below a quarter of a new stream",
+            "concepts": [
+              "booking",
+              "unit"
+            ]
+          },
+          {
+            "id": "m9",
+            "area": "route",
+            "name": "Outlets for a stream",
+            "def": "Units permitted for the codes with capacity in the period that meet the requirement",
+            "unit": "count",
+            "cadence": "Each profile",
+            "threshold": "Fewer than 2",
+            "concepts": [
+              "code",
+              "unit",
+              "requirement"
+            ]
+          },
+          {
+            "id": "m10",
+            "area": "route",
+            "name": "Stranded manifests",
+            "def": "Open manifests booked to a unit that is down with no alternative booked",
+            "unit": "count and tons",
+            "cadence": "Each nightly load",
+            "threshold": "Any",
+            "concepts": [
+              "manifest",
+              "unit"
+            ]
+          },
+          {
+            "id": "m11",
+            "area": "route",
+            "name": "On-pad clock",
+            "def": "Days left of the ten-day transfer limit for each shipment at a service center",
+            "unit": "days",
+            "cadence": "Daily",
+            "threshold": "Below 3",
+            "concepts": [
+              "hold"
+            ]
+          },
+          {
+            "id": "m12",
+            "area": "route",
+            "name": "Ten-day exceedances",
+            "def": "Shipments that stayed at a service center longer than ten days",
+            "unit": "count",
+            "cadence": "Monthly",
+            "threshold": "Any",
+            "concepts": [
+              "hold"
+            ]
+          },
+          {
+            "id": "m13",
+            "area": "price",
+            "name": "Stream full cost",
+            "def": "Treatment plus handling plus lane plus fee on the route the stream takes",
+            "unit": "$ a ton",
+            "cadence": "Each profile",
+            "threshold": "",
+            "concepts": [
+              "cost",
+              "unit"
+            ]
+          },
+          {
+            "id": "m14",
+            "area": "price",
+            "name": "Stream margin",
+            "def": "Price minus full cost / price, per stream",
+            "unit": "%",
+            "cadence": "Each profile",
+            "threshold": "Below 15%",
+            "concepts": [
+              "price",
+              "cost"
+            ]
+          },
+          {
+            "id": "m15",
+            "area": "price",
+            "name": "Contract margin",
+            "def": "Revenue minus full cost / revenue across a contract",
+            "unit": "%",
+            "cadence": "Each quote",
+            "threshold": "Below 28%",
+            "concepts": [
+              "quote",
+              "cost"
+            ]
+          },
+          {
+            "id": "m16",
+            "area": "price",
+            "name": "Price against book",
+            "def": "Quoted price minus the book price, by line",
+            "unit": "$ a ton",
+            "cadence": "Each quote",
+            "threshold": "Below the book",
+            "concepts": [
+              "quote",
+              "price"
+            ]
+          },
+          {
+            "id": "m17",
+            "area": "price",
+            "name": "Quote turnaround",
+            "def": "Days from request to quote sent, and quotes after the customer date",
+            "unit": "days",
+            "cadence": "Monthly",
+            "threshold": "Above 10",
+            "concepts": [
+              "quote"
+            ]
+          },
+          {
+            "id": "m18",
+            "area": "watch",
+            "name": "Streams below the floor",
+            "def": "Approved profiles under the stream floor at today's fees",
+            "unit": "count",
+            "cadence": "Each nightly load",
+            "threshold": "Any",
+            "concepts": [
+              "profile",
+              "cost"
+            ]
+          },
+          {
+            "id": "m19",
+            "area": "watch",
+            "name": "Third-party approval expiry",
+            "def": "Approvals that expire within 60 days and the streams that depend on them",
+            "unit": "count",
+            "cadence": "Weekly",
+            "threshold": "Any within 30 days",
+            "concepts": [
+              "outlet"
+            ]
+          },
+          {
+            "id": "m20",
+            "area": "watch",
+            "name": "Permit renewals",
+            "def": "Permits and outlet approvals up for decision in the next 90 days",
+            "unit": "count",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "permit",
+              "outlet"
+            ]
+          },
+          {
+            "id": "m21",
+            "area": "watch",
+            "name": "Third-party spend",
+            "def": "Tons and cost sent to outlets outside the network, by outlet",
+            "unit": "tons and $",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "outlet",
+              "manifest"
+            ]
+          },
+          {
+            "id": "m22",
+            "area": "submit",
+            "name": "Revenue against plan",
+            "def": "Invoiced revenue / plan, by business and month",
+            "unit": "$ and %",
+            "cadence": "Monthly",
+            "threshold": "Under 95%",
+            "concepts": [
+              "invoice",
+              "plan"
+            ]
+          },
+          {
+            "id": "m23",
+            "area": "submit",
+            "name": "Legacy profiles",
+            "def": "Acquired profiles still on the legacy system, and the price gap to the 2026 book",
+            "unit": "count and $",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "profile",
+              "price"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "q1",
+            "area": "classify",
+            "q": "Which profiles are pending approval, and which of them are waiting on a laboratory result?",
+            "who": "garrity",
+            "concepts": [
+              "profile",
+              "result"
+            ],
+            "answer": {
+              "figure": "269",
+              "figLabel": "Pending · profiles",
+              "text": "269 profiles are pending approval; 265 of them have no released laboratory result and cannot be approved yet. Halden Biopharma's six are pending with results released on 29 October: they wait on the quote and the acceptance memo, not on the laboratory.",
+              "sources": [
+                "ops.waste_profile · Status Pending with receipt dates",
+                "ops.profile_analytical · Released results by profile",
+                "Waste_Acceptance_Policy_2025.pdf · Section 2: released result"
+              ],
+              "askAnswer": "HQ7"
+            }
+          },
+          {
+            "id": "q2",
+            "area": "classify",
+            "q": "Which Halden streams carry a laboratory finding the profile did not say?",
+            "who": "garrity",
+            "concepts": [
+              "profile",
+              "result"
+            ],
+            "answer": {
+              "figure": "1 stream",
+              "figLabel": "the solvent: 3.2% halogens the profile did not say",
+              "text": "One. H2 methanol and DMSO solvent: total halogens 3.2% by weight from a chlorinated intermediate the profile did not mention, above Fox Hollow's 2.0% fuel blending limit. The other five results match the profiles: H1 is not ignitable with 40 mg/L active ingredient, H6 is pH 12.6 (D002 as profiled).",
+              "sources": [
+                "ops.profile_analytical · Released results for the Halden profiles",
+                "ops.waste_profile · What the profiles stated",
+                "Riverbend_Laboratory_Report_Halden_2026-10-29.pdf · The report and its notes"
+              ],
+              "askAnswer": "HQ21"
+            }
+          },
+          {
+            "id": "q3",
+            "area": "classify",
+            "q": "How long does a profile take from receipt to approval?",
+            "who": "whitfield",
+            "concepts": [
+              "profile"
+            ],
+            "answer": {
+              "figure": "9 days",
+              "figLabel": "Median · receipt to approval",
+              "text": "A profile takes a median of 9 days from receipt to approval this year (90th percentile 23 days); the laboratory release is 5 days of it. Pharmaceutical and lab pack profiles take longest because the chemist asks for a second sample more often.",
+              "sources": [
+                "ops.waste_profile · Receipt and approval dates",
+                "ops.profile_analytical · Sample and release dates"
+              ],
+              "askAnswer": "HQ12"
+            }
+          },
+          {
+            "id": "q4",
+            "area": "classify",
+            "q": "Which approved profiles expire in the next 90 days, and what revenue rides on them?",
+            "who": "natarajan",
+            "concepts": [
+              "profile",
+              "invoice"
+            ],
+            "answer": {
+              "figure": "458",
+              "figLabel": "Expiring by 1 February · approved profiles",
+              "text": "458 approved profiles expire in the next 90 days, $34.5M of annual revenue at their current prices and tons. Each needs a renewed characterisation and, where the laboratory asks, a fresh result before the expiry date.",
+              "sources": [
+                "ops.waste_profile · Approved profiles with expiry, tons and price",
+                "ops.generator · Generator names"
+              ],
+              "askAnswer": "HQ17"
+            }
+          },
+          {
+            "id": "q5",
+            "area": "exposure",
+            "q": "What does the Port Terrell outage strand, and where can each shipment go?",
+            "who": "vasquez",
+            "concepts": [
+              "manifest",
+              "unit"
+            ],
+            "answer": {
+              "figure": "14",
+              "figLabel": "Stranded shipments · 911 tons",
+              "text": "The outage strands 14 inbound shipments, 911 tons and $0.71M of revenue, booked for Port Terrell over the next two weeks. 11 can go to Granger within its headroom, 1 organic-liquid load to Northstar Thermal, 2 can wait on the pad at Galena Shores inside the ten-day clock, and 2 arrive after the restart and stay booked. Extra cost $61k.",
+              "sources": [
+                "ops.manifest · Open manifests booked for Port Terrell",
+                "ops.capacity_booking · Outage weeks and Granger headroom",
+                "ops.transfer_hold · Galena Shores holds and deadlines"
+              ],
+              "askAnswer": "HQ11"
+            }
+          },
+          {
+            "id": "q6",
+            "area": "exposure",
+            "q": "What does the 1 November fee rise do to margin, and which contracts carry the pass-through clause?",
+            "who": "mehta",
+            "concepts": [
+              "cost",
+              "invoice"
+            ],
+            "answer": {
+              "figure": "+$2.50 a ton",
+              "figLabel": "Texas · about 15,806 t a month",
+              "text": "The Texas fee rose $2.50 a ton and the Illinois fee $3.00 on 1 November. At the last three months' pace that is about $39,515 a month at Port Terrell, Bayou Verde and Galena Shores and $49,248 at Riverbend. Contracts with clause 9.2 pass it through from the next invoice; two Riverbend stabilization contracts carry no clause and fell under the stream floor.",
+              "sources": [
+                "fin.state_fee · Fees before and from 1 November",
+                "ops.manifest · Received tons by state, August to October",
+                "Pricing_and_Margin_Policy_2026.pdf · Section 6: pass-through"
+              ],
+              "askAnswer": "HQ26"
+            }
+          },
+          {
+            "id": "q7",
+            "area": "route",
+            "q": "Which units are booked above 90% of capacity for the fourth quarter?",
+            "who": "oyelaran",
+            "concepts": [
+              "booking",
+              "unit"
+            ],
+            "answer": {
+              "figure": "3",
+              "figLabel": "Units above 90% · of 20",
+              "text": "3 units are booked above 90% of their fourth-quarter capacity, all three at Port Terrell: aqueous incineration 94.4%, organic liquids 94.9%, solids 93.0%. The next tightest is Granger organic liquids at 86.1%.",
+              "sources": [
+                "ops.capacity_booking · Booked tons by unit and week, weeks 40 to 52",
+                "ops.process_unit · Permitted tons a year by unit",
+                "Capacity_Plan_Q4_2026.xlsx · The fourth-quarter plan; no first-quarter plan from Port Terrell"
+              ],
+              "askAnswer": "HQ2"
+            }
+          },
+          {
+            "id": "q8",
+            "area": "route",
+            "q": "What is booked against the capacity of each incineration unit, and what headroom is left in November?",
+            "who": "brennan",
+            "concepts": [
+              "booking",
+              "unit"
+            ],
+            "answer": {
+              "figure": "336 t",
+              "figLabel": "Granger aqueous, weeks 45 and 46 · headroom",
+              "text": "Granger is booked at 70.9% on aqueous incineration and 86.1% on organic liquids for the quarter; in weeks 45 and 46 it has 336 tons of aqueous, 217 of solids and 91 of organic liquids free. Port Terrell has no headroom in those weeks: the kiln is down.",
+              "sources": [
+                "ops.capacity_booking · Booked and capacity by unit and week",
+                "ops.process_unit · Permitted tons a year",
+                "Port_Terrell_Outage_Notice_2026-11-03.pdf · Kiln down from 3 November"
+              ],
+              "askAnswer": "HQ8"
+            }
+          },
+          {
+            "id": "q9",
+            "area": "route",
+            "q": "Which units could take each of the six Halden streams under their permits?",
+            "who": "whitfield",
+            "concepts": [
+              "code",
+              "unit",
+              "requirement"
+            ],
+            "answer": {
+              "figure": "6 streams",
+              "figLabel": "each with at least one permitted unit; three with two",
+              "text": "Every Halden stream has at least one permitted unit that meets its requirement. H1 process wastewater: Granger or Port Terrell aqueous incineration (deep well is permitted but is disposal; aqueous treatment is not an outlet for the active ingredient). H2 solvent: incineration at Granger or Port Terrell; Fox Hollow is ruled out by halogens and Tidewater is permitted but under renewal. H3 lab packs: Granger. H4 aerosols: Cypress Landing. H5 solids: Granger or Port Terrell. H6 scrubber water: Bayou Verde deep well, Riverbend, Newbury Works or Bayou Verde aqueous treatment.",
+              "sources": [
+                "ops.facility_permit_code · Codes by unit",
+                "ops.process_unit · Units and halogen limits",
+                "Halden_Quality_Requirement_QR-14_Waste_Destruction.pdf · Destruction with a certificate; deep well and landfill not acceptable"
+              ],
+              "askAnswer": "HQ10"
+            }
+          },
+          {
+            "id": "q10",
+            "area": "route",
+            "q": "Which shipments are on the pad at Galena Shores today, and when does each one's clock run out?",
+            "who": "fairbanks",
+            "concepts": [
+              "hold"
+            ],
+            "answer": {
+              "figure": "6",
+              "figLabel": "loads on the pad at Galena Shores; 4 must move on",
+              "text": "6 Port Terrell loads are on the pad at Galena Shores. The first runs out of clock on 11 November 2026; 4 of them run out before the kiln is back on 15 November and have to move on, 2 can wait.",
+              "sources": [
+                "ops.transfer_hold · Arrival and deadline per hold",
+                "ops.manifest · The loads and their units",
+                "Mailbox · Jenna Fairbanks · Coordinator: the first two run out before the kiln is back"
+              ],
+              "askAnswer": "HQ15"
+            }
+          },
+          {
+            "id": "q11",
+            "area": "route",
+            "q": "Is the Halden solvent waste acceptable at Fox Hollow for fuel blending?",
+            "who": "garrity",
+            "concepts": [
+              "result",
+              "permit"
+            ],
+            "answer": {
+              "figure": "3.2%",
+              "figLabel": "Halogens · released 29 October",
+              "text": "No. The released result puts total halogens at 3.2% by weight, above Fox Hollow's 2.0% fuel blending limit; the codes (D001, F003, U154) are permitted there, the material is not. Tidewater's limit is 5.0% and the route is permitted, but it earns 5.8% from Texas and the permit is under renewal. The stream is quoted as organic-liquid incineration at Granger.",
+              "sources": [
+                "ops.profile_analytical · H2 total halogens",
+                "ops.process_unit · Halogen limits by unit",
+                "Fuel_Blending_Halogen_Limits_Fox_Hollow_Tidewater.pdf · Fox Hollow 2.0%, Tidewater 5.0%"
+              ],
+              "askAnswer": "HQ38"
+            }
+          },
+          {
+            "id": "q12",
+            "area": "price",
+            "q": "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+            "who": "natarajan",
+            "concepts": [
+              "quote",
+              "cost",
+              "price"
+            ],
+            "answer": {
+              "figure": "$3.56M",
+              "figLabel": "Revenue a year · 4,860 tons",
+              "text": "At the price book on full cost the six streams earn $3.56M a year with $1.24M of margin (34.7%) on the recommended routing: the three QR-14 streams incinerated at Granger, aerosols at Cypress Landing, scrubber water to Bayou Verde deep well. Quoted on Port Terrell the margin would be 43.0%, on capacity that is 94% booked and not planned for 2027.",
+              "sources": [
+                "ops.waste_profile · The six Halden profiles",
+                "fin.price_book · 2026 prices by process",
+                "fin.treatment_cost · Treatment cost a ton"
+              ],
+              "askAnswer": "HQ18"
+            }
+          },
+          {
+            "id": "q13",
+            "area": "price",
+            "q": "Which approved profiles are under the 15% stream floor at today's fees?",
+            "who": "mehta",
+            "concepts": [
+              "profile",
+              "cost"
+            ],
+            "answer": {
+              "figure": "2",
+              "figLabel": "Below the stream floor · of 2597 approved",
+              "text": "2 approved profiles earn less than the 15.0% stream floor at the approved route and today's fees, 2 of them stabilization at Riverbend after the Illinois fee rose on 1 November. Legacy profiles are not counted: their prices are the acquired companies' books.",
+              "sources": [
+                "ops.waste_profile · Approved profiles with price, route and origin",
+                "fin.treatment_cost · Treatment cost a ton by unit",
+                "fin.state_fee · Fees from 1 November"
+              ],
+              "askAnswer": "HQ3"
+            }
+          },
+          {
+            "id": "q14",
+            "area": "price",
+            "q": "Which quotes this year were priced below the price book, and by how much?",
+            "who": "mehta",
+            "concepts": [
+              "quote",
+              "price"
+            ],
+            "answer": {
+              "figure": "127",
+              "figLabel": "Lines below the book · of 219",
+              "text": "127 quote lines on 99 quotes were priced below the 2026 price book, $434,424 a year of discount at the quoted tons. The deepest is 10.0%, above the 5% that needs the Pricing and Margin Manager.",
+              "sources": [
+                "fin.quote_line · Quoted and book price per line",
+                "fin.price_book · 2026 prices",
+                "Pricing_and_Margin_Policy_2026.pdf · Section 3: discounts above 5% and 12%"
+              ],
+              "askAnswer": "HQ22"
+            }
+          },
+          {
+            "id": "q15",
+            "area": "price",
+            "q": "What does a re-route from Port Terrell to Granger cost a ton on the rate card, by origin region?",
+            "who": "ruiz",
+            "concepts": [
+              "cost"
+            ],
+            "answer": {
+              "figure": "+$67.66 a ton",
+              "figLabel": "aqueous liquids from the Gulf origin region",
+              "text": "From the Gulf origin region a re-route from Port Terrell to Granger adds $67.66 a ton on aqueous liquids: the haul grows from 140 to 1020 miles, Granger's treatment cost is $5 lower, and the Indiana fee is 50 cents above the Texas fee from 1 November.",
+              "sources": [
+                "fin.transport_lane · Rates by origin region and facility",
+                "fin.treatment_cost · Treatment cost a ton",
+                "fin.state_fee · Fees from 1 November"
+              ],
+              "askAnswer": "HQ14"
+            }
+          },
+          {
+            "id": "q16",
+            "area": "watch",
+            "q": "Which third-party approvals expire in the next 60 days, and which streams depend on them?",
+            "who": "dimitriou",
+            "concepts": [
+              "outlet"
+            ],
+            "answer": {
+              "figure": "38",
+              "figLabel": "Expiring in 60 days · all Meridian West",
+              "text": "38 third-party approvals expire by 2 January, all at Meridian West on 30 November. Two are the Gulf overflow profiles (Delmar Chemical, Gulf Coast Coatings) that carry Port Terrell solids this autumn; the rest are West Coast profiles with no other outlet. Granger is permitted for the two overflow profiles and costs less.",
+              "sources": [
+                "ops.third_party_approval · Approvals with expiry",
+                "ops.waste_profile · The profiles and their generators",
+                "Meridian_West_Approval_Letter_2026-09-02.pdf · To 30 November; 2027 about 6% higher"
+              ],
+              "askAnswer": "HQ13"
+            }
+          },
+          {
+            "id": "q17",
+            "area": "watch",
+            "q": "Which permits and outlet approvals come up for decision in the next 90 days?",
+            "who": "choi",
+            "concepts": [
+              "permit",
+              "outlet"
+            ],
+            "answer": {
+              "figure": "2",
+              "figLabel": "decisions in 90 days: Tidewater renewal, Meridian West approvals",
+              "text": "Two. Tidewater's fuel blending permit renewal: decision due 18 December, no new three-year volume there without a fallback until then. The Meridian West approvals on the two Gulf overflow profiles: expire 30 November, renewal at the 2027 price with re-approval. Pacific Reach Environmental's audit is pending and it is not an outlet.",
+              "sources": [
+                "ops.process_unit · Tidewater unit note",
+                "ops.third_party_outlet · Approval status and expiry",
+                "Tidewater_Permit_Renewal_Status_2026-10.pdf · Decision 18 December"
+              ],
+              "askAnswer": "HQ25"
+            }
+          },
+          {
+            "id": "q18",
+            "area": "submit",
+            "q": "What did we invoice this year by business, against the plan, and at what margin?",
+            "who": "oyelaran",
+            "concepts": [
+              "invoice",
+              "plan"
+            ],
+            "answer": {
+              "figure": "$192.3M",
+              "figLabel": "Invoiced to September · plan $198.2M",
+              "text": "$192.3M was invoiced January to September against $198.2M planned for those months, 3.0% under, at 37.5% margin on full cost. Gulf is the only business above its plan; East is furthest under.",
+              "sources": [
+                "fin.invoice_line · Invoiced revenue and full cost of shipments received January to September 2026",
+                "fin.revenue_plan · FY26 plan by business and month",
+                "ops.facility · Business of each receiving facility"
+              ],
+              "askAnswer": "HQ1"
+            }
+          },
+          {
+            "id": "q19",
+            "area": "submit",
+            "q": "How many Harbor Line and Tidewater profiles are still on the legacy system, and how many has a chemist reviewed?",
+            "who": "pratt",
+            "concepts": [
+              "profile",
+              "price"
+            ],
+            "answer": {
+              "figure": "578",
+              "figLabel": "On the legacy system · profiles",
+              "text": "578 profiles are still on LegacyTrack: 348 from Harbor Line and 230 from Tidewater. None has been reviewed by an Approval Chemist; they are read into the graph marked legacy and are not counted as approved Ironbridge profiles. Migration starts in January, Newbury Works first.",
+              "sources": [
+                "legacy.legacy_profile · Profiles with source company and reviewed flag",
+                "ops.waste_profile · Mirrors marked legacy",
+                "LegacyTrack_Migration_Status_2026-10.pdf · Migration from January 2027"
+              ],
+              "askAnswer": "HQ16"
+            }
+          },
+          {
+            "id": "q20",
+            "area": "submit",
+            "q": "What does Priya need for the Halden proposal by Friday, and what is ready?",
+            "who": "natarajan",
+            "concepts": [
+              "quote",
+              "statement"
+            ],
+            "answer": {
+              "figure": "3",
+              "figLabel": "deliverables due Friday 6 November",
+              "text": "By Friday 6 November: a price per ton for each of the six streams, the facility each goes to, the capacity held and the fallback, in the Delmar pricing schedule structure, with the acceptance memo for Dana and Marcus. Ready: the six profiles, the released results, the permits and the fourth-quarter bookings. Open: the quote itself (draft Q-2026-0141), the first-quarter plan from Port Terrell, and Halden's EPA identification number.",
+              "sources": [
+                "Mailbox · Priya Natarajan · Account manager: quote by Friday in the Delmar structure",
+                "fin.quote · Q-2026-0141 draft",
+                "Halden_Biopharma_Request_for_Proposal_2026-10-20.pdf · What the proposal must state"
+              ],
+              "askAnswer": "HQ43"
+            }
+          }
+        ],
+        "routines": [
+          {
+            "id": "r1",
+            "area": "watch",
+            "name": "Outlet and margin check after the nightly load",
+            "cadence": "Daily, after 02:00",
+            "to": "whitfield",
+            "output": "Exception list with options"
+          },
+          {
+            "id": "r2",
+            "area": "classify",
+            "name": "Pending profiles review",
+            "cadence": "Weekly, Monday",
+            "to": "garrity",
+            "output": "Profiles by age and what they wait on"
+          },
+          {
+            "id": "r3",
+            "area": "route",
+            "name": "Capacity and headroom by unit",
+            "cadence": "Weekly, Wednesday",
+            "to": "oyelaran",
+            "output": "Booked against permitted, headroom by week"
+          },
+          {
+            "id": "r4",
+            "area": "route",
+            "name": "Service center clock check",
+            "cadence": "Daily",
+            "to": "fairbanks",
+            "output": "Shipments on the pad with days left"
+          },
+          {
+            "id": "r5",
+            "area": "price",
+            "name": "Quote review against the book",
+            "cadence": "Weekly",
+            "to": "mehta",
+            "output": "Lines below the book with the reason"
+          },
+          {
+            "id": "r6",
+            "area": "price",
+            "name": "New generator proposal",
+            "cadence": "Per request",
+            "to": "natarajan",
+            "output": "Acceptance memo, quote letter, pricing schedule"
+          },
+          {
+            "id": "r7",
+            "area": "watch",
+            "name": "Third-party approvals and renewals",
+            "cadence": "Monthly",
+            "to": "dimitriou",
+            "output": "Approvals expiring, permits for decision"
+          },
+          {
+            "id": "r8",
+            "area": "submit",
+            "name": "Monthly network position",
+            "cadence": "Monthly, after the close (fifth working day)",
+            "to": "whitfield",
+            "output": "Revenue, margin, capacity, outlets"
+          },
+          {
+            "id": "r9",
+            "area": "submit",
+            "name": "Quarterly Capacity Committee pack",
+            "cadence": "Quarterly",
+            "to": "oyelaran",
+            "output": "Committee deck"
+          },
+          {
+            "id": "r10",
+            "area": "submit",
+            "name": "Legacy profile migration status",
+            "cadence": "Monthly",
+            "to": "pratt",
+            "output": "Profiles migrated, price gap"
+          }
+        ],
+        "data": [
+          {
+            "id": "d_generator",
+            "label": "Generators",
+            "obj": "ops.generator"
+          },
+          {
+            "id": "d_profile",
+            "label": "Waste profiles with codes, route and price",
+            "obj": "ops.waste_profile",
+            "partly": "West Coast generators are routed to third-party outlets; their margin is the outlet price, not full cost."
+          },
+          {
+            "id": "d_analytical",
+            "label": "Laboratory results by profile and parameter",
+            "obj": "ops.profile_analytical"
+          },
+          {
+            "id": "d_permit_code",
+            "label": "Permitted codes by facility and process",
+            "obj": "ops.facility_permit_code"
+          },
+          {
+            "id": "d_unit",
+            "label": "Process units with permitted tons a year",
+            "obj": "ops.process_unit"
+          },
+          {
+            "id": "d_facility",
+            "label": "Facilities and businesses",
+            "obj": "ops.facility"
+          },
+          {
+            "id": "d_booking",
+            "label": "Capacity bookings by unit and week",
+            "obj": "ops.capacity_booking",
+            "partly": "Port Terrell has not published its first-quarter 2027 plan."
+          },
+          {
+            "id": "d_manifest",
+            "label": "Manifests",
+            "obj": "ops.manifest"
+          },
+          {
+            "id": "d_hold",
+            "label": "Transfer holds at the service centers",
+            "obj": "ops.transfer_hold"
+          },
+          {
+            "id": "d_outlet",
+            "label": "Third-party outlets",
+            "obj": "ops.third_party_outlet"
+          },
+          {
+            "id": "d_tp_approval",
+            "label": "Third-party approvals with expiry",
+            "obj": "ops.third_party_approval"
+          },
+          {
+            "id": "d_price_book",
+            "label": "The 2026 price book",
+            "obj": "fin.price_book"
+          },
+          {
+            "id": "d_treatment_cost",
+            "label": "Treatment cost a ton by unit",
+            "obj": "fin.treatment_cost"
+          },
+          {
+            "id": "d_lane",
+            "label": "Transport lanes by origin region and facility",
+            "obj": "fin.transport_lane"
+          },
+          {
+            "id": "d_fee",
+            "label": "State fees with validity",
+            "obj": "fin.state_fee"
+          },
+          {
+            "id": "d_quote",
+            "label": "Quotes and their lines",
+            "obj": "fin.quote"
+          },
+          {
+            "id": "d_invoice",
+            "label": "Invoice lines",
+            "obj": "fin.invoice_line"
+          },
+          {
+            "id": "d_plan",
+            "label": "FY26 revenue plan",
+            "obj": "fin.revenue_plan"
+          },
+          {
+            "id": "d_legacy",
+            "label": "Legacy profiles from the acquisitions",
+            "obj": "legacy.legacy_profile",
+            "partly": "Priced on the acquired companies' books; not approved on ours until migrated."
+          },
+          {
+            "id": "d_policy_docs",
+            "label": "Policies, committee pack and minutes, price book, rate card",
+            "obj": "gd.policies"
+          },
+          {
+            "id": "d_halden_docs",
+            "label": "Customer requests, requirements, profiles and laboratory reports",
+            "obj": "gd.halden"
+          },
+          {
+            "id": "d_permit_docs",
+            "label": "Permits, limits, capacity plan, outage and renewal notices",
+            "obj": "gd.facilities"
+          },
+          {
+            "id": "d_outlet_docs",
+            "label": "Outlet register and letters, legacy status, integration plan",
+            "obj": "gd.outlets"
+          },
+          {
+            "id": "d_mail",
+            "label": "Account manager, plant, laboratory and outlet correspondence",
+            "obj": "gmail.ts"
+          },
+          {
+            "id": "d_carrier",
+            "label": "Trucks in transit and arrival estimates",
+            "obj": "carrier.tracking"
+          },
+          {
+            "id": "d_competitor",
+            "label": "What other networks quote",
+            "obj": "competitor.quotes"
+          }
+        ],
+        "jd": {
+          "file": "Ironbridge_Job_Description_Waste_Stream_Analyst.pdf",
+          "pages": 4,
+          "findings": [
+            {
+              "id": "j1",
+              "kind": "confirm",
+              "text": "Confirms all 6 of your areas: classification, exposure, routing, economics, the watch and submissions.",
+              "quote": "“Characterises new waste streams, finds the unit in the network that can take them, prices them on full cost and keeps every accepted stream with an outlet.”"
+            },
+            {
+              "id": "j2",
+              "kind": "task",
+              "area": "route",
+              "text": "Add a task to Route in the network: confirm the slot with the plant manager before a re-route is booked.",
+              "quote": "“Confirms the receiving slot with the plant manager before transport is booked for a re-routed shipment.”",
+              "value": "Confirm the slot with the plant manager before a re-route is booked"
+            },
+            {
+              "id": "j3",
+              "kind": "scope",
+              "area": "classify",
+              "text": "Take the laboratory part of Characterise and classify out of scope. The Riverbend laboratory releases results; the analyst reads them.",
+              "quote": "“Analytical results are released by the Laboratory Manager; the analyst reads released results and never approves on a preliminary one.”",
+              "reason": "Done by another team"
+            },
+            {
+              "id": "j4",
+              "kind": "threshold",
+              "metric": "m15",
+              "area": "price",
+              "text": "Set the threshold on Contract margin: a quote under 28% on full cost needs the Pricing and Margin Manager's exception.",
+              "quote": "§4.2 “No contract is quoted below 28% margin on full cost without a written exception from the Pricing and Margin Manager.”",
+              "value": "Below 28% without a written exception"
+            },
+            {
+              "id": "j5",
+              "kind": "routine",
+              "area": "watch",
+              "text": "Add a routine: a weekly outlet call with Third-Party Approvals for the eight weeks before an approval expires.",
+              "quote": "“For the eight weeks before a third-party approval expires, joins the weekly outlet call with the Third-Party Approvals Lead.”",
+              "routine": {
+                "id": "r_jd1",
+                "area": "watch",
+                "name": "Outlet approval call",
+                "cadence": "Weekly, eight weeks before an approval expires",
+                "to": "dimitriou",
+                "output": "Approvals list with the move for each stream"
+              }
+            },
+            {
+              "id": "j6",
+              "kind": "people",
+              "text": "Add Linda Choi to the people it works for. The description says permit conditions are read with Compliance.",
+              "quote": "“Reads permit conditions and feed limits with the Compliance Manager before a routing is approved.”",
+              "person": "choi"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "i1",
+            "data": "d_legacy",
+            "text": "578 Harbor Line and Tidewater profiles are still on the legacy system, priced on the acquired books; nothing links them to ours.",
+            "actions": [
+              "Read them beside ours, marked legacy",
+              "Leave them out until migrated"
+            ]
+          },
+          {
+            "id": "i2",
+            "data": "d_booking",
+            "text": "Port Terrell has not published its first-quarter 2027 capacity plan; its fourth quarter is 94% booked.",
+            "actions": [
+              "Treat the fourth quarter as the first",
+              "Treat the first quarter as unconfirmed"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ca",
+        "name": "Compliance Analyst",
+        "deep": false,
+        "blurb": "Keeps every facility inside its permit: codes received against codes permitted, feed limits, transfer clocks, renewals.",
+        "defaults": {
+          "reportsTo": "choi",
+          "worksFor": [
+            "choi",
+            "vasquez"
+          ]
+        },
+        "areas": [
+          {
+            "id": "permits",
+            "name": "Permit compliance",
+            "what": "Checks what each unit received against what its permit allows.",
+            "tasks": [
+              "Codes received against permitted codes",
+              "Feed limits by day"
+            ]
+          },
+          {
+            "id": "clocks",
+            "name": "Transfer clocks",
+            "what": "Keeps shipments inside the ten-day limit at the service centers.",
+            "tasks": [
+              "Daily clock list",
+              "Exceedance report"
+            ]
+          },
+          {
+            "id": "renewals",
+            "name": "Renewals and reporting",
+            "what": "Tracks permit renewals and regulatory reports.",
+            "tasks": [
+              "Renewal calendar",
+              "Biennial report data"
+            ]
+          }
+        ],
+        "concepts": {
+          "permit": {
+            "name": "Permit condition",
+            "desc": "What a facility permit allows and limits: codes, feed rates, halogens.",
+            "data": [
+              "d_permit_code",
+              "d_permit_docs"
+            ]
+          },
+          "manifest": {
+            "name": "Manifest",
+            "desc": "A shipment from a generator to a facility, through a service center or direct.",
+            "data": [
+              "d_manifest",
+              "d_hold"
+            ]
+          },
+          "hold": {
+            "name": "Transfer hold",
+            "desc": "A shipment on the pad at a service center with its ten-day clock.",
+            "data": [
+              "d_hold"
+            ]
+          },
+          "unit": {
+            "name": "Process unit",
+            "desc": "A permitted process at a facility with tons a year, a cost a ton and its limits.",
+            "data": [
+              "d_unit",
+              "d_facility"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "cm1",
+            "area": "permits",
+            "name": "Codes received outside the permit",
+            "def": "Manifest lines with a code not permitted at the receiving unit",
+            "unit": "count",
+            "cadence": "Daily",
+            "threshold": "Any",
+            "concepts": [
+              "manifest",
+              "permit"
+            ]
+          },
+          {
+            "id": "cm2",
+            "area": "clocks",
+            "name": "Ten-day exceedances",
+            "def": "Shipments over ten days at a service center",
+            "unit": "count",
+            "cadence": "Monthly",
+            "threshold": "Any",
+            "concepts": [
+              "hold"
+            ]
+          },
+          {
+            "id": "cm3",
+            "area": "renewals",
+            "name": "Permits for decision",
+            "def": "Permits with a decision in the next 90 days",
+            "unit": "count",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "permit"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "cq1",
+            "area": "clocks",
+            "q": "Which shipments exceeded the ten-day transfer limit this year, and where?",
+            "who": "choi",
+            "concepts": [
+              "hold"
+            ]
+          },
+          {
+            "id": "cq2",
+            "area": "renewals",
+            "q": "Which permits come up for decision in the next 90 days?",
+            "who": "choi",
+            "concepts": [
+              "permit"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "cr1",
+            "area": "clocks",
+            "name": "Clock exceedance report",
+            "cadence": "Monthly",
+            "to": "choi",
+            "output": "Report"
+          }
+        ],
+        "data": [
+          {
+            "id": "c_hold",
+            "label": "Transfer holds",
+            "obj": "ops.transfer_hold"
+          },
+          {
+            "id": "c_permit",
+            "label": "Permitted codes",
+            "obj": "ops.facility_permit_code"
+          },
+          {
+            "id": "c_docs",
+            "label": "Permits and renewals",
+            "obj": "gd.facilities"
+          }
+        ],
+        "jd": {
+          "file": "Ironbridge_Job_Description_Compliance_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "cj1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Checks receipts against permits, keeps the transfer clocks and tracks renewals.”"
+            },
+            {
+              "id": "cj2",
+              "kind": "task",
+              "area": "permits",
+              "text": "Add a task to Permit compliance: reconcile the chlorine feed log with the manifests each week.",
+              "quote": "“Reconciles the kiln chlorine feed log with the manifests received each week.”",
+              "value": "Reconcile the chlorine feed log with the manifests weekly"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "ci1",
+            "data": "c_hold",
+            "text": "2% of holds have no release date recorded.",
+            "actions": [
+              "Take the next manifest date as the release",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pa",
+        "name": "Pricing Analyst",
+        "deep": false,
+        "blurb": "Keeps the price book, tests every quote against full cost and the floors, and re-prices when fees and costs move.",
+        "defaults": {
+          "reportsTo": "mehta",
+          "worksFor": [
+            "mehta",
+            "oyelaran"
+          ]
+        },
+        "areas": [
+          {
+            "id": "book",
+            "name": "Price book",
+            "what": "Keeps the price a ton by process current.",
+            "tasks": [
+              "Annual price book review",
+              "Fee pass-through schedule"
+            ]
+          },
+          {
+            "id": "quotes",
+            "name": "Quote review",
+            "what": "Tests quotes against the book and the floors.",
+            "tasks": [
+              "Lines below the book",
+              "Margin on full cost per quote"
+            ]
+          },
+          {
+            "id": "reprice",
+            "name": "Re-pricing",
+            "what": "Re-prices contracts when fees and costs move.",
+            "tasks": [
+              "Fee change impact",
+              "Clause 9.2 register"
+            ]
+          }
+        ],
+        "concepts": {
+          "price": {
+            "name": "Price book",
+            "desc": "The 2026 price a ton by process.",
+            "data": [
+              "d_price_book"
+            ]
+          },
+          "cost": {
+            "name": "Full cost",
+            "desc": "Treatment, handling, transport lane and state fee on the route a stream takes.",
+            "data": [
+              "d_treatment_cost",
+              "d_lane",
+              "d_fee"
+            ]
+          },
+          "quote": {
+            "name": "Quote",
+            "desc": "A priced proposal to a generator with its lines and its due date.",
+            "data": [
+              "d_quote"
+            ]
+          },
+          "invoice": {
+            "name": "Invoice line",
+            "desc": "What was billed for a shipment.",
+            "data": [
+              "d_invoice"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "pm1",
+            "area": "quotes",
+            "name": "Price against book",
+            "def": "Quoted price minus the book, by line",
+            "unit": "$ a ton",
+            "cadence": "Weekly",
+            "threshold": "Below the book",
+            "concepts": [
+              "quote",
+              "price"
+            ]
+          },
+          {
+            "id": "pm2",
+            "area": "quotes",
+            "name": "Contract margin",
+            "def": "Revenue minus full cost / revenue",
+            "unit": "%",
+            "cadence": "Each quote",
+            "threshold": "Below 28%",
+            "concepts": [
+              "quote",
+              "cost"
+            ]
+          },
+          {
+            "id": "pm3",
+            "area": "reprice",
+            "name": "Fee exposure",
+            "def": "Tons without a pass-through clause where a fee changed",
+            "unit": "tons and $",
+            "cadence": "Each change",
+            "threshold": "",
+            "concepts": [
+              "cost",
+              "invoice"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "pq1",
+            "area": "quotes",
+            "q": "Which quotes this year were priced below the book, and by how much?",
+            "who": "mehta",
+            "concepts": [
+              "quote",
+              "price"
+            ]
+          },
+          {
+            "id": "pq2",
+            "area": "reprice",
+            "q": "What does the 1 November fee rise do to margin, and which contracts carry the pass-through?",
+            "who": "mehta",
+            "concepts": [
+              "cost",
+              "invoice"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "pr1",
+            "area": "quotes",
+            "name": "Quote review",
+            "cadence": "Weekly",
+            "to": "mehta",
+            "output": "Exceptions list"
+          }
+        ],
+        "data": [
+          {
+            "id": "p_quote",
+            "label": "Quotes and lines",
+            "obj": "fin.quote_line"
+          },
+          {
+            "id": "p_book",
+            "label": "Price book",
+            "obj": "fin.price_book"
+          },
+          {
+            "id": "p_fee",
+            "label": "State fees",
+            "obj": "fin.state_fee"
+          }
+        ],
+        "jd": {
+          "file": "Ironbridge_Job_Description_Pricing_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "pj1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Keeps the price book, reviews quotes and re-prices on fee and cost changes.”"
+            },
+            {
+              "id": "pj2",
+              "kind": "task",
+              "area": "book",
+              "text": "Add a task to Price book: keep the transport rate card current with Transportation before each review.",
+              "quote": "“Keeps the lane rate card current with the Transportation Manager.”",
+              "value": "Keep the lane rate card current"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "pi1",
+            "data": "p_quote",
+            "text": "3% of quote lines carry no profile reference (budgetary quotes).",
+            "actions": [
+              "Match by generator and process",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "lp",
+        "name": "Logistics Planner",
+        "deep": false,
+        "blurb": "Books trucks and slots for every shipment, keeps the service centers moving and costs every lane.",
+        "defaults": {
+          "reportsTo": "ruiz",
+          "worksFor": [
+            "ruiz",
+            "fairbanks"
+          ]
+        },
+        "areas": [
+          {
+            "id": "lanes",
+            "name": "Lanes and rates",
+            "what": "Keeps the lane rate card and the carrier contracts.",
+            "tasks": [
+              "Rate card review",
+              "Carrier performance"
+            ]
+          },
+          {
+            "id": "slots",
+            "name": "Slots and trucks",
+            "what": "Books receiving slots and trucks for each shipment.",
+            "tasks": [
+              "Weekly truck plan",
+              "Slot confirmations with the plants"
+            ]
+          },
+          {
+            "id": "centers",
+            "name": "Service centers",
+            "what": "Keeps the pads moving inside the ten-day limit.",
+            "tasks": [
+              "Daily pad list",
+              "Consolidation loads"
+            ]
+          }
+        ],
+        "concepts": {
+          "manifest": {
+            "name": "Manifest",
+            "desc": "A shipment from a generator to a facility, through a service center or direct.",
+            "data": [
+              "d_manifest",
+              "d_hold"
+            ]
+          },
+          "hold": {
+            "name": "Transfer hold",
+            "desc": "A shipment on the pad at a service center with its ten-day clock.",
+            "data": [
+              "d_hold"
+            ]
+          },
+          "cost": {
+            "name": "Full cost",
+            "desc": "Treatment, handling, transport lane and state fee on the route a stream takes.",
+            "data": [
+              "d_treatment_cost",
+              "d_lane",
+              "d_fee"
+            ]
+          },
+          "unit": {
+            "name": "Process unit",
+            "desc": "A permitted process at a facility with tons a year, a cost a ton and its limits.",
+            "data": [
+              "d_unit",
+              "d_facility"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "lm1",
+            "area": "lanes",
+            "name": "Lane tons and cost",
+            "def": "Tons by origin region and facility, and the rate a ton",
+            "unit": "tons and $",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "manifest",
+              "cost"
+            ]
+          },
+          {
+            "id": "lm2",
+            "area": "centers",
+            "name": "On-pad clock",
+            "def": "Days left of the ten-day limit per shipment",
+            "unit": "days",
+            "cadence": "Daily",
+            "threshold": "Below 3",
+            "concepts": [
+              "hold"
+            ]
+          },
+          {
+            "id": "lm3",
+            "area": "slots",
+            "name": "Re-route cost",
+            "def": "Extra haul and outlet cost of a re-routed shipment",
+            "unit": "$",
+            "cadence": "Each re-route",
+            "threshold": "",
+            "concepts": [
+              "manifest",
+              "cost"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "lq1",
+            "area": "lanes",
+            "q": "Which lanes carry the most tons, and what do they cost a ton?",
+            "who": "ruiz",
+            "concepts": [
+              "manifest",
+              "cost"
+            ]
+          },
+          {
+            "id": "lq2",
+            "area": "centers",
+            "q": "Which shipments are on the pad at Galena Shores today, and when does each clock run out?",
+            "who": "fairbanks",
+            "concepts": [
+              "hold"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "lr1",
+            "area": "slots",
+            "name": "Weekly truck plan",
+            "cadence": "Weekly, Thursday",
+            "to": "ruiz",
+            "output": "Truck plan"
+          }
+        ],
+        "data": [
+          {
+            "id": "l_manifest",
+            "label": "Manifests",
+            "obj": "ops.manifest"
+          },
+          {
+            "id": "l_lane",
+            "label": "Transport lanes",
+            "obj": "fin.transport_lane"
+          },
+          {
+            "id": "l_hold",
+            "label": "Transfer holds",
+            "obj": "ops.transfer_hold"
+          }
+        ],
+        "jd": {
+          "file": "Ironbridge_Job_Description_Logistics_Planner.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "lj1",
+              "kind": "confirm",
+              "text": "Confirms all 3 of your areas.",
+              "quote": "“Plans trucks and slots, keeps the service centers inside the transfer limit and maintains the lane rate card.”"
+            },
+            {
+              "id": "lj2",
+              "kind": "task",
+              "area": "centers",
+              "text": "Add a task to Service centers: plan consolidation loads from the pad every Tuesday and Friday.",
+              "quote": "“Plans consolidation loads from each service center twice a week.”",
+              "value": "Plan consolidation loads twice a week"
+            }
+          ]
+        },
+        "issues": []
+      }
+    ],
+    "job_description_findings": {
+      "wsa": [
+        {
+          "id": "j1",
+          "kind": "confirm",
+          "text": "Confirms all 6 of your areas: classification, exposure, routing, economics, the watch and submissions.",
+          "quote": "“Characterises new waste streams, finds the unit in the network that can take them, prices them on full cost and keeps every accepted stream with an outlet.”"
+        },
+        {
+          "id": "j2",
+          "kind": "task",
+          "area": "route",
+          "text": "Add a task to Route in the network: confirm the slot with the plant manager before a re-route is booked.",
+          "quote": "“Confirms the receiving slot with the plant manager before transport is booked for a re-routed shipment.”",
+          "value": "Confirm the slot with the plant manager before a re-route is booked"
+        },
+        {
+          "id": "j3",
+          "kind": "scope",
+          "area": "classify",
+          "text": "Take the laboratory part of Characterise and classify out of scope. The Riverbend laboratory releases results; the analyst reads them.",
+          "quote": "“Analytical results are released by the Laboratory Manager; the analyst reads released results and never approves on a preliminary one.”",
+          "reason": "Done by another team"
+        },
+        {
+          "id": "j4",
+          "kind": "threshold",
+          "metric": "m15",
+          "area": "price",
+          "text": "Set the threshold on Contract margin: a quote under 28% on full cost needs the Pricing and Margin Manager's exception.",
+          "quote": "§4.2 “No contract is quoted below 28% margin on full cost without a written exception from the Pricing and Margin Manager.”",
+          "value": "Below 28% without a written exception"
+        },
+        {
+          "id": "j5",
+          "kind": "routine",
+          "area": "watch",
+          "text": "Add a routine: a weekly outlet call with Third-Party Approvals for the eight weeks before an approval expires.",
+          "quote": "“For the eight weeks before a third-party approval expires, joins the weekly outlet call with the Third-Party Approvals Lead.”",
+          "routine": {
+            "id": "r_jd1",
+            "area": "watch",
+            "name": "Outlet approval call",
+            "cadence": "Weekly, eight weeks before an approval expires",
+            "to": "dimitriou",
+            "output": "Approvals list with the move for each stream"
+          }
+        },
+        {
+          "id": "j6",
+          "kind": "people",
+          "text": "Add Linda Choi to the people it works for. The description says permit conditions are read with Compliance.",
+          "quote": "“Reads permit conditions and feed limits with the Compliance Manager before a routing is approved.”",
+          "person": "choi"
+        }
+      ],
+      "ca": [
+        {
+          "id": "cj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Checks receipts against permits, keeps the transfer clocks and tracks renewals.”"
+        },
+        {
+          "id": "cj2",
+          "kind": "task",
+          "area": "permits",
+          "text": "Add a task to Permit compliance: reconcile the chlorine feed log with the manifests each week.",
+          "quote": "“Reconciles the kiln chlorine feed log with the manifests received each week.”",
+          "value": "Reconcile the chlorine feed log with the manifests weekly"
+        }
+      ],
+      "pa": [
+        {
+          "id": "pj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Keeps the price book, reviews quotes and re-prices on fee and cost changes.”"
+        },
+        {
+          "id": "pj2",
+          "kind": "task",
+          "area": "book",
+          "text": "Add a task to Price book: keep the transport rate card current with Transportation before each review.",
+          "quote": "“Keeps the lane rate card current with the Transportation Manager.”",
+          "value": "Keep the lane rate card current"
+        }
+      ],
+      "lp": [
+        {
+          "id": "lj1",
+          "kind": "confirm",
+          "text": "Confirms all 3 of your areas.",
+          "quote": "“Plans trucks and slots, keeps the service centers inside the transfer limit and maintains the lane rate card.”"
+        },
+        {
+          "id": "lj2",
+          "kind": "task",
+          "area": "centers",
+          "text": "Add a task to Service centers: plan consolidation loads from the pad every Tuesday and Friday.",
+          "quote": "“Plans consolidation loads from each service center twice a week.”",
+          "value": "Plan consolidation loads twice a week"
+        }
+      ]
+    },
+    "organisation": {
+      "name": "Ironbridge Environmental Services",
+      "kind": "Privately held · hazardous waste treatment, incineration, disposal and recycling in three regional businesses"
+    },
+    "utilities": [
+      {
+        "id": "mid",
+        "name": "Ironbridge Midwest",
+        "region": "Indiana, Illinois, Ohio and Michigan",
+        "commission": "State hazardous waste programs under federal authorization; Indiana, Illinois and Ohio disposal fees"
+      },
+      {
+        "id": "glf",
+        "name": "Ironbridge Gulf",
+        "region": "Texas and Louisiana",
+        "commission": "State hazardous waste programs; the Texas disposal fee; the deep well no-migration petition"
+      },
+      {
+        "id": "eas",
+        "name": "Ironbridge East",
+        "region": "New Jersey, Massachusetts, Virginia and Pennsylvania",
+        "commission": "State hazardous waste programs; the Tidewater permit renewal due 18 December"
+      }
+    ],
+    "people": [
+      {
+        "id": "whitfield",
+        "name": "Dana Whitfield",
+        "title": "Director of Technical Solutions"
+      },
+      {
+        "id": "oyelaran",
+        "name": "Marcus Oyelaran",
+        "title": "Vice President, Sales, chair of the Capacity Committee"
+      },
+      {
+        "id": "natarajan",
+        "name": "Priya Natarajan",
+        "title": "Account Manager, Halden Biopharma and the Gulf pharmaceutical accounts"
+      },
+      {
+        "id": "garrity",
+        "name": "Tom Garrity",
+        "title": "Approval Chemist, Port Terrell"
+      },
+      {
+        "id": "vasquez",
+        "name": "Elena Vasquez",
+        "title": "Plant Manager, Port Terrell Incineration Facility"
+      },
+      {
+        "id": "brennan",
+        "name": "Walt Brennan",
+        "title": "Plant Manager, Granger Incineration Facility"
+      },
+      {
+        "id": "choi",
+        "name": "Linda Choi",
+        "title": "Compliance Manager"
+      },
+      {
+        "id": "mehta",
+        "name": "Raj Mehta",
+        "title": "Pricing and Margin Manager"
+      },
+      {
+        "id": "okafor",
+        "name": "Sam Okafor",
+        "title": "Laboratory Manager, Riverbend"
+      },
+      {
+        "id": "fairbanks",
+        "name": "Jenna Fairbanks",
+        "title": "Customer Solutions Coordinator, Galena Shores Service Center"
+      },
+      {
+        "id": "ruiz",
+        "name": "Hector Ruiz",
+        "title": "Transportation Manager"
+      },
+      {
+        "id": "dimitriou",
+        "name": "Carla Dimitriou",
+        "title": "Third-Party Approvals Lead"
+      },
+      {
+        "id": "pratt",
+        "name": "Owen Pratt",
+        "title": "Integration Lead, Harbor Line and Tidewater"
+      }
+    ],
+    "sources": [
+      {
+        "id": "ops",
+        "name": "Operations warehouse (BigQuery · ironbridge_ops)",
+        "system": "Facilities, units, permits, bookings, generators, profiles, results, manifests, holds, outlets",
+        "kind": "Warehouse",
+        "state": "connected"
+      },
+      {
+        "id": "fin",
+        "name": "Finance warehouse (BigQuery · ironbridge_fin)",
+        "system": "Price book, quotes, costs, lanes, fees, invoices, plan",
+        "kind": "Warehouse",
+        "state": "connected"
+      },
+      {
+        "id": "legacy",
+        "name": "Legacy profiles (BigQuery · ironbridge_legacy)",
+        "system": "Harbor Line and Tidewater profiles not yet migrated",
+        "kind": "Warehouse",
+        "state": "connected"
+      },
+      {
+        "id": "gdrive",
+        "name": "Google Drive · Technical Solutions",
+        "system": "Documents",
+        "kind": "Documents",
+        "state": "connected"
+      },
+      {
+        "id": "gmail",
+        "name": "Gmail · technical solutions mailbox",
+        "system": "Mail",
+        "kind": "Mail",
+        "state": "connected"
+      },
+      {
+        "id": "carrier",
+        "name": "Carrier tracking",
+        "system": "Trucks in transit and arrival estimates",
+        "kind": "Logistics",
+        "state": "missing"
+      },
+      {
+        "id": "competitor",
+        "name": "Competitor pricing",
+        "system": "What other networks quote",
+        "kind": "External",
+        "state": "missing"
+      },
+      {
+        "id": "audit",
+        "name": "Outlet audit ratings",
+        "system": "Third-party outlet audit scores",
+        "kind": "External",
+        "state": "missing"
+      }
+    ],
+    "data_objects": {
+      "ops.facility": {
+        "src": "ops",
+        "label": "ops.facility",
+        "type": "table",
+        "size": "13 rows · one facility",
+        "lane": "structured"
+      },
+      "ops.process_unit": {
+        "src": "ops",
+        "label": "ops.process_unit",
+        "type": "table",
+        "size": "20 rows · one facility x process",
+        "lane": "structured"
+      },
+      "ops.facility_permit_code": {
+        "src": "ops",
+        "label": "ops.facility_permit_code",
+        "type": "table",
+        "size": "262 rows · one facility x process x waste code",
+        "lane": "structured"
+      },
+      "ops.capacity_booking": {
+        "src": "ops",
+        "label": "ops.capacity_booking",
+        "type": "table",
+        "size": "1,040 rows · one facility x process x week",
+        "lane": "structured"
+      },
+      "ops.generator": {
+        "src": "ops",
+        "label": "ops.generator",
+        "type": "table",
+        "size": "1,363 rows · one generator",
+        "lane": "structured"
+      },
+      "ops.waste_profile": {
+        "src": "ops",
+        "label": "ops.waste_profile",
+        "type": "table",
+        "size": "3,629 rows · one profile",
+        "lane": "structured"
+      },
+      "ops.profile_analytical": {
+        "src": "ops",
+        "label": "ops.profile_analytical",
+        "type": "table",
+        "size": "1,180 rows · one profile x parameter x release",
+        "lane": "structured"
+      },
+      "ops.manifest": {
+        "src": "ops",
+        "label": "ops.manifest",
+        "type": "table",
+        "size": "38,535 rows · one manifest",
+        "lane": "structured"
+      },
+      "ops.receipt_discrepancy": {
+        "src": "ops",
+        "label": "ops.receipt_discrepancy",
+        "type": "table",
+        "size": "1,450 rows · one discrepancy",
+        "lane": "structured"
+      },
+      "ops.transfer_hold": {
+        "src": "ops",
+        "label": "ops.transfer_hold",
+        "type": "table",
+        "size": "8,902 rows · one manifest x hold",
+        "lane": "structured"
+      },
+      "ops.third_party_outlet": {
+        "src": "ops",
+        "label": "ops.third_party_outlet",
+        "type": "table",
+        "size": "5 rows · one outlet",
+        "lane": "structured"
+      },
+      "ops.third_party_manifest": {
+        "src": "ops",
+        "label": "ops.third_party_manifest",
+        "type": "table",
+        "size": "312 rows · one shipment",
+        "lane": "structured"
+      },
+      "ops.third_party_approval": {
+        "src": "ops",
+        "label": "ops.third_party_approval",
+        "type": "table",
+        "size": "161 rows · one outlet x profile",
+        "lane": "structured"
+      },
+      "fin.price_book": {
+        "src": "fin",
+        "label": "fin.price_book",
+        "type": "table",
+        "size": "12 rows · one process",
+        "lane": "structured"
+      },
+      "fin.quote": {
+        "src": "fin",
+        "label": "fin.quote",
+        "type": "table",
+        "size": "141 rows · one quote",
+        "lane": "structured"
+      },
+      "fin.quote_line": {
+        "src": "fin",
+        "label": "fin.quote_line",
+        "type": "table",
+        "size": "282 rows · one quote x profile",
+        "lane": "structured"
+      },
+      "fin.treatment_cost": {
+        "src": "fin",
+        "label": "fin.treatment_cost",
+        "type": "table",
+        "size": "20 rows · one facility x process",
+        "lane": "structured"
+      },
+      "fin.transport_lane": {
+        "src": "fin",
+        "label": "fin.transport_lane",
+        "type": "table",
+        "size": "208 rows · one origin region x facility",
+        "lane": "structured"
+      },
+      "fin.state_fee": {
+        "src": "fin",
+        "label": "fin.state_fee",
+        "type": "table",
+        "size": "20 rows · one state x validity",
+        "lane": "structured"
+      },
+      "fin.invoice_line": {
+        "src": "fin",
+        "label": "fin.invoice_line",
+        "type": "table",
+        "size": "24,000 rows · one invoice line",
+        "lane": "structured"
+      },
+      "fin.revenue_plan": {
+        "src": "fin",
+        "label": "fin.revenue_plan",
+        "type": "table",
+        "size": "36 rows · one business x month",
+        "lane": "structured"
+      },
+      "legacy.legacy_profile": {
+        "src": "legacy",
+        "label": "legacy.legacy_profile",
+        "type": "table",
+        "size": "578 rows · one profile",
+        "lane": "structured"
+      },
+      "gd.policies": {
+        "src": "gdrive",
+        "label": "Policies and network: acceptance and pricing policies, committee pack and minutes, plan, price book, rate card",
+        "type": "folder",
+        "size": "9 documents",
+        "lane": "documents"
+      },
+      "gd.halden": {
+        "src": "gdrive",
+        "label": "Halden Biopharma proposal: request, QR-14, profiles, laboratory report, the Delmar schedule, the brief",
+        "type": "folder",
+        "size": "6 documents",
+        "lane": "documents"
+      },
+      "gd.facilities": {
+        "src": "gdrive",
+        "label": "Facilities, permits and capacity: permits, fuel blending limits, the fourth-quarter plan, the outage, the renewal",
+        "type": "folder",
+        "size": "7 documents",
+        "lane": "documents"
+      },
+      "gd.outlets": {
+        "src": "gdrive",
+        "label": "Third-party outlets and acquisitions: register, outlet letters, legacy status, integration plan",
+        "type": "folder",
+        "size": "4 documents",
+        "lane": "documents"
+      },
+      "gd.templates": {
+        "src": "gdrive",
+        "label": "Templates: acceptance memo, re-route notice",
+        "type": "folder",
+        "size": "2 documents",
+        "lane": "documents"
+      },
+      "gmail.ts": {
+        "src": "gmail",
+        "label": "Technical solutions mailbox",
+        "type": "mailbox",
+        "size": "1 mailbox · 18 threads",
+        "lane": "mail"
+      },
+      "carrier.tracking": {
+        "src": "carrier",
+        "label": "Trucks in transit and arrival estimates",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "competitor.quotes": {
+        "src": "competitor",
+        "label": "What other networks quote by process",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "audit.ratings": {
+        "src": "audit",
+        "label": "Third-party outlet audit scores",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      }
+    },
+    "pools_by_role": {
+      "_about": "What New Role steps 4 to 6 offer for each role, computed with the server rule: rows whose domains include the role's domain (domain_of_role), and metrics and questions only for the personas kept (all suggested personas kept here). Ids point into graph_personas, graph_metrics and graph_hero_questions. roles[].metrics and roles[].questions are the role library's own notes and are not what the steps offer.",
+      "wsa": {
+        "role": "Waste Stream Analyst",
+        "domain_id": "waste-stream",
+        "counts": {
+          "personas": 17,
+          "metrics": 34,
+          "hero_questions": 45
+        },
+        "personas": [
+          "ts-director",
+          "vp-sales",
+          "account-manager",
+          "approval-chemist",
+          "plant-manager",
+          "csc",
+          "compliance-director",
+          "pricing-manager",
+          "lab-manager",
+          "transport-manager",
+          "tp-approvals-lead",
+          "landfill-pm",
+          "regional-president",
+          "cfo",
+          "internal-audit",
+          "integration-lead",
+          "ehs-manager"
+        ],
+        "metrics": [
+          "booked-vs-permitted",
+          "unit-headroom",
+          "outlets-for-stream",
+          "stream-full-cost",
+          "stream-margin",
+          "contract-margin",
+          "streams-below-floor",
+          "revenue-vs-plan",
+          "margin-by-facility",
+          "profiles-pending",
+          "profiles-expiring",
+          "approval-cycle-time",
+          "unreleased-approvals",
+          "off-spec-rate",
+          "ten-day-exceedances",
+          "on-pad-clock",
+          "stranded-manifests",
+          "reroute-cost",
+          "third-party-spend",
+          "tp-approval-expiry",
+          "legacy-profiles",
+          "legacy-price-gap",
+          "quote-turnaround",
+          "quote-win-rate",
+          "price-vs-book",
+          "tons-by-code",
+          "fee-exposure",
+          "permit-renewals",
+          "outage-impact",
+          "customer-revenue",
+          "lane-tons",
+          "aerosol-cylinder-volume",
+          "ldr-compliance",
+          "result-release-lag"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq7",
+          "hq8",
+          "hq9",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq14",
+          "hq15",
+          "hq16",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq20",
+          "hq21",
+          "hq22",
+          "hq23",
+          "hq24",
+          "hq25",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq29",
+          "hq30",
+          "hq31",
+          "hq32",
+          "hq33",
+          "hq34",
+          "hq35",
+          "hq36",
+          "hq37",
+          "hq38",
+          "hq39",
+          "hq40",
+          "hq41",
+          "hq42",
+          "hq43",
+          "hq44",
+          "hq45"
+        ]
+      },
+      "ca": {
+        "role": "Compliance Analyst",
+        "domain_id": "compliance-permits",
+        "counts": {
+          "personas": 11,
+          "metrics": 28,
+          "hero_questions": 23
+        },
+        "personas": [
+          "ts-director",
+          "approval-chemist",
+          "plant-manager",
+          "csc",
+          "compliance-director",
+          "lab-manager",
+          "tp-approvals-lead",
+          "landfill-pm",
+          "internal-audit",
+          "integration-lead",
+          "ehs-manager"
+        ],
+        "metrics": [
+          "booked-vs-permitted",
+          "unit-headroom",
+          "outlets-for-stream",
+          "stream-full-cost",
+          "stream-margin",
+          "streams-below-floor",
+          "margin-by-facility",
+          "profiles-pending",
+          "profiles-expiring",
+          "approval-cycle-time",
+          "unreleased-approvals",
+          "off-spec-rate",
+          "ten-day-exceedances",
+          "on-pad-clock",
+          "stranded-manifests",
+          "reroute-cost",
+          "third-party-spend",
+          "tp-approval-expiry",
+          "legacy-profiles",
+          "legacy-price-gap",
+          "quote-turnaround",
+          "price-vs-book",
+          "tons-by-code",
+          "permit-renewals",
+          "outage-impact",
+          "aerosol-cylinder-volume",
+          "ldr-compliance",
+          "result-release-lag"
+        ],
+        "hero_questions": [
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq7",
+          "hq8",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq15",
+          "hq16",
+          "hq19",
+          "hq21",
+          "hq23",
+          "hq25",
+          "hq30",
+          "hq31",
+          "hq33",
+          "hq37",
+          "hq38",
+          "hq42",
+          "hq44",
+          "hq45"
+        ]
+      },
+      "pa": {
+        "role": "Pricing Analyst",
+        "domain_id": "pricing-margin",
+        "counts": {
+          "personas": 10,
+          "metrics": 32,
+          "hero_questions": 26
+        },
+        "personas": [
+          "ts-director",
+          "vp-sales",
+          "account-manager",
+          "plant-manager",
+          "pricing-manager",
+          "transport-manager",
+          "tp-approvals-lead",
+          "regional-president",
+          "cfo",
+          "internal-audit"
+        ],
+        "metrics": [
+          "booked-vs-permitted",
+          "unit-headroom",
+          "outlets-for-stream",
+          "stream-full-cost",
+          "stream-margin",
+          "contract-margin",
+          "streams-below-floor",
+          "revenue-vs-plan",
+          "margin-by-facility",
+          "profiles-pending",
+          "profiles-expiring",
+          "approval-cycle-time",
+          "unreleased-approvals",
+          "ten-day-exceedances",
+          "on-pad-clock",
+          "stranded-manifests",
+          "reroute-cost",
+          "third-party-spend",
+          "tp-approval-expiry",
+          "legacy-profiles",
+          "legacy-price-gap",
+          "quote-turnaround",
+          "quote-win-rate",
+          "price-vs-book",
+          "tons-by-code",
+          "fee-exposure",
+          "permit-renewals",
+          "outage-impact",
+          "customer-revenue",
+          "lane-tons",
+          "aerosol-cylinder-volume",
+          "result-release-lag"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq8",
+          "hq9",
+          "hq11",
+          "hq13",
+          "hq14",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq22",
+          "hq24",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq29",
+          "hq31",
+          "hq32",
+          "hq35",
+          "hq36",
+          "hq39",
+          "hq40",
+          "hq43",
+          "hq44"
+        ]
+      },
+      "lp": {
+        "role": "Logistics Planner",
+        "domain_id": "waste-stream",
+        "counts": {
+          "personas": 17,
+          "metrics": 34,
+          "hero_questions": 45
+        },
+        "personas": [
+          "ts-director",
+          "vp-sales",
+          "account-manager",
+          "approval-chemist",
+          "plant-manager",
+          "csc",
+          "compliance-director",
+          "pricing-manager",
+          "lab-manager",
+          "transport-manager",
+          "tp-approvals-lead",
+          "landfill-pm",
+          "regional-president",
+          "cfo",
+          "internal-audit",
+          "integration-lead",
+          "ehs-manager"
+        ],
+        "metrics": [
+          "booked-vs-permitted",
+          "unit-headroom",
+          "outlets-for-stream",
+          "stream-full-cost",
+          "stream-margin",
+          "contract-margin",
+          "streams-below-floor",
+          "revenue-vs-plan",
+          "margin-by-facility",
+          "profiles-pending",
+          "profiles-expiring",
+          "approval-cycle-time",
+          "unreleased-approvals",
+          "off-spec-rate",
+          "ten-day-exceedances",
+          "on-pad-clock",
+          "stranded-manifests",
+          "reroute-cost",
+          "third-party-spend",
+          "tp-approval-expiry",
+          "legacy-profiles",
+          "legacy-price-gap",
+          "quote-turnaround",
+          "quote-win-rate",
+          "price-vs-book",
+          "tons-by-code",
+          "fee-exposure",
+          "permit-renewals",
+          "outage-impact",
+          "customer-revenue",
+          "lane-tons",
+          "aerosol-cylinder-volume",
+          "ldr-compliance",
+          "result-release-lag"
+        ],
+        "hero_questions": [
+          "hq1",
+          "hq2",
+          "hq3",
+          "hq4",
+          "hq5",
+          "hq6",
+          "hq7",
+          "hq8",
+          "hq9",
+          "hq10",
+          "hq11",
+          "hq12",
+          "hq13",
+          "hq14",
+          "hq15",
+          "hq16",
+          "hq17",
+          "hq18",
+          "hq19",
+          "hq20",
+          "hq21",
+          "hq22",
+          "hq23",
+          "hq24",
+          "hq25",
+          "hq26",
+          "hq27",
+          "hq28",
+          "hq29",
+          "hq30",
+          "hq31",
+          "hq32",
+          "hq33",
+          "hq34",
+          "hq35",
+          "hq36",
+          "hq37",
+          "hq38",
+          "hq39",
+          "hq40",
+          "hq41",
+          "hq42",
+          "hq43",
+          "hq44",
+          "hq45"
+        ]
+      }
+    }
+  }
+}

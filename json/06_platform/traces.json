@@ -1,0 +1,226 @@
+{
+  "stats": [
+    {
+      "label": "p50 duration",
+      "value": "4.1 s",
+      "note": "across 11 sealed traces"
+    },
+    {
+      "label": "p95 duration",
+      "value": "7.6 s",
+      "note": "longest: What would the six Halden streams earn a yea",
+      "tone": "warn"
+    },
+    {
+      "label": "Unaccounted time",
+      "value": "710 ms",
+      "note": "shown as a gap, never folded into a step"
+    },
+    {
+      "label": "Cost this window",
+      "value": "$1.06",
+      "note": "against the $2.00 per-question budget"
+    }
+  ],
+  "items": [
+    {
+      "id": "trace_ib01",
+      "operation": "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 7600,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-11-03T15:00:00Z",
+      "actor": "Priya Natarajan",
+      "confidence": 0.88,
+      "cost_usd": 0.17,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib02",
+      "operation": "What does the Port Terrell outage strand, and where can each shipment go?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 6100,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-11-03T14:13:29Z",
+      "actor": "Dana Whitfield",
+      "confidence": 0.9,
+      "cost_usd": 0.14,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib03",
+      "operation": "What is booked against the capacity of each incineration unit, and what headroom is left in November?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 5400,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-11-03T13:26:58Z",
+      "actor": "Elena Vasquez",
+      "confidence": 0.93,
+      "cost_usd": 0.13,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib04",
+      "operation": "Which units are booked above 90% of capacity for the fourth quarter?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 4800,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-03T12:39:27Z",
+      "actor": "Marcus Oyelaran",
+      "confidence": 0.93,
+      "cost_usd": 0.12,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib05",
+      "operation": "Can Port Terrell carry the Halden process wastewater in the first quarter, on what is booked today?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 5200,
+      "spans": 5,
+      "status": "Slow",
+      "tone": "warn",
+      "at": "2026-11-03T11:52:56Z",
+      "actor": "Nishant Srivastav",
+      "confidence": 0.82,
+      "cost_usd": 0.12,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib06",
+      "operation": "What did we invoice this year by business, against the plan, and at what margin?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 3600,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-03T10:05:25Z",
+      "actor": "Raj Mehta",
+      "confidence": 0.94,
+      "cost_usd": 0.09,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib07",
+      "operation": "Which profiles are pending approval, and which of them are waiting on a laboratory result?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 2900,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-02T09:18:54Z",
+      "actor": "Dana Whitfield",
+      "confidence": 0.92,
+      "cost_usd": 0.08,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib08",
+      "operation": "Which third-party approvals expire in the next 60 days, and which streams depend on them?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 2700,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-02T08:31:23Z",
+      "actor": "Priya Natarajan",
+      "confidence": 0.93,
+      "cost_usd": 0.07,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib09",
+      "operation": "What does Priya need for the Halden proposal by Friday, and what is ready?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 4100,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-02T07:44:52Z",
+      "actor": "Nishant Srivastav",
+      "confidence": 0.84,
+      "cost_usd": 0.1,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib10",
+      "operation": "Has the Riverbend laboratory released the Halden results?",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 600,
+      "spans": 4,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-02T06:57:21Z",
+      "actor": "Marcus Feld",
+      "confidence": 0.95,
+      "cost_usd": 0.03,
+      "sealed": true
+    },
+    {
+      "id": "trace_ib11",
+      "operation": "Approve the Halden quote at the Granger routing.",
+      "service": "Waste Stream Analyst graph v1",
+      "duration": 700,
+      "spans": 2,
+      "status": "OK",
+      "tone": "good",
+      "at": "2026-11-02T05:10:50Z",
+      "actor": "Marcus Oyelaran",
+      "confidence": null,
+      "cost_usd": 0.01,
+      "sealed": true
+    }
+  ],
+  "sampling": "Every question is sealed - no sampling. A trace a viewer cannot find is a trace that does not exist.",
+  "waterfall": {
+    "trace_id": "trace_ib01",
+    "operation": "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+    "total_ms": 7600,
+    "unaccounted_ms": 710,
+    "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+    "spans": [
+      {
+        "name": "Understand & plan",
+        "start": 0,
+        "duration": 340,
+        "agent": "supervisor",
+        "detail": "classified: revenue by route · six Halden streams · price book · full cost"
+      },
+      {
+        "name": "Resolve the subject",
+        "start": 340,
+        "duration": 590,
+        "agent": "graph agent",
+        "detail": "Halden Biopharma → 6 profiles → permitted units → 24 routes → QR-14"
+      },
+      {
+        "name": "Read governed facts",
+        "start": 930,
+        "duration": 2560,
+        "agent": "graph agent",
+        "detail": "ops.profile_analytical · ops.facility_permit_code · ops.capacity_booking · fin.price_book · fin.treatment_cost · fin.transport_lane · fin.state_fee (as of 2026-11-03)"
+      },
+      {
+        "name": "Pull correspondence",
+        "start": 3490,
+        "duration": 2010,
+        "agent": "runtime agent",
+        "detail": "gmail · 90-day window · threads A1, A2, A4 · permissions follow the reader"
+      },
+      {
+        "name": "Compose and check",
+        "start": 5500,
+        "duration": 1390,
+        "agent": "supervisor",
+        "detail": "QR-14 binds the routing · Port Terrell capacity unconfirmed · fees from 1 November · totals foot"
+      }
+    ]
+  }
+}

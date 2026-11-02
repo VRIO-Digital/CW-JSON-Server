@@ -1,0 +1,474 @@
+{
+  "note": "The agent's lines as recorded in the transcripts (the transcripts are authoritative; every message there carries its card and order), de-duplicated, with what the analyst said just before. chipsByStage is the chip row and composer at the end of each transcript.",
+  "recorded": [
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of hauling the Halden streams to Granger instead of Port Terrell?",
+      "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+      "card": "reads"
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of hauling the Halden streams to Granger instead of Port Terrell?",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and stop at a question rather than land findings. The two examples carry full analyses.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of hauling the Halden streams to Granger instead of Port Terrell?",
+      "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Agreed, v1. Running the four steps now.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "All steps run. The goal names a measure the graph does not compute in this copy (emissions per ton-mile), so I have the lanes and the tons but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state the haul as ton-miles from the recorded lanes? Either way, the two example goals are where the full journeys are.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Drop it from the goal",
+      "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_01_plan_ready.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Priya needs the Halden Biopharma proposal by Friday 6 November: six new waste streams from their Caldwell Bend plant, 4,860 tons a year from February 2027, three-year contract. Characterise and classify each stream, work out which of our units can take it under its permit, its capacity and Halden's destruction requirement, cost every route and price it from the price book, test the margin against the floor, and draft the acceptance memo, the quote letter and the pricing schedule in the Delmar structure. Attached: the six profiles and the Delmar pricing schedule.",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Two things I could not find; one at a time.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "What counts as success: every stream has a named unit, a priced route and a stated fallback",
+      "text": "Changed **What counts as success** in the plan. The recommendation is judged against it.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: first-year volumes at ten months",
+      "text": "Here is what that changes in the plan. Nothing moves until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_proposal_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: first-year volumes at ten months",
+      "text": "Added **What-if: first-year volumes at ten months (production from February)** to the plan, beside the acceptance check. It shares steps 1 to 3 and runs after the checkpoint.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_02_checkpoint.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Add a what-if: first-year volumes at ten months",
+      "text": "Agreed, that is v3 of the plan, and the run has started. I stop before the acceptance check to confirm where the QR-14 streams are quoted. Findings land as steps finish, provisional until the end. Anything you change from here is logged against the plan.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_03_findings_ready.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Granger, with Port Terrell as the alternative when its plan is published",
+      "text": "Findings ready. **Quote the six streams at $3.56M a year, 34.7% margin on full cost, with the QR-14 streams on Granger and Port Terrell as the alternative when its first-quarter plan is published.** 2 gaps reached the recommendation; Halden's EPA identification number is the one I would close first, because no manifest moves without it.\n\nFour findings are on the right. Accept each one, or challenge it, then choose the way forward.",
+      "card": "findings"
+    },
+    {
+      "transcript": "once_proposal_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Quote the QR-14 streams on Port Terrell",
+      "text": "Here is what that changes. Nothing re-runs until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_proposal_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Quote the QR-14 streams on Port Terrell",
+      "text": "Re-ran step 3 with your instruction. Finding 3 changed, and the plan now records quoting the QR-14 streams on Port Terrell as your call, with the capacity to be confirmed before signature.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Accept all findings",
+      "text": "All 4 findings accepted. Next, the decision: 3 ways forward, and I prefer option 1. \"Why this\" plays how I got there.",
+      "card": "decision"
+    },
+    {
+      "transcript": "once_proposal_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Choose option 1",
+      "text": "Recorded. **Quote the QR-14 streams on Port Terrell with Granger as the fallback, capacity to be confirmed before signature.** The acceptance memo, the quote letter and the pricing schedule are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+      "card": "send"
+    },
+    {
+      "transcript": "once_proposal_04_steered_chosen_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Save this plan",
+      "text": "Saved as **“New generator proposal: classify, route, cost, price, accept”**, on the left under Saved plans. A new goal can start from it.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Priya needs the Halden Biopharma proposal by Friday 6 November: six new waste streams from their Caldwell Bend plant, 4,860 tons a year from February 2027, three-year contract. Characterise and classify each stream, work out which of our units can take it under its permit, its capacity and Halden's destruction requirement, cost every route and price it from the price book, test the margin against the floor, and draft the acceptance memo, the quote letter and the pricing schedule in the Delmar structure. Attached: the six profiles and the Delmar pricing schedule.",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "",
+      "text": "Reading it now.",
+      "card": "reads"
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "",
+      "text": "Read the report. All six results were released on 29 October; the solvent carries 3.2% total halogens, so Fox Hollow is out for it and the quote prices it on Granger. The plan on the right shows what changed.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Drop the acceptance step",
+      "text": "Here is what dropping it costs. Nothing moves until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Drop the acceptance step",
+      "text": "Agreed, that is v3 of the plan, and the run has started. Where the QR-14 streams are quoted is settled, so there is no stop before the pricing. Findings land as steps finish, provisional until the end. Anything you change from here is logged against the plan.",
+      "card": null
+    },
+    {
+      "transcript": "once_proposal_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Drop the acceptance step",
+      "text": "Findings ready. **Quote the six streams at $3.56M a year, 34.7% margin on full cost, with the QR-14 streams on Granger and Port Terrell as the alternative when its first-quarter plan is published.** 2 gaps reached the recommendation; Halden's EPA identification number is the one I would close first, because no manifest moves without it.\n\nThree findings are on the right. Accept each one, or challenge it, then choose the way forward.",
+      "card": "findings"
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every month-end close, refresh the network position and re-price every open quote against the booked capacity and the price book.",
+      "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+      "card": "reads"
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every month-end close, refresh the network position and re-price every open quote against the booked capacity and the price book.",
+      "text": "The plan for the watch is on the right. One thing I could not find.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Just me",
+      "text": "That is the plan for the watch. To change a line, press Edit on it and tell me here, or just type. Nothing is armed until you say so.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Just me",
+      "text": "Armed. It runs after the 6 November close, then every month; you hear from me when the position and the open quotes are refreshed. Nothing runs until then.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Simulate: run now",
+      "text": "**Running.** The scheduled run has started; the six steps run by themselves and the open quotes are refreshed at the end. You do not need to be here for this.",
+      "card": null
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Agreed, v1. Running the five steps on the 14 shipments now; findings land as each one finishes.",
+      "card": null
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Agree and run",
+      "text": "Done, and the notice is out to you. **Fourteen shipments, 911 tons and $0.71M of revenue, are booked for Port Terrell units that are down to 14 November; six are on the pad at Galena Shores and the first clock runs out on 11 November.** Two Meridian West approvals expire on 30 November, and two Riverbend streams fell under the floor when the Illinois fee rose.\n\nI recommend **re-routing 9 shipments to Granger and 1 to Northstar, holding 2 on the pad inside their clocks, bringing the overflow streams home to Granger and billing the fee under clause 9.2**, for $60.9k of extra haul and outlet cost less $23.9k saved, which keeps every clock and every ton of revenue. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+      "card": "note"
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Choose option 2",
+      "text": "Recorded. **Send everything stranded to third-party outlets.** The notice and the list are final in Outputs and go nowhere until you send them. Build them in Submissions, where every figure keeps its link to the step that produced it. The goal moves to Executed on the left. I can also keep this plan for next time.",
+      "card": "send"
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Keep every accepted stream with a permitted outlet that has capacity when it arrives, and keep every stream above the margin floor. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out, or a stream falls under the floor, size it, look at what the rest of the network can take, and work out what can still be done before I ask.",
+      "text": "The plan for the watch is on the right. Two things I could not find; one at a time.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Check every manifest as it is created, not only at the load",
+      "text": "Checked as manifests are created now. That catches a shipment booked to a unit that is down the hour it is booked, not at 02:00; expect more, smaller notices.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Check every manifest as it is created, not only at the load",
+      "text": "Armed. I check every accepted stream and every open manifest at the nightly load and each manifest as it is created; the next load is tonight, 02:00 on 4 November. Nothing runs until then. The Port Terrell outage is in the position already, so expect this to fire.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Keep every accepted stream with a permitted outlet that has capacity when it arrives, and keep every stream above the margin floor. Check each nightly load of profiles, manifests, bookings, outlet approvals and the price book; when a shipment loses its outlet, an approval runs out, or a stream falls under the floor, size it, look at what the rest of the network can take, and work out what can still be done before I ask.",
+      "text": "Armed. I check every accepted stream and every open manifest at the nightly load (02:00) against its booked unit, the unit's capacity in the period, the outlet approvals and the margin floor. Nothing runs until a shipment has no permitted outlet with capacity before it arrives, an approval runs out, or a stream falls under the floor.\n\nThe plan on the right is what runs when it fires: five steps, no checkpoint, and a notice to you and the plant managers. It waits for you under Needs you when it is done.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight's load (4 November)",
+      "text": "**Fired.** The 02:00 load carried the Port Terrell outage: the kiln and the liquid injection unit are down to 14 November and fourteen inbound shipments, 911 tons and $0.71M of revenue, have no outlet with capacity before they arrive. **Six are already on the pad at Galena Shores, and the first ten-day clock runs out on 11 November.** With the two Meridian West approvals and the two Riverbend streams under the floor, that is 18 positions. Running the five steps now; the notice goes out when they are done and the run waits for you under Needs you. You do not need to be here for this.",
+      "card": "fired"
+    },
+    {
+      "transcript": "watch_rule_01_fired_note_sent.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight's load (4 November)",
+      "text": "Done, and the notice is out to you and the plant managers. **Fourteen shipments, 911 tons and $0.71M of revenue, are booked for Port Terrell units that are down to 14 November; six are on the pad at Galena Shores and the first clock runs out on 11 November.** Two Meridian West approvals expire on 30 November, and two Riverbend streams fell under the floor when the Illinois fee rose.\n\nI recommend **re-routing 9 shipments to Granger and 1 to Northstar, holding 2 on the pad inside their clocks, bringing the overflow streams home to Granger and billing the fee under clause 9.2**, for $60.9k of extra haul and outlet cost less $23.9k saved, which keeps every clock and every ton of revenue. It waits for you under Needs you: accept the four findings, then choose. Nothing is executed until you do.",
+      "card": "note"
+    },
+    {
+      "transcript": "watch_rule_02_chosen_confirm.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Choose option 1",
+      "text": "Recorded. **Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee.** Here is what I will do about it. Nothing happens until you say execute.",
+      "card": "execute"
+    },
+    {
+      "transcript": "watch_rule_03_executed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Execute",
+      "text": "Executed. Notice and list sent; 9 Granger slots asked for; trucks and the Northstar load requested; the overflow move and the fee billing asked for. The notice is also in Submissions as a draft you can finish; the Granger slots are Walt Brennan's to confirm, the trucks Hector Ruiz's to book and the profile moves Carla Dimitriou's to make.\n\nThis run is now under **Executed** on the left. The watch itself stays armed under Standing goals and checks the next load tonight.",
+      "card": null
+    }
+  ],
+  "chipsByStage": {
+    "generic_typed_goal.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Open the data",
+        "Save this plan"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_proposal_01_plan_ready.json": {
+      "stage": "plan",
+      "status": "draft",
+      "chips": [
+        "Only the QR-14 streams",
+        "Add a what-if: first-year volumes at ten months",
+        "Drop the acceptance step",
+        "Agree and run"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything in plain words…"
+      }
+    },
+    "once_proposal_02_checkpoint.json": {
+      "stage": "running",
+      "status": "wait",
+      "chips": [
+        "What are you doing now?"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_proposal_03_findings_ready.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why Granger and not Port Terrell?",
+        "Quote the QR-14 streams on Port Terrell",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_proposal_04_steered_chosen_saved.json": {
+      "stage": "running",
+      "status": "accepted",
+      "chips": [
+        "Build the pricing schedule in Submissions",
+        "Make it standing"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "once_proposal_documents_web.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why Granger and not Port Terrell?",
+        "Quote the QR-14 streams on Port Terrell",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "schedule_monthly_run.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why Granger and not Port Terrell?",
+        "Quote the QR-14 streams on Port Terrell",
+        "Open the data"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "shortfall_once.json": {
+      "stage": "running",
+      "status": "accepted",
+      "chips": [
+        "Build the notice in Submissions",
+        "Save this plan",
+        "Make it standing"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Steer the run in plain words…"
+      }
+    },
+    "watch_new_armed.json": {
+      "stage": "armed",
+      "status": "armed",
+      "chips": [
+        "Simulate tonight's load (4 November)",
+        "What will it look like when it fires?",
+        "Open the Halden proposal goal"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_01_fired_note_sent.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Accept all findings",
+        "Why option 1?",
+        "Open the notice",
+        "Snooze these positions until the next load"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_02_chosen_confirm.json": {
+      "stage": "armed",
+      "status": "ready",
+      "chips": [
+        "Execute",
+        "Not now"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_03_executed.json": {
+      "stage": "armed",
+      "status": "executed",
+      "chips": [
+        "Open the draft in Submissions",
+        "Save this plan"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "domain_id": "waste-stream",
+    "name": "Waste Stream Acceptance, Routing and Economics (hazardous waste network)",
+    "expected_sources": [
+      "Operations: profiles, permits, bookings, manifests",
+      "Finance: price book, costs, lanes, fees, invoices",
+      "Legacy profile system",
+      "Technical Solutions documents",
+      "Analyst mailbox"
+    ],
+    "fit": "strong",
+    "note": "Profiles, permitted codes, capacity bookings, manifests, cost rates and the price book are connected and profiled; policies, permits, requirements and the lab report are in Drive.",
+    "unmet_note": "No profile or manifest source connected.",
+    "rank": 1
+  },
+  {
+    "domain_id": "compliance-permits",
+    "name": "Compliance, Permits and Transfer",
+    "expected_sources": [
+      "Permit summaries and permitted codes",
+      "Transfer holds",
+      "Receipt discrepancies",
+      "Third-party approvals"
+    ],
+    "fit": "strong",
+    "note": "Permitted codes, holds, discrepancies and approvals resolve. Permit conditions are summaries in Drive, not a table.",
+    "unmet_note": "No permit source connected.",
+    "rank": 2
+  },
+  {
+    "domain_id": "pricing-margin",
+    "name": "Pricing, Margin and Capacity",
+    "expected_sources": [
+      "Price book and quotes",
+      "Cost rates and lanes",
+      "Invoice lines",
+      "Capacity bookings"
+    ],
+    "fit": "partial",
+    "note": "Price book, quotes, costs, lanes, fees, invoices and bookings resolve. Port Terrell's first-quarter 2027 plan is not published, and the legacy prices are the acquired companies' books.",
+    "unmet_note": "No cost or price source connected.",
+    "rank": 3
+  },
+  {
+    "domain_id": "logistics-tracking",
+    "name": "Logistics and Shipment Tracking",
+    "expected_sources": [
+      "Carrier tracking",
+      "Truck positions",
+      "Arrival estimates"
+    ],
+    "fit": "none",
+    "note": "Carrier tracking is not connected, so where a truck is and when it arrives cannot be read. Arrival questions are declined; the manifest's expected date is answered instead.",
+    "unmet_note": "No carrier source connected.",
+    "rank": 4
+  }
+]

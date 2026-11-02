@@ -127,7 +127,7 @@ const goalsSubmissionModules = import.meta.glob('../*/goals-submission/*.html', 
  * An eighth: SUPPLYCHAIN keeps its two pages in folders named for the screen (`src/SupplyChain/Goals/`,
  * `src/SupplyChain/Submission/`) rather than one `goals-submission/` folder, so they are named here.
  */
-const supplyChainGoalsModules = import.meta.glob('../SupplyChain/{Goals,Submission}/*.html', {
+const supplyChainGoalsModules = import.meta.glob('../{SupplyChain,Arcwood}/{Goals,Submission}/*.html', {
   query: '?url',
   import: 'default',
   eager: true,

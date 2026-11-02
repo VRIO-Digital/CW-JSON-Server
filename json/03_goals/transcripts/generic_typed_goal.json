@@ -1,0 +1,347 @@
+{
+  "note": "A goal typed in other words: generic reads, a four-step plan, a run that ends at a question, no findings. What the product says when it has no recorded analysis.",
+  "journey": {
+    "id": "g-what-is-the-carbon-footprint-of-hauli-ib3d517f",
+    "mode": "once",
+    "kind": "once",
+    "case": "generic",
+    "title": "What is the carbon footprint of hauling the Halden streams to Granger …",
+    "agent": {
+      "name": "Agent Harbour",
+      "icon": "thunder",
+      "colour": "#1f4e79"
+    },
+    "prompt": "What is the carbon footprint of hauling the Halden streams to Granger instead of Port Terrell?",
+    "files": [],
+    "stage": "running",
+    "status": "ready",
+    "rv": [
+      "scope",
+      "decision",
+      "src:ops",
+      "src:fin",
+      "src:mail",
+      "memory",
+      "success",
+      "fixed",
+      "miss:generic",
+      "steps"
+    ],
+    "reads": [
+      {
+        "tool": "resolve the goal against the role graph",
+        "res": "\"What is the carbon footprint of hauling the Halden streams…\" → 34 governed measures, the facilities and units, documents and mail",
+        "rv": [
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan ops.waste_profile · ops.manifest",
+        "res": "3,098 approved profiles · 37,855 manifests this year",
+        "rv": [
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "scan ops.capacity_booking · fin.price_book",
+        "res": "20 units by week · the 2026 price book and cost rates",
+        "rv": [
+          "src:fin"
+        ]
+      },
+      {
+        "tool": "read Gmail · Google Drive",
+        "res": "18 threads and 31 documents linked to the role",
+        "rv": [
+          "src:mail"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "A permitted code is not an outlet without capacity · a requirement binds the routing · margin on the route the stream will take",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "match the goal to a recorded analysis",
+        "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+        "warn": true,
+        "rv": [
+          "miss:generic"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {},
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "g1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Ground the goal in the role graph",
+        "purpose": "Which measures, units, streams and documents the goal names.",
+        "how": "Resolve every term in the goal to a governed measure, a unit, a profile or a document; list anything that does not resolve.",
+        "draws": [
+          "Waste Stream Analyst graph v1"
+        ],
+        "check": "Every term maps to something the graph holds, or is listed as unresolved."
+      },
+      {
+        "id": "g2",
+        "col": 1,
+        "row": 1,
+        "type": "compute",
+        "title": "State the current position",
+        "purpose": "Bookings, profiles and revenue for everything in scope.",
+        "how": "From the latest load, the open manifests and the revenue to date.",
+        "draws": [
+          "ops.capacity_booking",
+          "ops.waste_profile",
+          "fin.invoice_line"
+        ],
+        "check": "Totals reconcile to the governed measures within rounding."
+      },
+      {
+        "id": "g3",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Read what the documents and the mailbox say that the tables do not",
+        "purpose": "Dated statements that differ from the operations system.",
+        "how": "Plant, generator and compliance statements with dates or quantities.",
+        "draws": [
+          "Gmail mailbox",
+          "Google Drive documents"
+        ],
+        "check": "Nothing is attributed without a dated reference."
+      },
+      {
+        "id": "g4",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Set out the ways forward and test them against the policies",
+        "purpose": "At least two courses of action with their trade-offs.",
+        "how": "Against the acceptance policy, the pricing policy and the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Waste_Acceptance_Policy_2025.pdf",
+          "Pricing_and_Margin_Policy_2026.pdf"
+        ],
+        "check": "Each course states what it costs and what it protects."
+      }
+    ],
+    "edges": [
+      [
+        "g1",
+        "g2"
+      ],
+      [
+        "g2",
+        "g3"
+      ],
+      [
+        "g3",
+        "g4"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "g1": {
+        "state": "done",
+        "at": "14:31",
+        "text": "Done"
+      },
+      "g2": {
+        "state": "done",
+        "at": "14:31",
+        "text": "Done"
+      },
+      "g3": {
+        "state": "done",
+        "at": "14:31",
+        "text": "Done"
+      },
+      "g4": {
+        "state": "done",
+        "at": "14:31",
+        "text": "Done"
+      }
+    },
+    "findings": [],
+    "recs": [],
+    "outputs": [],
+    "started": [],
+    "gaps": [],
+    "chat": [
+      {
+        "who": "me",
+        "text": "What is the carbon footprint of hauling the Halden streams to Granger instead of Port Terrell?",
+        "id": "j1-ib5b0345",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "resolve the goal against the role graph",
+              "res": "\"What is the carbon footprint of hauling the Halden streams…\" → 34 governed measures, the facilities and units, documents and mail",
+              "live": false
+            },
+            {
+              "tool": "scan ops.waste_profile · ops.manifest",
+              "res": "3,098 approved profiles · 37,855 manifests this year",
+              "live": false
+            },
+            {
+              "tool": "scan ops.capacity_booking · fin.price_book",
+              "res": "20 units by week · the 2026 price book and cost rates",
+              "live": false
+            },
+            {
+              "tool": "read Gmail · Google Drive",
+              "res": "18 threads and 31 documents linked to the role",
+              "live": false
+            },
+            {
+              "tool": "search role memory",
+              "res": "A permitted code is not an outlet without capacity · a requirement binds the routing · margin on the route the stream will take",
+              "live": false
+            },
+            {
+              "tool": "match the goal to a recorded analysis",
+              "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "4 steps · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j2-ib0a454d",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and stop at a question rather than land findings. The two examples carry full analyses.",
+        "id": "j3-ib167e51",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan. To change a line, press Edit on it and tell me here; or type, or add a document. Every change is marked on the plan and logged. Nothing runs until you agree.",
+        "id": "j4-ib21f575",
+        "at": "14:31"
+      },
+      {
+        "who": "me",
+        "text": "Agree and run",
+        "id": "j5-ibd4dcd6",
+        "at": "14:31"
+      },
+      {
+        "who": "event",
+        "text": "Plan agreed · v1 · 14:31",
+        "id": "j6-ib82579e",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "Agreed, v1. Running the four steps now.",
+        "id": "j7-ibb43904",
+        "at": "14:31"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · Ground the goal in the role graph",
+        "id": "j8-ibfed400",
+        "at": "14:31"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · State the current position",
+        "id": "j9-ibab6e4d",
+        "at": "14:31"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · Read what the documents and the mailbox say that the tables do not",
+        "id": "j10-ib140431",
+        "at": "14:31"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · Set out the ways forward and test them against the policies",
+        "id": "j11-ib4ae0e0",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "All steps run. The goal names a measure the graph does not compute in this copy (emissions per ton-mile), so I have the lanes and the tons but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state the haul as ton-miles from the recorded lanes? Either way, the two example goals are where the full journeys are.",
+        "id": "j12-ib5fa469",
+        "at": "14:31"
+      },
+      {
+        "who": "me",
+        "text": "Drop it from the goal",
+        "id": "j13-ib5bc3b3",
+        "at": "14:31"
+      },
+      {
+        "who": "agent",
+        "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+        "id": "j14-ib2128a0",
+        "at": "14:31"
+      }
+    ],
+    "chips": [
+      "Open the data",
+      "Save this plan"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Steer the run in plain words…"
+    },
+    "log": [
+      {
+        "t": "14:31",
+        "who": "You",
+        "what": "Agreed the plan (v1) and started the run."
+      },
+      {
+        "t": "14:31",
+        "who": "You",
+        "what": "Answered: Drop it from the goal"
+      }
+    ],
+    "runs": [],
+    "flags": {
+      "genericQ": true,
+      "answeredQ": true
+    },
+    "doneCount": 4,
+    "paused": false,
+    "agreedAt": "14:31",
+    "prevStatus": "running"
+  }
+}

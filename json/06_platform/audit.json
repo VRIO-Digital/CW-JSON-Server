@@ -1,0 +1,207 @@
+{
+  "stats": [
+    {
+      "label": "Access rules in force",
+      "value": "8",
+      "note": "1 of 8 readers carries a restriction"
+    },
+    {
+      "label": "PII columns",
+      "value": "3",
+      "note": "across 22 catalogued tables",
+      "tone": "good"
+    },
+    {
+      "label": "Columns to review",
+      "value": "7",
+      "note": "profiler confidence below the accept floor",
+      "tone": "warn"
+    },
+    {
+      "label": "Cost-cap headroom",
+      "value": "34%",
+      "note": "tightest: Goals (tenant) at 66.0%",
+      "tone": "warn"
+    }
+  ],
+  "events": [
+    {
+      "actor": "Elena Vasquez",
+      "action": "Opened Capacity and Outlets",
+      "resource": "Capacity and Outlets",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 08:52",
+      "detail": "Her access resolved: business = Gulf - 1,158 of 3,098 approved profiles; no masks.",
+      "category": "open"
+    },
+    {
+      "actor": "Dana Whitfield",
+      "action": "Opened Network Position",
+      "resource": "Network Position",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 08:31",
+      "detail": "Her access resolved: all 3,098 approved profiles, all three businesses, no masks.",
+      "category": "open"
+    },
+    {
+      "actor": "system",
+      "action": "Scheduled refresh ran on Network Position",
+      "resource": "Network Position",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Today 07:00",
+      "detail": "Invoice lines, bookings and plan blocks refreshed. Mailbox blocks are read at open time and are not part of the schedule. Port Terrell first-quarter plan still missing.",
+      "category": "ref"
+    },
+    {
+      "actor": "Nishant Srivastav",
+      "action": "Started submission 'Pricing schedule: Halden Biopharma 2027 to 2029' from a goal",
+      "resource": "submission sub-pricing-schedule-halden-2027",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Nov 2 16:12",
+      "detail": "Built from the goal g-halden-proposal on the template Pricing schedule, Delmar Chemical 2024 to 2026.",
+      "category": "pub"
+    },
+    {
+      "actor": "Dana Whitfield",
+      "action": "Armed the goal 'Every accepted stream has an outlet with capacity and stays above the floor'",
+      "resource": "goal g-rule-outlet-watch",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Oct 26 15:10",
+      "detail": "Fires on each nightly load of profiles, manifests, bookings, approvals and the price book; checks every open manifest for a permitted outlet with capacity.",
+      "category": "pub"
+    },
+    {
+      "actor": "Marcus Feld",
+      "action": "Published graph Waste Stream Analyst v1",
+      "resource": "graph v1",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 24 16:02",
+      "detail": "Published with 8 review items open (1 pivot). Answers that touch rq1 carry the caveat.",
+      "category": "pub"
+    },
+    {
+      "actor": "Marcus Feld",
+      "action": "Changed rule for Elena Vasquez",
+      "resource": "data access rule",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 24 11:10",
+      "detail": "Restriction basis = business (Gulf).",
+      "category": "rule"
+    },
+    {
+      "actor": "Priya Natarajan",
+      "action": "Exported Halden Proposal (XLSX)",
+      "resource": "Halden Proposal",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 30 12:18",
+      "detail": "Export carries the watermark and the as-of line; the quote is restricted to the account team and Technical Solutions until it is sent.",
+      "category": "export"
+    },
+    {
+      "actor": "system",
+      "action": "Sealed trace for 'What would the six Halden streams earn a year by route, at the price book, on full cost?'",
+      "resource": "trace_ib01",
+      "severity": "Info",
+      "tone": "neutral",
+      "at": "Oct 30 10:22",
+      "detail": "5 spans · $0.17 · confidence 0.90",
+      "category": "ref"
+    },
+    {
+      "actor": "Sam Whitaker",
+      "action": "Changed persona access for Business User - Executive",
+      "resource": "settings",
+      "severity": "Medium",
+      "tone": "warn",
+      "at": "Oct 23 09:30",
+      "detail": "Reports hidden from the sidebar for all personas (beta).",
+      "category": "rule"
+    }
+  ],
+  "policies": [
+    {
+      "name": "Two gates",
+      "desc": "Gate 1 decides whether an artifact EXISTS for a viewer (audience). Gate 2 decides which ROWS a viewer sees inside it (data scope). They are administered separately.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Counts are computed",
+      "desc": "Every count on this screen - \"sees 1,158 of 3,098\" - is derived from the approved profile roster at paint time, never typed.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Rule shape",
+      "desc": "A person is full-scope, or restricted by exactly one basis field plus optional masks.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Legal basis",
+      "desc": "A field qualifies as a restriction basis only if every one of its values is known on every row (business, facility, state, process).",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Quote confidentiality",
+      "desc": "A quote in draft is visible to the account team and Technical Solutions only, until it is sent to the generator.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Correspondence is runtime",
+      "desc": "Mailbox content is read at question time under the reader's permissions and never becomes a graph fact or a cached figure.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "A permitted code is not an outlet",
+      "desc": "An outlet is a permitted unit with capacity in the period that meets the customer requirement; a permit, a plan or a letter is quoted as a statement with its date.",
+      "status": "Enforced",
+      "tone": "good"
+    },
+    {
+      "name": "Goals act only on approval",
+      "desc": "A goal drafts notices and lists; anything sent, booked or moved outside the product waits for the person who owns the goal.",
+      "status": "Enforced",
+      "tone": "good"
+    }
+  ],
+  "event_window": "Last 12 days · 10 events",
+  "policy_total": 8,
+  "categories": [
+    {
+      "id": "all",
+      "label": "All"
+    },
+    {
+      "id": "pub",
+      "label": "Publishing"
+    },
+    {
+      "id": "open",
+      "label": "Opens"
+    },
+    {
+      "id": "rule",
+      "label": "Rule changes"
+    },
+    {
+      "id": "ref",
+      "label": "Refreshes"
+    },
+    {
+      "id": "export",
+      "label": "Exports"
+    }
+  ]
+}

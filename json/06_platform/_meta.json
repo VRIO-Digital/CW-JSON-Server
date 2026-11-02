@@ -1,0 +1,10 @@
+{
+  "package": "waste_stream_analyst_demo_data_package_2026-11-01",
+  "tenant": "Ironbridge Environmental Services (invented - a hazardous waste treatment, incineration, disposal and recycling network in three regional businesses; every figure is invented)",
+  "schema_source": "the development team’s db.CAPEX.json key set and field shapes, as carried by the reference packages of 2026-09-24 and 2026-10-12",
+  "generated_by": "_build/build_platform.py",
+  "as_of": "2026-11-03",
+  "today": "2026-11-03",
+  "note": "Every value is generated from the datasets in datasets/ and the scripts in _build/. Never hand-edit this file - change the generator and rebuild.",
+  "keys_carried_from_capex_schema": 31
+}

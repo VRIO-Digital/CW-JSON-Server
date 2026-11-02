@@ -1,0 +1,39 @@
+[
+  {
+    "id": "n-g-rule-outlet-watch-ib4443ae-executed",
+    "at": "2026-11-03T20:21:24.083Z",
+    "kind": "executed",
+    "goalId": "g-rule-outlet-watch",
+    "title": "Executed: Re-route, hold, bring home and bill the fee",
+    "text": "Agent Ledger did all 4 steps on the 18 positions. The goal is under Executed; the watch stays armed for the next load.",
+    "read": false,
+    "tab": "runs",
+    "found": "Notice and list sent; 9 Granger slots asked for; trucks and the Northstar load requested; the overflow move and the fee billing asked for.",
+    "cta": "Open the goal"
+  },
+  {
+    "id": "n-g-rule-outlet-watch-iba6bbc9-findings",
+    "at": "2026-11-03T20:20:16.535Z",
+    "kind": "findings",
+    "goalId": "g-rule-outlet-watch",
+    "title": "Shipments without an outlet in tonight's load: a recommendation waits for you",
+    "text": "Agent Ledger ran the five steps on the 18 positions and sent the notice to you and the plant managers. It waits for your review under Needs you.",
+    "read": false,
+    "tab": "runs",
+    "found": "Eighteen positions need a decision: fourteen shipments (911 tons, $0.71M) booked for Port Terrell units that are down, two approvals that expire, two streams under the floor.",
+    "rec": "Re-route nine shipments to Granger and one to Northstar, hold two on the pad, bring the overflow home, bill the fee.",
+    "cta": "Review it"
+  },
+  {
+    "id": "n-g-rule-outlet-watch-ibc82561-fired",
+    "at": "2026-11-03T20:20:08.025Z",
+    "kind": "fired",
+    "goalId": "g-rule-outlet-watch",
+    "title": "Standing goal fired: shipments without an outlet in tonight's load",
+    "text": "Agent Ledger is analysing it now. You hear back with findings and a recommendation.",
+    "read": false,
+    "tab": "runs",
+    "found": "Eighteen positions need a decision: fourteen shipments (911 tons, $0.71M) booked for Port Terrell units that are down, two approvals that expire, two streams under the floor.",
+    "cta": "Watch it run"
+  }
+]

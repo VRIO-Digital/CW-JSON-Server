@@ -1,0 +1,160 @@
+[
+  {
+    "format_id": "ranked-exception",
+    "name": "Ranked exception list",
+    "format": "table ranked by size, owner per row, the rule it breaks",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "below",
+      "exceeded",
+      "worst",
+      "exceptions"
+    ]
+  },
+  {
+    "format_id": "revenue-cube",
+    "name": "Revenue by business and facility",
+    "format": "metric row + one table by business and facility + plan beside it",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "revenue",
+      "facility",
+      "business",
+      "plan"
+    ]
+  },
+  {
+    "format_id": "capacity-board",
+    "name": "Capacity board",
+    "format": "metric row + booked against capacity by unit with headroom",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "capacity",
+      "booked",
+      "headroom",
+      "outage"
+    ]
+  },
+  {
+    "format_id": "route-comparison",
+    "name": "Route comparison on full cost",
+    "format": "streams as rows, routes as columns, full cost, margin and eligibility",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "route",
+      "full cost",
+      "margin",
+      "stream"
+    ]
+  },
+  {
+    "format_id": "acceptance-check",
+    "name": "Acceptance check",
+    "format": "each stream against the permit, the capacity and the customer requirement, acceptable or not, with the reason",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "acceptable",
+      "permit",
+      "requirement",
+      "outlet"
+    ]
+  },
+  {
+    "format_id": "clock-list",
+    "name": "Shipments against their clock",
+    "format": "shipments with days held, deadline and next destination",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "ten-day",
+      "pad",
+      "clock",
+      "held"
+    ]
+  },
+  {
+    "format_id": "declined-with-alternative",
+    "name": "Declined, with what can be answered",
+    "format": "one sentence on why, then the closest question the graph does answer",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "predict",
+      "forecast",
+      "should",
+      "will"
+    ]
+  },
+  {
+    "format_id": "claims-from-mail",
+    "name": "Claims read from the mailbox",
+    "format": "figures from the record, then the senders' claims as an attributed list that is never counted",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "email",
+      "says",
+      "confirmed",
+      "thread"
+    ]
+  },
+  {
+    "format_id": "provenance-table",
+    "name": "Provenance table",
+    "format": "every figure with table, basis and as-of",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "source",
+      "provenance",
+      "as-of"
+    ]
+  },
+  {
+    "format_id": "decline-with-alternative",
+    "name": "Decline with alternative",
+    "format": "reason for declining + what can be answered instead",
+    "domains": [
+      "waste-stream",
+      "compliance-permits",
+      "pricing-margin"
+    ],
+    "keywords": [
+      "arrive",
+      "market",
+      "competitor"
+    ]
+  }
+]

@@ -1,0 +1,224 @@
+{
+  "documents": [
+    {
+      "document_id": "3e67ddc1-2898-5ac8-a1c6-c5ae1c472a41",
+      "label_id": "INBOX",
+      "name": "A1-1 Halden Biopharma: quote by Friday 6 November.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 570,
+      "chunks": 1,
+      "snippet": "Halden Biopharma: quote by Friday 6 November\nPriya Natarajan\n2026-10-23 08:41:12\nNishant, Dana,\n\nHalden's six profiles came in yesterday and the lab has the samples. They want the proposal by Friday 6 November: a price per ton for each strea",
+      "entities": 5
+    },
+    {
+      "document_id": "45d09502-413e-502a-a633-ef5e703a1e45",
+      "label_id": "INBOX",
+      "name": "A1-2 Re: Halden Biopharma: quote by Friday 6 November.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 879,
+      "chunks": 1,
+      "snippet": "Re: Halden Biopharma: quote by Friday 6 November\nDana Whitfield\n2026-10-23 09:30:05\nPriya, noted. Nishant, quote the QR-14 streams on Granger unless Port Terrell publishes a first-quarter plan with room; the committee was clear on that. Port Te",
+      "entities": 11
+    },
+    {
+      "document_id": "3219c966-31dd-5af1-85fe-97c31a09ae31",
+      "label_id": "INBOX",
+      "name": "A2-1 Halden QR-14: no deep well for the process water.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 418,
+      "chunks": 1,
+      "snippet": "Halden QR-14: no deep well for the process water\nPriya Natarajan\n2026-10-27 14:12:40\nNishant,\n\nI asked Halden's quality lead whether deep well would do for the process wastewater if we issued a certificate of disposal. The answer was no: QR-14 m",
+      "entities": 3
+    },
+    {
+      "document_id": "74cc73c5-7ee5-55b1-b4a8-3e9730cfb0d0",
+      "label_id": "INBOX",
+      "name": "A3-1 Halden lab results released.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 408,
+      "chunks": 1,
+      "snippet": "Halden lab results released\nSam Okafor\n2026-10-29 16:05:22\nNishant,\n\nAll six Halden results are released. The one to watch is H2: total halogens 3.2% by weight, from a chlorinated intermediate they did not mention on th",
+      "entities": 7
+    },
+    {
+      "document_id": "bd657a75-1d2c-57b7-b153-e7aca893c039",
+      "label_id": "INBOX",
+      "name": "A3-2 Re: Halden lab results released.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 550,
+      "chunks": 1,
+      "snippet": "Re: Halden lab results released\nNishant Srivastav\n2026-10-29 16:40:11\nThanks Sam. H2 goes to incineration then; Tidewater could blend it but not from Texas. I will note the intermediate on the acceptance memo.\n\nNishant\n\n--\nNishant",
+      "entities": 8
+    },
+    {
+      "document_id": "ba9e5b6d-4909-578c-bb2b-b1e8b5965f15",
+      "label_id": "INBOX",
+      "name": "A4-1 Margin floor on the Halden quote.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 436,
+      "chunks": 1,
+      "snippet": "Margin floor on the Halden quote\nRaj Mehta\n2026-10-30 11:20:33\nNishant,\n\nTwo things for the Halden quote. The floor is 28.0% on full cost at the routing you quote, and no stream below 15.0%; if you quote Granger for the pro",
+      "entities": 9
+    },
+    {
+      "document_id": "e3d24618-d479-568f-a0fe-4067ad341596",
+      "label_id": "INBOX",
+      "name": "E1-1 Halden EPA identification number.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 321,
+      "chunks": 1,
+      "snippet": "Halden EPA identification number\nLinda Choi\n2026-10-28 10:02:15\nPriya, Nishant,\n\nHalden's Caldwell Bend site has applied for its EPA identification number and does not have it yet. We can quote and approve profiles, but no m",
+      "entities": 3
+    },
+    {
+      "document_id": "5cfff235-15f4-5889-80d8-3554c20d257e",
+      "label_id": "INBOX",
+      "name": "F1-1 Port Terrell: kiln down, refractory failure.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 449,
+      "chunks": 1,
+      "snippet": "Port Terrell: kiln down, refractory failure\nElena Vasquez\n2026-11-03 07:25:48\nAll,\n\nKiln 1 is down as of 06:40: refractory failure in the transition section. The liquid injection unit is down with it because they share the gas path. Our e",
+      "entities": 3
+    },
+    {
+      "document_id": "e6f2121b-7e82-58b6-a2e3-2e2220e938ca",
+      "label_id": "INBOX",
+      "name": "F1-2 Re: Port Terrell: kiln down, refractory failure.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 702,
+      "chunks": 1,
+      "snippet": "Re: Port Terrell: kiln down, refractory failure\nDana Whitfield\n2026-11-03 07:58:30\nElena, thanks. Nishant, the outlet watch will pick this up on tonight's load; please have the re-route list ready for Walt and Hector by Wednesday.\n\nDana\n\n--\nDa",
+      "entities": 6
+    },
+    {
+      "document_id": "2d3cab19-8e17-53e5-aa49-60aada8ea11b",
+      "label_id": "INBOX",
+      "name": "F2-1 Galena Shores: Port Terrell loads and the ten-day clock.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 675,
+      "chunks": 1,
+      "snippet": "Galena Shores: Port Terrell loads and the ten-day clock\nJenna Fairbanks\n2026-11-03 09:14:02\nNishant,\n\nWe have 6 Port Terrell loads on the pad: Halford Retail Services South (120 tons, in since 30 Oct, clock to 11 Nov), Pryor Petrochemical (120 tons, in",
+      "entities": 4
+    },
+    {
+      "document_id": "e1f68132-0945-57d9-8d8e-90df9162dfbc",
+      "label_id": "INBOX",
+      "name": "F2-2 Re: Galena Shores: Port Terrell loads and the ten-day clock.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 778,
+      "chunks": 1,
+      "snippet": "Re: Galena Shores: Port Terrell loads and the ten-day clock\nNishant Srivastav\n2026-11-03 09:40:19\nJenna, hold everything until the load runs tonight; I will send the list Wednesday morning with the destinations and the trucks.\n\nNishant\n\n--\nNishant Srivastav\n",
+      "entities": 3
+    },
+    {
+      "document_id": "b603a65d-f933-5ca1-b9ab-317f34a399bc",
+      "label_id": "INBOX",
+      "name": "F3-1 Meridian West: approvals expire 30 November.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 346,
+      "chunks": 1,
+      "snippet": "Meridian West: approvals expire 30 November\nCarla Dimitriou\n2026-10-28 13:45:10\nNishant,\n\nThe two Gulf overflow profiles at Meridian West (Delmar and Gulf Coast Coatings) expire 30 November. Renewal means their 2027 price, about 6% up on $1",
+      "entities": 7
+    },
+    {
+      "document_id": "7b914875-f3cf-5689-b040-41c795e1cfc5",
+      "label_id": "INBOX",
+      "name": "R1-1 Granger headroom for the Port Terrell loads.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 380,
+      "chunks": 1,
+      "snippet": "Granger headroom for the Port Terrell loads\nWalt Brennan\n2026-11-03 10:30:05\nNishant,\n\nFor the next two weeks Granger can take about 336 tons of aqueous, 217 of solids and 91 of organic liquids on top of what is booked. The organics are ",
+      "entities": 3
+    },
+    {
+      "document_id": "2e196e08-8fde-5bf2-b083-5f7789e57eb9",
+      "label_id": "INBOX",
+      "name": "R2-1 Trucks for the re-routes.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 421,
+      "chunks": 1,
+      "snippet": "Trucks for the re-routes\nHector Ruiz\n2026-11-03 11:05:44\nNishant,\n\nI can cover Galena Shores to Granger at the rate card ($11 plus $0.082 a ton-mile, 1,000 miles) with our own tankers from Wednesday; vans for the drum",
+      "entities": 7
+    },
+    {
+      "document_id": "5b818f1d-e6e5-5823-8035-e231897820f2",
+      "label_id": "INBOX",
+      "name": "W1-1 Outlet and margin watch armed.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 534,
+      "chunks": 1,
+      "snippet": "Outlet and margin watch armed\nDana Whitfield\n2026-10-26 15:12:40\nNishant,\n\nI have armed the outlet watch in ContextWeave: every approved profile and every open manifest checked at each nightly load for a permitted outlet with",
+      "entities": 6
+    },
+    {
+      "document_id": "f1bdac6f-4552-52c8-a254-d099ba9d30a6",
+      "label_id": "INBOX",
+      "name": "P1-1 LegacyTrack profiles in the graph.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 373,
+      "chunks": 1,
+      "snippet": "LegacyTrack profiles in the graph\nOwen Pratt\n2026-10-26 09:15:00\nNishant,\n\n578 Harbor Line and Tidewater profiles are still in LegacyTrack with the old prices. Marcus has them in the graph marked as legacy. Please do not coun",
+      "entities": 3
+    },
+    {
+      "document_id": "b1cd480c-52c8-5bd8-9c1a-94ba46e33bf2",
+      "label_id": "INBOX",
+      "name": "S1-1 Tidewater permit renewal.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 291,
+      "chunks": 1,
+      "snippet": "Tidewater permit renewal\nLinda Choi\n2026-10-21 12:00:00\nAll,\n\nThe state has set 18 December for the Tidewater renewal decision. Until then: existing volumes continue, no new three-year volume on Tidewater fuel blendi",
+      "entities": 3
+    },
+    {
+      "document_id": "1bb64445-d682-57be-8456-4d042f56e6d8",
+      "label_id": "INBOX",
+      "name": "C1-1 Q3 capacity committee pack.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 270,
+      "chunks": 1,
+      "snippet": "Q3 capacity committee pack\nDana Whitfield\n2026-10-14 18:02:31\nMarcus,\n\nThe Q3 pack is attached: revenue and margin at a glance, capacity, pipeline, acquisitions, decisions, sources.\n\nDana\n\n--\nDana Whitfield\nDirector of Tec",
+      "entities": 5
+    },
+    {
+      "document_id": "006305f0-3d15-5486-bac4-27868b75d0cd",
+      "label_id": "INBOX",
+      "name": "C1-2 Re: Q3 capacity committee pack.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 356,
+      "chunks": 1,
+      "snippet": "Re: Q3 capacity committee pack\nMarcus Oyelaran\n2026-10-15 07:15:48\nThanks Dana. Same structure in December, and put Halden on its own slides once the quote is out.\n\nMarcus\n\n--\nMarcus Oyelaran\nVice President, Sales\nIronbridge En",
+      "entities": 3
+    },
+    {
+      "document_id": "d943d02f-c7f9-5792-9954-1b9c136ef6b7",
+      "label_id": "INBOX",
+      "name": "B1-1 Riverbend stabilization under the floor after the Illinois fee.eml",
+      "mime_type": "message/rfc822",
+      "pages": 1,
+      "size_chars": 400,
+      "chunks": 1,
+      "snippet": "Riverbend stabilization under the floor after the Illinois fee\nRaj Mehta\n2026-11-02 15:30:12\nNishant,\n\nThe Illinois fee went up $3.00 a ton yesterday. Two Riverbend stabilization contracts without clause 9.2 are now under the 15.0% stream floor; the res",
+      "entities": 7
+    }
+  ]
+}

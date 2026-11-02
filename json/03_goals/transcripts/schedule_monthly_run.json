@@ -1,0 +1,753 @@
+{
+  "note": "The network position and the open quotes as a standing goal on a schedule: armed, then run now; the six steps run by themselves (Granger for the QR-14 streams, incineration) and the findings land.",
+  "journey": {
+    "id": "g-monthly-network-position-and-open-quo-ib799855",
+    "mode": "watch",
+    "kind": "schedule",
+    "case": "schedule",
+    "title": "Monthly network position and open quotes: after every month-end close",
+    "agent": {
+      "name": "Agent Ledger",
+      "icon": "radar",
+      "colour": "#9e3819"
+    },
+    "prompt": "After every month-end close, refresh the network position and re-price every open quote against the booked capacity and the price book.",
+    "files": [
+      {
+        "id": "seed",
+        "n": "Halden_Waste_Profiles_2026-10-22.xlsx",
+        "s": "64 KB"
+      },
+      {
+        "id": "seed",
+        "n": "Pricing_Schedule_Delmar_Chemical_2024-2026.xlsx",
+        "s": "212 KB"
+      }
+    ],
+    "stage": "armed",
+    "status": "ready",
+    "rv": [
+      "where",
+      "src:cal",
+      "watch",
+      "steps",
+      "against",
+      "src:ops",
+      "miss:tell",
+      "tell"
+    ],
+    "reads": [
+      {
+        "tool": "read the close calendar",
+        "res": "Each month closes on the fifth working day; the next is the 6 November close for October",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "reuse the agreed plan",
+        "res": "Six steps, one checkpoint, from the goal you just ran",
+        "rv": [
+          "watch",
+          "steps"
+        ]
+      },
+      {
+        "tool": "scan ops.capacity_booking · fin.invoice_line · fin.price_book",
+        "res": "Bookings, revenue and prices, read fresh each run; the mailbox is read at run time",
+        "rv": [
+          "against",
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "search for a distribution list",
+        "res": "No Technical Solutions list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "tell",
+        "title": "Who is told when it fires?",
+        "text": "No distribution list is connected. The notice goes out without waiting for you, so pick who should see it.",
+        "tiles": [
+          {
+            "v": "me",
+            "t": "Just me",
+            "s": "I decide who hears"
+          },
+          {
+            "v": "plants",
+            "t": "Me and the plant managers",
+            "s": "Whoever confirms a slot"
+          },
+          {
+            "v": "all",
+            "t": "Me, the plant managers, the service centers and transport",
+            "s": "Everyone who can move or hold a load"
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "tell": "me",
+      "cap": "granger",
+      "spec": "incinerate"
+    },
+    "over": {},
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "blocked",
+    "nodes": [
+      {
+        "id": "n1",
+        "col": 0,
+        "row": 1,
+        "type": "compute",
+        "title": "Characterise and classify the six streams",
+        "purpose": "What each stream is, its codes, what the laboratory found, and what the customer requires of it.",
+        "how": "Profiles against the released results; RCRA and state codes, DOT description and the LDR standard per stream; QR-14 read against each stream; anything the profile did not say flagged.",
+        "draws": [
+          "ops.waste_profile",
+          "ops.profile_analytical",
+          "Riverbend_Laboratory_Report_Halden_2026-10-29.pdf",
+          "Halden_Quality_Requirement_QR-14_Waste_Destruction.pdf"
+        ],
+        "check": "Every stream has released results; every requirement is quoted from the document."
+      },
+      {
+        "id": "n2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Check the network: permits, capacity and the fallback for each stream",
+        "purpose": "Which units may take each stream, which have capacity when it arrives, and what happens if the named unit is unavailable.",
+        "how": "Permitted codes by unit; fourth-quarter bookings and the first-quarter plans; the halogen limits; Tidewater's renewal; Port Terrell's outage. A permitted code is not an outlet without capacity.",
+        "draws": [
+          "ops.facility_permit_code",
+          "ops.capacity_booking",
+          "Capacity_Plan_Q4_2026.xlsx",
+          "Capacity_Committee_Q3_2026_minutes.pdf",
+          "Gmail: Halden (A1)"
+        ],
+        "check": "Every unit named has the codes on its permit and capacity in the bookings."
+      },
+      {
+        "id": "n3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Cost every route and price each stream from the book",
+        "purpose": "Full cost a ton at every eligible unit, the book price, and the margin per stream and for the contract.",
+        "how": "Treatment plus handling plus the receiving state's fee (from 1 November) plus the Caldwell Bend lane; price from the 2026 book; margin per stream against 15% and for the contract against 28%, at the routing agreed.",
+        "draws": [
+          "fin.treatment_cost",
+          "fin.transport_lane",
+          "fin.state_fee",
+          "fin.price_book",
+          "Pricing_and_Margin_Policy_2026.pdf"
+        ],
+        "check": "Every stream's margin recomputes from tons, price and full cost; the contract margin foots."
+      },
+      {
+        "id": "cp",
+        "col": 2,
+        "row": 1,
+        "type": "checkpoint",
+        "title": "Confirm where the QR-14 streams are quoted",
+        "purpose": "Stops here and asks you before the routing is priced into the quote.",
+        "how": "Port Terrell is cheaper and closer and its capacity is not confirmed; Granger has the capacity and the longer haul. The quote and the memo rest on this, and only you can confirm it.",
+        "draws": [
+          "Your answer"
+        ],
+        "check": "Your answer is recorded on the plan before anything after it runs."
+      },
+      {
+        "id": "n4",
+        "col": 3,
+        "row": 1,
+        "type": "gather",
+        "title": "Check acceptance and what has to be in place before the first shipment",
+        "purpose": "Whether every stream is acceptable under the policy, and the gaps to close before 1 January.",
+        "how": "Each stream against the acceptance policy: understood, permitted, capacity, requirement met; the generator's EPA identification number; the approval level; the chemist's review at each receiving unit.",
+        "draws": [
+          "Waste_Acceptance_Policy_2025.pdf",
+          "ops.generator",
+          "Gmail: compliance (E1)",
+          "Halden_account_brief_Priya_Natarajan_2026-10-23.docx"
+        ],
+        "check": "Every stream is acceptable, or the gap is named with who closes it."
+      },
+      {
+        "id": "n5",
+        "col": 4,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Three ways to quote",
+        "purpose": "One quote to put to Priya and Marcus, with what it trades off.",
+        "how": "Weigh the quote on Granger with Port Terrell as the alternative against the quote on Port Terrell, and against declining the process water and quoting the other five; state each trade-off and every caveat that reached it.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your answer at the checkpoint"
+        ],
+        "check": "The recommendation names its remaining caveats and the alternatives it rejected."
+      },
+      {
+        "id": "n6",
+        "col": 5,
+        "row": 1,
+        "type": "deliver",
+        "title": "Draft the acceptance memo, the quote letter and the pricing schedule",
+        "purpose": "What Priya needs by Friday.",
+        "how": "The acceptance memo on the Technical Solutions template; the quote letter; the pricing schedule in the Delmar structure. Every figure linked to the step that produced it.",
+        "draws": [
+          "Steps 1 to 5",
+          "Template: pricing schedule, Delmar Chemical 2024 to 2026"
+        ],
+        "check": "Every figure links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "n1",
+        "n2"
+      ],
+      [
+        "n1",
+        "n3"
+      ],
+      [
+        "n2",
+        "cp"
+      ],
+      [
+        "n3",
+        "cp"
+      ],
+      [
+        "cp",
+        "n4"
+      ],
+      [
+        "n4",
+        "n5"
+      ],
+      [
+        "n5",
+        "n6"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "n1": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · 4,860 tons · 3 QR-14"
+      },
+      "n2": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · Port Terrell 94.4% · Granger carries QR-14",
+        "caveat": true
+      },
+      "n3": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · $3.56M at 34.7%"
+      },
+      "cp": {
+        "state": "done",
+        "at": "14:34",
+        "text": "From the agreed plan · Granger"
+      },
+      "n4": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · 2 gaps"
+      },
+      "n5": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · 1 preferred, 2 alternatives"
+      },
+      "n6": {
+        "state": "done",
+        "at": "14:34",
+        "text": "Done · 3 drafts in Outputs"
+      }
+    },
+    "findings": [
+      "F1",
+      "F3",
+      "F2",
+      "F4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Quote on Granger for the QR-14 streams, with Port Terrell as the alternative when its first-quarter plan is published",
+        "summary": "Process water, solvent, lab packs and product-contact solids incinerated at Granger at the book; aerosols at Cypress Landing; scrubber water to Bayou Verde deep well. Port Terrell named as the alternative in the schedule, to move at the first contract review once its plan shows room. Close the EPA identification number before 1 January.",
+        "figures": [
+          {
+            "label": "Quote a year",
+            "value": "$3.56M",
+            "tone": null
+          },
+          {
+            "label": "Margin",
+            "value": "$1.24M · 34.7%",
+            "tone": "good"
+          },
+          {
+            "label": "Capacity",
+            "value": "in the bookings",
+            "tone": "good"
+          },
+          {
+            "label": "Approval",
+            "value": "VP Sales and Director"
+          }
+        ],
+        "tradeoff": "Earns $0.29M a year less than quoting Port Terrell, and carries the 1,020-mile haul; the alternative is stated, as Halden asked, and the capacity is in the bookings.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Priya needs the Halden proposal by Friday 6 November."
+          },
+          {
+            "kind": "read",
+            "text": "Read the six profiles against the released results and QR-14.",
+            "figure": "4,860 tons a year",
+            "ref": {
+              "sheet": "streams"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Port Terrell is 94% booked with no first-quarter plan; Granger has the headroom.",
+            "figure": "2,175 t a quarter",
+            "ref": {
+              "sheet": "capacity"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policies: a permitted code is not an outlet without capacity; margin on the route the stream will take.",
+            "ref": {
+              "doc": "DOC:acceptance-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Costed 22 routes and priced the six streams at the book.",
+            "figure": "34.7%",
+            "ref": {
+              "sheet": "routes"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Halden's EPA identification number is not issued.",
+            "ref": {
+              "thread": "E1"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Quote on Granger, state Port Terrell as the alternative, and close the number before the contract starts."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Quote the QR-14 streams on Port Terrell",
+        "summary": "The same quote with the three QR-14 streams at Port Terrell, 140 miles from the plant, the cheapest permitted incineration.",
+        "figures": [
+          {
+            "label": "Quote a year",
+            "value": "$3.56M",
+            "tone": null
+          },
+          {
+            "label": "Margin",
+            "value": "$1.53M · 43.0%",
+            "tone": "good"
+          },
+          {
+            "label": "Capacity",
+            "value": "not confirmed",
+            "tone": "crit"
+          },
+          {
+            "label": "Committee",
+            "value": "ruled out until the plan",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "The highest margin on paper, but on a unit that is 94% booked, has no first-quarter plan, is down today, and that the committee ruled out for new pharmaceutical volume.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the quote take Port Terrell, the cheapest route?"
+          },
+          {
+            "kind": "read",
+            "text": "Port Terrell has not published a first-quarter plan.",
+            "ref": {
+              "doc": "DOC:capacity-q4"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Granger earns 34.7%; Port Terrell 43.0%.",
+            "figure": "$0.29M",
+            "ref": {
+              "sheet": "routes"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only once Port Terrell shows the room."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Decline the process water and quote the other five streams",
+        "summary": "Quote the solvent, the expired product, the aerosols, the product-contact solids and the scrubber water, and tell Halden the process water needs capacity we cannot show until Port Terrell publishes its plan.",
+        "figures": [
+          {
+            "label": "Quote a year",
+            "value": "$1.41M",
+            "tone": "warn"
+          },
+          {
+            "label": "Margin",
+            "value": "$0.46M · 32.9%",
+            "tone": "good"
+          },
+          {
+            "label": "Anchor stream",
+            "value": "lost",
+            "tone": "crit"
+          },
+          {
+            "label": "One vendor",
+            "value": "not met",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "Avoids the haul and the capacity question, but gives up $2.15M a year of revenue and the stream Halden cares about most; they asked for one vendor.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the quote leave the process water out?"
+          },
+          {
+            "kind": "read",
+            "text": "Halden asked for one vendor for everything; the process water is the anchor.",
+            "ref": {
+              "doc": "DOC:am-brief"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if neither incinerator can show the capacity."
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-acceptance-memo",
+        "label": "Waste acceptance memo: Halden Biopharma, six streams",
+        "audience": "Dana Whitfield, Director of Technical Solutions, and Marcus Oyelaran, Vice President, Sales",
+        "purpose": "The acceptance of each stream, its routing, the full cost and margin, and the gaps to close before the first shipment",
+        "template": "Technical Solutions: acceptance memo",
+        "templateId": "t-ts-acceptance-memo",
+        "why": "The annual value is above $2M, so the acceptance and the quote need both signatures."
+      },
+      {
+        "id": "sub-pricing-schedule",
+        "label": "Pricing schedule: Halden Biopharma 2027 to 2029",
+        "audience": "Priya Natarajan and Halden Biopharma procurement",
+        "purpose": "Price per ton by stream, the facility each goes to, the capacity held and the fallback, in the structure approved for Delmar Chemical in 2023",
+        "template": "Your prior deliverables: pricing schedule, Delmar Chemical 2024 to 2026",
+        "templateId": "t-prior-pricing-2024",
+        "why": "Priya asked for the Delmar structure; it is what Marcus approved last time."
+      },
+      {
+        "id": "sub-quote-letter",
+        "label": "Quote letter: Halden Biopharma proposal",
+        "audience": "Halden Biopharma, through Priya Natarajan",
+        "purpose": "The proposal in words: what we take, where it goes, what it costs them, what we hold in capacity and what the fallback is",
+        "template": "Customer: quote letter",
+        "templateId": "t-cust-quote-letter",
+        "why": "Halden asked for the proposal by Friday 6 November."
+      }
+    ],
+    "started": [],
+    "gaps": [
+      "Port Terrell has not published its first-quarter 2027 plan; the alternative is stated in the schedule and the stream moves there at the first contract review if the plan shows room.",
+      "Halden's EPA identification number is applied for and not issued; no manifest moves until it is, whatever the contract date.",
+      "Tidewater's permit renewal decision is due 18 December; the solvent is not quoted there, so nothing in the quote rests on it."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "After every month-end close, refresh the network position and re-price every open quote against the booked capacity and the price book.",
+        "files": [
+          {
+            "n": "Halden_Waste_Profiles_2026-10-22.xlsx",
+            "s": "64 KB"
+          },
+          {
+            "n": "Pricing_Schedule_Delmar_Chemical_2024-2026.xlsx",
+            "s": "212 KB"
+          }
+        ],
+        "id": "j1-ibd5e6ea",
+        "at": "14:33"
+      },
+      {
+        "who": "agent",
+        "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "read the close calendar",
+              "res": "Each month closes on the fifth working day; the next is the 6 November close for October",
+              "live": false
+            },
+            {
+              "tool": "reuse the agreed plan",
+              "res": "Six steps, one checkpoint, from the goal you just ran",
+              "live": false
+            },
+            {
+              "tool": "scan ops.capacity_booking · fin.invoice_line · fin.price_book",
+              "res": "Bookings, revenue and prices, read fresh each run; the mailbox is read at run time",
+              "live": false
+            },
+            {
+              "tool": "search for a distribution list",
+              "res": "No Technical Solutions list is connected; I need to know who to tell",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft what I do when it runs",
+              "res": "6 steps · two side by side · one checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j2-ib005532",
+        "at": "14:33"
+      },
+      {
+        "who": "agent",
+        "text": "The plan for the watch is on the right. One thing I could not find.",
+        "id": "j3-iba6380c",
+        "at": "14:33"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "tell",
+          "done": "just you"
+        },
+        "id": "j4-ib841b38",
+        "at": "14:33"
+      },
+      {
+        "who": "me",
+        "text": "Just me",
+        "id": "j5-ib378b62",
+        "at": "14:33"
+      },
+      {
+        "who": "agent",
+        "text": "That is the plan for the watch. To change a line, press Edit on it and tell me here, or just type. Nothing is armed until you say so.",
+        "id": "j6-ib12ad3a",
+        "at": "14:33"
+      },
+      {
+        "who": "event",
+        "text": "Watch armed · v1 · 3 Nov, 14:34",
+        "id": "j7-ib1c4304",
+        "at": "14:34"
+      },
+      {
+        "who": "agent",
+        "text": "Armed. It runs after the 6 November close, then every month; you hear from me when the position and the open quotes are refreshed. Nothing runs until then.",
+        "id": "j8-ib81f72c",
+        "at": "14:34"
+      },
+      {
+        "who": "me",
+        "text": "Simulate: run now",
+        "id": "j9-ibb66261",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "3 Nov · scheduled run · the plan runs by itself",
+        "id": "j10-ibf10d4b",
+        "at": "14:34"
+      },
+      {
+        "who": "agent",
+        "text": "**Running.** The scheduled run has started; the six steps run by themselves and the open quotes are refreshed at the end. You do not need to be here for this.",
+        "id": "j11-ib80262a",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · six streams, 4,860 tons a year, all on released results · the solvent carries 3.2% halogens",
+        "id": "j12-ibe35088",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · Six streams, 4,860 tons a year, all understood on released results; three carry QR-14 (destruction with a certificate) and the solvent carries 3.2% halogens the profile did not say.",
+        "id": "j13-ibadd02c",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · $3.56M a year at 34.7% on the Granger routing, above the floor",
+        "id": "j14-ib944cf2",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · every stream has a permitted unit with capacity · Port Terrell 94.4% booked, no first-quarter plan, kiln down",
+        "id": "j15-ibe6faad",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Acceptance check running",
+        "id": "j16-ibe68290",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · every stream acceptable · two gaps: Halden's EPA identification number and the approval above $2M",
+        "id": "j17-ib9b9289",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Step 5 done · recommendation: quote on Granger, $3.56M a year at 34.7%",
+        "id": "j18-ibca0a49",
+        "at": "14:34"
+      },
+      {
+        "who": "event",
+        "text": "Findings ready · 14:35",
+        "id": "j19-ib717024",
+        "at": "14:35"
+      },
+      {
+        "who": "agent",
+        "text": "Findings ready. **Quote the six streams at $3.56M a year, 34.7% margin on full cost, with the QR-14 streams on Granger and Port Terrell as the alternative when its first-quarter plan is published.** 2 gaps reached the recommendation; Halden's EPA identification number is the one I would close first, because no manifest moves without it.\n\nFour findings are on the right. Accept each one, or challenge it, then choose the way forward.",
+        "card": {
+          "kind": "findings"
+        },
+        "id": "j20-ib1b26c7",
+        "at": "14:35"
+      }
+    ],
+    "chips": [
+      "Accept all findings",
+      "Why Granger and not Port Terrell?",
+      "Quote the QR-14 streams on Port Terrell",
+      "Open the data"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask about the watch, or change it between checks…"
+    },
+    "log": [
+      {
+        "t": "14:34",
+        "who": "You",
+        "what": "Armed the watch (v1)."
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Armed. First check: the 6 November close, then every month."
+      },
+      {
+        "t": "14:34",
+        "who": "Schedule",
+        "what": "Scheduled run started · 3 Nov, 14:34."
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Step 1 done · six streams, 4,860 tons a year, all on released results · the solvent carries 3.2% halogens"
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Step 3 done · $3.56M a year at 34.7% on the Granger routing, above the floor"
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Step 2 done. Every stream has a permitted unit with capacity; Port Terrell 94% booked with no first-quarter plan and its kiln down; Granger carries the QR-14 streams."
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Step 4 done · every stream acceptable · two gaps: Halden's EPA identification number and the approval above $2M"
+      },
+      {
+        "t": "14:34",
+        "who": "Agent Ledger",
+        "what": "Step 5 done · recommendation: quote on Granger, $3.56M a year at 34.7%"
+      },
+      {
+        "t": "14:35",
+        "who": "Agent Ledger",
+        "what": "Findings ready; the acceptance memo, the quote letter and the pricing schedule are drafted."
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "3 Nov, 14:34",
+        "label": "Scheduled run · after the 6 November close",
+        "status": "ready"
+      }
+    ],
+    "flags": {
+      "cpAnswered": true,
+      "steerAvail": true
+    },
+    "doneCount": 6,
+    "paused": false,
+    "agreedAt": "14:34",
+    "armedAt": "3 Nov, 14:34",
+    "armedBy": "You",
+    "nextCheck": "the 6 November close, then every month"
+  }
+}

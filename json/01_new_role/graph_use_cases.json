@@ -1,0 +1,282 @@
+[
+  {
+    "use_case_id": "uc-waste-stream-analyst-ib26a01",
+    "name": "Waste Stream Analyst · Ironbridge Environmental Services",
+    "status": "committed",
+    "domain_id": "waste-stream",
+    "business_need": "Waste Stream Analyst for Ironbridge Environmental Services' three businesses (Midwest, Gulf, East) and its thirteen facilities. Characterises and classifies every new waste stream, routes it through permits and capacity to the unit that earns the margin, prices it from the price book on full cost, keeps every accepted stream with a permitted, in-capacity outlet, and reports to the Capacity Committee. Reports to dana.whitfield@vriodigital.com.",
+    "personas": [
+      {
+        "name": "Director of Technical Solutions",
+        "description": "Owns the Technical Solutions desk. Asks whether every accepted stream has an outlet with capacity, where new volume should go, and what goes to the Capacity Committee.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Vice President, Sales (Capacity Committee chair)",
+        "description": "Chairs the Capacity Committee and signs contracts above $2M. Asks what a proposal earns, what capacity it rests on, and how revenue compares with the plan.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Account Manager",
+        "description": "Owns the generator relationship. Asks what a stream will be priced at, which facility it goes to, what the customer requires, and how long the quote takes.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Approval Chemist",
+        "description": "Approves profiles at a facility. Asks whether a waste is understood, whether its codes are on the permit for the unit, and what the laboratory released.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Plant Manager, Incineration",
+        "description": "Runs an incinerator. Asks what is booked against the unit's capacity, what headroom is left, and what an outage strands.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Customer Solutions Coordinator",
+        "description": "Runs a service center. Asks which shipments are on the pad, how long, and where each one goes next.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Director of Compliance",
+        "description": "Owns permits and compliance. Asks which permits are up for renewal, which conditions bind a routing, and whether a generator can ship.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Pricing and Margin Manager",
+        "description": "Owns the price book and the floor. Asks what each stream earns on full cost, which contracts are under the floor, and what a fee change does.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Transportation Manager",
+        "description": "Moves the waste. Asks what a re-route costs on the rate card, which lanes carry the most tons, and what trucks are needed.",
+        "source": "ai",
+        "origin": null
+      },
+      {
+        "name": "Third-Party Approvals Lead",
+        "description": "Keeps the outside outlets approved. Asks which approvals expire, what the outlets cost, and which streams depend on them.",
+        "source": "ai",
+        "origin": null
+      }
+    ],
+    "metrics": [
+      {
+        "name": "Capacity booked against permitted",
+        "description": "Tons booked in the quarter as a share of the unit's capacity for the quarter (permitted tons a year divided by 52, times the weeks), by facility and unit.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT b.facility_code, b.process_code, SUM(b.booked_tons) AS booked, SUM(b.capacity_tons) AS capacity, SUM(b.booked_tons) / SUM(b.capacity_tons) AS share\nFROM ops.capacity_booking b\nWHERE b.iso_week BETWEEN 40 AND 52\nGROUP BY 1, 2\nORDER BY share DESC"
+      },
+      {
+        "name": "Unit headroom for a period",
+        "description": "Capacity minus booked tons for the weeks in the period, by facility and unit.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT b.facility_code, b.process_code, SUM(b.capacity_tons - b.booked_tons) AS headroom_tons\nFROM ops.capacity_booking b\nWHERE b.iso_week IN (45, 46) AND NOT b.outage\nGROUP BY 1, 2"
+      },
+      {
+        "name": "Permitted outlets for a stream",
+        "description": "Units at which every waste code on the profile is permitted and the physical form is accepted; with capacity in the period, an outlet.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+      },
+      {
+        "name": "Full cost a ton by route",
+        "description": "Treatment cost plus handling plus the receiving state's fee plus the transport lane from the origin region, a ton, for a stream at a unit.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT u.facility_code, u.process_code, t.cost_usd_ton + p.handling_usd_ton + f.fee_usd_ton + l.rate_usd_ton AS full_cost_usd_ton\nFROM ops.process_unit u\nJOIN fin.treatment_cost t USING (facility_code, process_code)\nJOIN fin.price_book p USING (process_code)\nJOIN ops.facility fa USING (facility_code)\nJOIN fin.state_fee f ON f.state = fa.state AND f.valid_to IS NULL\nJOIN fin.transport_lane l ON l.facility_code = u.facility_code AND l.origin_region = :origin"
+      },
+      {
+        "name": "Margin a ton by stream and route",
+        "description": "Price a ton minus full cost a ton, as a share of price, for a stream at its quoted route.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT q.profile_id, q.facility_code, q.process_code, q.price_usd_ton, (q.price_usd_ton - fc.full_cost_usd_ton) / q.price_usd_ton AS margin_pct\nFROM fin.quote_line q\nJOIN full_cost fc USING (facility_code, process_code)"
+      },
+      {
+        "name": "Contract margin on full cost",
+        "description": "Revenue minus full cost over all a generator's streams, as a share of revenue, against the 28% floor.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT i.generator_id, SUM(i.amount_usd) AS revenue, SUM(i.full_cost_usd) AS full_cost, 1 - SUM(i.full_cost_usd) / SUM(i.amount_usd) AS margin_pct\nFROM fin.invoice_line i\nWHERE i.invoice_date BETWEEN '2026-01-01' AND '2026-09-30'\nGROUP BY i.generator_id\nHAVING margin_pct < 0.28"
+      },
+      {
+        "name": "Streams below the stream floor",
+        "description": "Approved profiles whose margin a ton at the approved route, at today's fees, is below 15%.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT p.profile_id, p.generator_id, p.price_usd_ton, fc.full_cost_usd_ton, (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton AS margin_pct\nFROM ops.waste_profile p\nJOIN full_cost fc ON fc.facility_code = p.facility_code AND fc.process_code = p.process_code AND fc.origin_region = (SELECT origin_region FROM ops.generator g WHERE g.generator_id = p.generator_id)\nWHERE p.status = 'Approved' AND (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton < 0.15"
+      },
+      {
+        "name": "Profiles pending approval",
+        "description": "Profiles in status Pending, with days since receipt and whether a laboratory result is released.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT p.profile_id, p.generator_id, DATE_DIFF(CURRENT_DATE(), p.received_on, DAY) AS days_pending, EXISTS (SELECT 1 FROM ops.profile_analytical a WHERE a.profile_id = p.profile_id AND a.released_on IS NOT NULL) AS result_released\nFROM ops.waste_profile p\nWHERE p.status = 'Pending'"
+      },
+      {
+        "name": "Manifests without an in-capacity outlet",
+        "description": "Open manifests booked to a unit that is down or over capacity in the week of arrival.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT m.manifest_id, m.generator_id, m.facility_code, m.process_code, m.tons, m.eta\nFROM ops.manifest m\nJOIN ops.capacity_booking b ON b.facility_code = m.facility_code AND b.process_code = m.process_code AND b.iso_week = m.booked_week\nWHERE m.status IN ('Booked', 'In transit') AND (b.outage OR b.booked_tons > b.capacity_tons)"
+      },
+      {
+        "name": "Re-route cost on the rate card",
+        "description": "For a manifest, the full cost at an alternative unit minus the full cost at the booked unit, times tons.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT m.manifest_id, (fc_alt.full_cost_usd_ton - fc_now.full_cost_usd_ton) * m.tons AS extra_cost_usd\nFROM ops.manifest m\nJOIN full_cost fc_now ON fc_now.facility_code = m.facility_code AND fc_now.process_code = m.process_code\nJOIN full_cost fc_alt ON fc_alt.facility_code = :alt_facility AND fc_alt.process_code = m.process_code"
+      },
+      {
+        "name": "Third-party outlet spend",
+        "description": "Tons and outlet cost sent to third-party outlets this year, by outlet.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT t.outlet_id, SUM(t.tons) AS tons, SUM(t.cost_usd) AS cost\nFROM ops.third_party_manifest t\nGROUP BY 1"
+      },
+      {
+        "name": "Shipments on the pad against their clock",
+        "description": "Shipments still at a service center with days held and the tenth-day deadline.",
+        "source": "ai",
+        "origin": null,
+        "sql": "SELECT h.manifest_id, h.center_code, h.arrived_on, h.days_held, h.deadline\nFROM ops.transfer_hold h\nWHERE h.left_on IS NULL\nORDER BY h.deadline"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "bigquery:ironbridge_ops",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "bigquery:ironbridge_fin",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "bigquery:ironbridge_legacy",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "gdrive:ironbridge-technical-solutions",
+        "mode": "all",
+        "objects": []
+      },
+      {
+        "source_id": "gmail:nishant.srivastav@vriodigital.com",
+        "mode": "all",
+        "objects": []
+      }
+    ],
+    "hero_questions": [
+      {
+        "text": "Which units are booked above 90% of capacity for the fourth quarter?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT b.facility_code, b.process_code, SUM(b.booked_tons) AS booked, SUM(b.capacity_tons) AS capacity, SUM(b.booked_tons) / SUM(b.capacity_tons) AS share\nFROM ops.capacity_booking b\nWHERE b.iso_week BETWEEN 40 AND 52\nGROUP BY 1, 2\nORDER BY share DESC"
+      },
+      {
+        "text": "Which approved profiles are under the 15% stream floor at today's fees?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT p.profile_id, p.generator_id, p.price_usd_ton, fc.full_cost_usd_ton, (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton AS margin_pct\nFROM ops.waste_profile p\nJOIN full_cost fc ON fc.facility_code = p.facility_code AND fc.process_code = p.process_code AND fc.origin_region = (SELECT origin_region FROM ops.generator g WHERE g.generator_id = p.generator_id)\nWHERE p.status = 'Approved' AND (p.price_usd_ton - fc.full_cost_usd_ton) / p.price_usd_ton < 0.15"
+      },
+      {
+        "text": "Which profiles are pending approval, and which of them are waiting on a laboratory result?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT p.profile_id, p.generator_id, DATE_DIFF(CURRENT_DATE(), p.received_on, DAY) AS days_pending, EXISTS (SELECT 1 FROM ops.profile_analytical a WHERE a.profile_id = p.profile_id AND a.released_on IS NOT NULL) AS result_released\nFROM ops.waste_profile p\nWHERE p.status = 'Pending'"
+      },
+      {
+        "text": "What is booked against the capacity of each incineration unit, and what headroom is left in November?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT b.facility_code, b.process_code, SUM(b.capacity_tons - b.booked_tons) AS headroom_tons\nFROM ops.capacity_booking b\nWHERE b.iso_week IN (45, 46) AND NOT b.outage\nGROUP BY 1, 2"
+      },
+      {
+        "text": "Which units could take each of the six Halden streams under their permits?",
+        "priority": "normal",
+        "source": "ai",
+        "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+      },
+      {
+        "text": "What does the Port Terrell outage strand, and where can each shipment go?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT m.manifest_id, m.generator_id, m.facility_code, m.process_code, m.tons, m.eta\nFROM ops.manifest m\nJOIN ops.capacity_booking b ON b.facility_code = m.facility_code AND b.process_code = m.process_code AND b.iso_week = m.booked_week\nWHERE m.status IN ('Booked', 'In transit') AND (b.outage OR b.booked_tons > b.capacity_tons)"
+      },
+      {
+        "text": "Which third-party approvals expire in the next 60 days, and which streams depend on them?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT a.outlet_id, a.profile_id, a.generator_id, a.expires_on, a.cost_usd_ton\nFROM ops.third_party_approval a\nWHERE a.expires_on BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 60 DAY)"
+      },
+      {
+        "text": "Which shipments are on the pad at Galena Shores today, and when does each one's clock run out?",
+        "priority": "normal",
+        "source": "ai",
+        "sql": "SELECT h.manifest_id, h.center_code, h.arrived_on, h.days_held, h.deadline\nFROM ops.transfer_hold h\nWHERE h.left_on IS NULL\nORDER BY h.deadline"
+      },
+      {
+        "text": "What would the six Halden streams earn a year by route, at the price book, on full cost?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT q.profile_id, q.facility_code, q.process_code, q.price_usd_ton, (q.price_usd_ton - fc.full_cost_usd_ton) / q.price_usd_ton AS margin_pct\nFROM fin.quote_line q\nJOIN full_cost fc USING (facility_code, process_code)"
+      },
+      {
+        "text": "Can Port Terrell carry the Halden process wastewater in the first quarter, on what is booked today?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT b.facility_code, b.process_code, SUM(b.capacity_tons - b.booked_tons) AS headroom_tons\nFROM ops.capacity_booking b\nWHERE b.iso_week IN (45, 46) AND NOT b.outage\nGROUP BY 1, 2"
+      },
+      {
+        "text": "Which of the six Halden streams meet the destruction requirement at which units, and which outlets are ruled out by it?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT u.facility_code, u.process_code\nFROM ops.process_unit u\nWHERE NOT EXISTS (SELECT 1 FROM UNNEST(SPLIT(:codes, ',')) c WHERE NOT EXISTS (SELECT 1 FROM ops.facility_permit_code pc WHERE pc.facility_code = u.facility_code AND pc.process_code = u.process_code AND pc.waste_code = c))"
+      },
+      {
+        "text": "How many Harbor Line and Tidewater profiles are still on the legacy system, and how many has a chemist reviewed?",
+        "priority": "high",
+        "source": "ai",
+        "sql": "SELECT l.source_company, COUNT(*) AS profiles, COUNTIF(l.reviewed) AS reviewed\nFROM legacy.legacy_profile l\nGROUP BY 1"
+      }
+    ],
+    "gap_decisions": [],
+    "golden_query_files": [],
+    "step": 6,
+    "updated_at": "2026-10-29T15:48:12.204Z",
+    "role": {
+      "role_id": "wsa",
+      "role_name": "Waste Stream Analyst",
+      "industry": "hazardous_waste",
+      "businesses": [
+        "MID",
+        "GLF",
+        "EAS"
+      ],
+      "reports_to": "dana.whitfield@vriodigital.com",
+      "responsibilities": [
+        "classify",
+        "exposure",
+        "route",
+        "price",
+        "watch",
+        "outlets",
+        "report"
+      ]
+    }
+  }
+]
