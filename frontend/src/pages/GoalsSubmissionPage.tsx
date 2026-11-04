@@ -782,7 +782,10 @@ function trackForecastAdded(inner: Document) {
   if (!win) return
   /* The box whose button was pressed, and when. */
   let armed: { title: string; at: number } | null = null
-  const done = new Map<string, string>()
+  const done = new Map<string, { tag: string; note: string }>()
+  /* Boxes seen asking for the reader's call ("I need your call…"): when the same box later stops saying
+     so, the answer came through the chat, and it is settled exactly like an added document. */
+  const asking = new Set<string>()
 
   const titleOf = (miss: Element) => miss.querySelector('b')?.textContent?.trim() ?? ''
   const keyOf = (title: string) => `${win.location.hash}|${title}`
@@ -790,7 +793,7 @@ function trackForecastAdded(inner: Document) {
   /* The box leaves "Missing" and a green copy of it stands under an "Added" heading of its own, in
      the same panel, right after the Missing group. The original stays in the DOM (hidden) because
      React owns it; if nothing visible is left in Missing, its heading goes too. */
-  const settle = (miss: HTMLElement, name: string) => {
+  const settle = (miss: HTMLElement, info: { tag: string; note: string }) => {
     if (miss.hasAttribute('data-cw-done')) return
     const group = miss.closest<HTMLElement>('.ctx-g')
     if (!group) return
@@ -802,7 +805,7 @@ function trackForecastAdded(inner: Document) {
       added.className = 'ctx-g cw-added-group'
       const head = inner.createElement('div')
       head.className = 'ctx-gh'
-      head.textContent = 'Added'
+      head.textContent = 'Added or answered'
       added.appendChild(head)
       group.after(added)
     }
@@ -810,11 +813,11 @@ function trackForecastAdded(inner: Document) {
     box.className = 'cw-added-box'
     const tag = inner.createElement('span')
     tag.className = 'cw-added-tag'
-    tag.textContent = 'Added'
+    tag.textContent = info.tag
     const title = inner.createElement('b')
     title.textContent = titleOf(miss)
     const note = inner.createElement('p')
-    note.textContent = name ? `Added: ${name}. It is no longer missing.` : 'Added. It is no longer missing.'
+    note.textContent = info.note
     box.append(tag, title, note)
     added.appendChild(box)
     if (![...group.querySelectorAll('.miss')].some((m) => !m.hasAttribute('data-cw-done'))) {
@@ -825,8 +828,25 @@ function trackForecastAdded(inner: Document) {
     if (!armed) return
     const title = armed.title
     armed = null
-    done.set(keyOf(title), name)
-    for (const m of inner.querySelectorAll<HTMLElement>('.miss')) if (titleOf(m) === title) settle(m, name)
+    const info = { tag: 'Added', note: name ? `Added: ${name}. It is no longer missing.` : 'Added. It is no longer missing.' }
+    done.set(keyOf(title), info)
+    for (const m of inner.querySelectorAll<HTMLElement>('.miss')) if (titleOf(m) === title) settle(m, info)
+  }
+  /* A box that was asking for the reader's call and no longer is has been answered in the chat. */
+  const scanAnswered = () => {
+    for (const m of inner.querySelectorAll<HTMLElement>('.miss:not([data-cw-done])')) {
+      const title = titleOf(m)
+      const key = keyOf(title)
+      const body = m.querySelector('p')?.textContent ?? ''
+      if (/I need your call/i.test(body)) {
+        asking.add(key)
+      } else if (asking.has(key)) {
+        const said = body.split(/(?<=\.)\s+/).pop()?.trim() ?? ''
+        const info = { tag: 'Answered', note: said ? `Answered in the chat: ${said}` : 'Answered in the chat. It is no longer missing.' }
+        done.set(key, info)
+        settle(m, info)
+      }
+    }
   }
 
   inner.addEventListener(
@@ -865,12 +885,13 @@ function trackForecastAdded(inner: Document) {
         /* A remounted panel: the box is back, and so is the answer to it. */
         const boxes = node.matches('.miss') ? [node] : [...node.querySelectorAll<HTMLElement>('.miss')]
         for (const m of boxes) {
-          const name = done.get(keyOf(titleOf(m)))
-          if (name !== undefined) settle(m, name)
+          const info = done.get(keyOf(titleOf(m)))
+          if (info !== undefined) settle(m, info)
         }
       }
     }
-  }).observe(inner.body, { childList: true, subtree: true })
+    scanAnswered()
+  }).observe(inner.body, { childList: true, subtree: true, characterData: true })
 }
 
 /**
