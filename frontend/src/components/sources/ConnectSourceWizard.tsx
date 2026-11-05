@@ -351,7 +351,7 @@ export default function ConnectSourceWizard({
    * stored. `undefined` on the Google branches, which name their account from the consent instead.
    */
   const accountValue = selected
-    ? fieldValue(selected.accountField, form.getFieldsValue())
+    ? fieldValue(selected.accountField, form.getFieldsValue(true))
     : undefined
 
   /** The drives on the side of the picker that is showing. */
@@ -736,7 +736,13 @@ export default function ConnectSourceWizard({
 
   async function finishGeneric() {
     if (!selected) return
-    const values = form.getFieldsValue()
+    /* `getFieldsValue()` with no arguments answers only from *currently registered* fields, and
+       step 1's `<Form>` has unmounted by here (it renders only under `step === 1`) — so an unqualified
+       call silently returns `{}` and every field below reads as empty, however it looked on the step 2
+       review a moment earlier (`form.getFieldValue('sourceName')` there reads the preserved store
+       directly, mount state or not — the asymmetry is what made this look right until Connect was
+       pressed). `true` asks for every field's preserved value regardless of what is mounted right now. */
+    const values = form.getFieldsValue(true)
     /* `next()` ran validateFields to get here, so the name is present and long
        enough; falling back to the connector's own name would mask a regression
        and register every Snowflake source as "Snowflake". */
@@ -1601,7 +1607,7 @@ export default function ConnectSourceWizard({
                   {
                     key: 'scope',
                     label: labelOfField(selected, selected.scopeField),
-                    children: fieldValue(selected.scopeField, form.getFieldsValue()) ?? '—',
+                    children: fieldValue(selected.scopeField, form.getFieldsValue(true)) ?? '—',
                   },
                 ]
                 : []),
