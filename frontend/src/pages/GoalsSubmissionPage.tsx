@@ -769,6 +769,18 @@ const MISSING_ADD_LABELS = [
   'Add the dosing plans',
 ]
 
+/* The panel's document marks (Your documents · Outputs) drew a faint grey glyph: the Outputs row's `.out span`
+   rule sets 12.5px on every span inside it, which beats `.out-ic`'s own 18px and shrinks the glyph to a
+   speck in a 40px box. Restated with weight, and tinted so the mark reads as a document at a glance. */
+const DOC_ICON_CSS =
+  ' .out .out-ic { font-size: 20px !important; color: #f2691d !important; background: #fff3ec !important;' +
+  ' box-shadow: inset 0 0 0 1px #fbd5c0 !important }' +
+  ' .out .out-ic .anticon, .doc-ic .anticon { color: inherit !important }' +
+  ' .out .out-ic .anticon { font-size: 20px !important; width: auto !important; margin: 0 !important;' +
+  ' display: inline-flex !important }' +
+  ' .doc-ic { color: #f2691d !important; background: #fff3ec !important; box-shadow: inset 0 0 0 1px #fbd5c0 !important }' +
+  ' .doc-ic .anticon { font-size: 15px !important; width: auto !important; margin: 0 !important }'
+
 const ADDED_BOX_CSS =
   ' .cw-added-box { background: #ecfdf3; border: 1px solid #abefc6; border-radius: 10px; padding: 10px 12px;' +
   ' margin: 8px 0 }' +
@@ -1154,7 +1166,7 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
-            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS + NO_BAR_CSS + NO_DOCK_CSS + ADDED_BOX_CSS + BELL_BADGE_CSS
+            style.textContent = HIDE_SHELL_CSS + FIT_HUB_CSS + RAIL_NEW_CSS + TOGGLE_TAB_CSS + AGENT_HOLD_CSS + BUILD_BTN_CSS + NO_BROWSE_CSS + NO_BAR_CSS + NO_DOCK_CSS + ADDED_BOX_CSS + DOC_ICON_CSS + BELL_BADGE_CSS
             inner.head?.appendChild(style)
             injectRailNewButton(inner)
             holdAgentMessages(inner)
