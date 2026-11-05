@@ -25,6 +25,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { constants as zlibConstants, createBrotliCompress, createGzip } from 'node:zlib'
 
 /** Where the built SPA is, relative to this file — the same place in the zip and in the checkout. */
 const ROOT = resolve(fileURLToPath(new URL('./dist', import.meta.url)))
@@ -79,6 +80,20 @@ const immutable = (rel) => rel.startsWith(`assets${sep}`) || rel.startsWith('ass
 
 /** Files, not directories — `statSync` on a directory succeeds and would stream a folder. */
 const isFile = (path) => existsSync(path) && statSync(path).isFile()
+
+/**
+ * Extensions worth compressing — text, which gzip/brotli typically shrink by 70-90%. Everything else
+ * here (images, fonts) is already a dense binary format, so compressing it again spends CPU for little
+ * or no gain and is skipped.
+ *
+ * **Why this exists at all.** Some of the documents this SPA frames (the Goals/Submission journeys,
+ * the vendored report prototypes) are single HTML files several megabytes each, and this server sent
+ * every byte of them uncompressed — `content-length` on the wire was the file's raw size. Over a slow
+ * or cross-region link that is several seconds of transfer for every cold load, with nothing wrong
+ * server-side and nothing on screen explaining it. Every browser that loads a web page advertises
+ * `accept-encoding: gzip` at minimum, so this is close to free.
+ */
+const COMPRESSIBLE = new Set(['.html', '.js', '.mjs', '.css', '.json', '.map', '.svg', '.txt', '.webmanifest'])
 
 export function handle(req, res) {
   /* GET and HEAD only. This process serves files and holds no state, so any other method is a caller
@@ -158,14 +173,55 @@ export function handle(req, res) {
 
 function sendFile(req, res, file) {
   const rel = file.slice(ROOT.length + 1)
-  res.writeHead(200, {
-    'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
-    'content-length': statSync(file).size,
+  const ext = extname(file).toLowerCase()
+  const size = statSync(file).size
+  const headers = {
+    'content-type': TYPES[ext] ?? 'application/octet-stream',
     'cache-control': immutable(rel)
       ? 'public, max-age=31536000, immutable'
       : 'no-cache, must-revalidate',
     'x-content-type-options': 'nosniff',
-  })
+  }
+
+  /*
+   * Compressed only when there is a body to compress (never HEAD), the type is text, and the request
+   * says it can decode the result — brotli preferred over gzip where both are offered, since it
+   * compresses text further for a similar decode cost on every browser in use today.
+   */
+  const acceptEncoding = req.method === 'HEAD' ? '' : String(req.headers['accept-encoding'] ?? '')
+  const compressible = COMPRESSIBLE.has(ext)
+  const useBrotli = compressible && /\bbr\b/.test(acceptEncoding)
+  const useGzip = compressible && !useBrotli && /\bgzip\b/.test(acceptEncoding)
+
+  if (useBrotli || useGzip) {
+    /*
+     * No `content-length`: the compressed size is not known ahead of streaming it, and Node falls back
+     * to chunked transfer encoding on its own when the header is absent. `vary` tells any cache sitting
+     * in front of this that the reply differs by that request header, so a cache can never hand a
+     * compressed body to a client that said it cannot unpack one.
+     */
+    headers['content-encoding'] = useBrotli ? 'br' : 'gzip'
+    headers.vary = 'accept-encoding'
+    res.writeHead(200, headers)
+    /*
+     * Brotli's own default quality (11) is tuned for serving the same bytes many times over, and on a
+     * multi-megabyte document that is seconds of CPU spent *per request* — trading a slow transfer for
+     * a slow compressor. Quality 5 is fast and still shrinks repetitive markup and script text well
+     * past what gzip alone reaches.
+     */
+    const compressor = useBrotli
+      ? createBrotliCompress({
+          params: {
+            [zlibConstants.BROTLI_PARAM_QUALITY]: 5,
+            [zlibConstants.BROTLI_PARAM_SIZE_HINT]: size,
+          },
+        })
+      : createGzip()
+    return createReadStream(file).pipe(compressor).pipe(res)
+  }
+
+  headers['content-length'] = size
+  res.writeHead(200, headers)
   if (req.method === 'HEAD') return res.end()
   return createReadStream(file).pipe(res)
 }

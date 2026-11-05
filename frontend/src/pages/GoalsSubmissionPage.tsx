@@ -1162,7 +1162,6 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
           document={{ file: entry.file, title: title || (view === 'goals' ? 'Goals' : 'Submission') }}
           seamless
           fillWindow
-          noHold={view !== 'goals'}
           fragment={entry.fragment}
           enhance={(inner) => {
             const style = inner.createElement('style')
