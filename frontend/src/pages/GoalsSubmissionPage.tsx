@@ -6,6 +6,7 @@ import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
+import { goalsSubmissionFilesFor } from '../data/goalsSubmissionFiles'
 import { useReportsStore } from '../store/reportsStore'
 import './GoalsSubmissionPage.css'
 
@@ -50,16 +51,10 @@ import './GoalsSubmissionPage.css'
  * Both resolve through `reportDocuments.ts`'s `goals-submission` glob, so a missing or renamed file
  * is named by the viewer rather than guessed at.
  */
-/* Each dataset ships its own build of the prototype (`src/<Dataset>/goals-submission/`). The dataset is
-   fixed per page load — switching it reloads the document — so it is read once. A dataset with no
-   build of its own gets KEOLIS's, as every dataset did before the second one arrived. */
-const DATASET_FILES: Record<string, { goals: string; submission: string }> = {
-  KEOLIS: { goals: 'Keolis_Goals.html', submission: 'Keolis_Submissions.html' },
-  CAPEX: { goals: 'Capex-Goals.html', submission: 'Capex-Submission.html' },
-  SUPPLYCHAIN: { goals: 'Supply_chain_goals.html', submission: 'Supply_chain_submission.html' },
-  ARCWOOD: { goals: 'Arcwood_goals.html', submission: 'Arcwood_submission.html' },
-}
-const FILES = DATASET_FILES[currentDataset().toUpperCase()] ?? DATASET_FILES.KEOLIS
+/* The dataset is fixed per page load — switching it reloads the document — so it is read once.
+   `goalsSubmissionFilesFor` is the one definition of which build each dataset ships; `App` reads the
+   same function to prefetch both files in the background as soon as the app opens. */
+const FILES = goalsSubmissionFilesFor(currentDataset())
 
 const VIEWS = {
   goals: {

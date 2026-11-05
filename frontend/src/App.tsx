@@ -3,9 +3,58 @@ import { Button, Drawer, Grid, Layout, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './components/shell/Sidebar'
-import { splitDatasetPath } from './api/dataset'
+import { currentDataset, splitDatasetPath } from './api/dataset'
+import { goalsSubmissionFilesFor } from './data/goalsSubmissionFiles'
+import { reportDocumentUrl } from './data/reportDocuments'
 import { NAV_ITEMS } from './nav'
 import './App.css'
+
+/**
+ * A `navigator.connection` reading, where the browser offers one — Safari and Firefox do not, so this
+ * is a best-effort hint rather than something to branch hard on.
+ */
+type NetworkInformation = { saveData?: boolean; effectiveType?: string }
+
+/**
+ * Goals and Submission each frame a multi-megabyte prototype document (see `GoalsSubmissionPage`),
+ * fetched only once a reader actually opens one of those two pages — which is exactly when the wait is
+ * felt. Hinting the browser to fetch both the moment the app opens means the document most likely
+ * already sits in the HTTP cache by the time a reader clicks through: the file lives under `assets/`
+ * with a content hash in its name and is served `cache-control: immutable` (see `frontend/web.js`), so
+ * there is nothing for a cached copy to go stale against.
+ *
+ * `rel="prefetch"` rather than a plain `fetch()` because it is a declared **low-priority** hint — the
+ * browser fits it in around whatever this page's own critical resources need, so a reader who lands
+ * straight on a different page never has this compete with what they are actually looking at.
+ *
+ * Run once per mount of `App`, which is once per dataset session: switching dataset signs the reader
+ * out and reloads the whole document (see `datasetStore.switchDataset`), so a freshly opened app always
+ * re-prefetches for whichever dataset is now selected.
+ */
+function usePrefetchGoalsSubmission() {
+  useEffect(() => {
+    /* Data Saver, or a connection the browser itself flags as very slow: the one case where spending a
+       reader's data on a document they may never open is impolite rather than merely optional. */
+    const connection = (navigator as Navigator & { connection?: NetworkInformation }).connection
+    if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return
+
+    const files = goalsSubmissionFilesFor(currentDataset())
+    const links = [files.goals, files.submission]
+      .map((file) => reportDocumentUrl(file))
+      .filter((url): url is string => url !== null)
+      .map((url) => {
+        const link = document.createElement('link')
+        link.rel = 'prefetch'
+        link.as = 'document'
+        link.href = url
+        document.head.appendChild(link)
+        return link
+      })
+    return () => {
+      for (const link of links) link.remove()
+    }
+  }, [])
+}
 
 const SIDER_WIDTH = 258
 /**
@@ -20,6 +69,8 @@ const SIDER_WIDTH = 258
 const COLLAPSED_WIDTH = 64
 
 export default function App() {
+  usePrefetchGoalsSubmission()
+
   const [drawerOpen, setDrawerOpen] = useState(false)
   /*
    * Whether the navigation is hidden. Component state, not persisted: a reload bringing the
