@@ -223,7 +223,7 @@
     "entities": [
       {
         "entity_id": "ent-ops-facility-ib4250c",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.facility",
         "entity_name": "facility",
         "description": "Entity for facility, created to anchor a declared relationship.",
@@ -232,11 +232,11 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-10-27T09:00:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-process-unit-ibd4b89",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.process_unit",
         "entity_name": "process_unit",
         "description": "Entity for process_unit, created to anchor a declared relationship.",
@@ -255,15 +255,15 @@
             "relationship_type": "UNIT_OF",
             "cardinality_hint": "N:1",
             "rationale": "A unit belongs to one facility.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-28T10:07:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-facility-permit-code-ib0979f",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.facility_permit_code",
         "entity_name": "facility_permit_code",
         "description": "Entity for facility_permit_code, created to anchor a declared relationship.",
@@ -282,15 +282,15 @@
             "relationship_type": "PERMITS",
             "cardinality_hint": "N:1",
             "rationale": "A permitted code names the unit it applies to (facility and process).",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-29T11:14:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-capacity-booking-ibd489c",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.capacity_booking",
         "entity_name": "capacity_booking",
         "description": "Entity for capacity_booking, created to anchor a declared relationship.",
@@ -309,11 +309,11 @@
             "relationship_type": "BOOKS",
             "cardinality_hint": "N:1",
             "rationale": "Bookings are per unit and week.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-27T12:21:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-generator-ib27307",
@@ -330,7 +330,7 @@
       },
       {
         "entity_id": "ent-ops-waste-profile-ib62e31",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.waste_profile",
         "entity_name": "waste_profile",
         "description": "Entity for waste_profile, created to anchor a declared relationship.",
@@ -349,7 +349,7 @@
             "relationship_type": "PROFILED_BY",
             "cardinality_hint": "N:1",
             "rationale": "A profile belongs to one generator.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "ops.process_unit",
@@ -362,15 +362,15 @@
             "relationship_type": "APPROVED_OUTLET",
             "cardinality_hint": "N:1",
             "rationale": "An approved profile names its outlet unit; a pending profile names none.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-29T14:35:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-profile-analytical-ib5551f",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.profile_analytical",
         "entity_name": "profile_analytical",
         "description": "Entity for profile_analytical, created to anchor a declared relationship.",
@@ -389,15 +389,15 @@
             "relationship_type": "RESULT_FOR",
             "cardinality_hint": "N:1",
             "rationale": "A released result belongs to one profile.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-27T15:42:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-manifest-ibb2d5f",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.manifest",
         "entity_name": "manifest",
         "description": "Entity for manifest, created to anchor a declared relationship.",
@@ -416,7 +416,7 @@
             "relationship_type": "SHIPS",
             "cardinality_hint": "N:1",
             "rationale": "A manifest ships one profile.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "ops.process_unit",
@@ -429,7 +429,7 @@
             "relationship_type": "RECEIVED_AT",
             "cardinality_hint": "N:1",
             "rationale": "A manifest is received at one unit.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "ops.generator",
@@ -442,15 +442,15 @@
             "relationship_type": "SHIPPED_BY",
             "cardinality_hint": "N:1",
             "rationale": "A manifest is shipped by one generator.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-28T16:49:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-receipt-discrepancy-ibc78fb",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.receipt_discrepancy",
         "entity_name": "receipt_discrepancy",
         "description": "Entity for receipt_discrepancy, created to anchor a declared relationship.",
@@ -469,15 +469,15 @@
             "relationship_type": "FOUND_ON",
             "cardinality_hint": "N:1",
             "rationale": "A discrepancy is recorded on one manifest.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-29T09:56:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-transfer-hold-ibf1bfb",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.transfer_hold",
         "entity_name": "transfer_hold",
         "description": "Entity for transfer_hold, created to anchor a declared relationship.",
@@ -496,11 +496,11 @@
             "relationship_type": "HELD",
             "cardinality_hint": "N:1",
             "rationale": "A hold is one manifest's time at a service center.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-27T10:03:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-ops-third-party-outlet-ib89f4d",
@@ -530,7 +530,7 @@
       },
       {
         "entity_id": "ent-ops-third-party-approval-ib6e514",
-        "confirmed_by": "nishant.srivastav@vriodigital.com",
+        "confirmed_by": null,
         "table_key": "ops.third_party_approval",
         "entity_name": "third_party_approval",
         "description": "Entity for third_party_approval, created to anchor a declared relationship.",
@@ -549,7 +549,7 @@
             "relationship_type": "APPROVED_AT",
             "cardinality_hint": "N:1",
             "rationale": "An approval is at one outlet.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           },
           {
             "target_table_key": "ops.waste_profile",
@@ -562,11 +562,11 @@
             "relationship_type": "COVERS",
             "cardinality_hint": "N:1",
             "rationale": "An approval covers one profile.",
-            "confirmed_by": "nishant.srivastav@vriodigital.com"
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-10-27T13:24:12.000Z"
+        "updated_at": "2026-11-05T08:54:34.801Z"
       },
       {
         "entity_id": "ent-fin-price-book-ib1b0a8",
