@@ -38,8 +38,21 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  */
 export const DATASETS = ['CAPEX', 'KEOLIS', 'SUPPLYCHAIN', 'ARCWOOD']
 
-/** What the Settings dataset picker prints for a dataset, where its name is not a readable label. */
-export const DATASET_LABELS = { SUPPLYCHAIN: 'Supply Chain Analyst', ARCWOOD: 'Arcwood Heritage' }
+/**
+ * What the Settings dataset picker prints for a dataset, where its name is not a readable label.
+ *
+ * Named for the tenant each dataset actually is, per its own data: CAPEX is Northline Water Group's
+ * capital programme (`capex_catalogue.json` states "Capital Program Analyst for Northline Water"),
+ * KEOLIS is Keolis France/Valmont's transport capital programme, SUPPLYCHAIN is Bramwell Environmental
+ * Group's supply chain, and ARCWOOD is the waste-stream tenant (`arcwood_ask.json` states "Waste Stream
+ * Analyst graph"). Requested by role rather than by company name, so the four read as one vocabulary.
+ */
+export const DATASET_LABELS = {
+  CAPEX: 'Capital program analyst - water',
+  KEOLIS: 'Capital program analyst - Transport',
+  SUPPLYCHAIN: 'Supply chain analyst',
+  ARCWOOD: 'Waste stream analyst',
+}
 export const datasetLabel = (name) => DATASET_LABELS[name] ?? name
 export const PRIMARY = 'CAPEX'
 export const BOTH = 'both'

@@ -1,0 +1,3827 @@
+{
+  "figures": {
+    "award": {
+      "currentLanded": 52462440,
+      "recommended": 49025110,
+      "saving": 3437330,
+      "savingPct": 0.0655,
+      "savingCorriganExcluded": 3212600,
+      "savingAsBid": 3961700,
+      "savingRunRate": 3246575,
+      "volumePlan": 102280,
+      "volumeRunRate": 96730,
+      "spotPremium": 52604,
+      "q1Exposure": 390440
+    },
+    "stock": {
+      "flagged": 19,
+      "outage": 9,
+      "noCover": 8,
+      "optionCost": 56478,
+      "expediteAll": 164200,
+      "deferOutage": 1036000,
+      "lostMarginPerDay": 148000
+    }
+  },
+  "once": {
+    "prompt": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+    "files": [
+      {
+        "id": "seed",
+        "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+        "s": "186 KB"
+      },
+      {
+        "id": "seed",
+        "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+        "s": "240 KB"
+      }
+    ],
+    "reads": [
+      {
+        "tool": "read SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+        "res": "Seven lots, 10 bidders, price and freight per ton; bids closed 16 October",
+        "rv": [
+          "doc:bids",
+          "scope"
+        ]
+      },
+      {
+        "tool": "read Chemicals_Award_Schedule_2024-2026.xlsx",
+        "res": "Award summary, lot awards, prices, volumes by business, continuity, approvals, evidence: the structure the committee approved in 2023",
+        "rv": [
+          "doc:prior",
+          "deliver"
+        ]
+      },
+      {
+        "tool": "scan pur.po_line · src.contract_item",
+        "res": "$34.4M of the seven chemicals ordered to September by the three businesses · 2026 contract prices for every lot",
+        "rv": [
+          "src:erp",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan ops.dosing_plan",
+        "res": "2027 plans for 33 sites: 102,280 tons against 96,730 at the run rate · Energy plans dated November 2025",
+        "warn": true,
+        "rv": [
+          "as:vol",
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "read mm.plant_stock · Corrigan force majeure notice",
+        "res": "Corrigan at 60% of ferric volume since 12 October · 5 water plants under ten days of cover",
+        "warn": true,
+        "rv": [
+          "as:fm",
+          "src:srm"
+        ]
+      },
+      {
+        "tool": "read Outlook: chemicals · committee",
+        "res": "Helena: paper, schedule and slides by 5 November · Imani: use the 2027 plans · Sabine Coast: 25,000 tons a year of ferric",
+        "rv": [
+          "src:mail",
+          "miss:vol"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Awards on landed cost among qualified suppliers · a supplier without continuity is capped or kept secondary · avoided premiums are not savings",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "search for a confirmed restart date from Corrigan",
+        "res": "None: the notice expects the first quarter of 2027 and says it cannot confirm a date; no later message",
+        "warn": true,
+        "rv": [
+          "as:fm",
+          "miss:fm"
+        ]
+      }
+    ],
+    "readWeb": {
+      "tool": "search the web · Corrigan Port Lavell fire",
+      "res": "Corrigan press release of 20 October: one of two ferric lines restarted; full restart targeted for February; allocations unchanged",
+      "rv": [
+        "as:fm",
+        "miss:fm",
+        "web"
+      ]
+    },
+    "questions": [
+      {
+        "key": "fm",
+        "title": "Corrigan is in force majeure on ferric chloride: how should its bid count?",
+        "text": "Corrigan's L2 bid is the lowest at $415.00 a ton landed, but it has shipped 60% of contract volume since 12 October and cannot confirm when full supply returns. The policy lets a supplier without continuity be capped or kept as secondary.",
+        "tiles": [
+          {
+            "v": "secondary",
+            "t": "Secondary at 30%, only once the force majeure lifts",
+            "s": "Sabine Coast primary",
+            "rec": true
+          },
+          {
+            "v": "exclude",
+            "t": "Leave Corrigan out of ferric",
+            "s": "Sabine Coast alone; $0.22M a year less saving"
+          }
+        ]
+      },
+      {
+        "key": "vol",
+        "title": "Which volumes should the award rest on?",
+        "text": "The 2027 dosing plans add Ashby Water Treatment Works and come to 102,280 tons a year; the FY26 run rate is 96,730. Energy's plans, 10% of the volume, are the November 2025 vintage.",
+        "tiles": [
+          {
+            "v": "plan",
+            "t": "The 2027 dosing plans, Energy marked provisional",
+            "s": "What Imani asked for",
+            "rec": true
+          },
+          {
+            "v": "runrate",
+            "t": "The FY26 run rate",
+            "s": "Lower; leaves Ashby out"
+          },
+          {
+            "v": "both",
+            "t": "The plans, with the run rate beside them",
+            "s": "Shows the spread"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n1",
+        "col": 0,
+        "row": 1,
+        "type": "compute",
+        "title": "State what the group buys and what it costs today",
+        "purpose": "The seven chemicals by business, the 2027 volumes and today's landed cost.",
+        "how": "Volumes from the 2027 dosing plans by business and site; 2026 contract prices plus freight from the rate card; what was ordered to September as the check.",
+        "draws": [
+          "ops.dosing_plan",
+          "src.contract_item",
+          "pur.po_line",
+          "Freight_Rate_Card_2026.xlsx"
+        ],
+        "check": "Volumes sum to the dosing plans; spend to September reconciles to the order lines."
+      },
+      {
+        "id": "n2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Check supply today: cover at each plant and the Corrigan allocation",
+        "purpose": "How exposed each plant is while Corrigan ships 60%.",
+        "how": "Days of cover per plant and chemical against the minimum; Corrigan's order lines since 12 October; the spot lines under FMX and their premium. The allocation is quoted as Corrigan's statement, never counted as supply.",
+        "draws": [
+          "mm.plant_stock",
+          "pur.po_line (since 12 October)",
+          "Corrigan_Force_Majeure_Notice_2026-10-09.pdf",
+          "Outlook: chemicals (F1, F2)"
+        ],
+        "check": "Cover counts only what is in the tanks."
+      },
+      {
+        "id": "n3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Compare the bids on landed cost",
+        "purpose": "For each lot, the lowest qualified landed cost and what it saves.",
+        "how": "Price plus average freight for every bid, against today's landed cost, on the volumes agreed; unqualified bidders shown and not awarded.",
+        "draws": [
+          "src.bid",
+          "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+          "Supplier_Qualification_Register_2026-10.xlsx"
+        ],
+        "check": "Every lot's saving recomputes from volume, today's landed cost and the awarded landed cost."
+      },
+      {
+        "id": "n4",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Check qualification and continuity of each awarded bidder",
+        "purpose": "Whether every bidder the award names can be awarded and can keep supplying.",
+        "how": "For each awarded bidder: qualification for the lot, stated capacity against the volume, delivery record, any corrective action, and the vendor record the contract will sit on.",
+        "draws": [
+          "Supplier_Qualification_Register_2026-10.xlsx",
+          "src.supplier_scorecard",
+          "pur.vendor",
+          "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+          "Group_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every awarded bidder is qualified and can carry its volume, or the gap is named."
+      },
+      {
+        "id": "n5",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Three ways to award",
+        "purpose": "One award to put to the committee, with what it trades off.",
+        "how": "Weigh the award by lot on landed cost against awarding as bid with Corrigan primary, or extending today's agreements and re-bidding ferric; state each trade-off and every caveat that reached it.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your answers while planning"
+        ],
+        "check": "The recommendation names its remaining caveats and the alternatives it rejected."
+      },
+      {
+        "id": "n6",
+        "col": 4,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables you chose",
+        "purpose": "What you agreed while planning, built on the recommendation chosen: for Helena by 5 November.",
+        "how": "The award paper on the committee template; the award schedule in the 2024 structure; a short deck with the award on its own slides. Every figure linked to the step that produced it.",
+        "draws": [
+          "Steps 1 to 5",
+          "Template: chemicals award schedule 2024 to 2026"
+        ],
+        "check": "Every figure links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "n1",
+        "n2"
+      ],
+      [
+        "n1",
+        "n3"
+      ],
+      [
+        "n2",
+        "n4"
+      ],
+      [
+        "n3",
+        "n4"
+      ],
+      [
+        "n4",
+        "n5"
+      ],
+      [
+        "n5",
+        "n6"
+      ]
+    ],
+    "forks": {
+      "idx": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the caustic index rises 10% in 2027",
+        "purpose": "The caustic soda saving if the Gulf caustic index rises 10% from January.",
+        "how": "Both the incumbent's price and Pemberton's bid follow the index; re-prices L3 on both sides and re-reads the saving; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "C-CHM-2024-03 clause 6"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      },
+      "fm": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: Corrigan does not come back in 2027",
+        "purpose": "The award if Corrigan never lifts its force majeure next year.",
+        "how": "Ferric chloride all from Sabine Coast at its bid; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "Sabine_Coast_Capacity_Letter_2026-10-19.pdf"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      },
+      "vol": {
+        "id": "f1",
+        "col": 3,
+        "row": 2,
+        "type": "scenario",
+        "title": "What-if: the FY26 run rate instead of the plans",
+        "purpose": "The award saving on what the plants use today rather than the 2027 plans.",
+        "how": "Re-reads every lot at the FY26 run rate; shares steps 1 to 3.",
+        "draws": [
+          "Steps 1 to 3",
+          "ops.dosing_plan (run rate)"
+        ],
+        "check": "Same checks as step 3.",
+        "fork": true
+      }
+    },
+    "content": {
+      "n1": {
+        "dur": "1 min 04 s",
+        "conf": "high",
+        "live": [
+          "read_table ops.dosing_plan",
+          "33 sites · 7 chemicals"
+        ],
+        "summary": [
+          "Read what the three businesses use and pay. <b>102,280 tons a year on the 2027 dosing plans, $52.46M at 2026 contract prices and freight.</b> Hazardous Waste takes most of the lime and caustic soda; Water nearly all the ferric chloride, hypochlorite and carbon; Energy most of the sulfuric acid.",
+          "The plans are +5.7% on the FY26 run rate, most of it Ashby Water Treatment Works coming on line. Energy's plans, 10% of the volume, are the November 2025 vintage and are marked provisional. Ordered to September: $34.4M, which reconciles to the order lines."
+        ],
+        "table": {
+          "cols": [
+            "Chemical",
+            "Water (tons)",
+            "Hazardous Waste",
+            "Energy",
+            "Landed today",
+            "Cost a year"
+          ],
+          "num": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "rows": [
+            [
+              "Sodium hypochlorite 12.5%",
+              "15,900",
+              "600",
+              "2,700",
+              "$376.00",
+              "$7.22M"
+            ],
+            [
+              "Ferric chloride 40%",
+              "20,400",
+              "2,300",
+              "0",
+              "$438.00",
+              "$9.94M"
+            ],
+            [
+              "Sodium hydroxide 50%",
+              "4,100",
+              "7,600",
+              "3,300",
+              "$833.00",
+              "$12.49M"
+            ],
+            [
+              "Hydrated lime",
+              "6,800",
+              "25,900",
+              "0",
+              "$237.00",
+              "$7.75M"
+            ],
+            [
+              "Cationic polymer",
+              "1,850",
+              "380",
+              "0",
+              "$2,548.00",
+              "$5.68M"
+            ],
+            [
+              "Powdered activated carbon",
+              "3,950",
+              "0",
+              "0",
+              "$1,886.00",
+              "$7.45M"
+            ],
+            [
+              "Sulfuric acid 93%",
+              "0",
+              "1,900",
+              "4,600",
+              "$296.00",
+              "$1.92M"
+            ]
+          ],
+          "tot": [
+            "Seven chemicals",
+            "",
+            "",
+            "",
+            "",
+            "$52.46M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "ops.dosing_plan",
+            "mono": true,
+            "m": "102,280 tons on the 2027 plans",
+            "drill": {
+              "view": "volumes",
+              "note": ""
+            }
+          },
+          {
+            "n": "src.contract_item",
+            "mono": true,
+            "m": "2026 contract prices for the seven lots",
+            "drill": {
+              "view": "bids",
+              "note": ""
+            }
+          },
+          {
+            "n": "Chemical_Dosing_Plans_2027.xlsx",
+            "m": "Energy plans are the November 2025 vintage",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:dosing-2027"
+            }
+          },
+          {
+            "n": "Freight_Rate_Card_2026.xlsx",
+            "m": "Freight per ton by lane",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:freight-card"
+            }
+          }
+        ],
+        "checks": [
+          "Volumes by site sum to the business plans.",
+          "Spend to September reconciles to the order lines."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "Energy's November 2025 plans hold for 2027; they are 10% of the volume and are refreshed in March.",
+            "p": "Volumes · Saving · Paper",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "read_table ops.dosing_plan where plan_year = 2027 → 33 sites, 7 chemicals",
+          "price at src.contract_item valid_to = 2026-12-31 + freight → $52,462,440",
+          "reconcile pur.po_line category CHEM to September → $34,371,167"
+        ],
+        "traceN": 6
+      },
+      "n2": {
+        "dur": "1 min 12 s",
+        "conf": "medium",
+        "live": [
+          "read mm.plant_stock",
+          "ferric cover at 17 plants"
+        ],
+        "summary": [
+          "<b>Five water plants hold less than ten days of ferric chloride against the 14-day minimum</b>, Fenmoor lowest at 6.2 days; seven are under 14. Corrigan has shipped 60% of volume since 12 October and the balance has been bought on spot from Sabine Coast: 41 lines, 360 tons, $52,604 above the contract price.",
+          "Corrigan expects full supply in the first quarter of 2027 and cannot confirm a date. Every other chemical is above its minimum at every plant; hypochlorite is not affected by the fire."
+        ],
+        "table": {
+          "cols": [
+            "Water plant",
+            "Days of ferric",
+            "Minimum",
+            "Tons on hand"
+          ],
+          "num": [
+            1,
+            2,
+            3
+          ],
+          "rows": [
+            [
+              "Fenmoor",
+              "6.2",
+              "14",
+              "36.9"
+            ],
+            [
+              "Holloway Creek",
+              "7.4",
+              "14",
+              "35.2"
+            ],
+            [
+              "Stanwick",
+              "8.1",
+              "14",
+              "35.3"
+            ],
+            [
+              "Marston Reach",
+              "9.3",
+              "14",
+              "36.9"
+            ],
+            [
+              "Quinton Lakes",
+              "9.6",
+              "14",
+              "34.3"
+            ],
+            [
+              "Pellham",
+              "11.8",
+              "14",
+              "42.1"
+            ],
+            [
+              "Brantley",
+              "12.6",
+              "14",
+              "40"
+            ],
+            [
+              "Linden Vale",
+              "16.3",
+              "14",
+              "58.2"
+            ]
+          ],
+          "warn": 0
+        },
+        "receipts": [
+          {
+            "n": "mm.plant_stock",
+            "mono": true,
+            "m": "Ferric cover at 27 October",
+            "drill": {
+              "view": "cover",
+              "note": ""
+            }
+          },
+          {
+            "n": "Corrigan_Force_Majeure_Notice_2026-10-09.pdf",
+            "m": "Allocation 60% from 12 October; date not confirmed",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:fm-notice"
+            }
+          },
+          {
+            "n": "Thread F1 · Corrigan force majeure",
+            "m": "Spot buys from Sabine Coast at $548 under FMX",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "F1"
+            }
+          },
+          {
+            "n": "Thread F2 · Fenmoor at six days",
+            "m": "Plant manager: the 60% deliveries do not keep up",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "F2"
+            }
+          }
+        ],
+        "checks": [
+          "Cover counts only stock in the tanks.",
+          "Spot lines carry exception code FMX."
+        ],
+        "caveats": [
+          {
+            "k": "Statement, not supply",
+            "t": "The 60% is Corrigan's statement; only shipped and promised order lines count as supply.",
+            "p": "Cover · Ferric award",
+            "assume": false
+          }
+        ],
+        "trace": [
+          "read_table mm.plant_stock where material = CHM-FECL-40 → 17 positions",
+          "read pur.po_line where exception_code = FMX → 41 lines, 360.3 tons",
+          "read_document Corrigan_Force_Majeure_Notice_2026-10-09.pdf → 60%, no date"
+        ],
+        "traceN": 7
+      },
+      "n3": {
+        "dur": "1 min 18 s",
+        "conf": "high",
+        "live": [
+          "compare 20 bids on landed cost",
+          "7 lots"
+        ],
+        "summary": [
+          "<b>On landed cost among qualified bidders the award costs $49.03M a year against $52.46M today: $3.44M (6.6%) lower.</b> Pemberton wins hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep lime, polymer and carbon at lower prices. Caustic soda alone saves $1.25M.",
+          "Ferric chloride: Sabine Coast 70% and Corrigan 30% once its force majeure lifts, at $438.10 a ton landed against $438.00 today. On price alone Ostler (lime), Pemberton (polymer) and Brightwater (carbon) would win; freight makes Brightwater dearer, and Ostler and Pemberton are not qualified for those lots."
+        ],
+        "table": {
+          "cols": [
+            "Lot",
+            "Tons",
+            "Today",
+            "Awarded to",
+            "Landed",
+            "Saving a year"
+          ],
+          "num": [
+            1,
+            2,
+            4,
+            5
+          ],
+          "rows": [
+            [
+              "L1 Sodium hypochlorite 12.5%",
+              "19,200",
+              "$376.00",
+              "Pemberton",
+              "$343.00",
+              "$0.63M"
+            ],
+            [
+              "L2 Ferric chloride 40%",
+              "22,700",
+              "$438.00",
+              "Sabine Coast 70% · Corrigan 30%",
+              "$438.10",
+              "−$0.00M"
+            ],
+            [
+              "L3 Sodium hydroxide 50%",
+              "15,000",
+              "$833.00",
+              "Pemberton",
+              "$750.00",
+              "$1.25M"
+            ],
+            [
+              "L4 Hydrated lime",
+              "32,700",
+              "$237.00",
+              "Grayhaven",
+              "$219.00",
+              "$0.59M"
+            ],
+            [
+              "L5 Cationic polymer",
+              "2,230",
+              "$2,548.00",
+              "Kestler",
+              "$2,398.00",
+              "$0.33M"
+            ],
+            [
+              "L6 Powdered activated carbon",
+              "3,950",
+              "$1,886.00",
+              "Norrland",
+              "$1,764.00",
+              "$0.48M"
+            ],
+            [
+              "L7 Sulfuric acid 93%",
+              "6,500",
+              "$296.00",
+              "Pemberton",
+              "$272.00",
+              "$0.16M"
+            ]
+          ],
+          "tot": [
+            "Seven lots",
+            "102,280",
+            "",
+            "",
+            "",
+            "$3.44M"
+          ]
+        },
+        "receipts": [
+          {
+            "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+            "m": "Price and freight for every bid",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:bid-export"
+            }
+          },
+          {
+            "n": "src.bid",
+            "mono": true,
+            "m": "20 bids on seven lots",
+            "drill": {
+              "view": "bids",
+              "note": ""
+            }
+          },
+          {
+            "n": "Supplier_Qualification_Register_2026-10.xlsx",
+            "m": "Ostler and Pemberton polymer not qualified",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:qual-register"
+            }
+          }
+        ],
+        "checks": [
+          "Each lot's saving recomputes from volume and landed cost.",
+          "No unqualified bidder is awarded."
+        ],
+        "caveats": [],
+        "trace": [
+          "read_table src.bid where event_id = SE-2026-031 → 20 bids",
+          "filter qualified → 18 awardable",
+          "compute award → $3,437,330 a year"
+        ],
+        "traceN": 6
+      },
+      "n3b": {
+        "dur": "44 s · re-run",
+        "conf": "high",
+        "live": [
+          "leave Corrigan out of ferric",
+          "L2 re-run"
+        ],
+        "summary": [
+          "Re-run after your steer: Corrigan is <b>left out of ferric chloride</b>, and Sabine Coast carries all of L2 at $448.00 a ton landed. The award saving moves to <b>$3.21M</b> (6.1%), $0.22M a year less than with Corrigan as secondary.",
+          "That is a judgement, not a reading: Corrigan is qualified and its bid is the lowest; it is left out for continuity only. Ferric then has one source until a second is qualified."
+        ],
+        "table": {
+          "cols": [
+            "Ferric award",
+            "Landed a ton",
+            "Ferric cost a year",
+            "Award saving"
+          ],
+          "num": [
+            1,
+            2,
+            3
+          ],
+          "rows": [
+            [
+              "Sabine Coast 70% · Corrigan 30%",
+              "$438.10",
+              "$9.94M",
+              "$3.44M"
+            ],
+            [
+              "Sabine Coast alone (your steer)",
+              "$448.00",
+              "$10.17M",
+              "$3.21M"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+            "m": "25,000 tons a year; two trains",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "n": "Your steer",
+            "m": "\"Leave Corrigan out of ferric\""
+          }
+        ],
+        "checks": [
+          "The award recomputes with L2 at Sabine Coast alone.",
+          "The other six lots are unchanged."
+        ],
+        "caveats": [
+          {
+            "k": "Judgement · from your steer",
+            "t": "A qualified bidder is left out for continuity; ferric has one source.",
+            "p": "Award · Paper · Slides"
+          }
+        ],
+        "trace": [
+          "set L2 split Sabine Coast 1.0 → $448.00 landed",
+          "recompute award → $3,212,600 a year"
+        ],
+        "traceN": 4
+      },
+      "n4": {
+        "dur": "1 min 09 s",
+        "conf": "medium",
+        "live": [
+          "read the qualification register · scorecards",
+          "6 awarded bidders"
+        ],
+        "summary": [
+          "<b>Every bidder the award names is qualified for its lot and states the capacity for its volume.</b> Sabine Coast confirms 25,000 tons a year of ferric on two trains, enough to carry all of L2 alone. Grayhaven and Pemberton were above 95% on time in full in the third quarter.",
+          "<b>One gap to close before 1 January:</b> Pemberton is in the vendor master twice (V10031 and V10032, one tax number). Its spot orders on V10032 already sit outside the sulfuric acid contract; the new contracts must sit on one record. Corrigan is under a corrective action request for delivery, which the policy allows only on a secondary award while it is open."
+        ],
+        "table": {
+          "cols": [
+            "Awarded bidder",
+            "Lots",
+            "Qualified",
+            "Capacity",
+            "Record"
+          ],
+          "rows": [
+            [
+              "Pemberton Process Chemicals",
+              "L1, L3, L7",
+              "Yes",
+              "Stated for all three lots",
+              "Duplicate vendor record to close"
+            ],
+            [
+              "Sabine Coast Chemicals",
+              "L2",
+              "Yes",
+              "25,000 tons a year, two trains",
+              "Clean"
+            ],
+            [
+              "Corrigan Chemical Company",
+              "L2 (secondary)",
+              "Yes",
+              "Force majeure; restart not confirmed",
+              "Corrective action open"
+            ],
+            [
+              "Grayhaven Lime and Minerals",
+              "L4",
+              "Yes",
+              "Incumbent",
+              "Clean"
+            ],
+            [
+              "Kestler Polymers",
+              "L5",
+              "Yes",
+              "Incumbent",
+              "Clean"
+            ],
+            [
+              "Norrland Carbon Inc.",
+              "L6",
+              "Yes",
+              "Incumbent",
+              "Clean"
+            ]
+          ],
+          "warn": 0
+        },
+        "receipts": [
+          {
+            "n": "Supplier_Qualification_Register_2026-10.xlsx",
+            "m": "Qualification by lot",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:qual-register"
+            }
+          },
+          {
+            "n": "pur.vendor",
+            "mono": true,
+            "m": "V10031 and V10032 share a tax number",
+            "drill": {
+              "view": "bids",
+              "note": ""
+            }
+          },
+          {
+            "n": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+            "m": "25,000 tons a year",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "n": "Thread P1 · Pemberton: two vendor records",
+            "m": "Accounts payable asks procurement to decide",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "P1"
+            }
+          }
+        ],
+        "checks": [
+          "Each awarded bidder is qualified for its lot.",
+          "Capacity covers the awarded volume."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "That Pemberton's two vendor records are merged before the contracts start; until then spot orders can leak outside them.",
+            "p": "Recommendation · Paper",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "read_document Supplier_Qualification_Register_2026-10.xlsx → 11 suppliers",
+          "read_table src.supplier_scorecard where quarter = 2026-Q3",
+          "read_table pur.vendor group by tax_id → V10031, V10032"
+        ],
+        "traceN": 6
+      },
+      "n5": {
+        "dur": "38 s",
+        "conf": "medium",
+        "live": [
+          "compare three ways to award",
+          "by lot · as bid · extend"
+        ],
+        "summary": [
+          "<b>Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts: $3.44M a year (6.6%).</b> Ferric then has two sources and costs about what it does today.",
+          "The alternatives: award as bid with Corrigan primary on ferric ($3.96M a year, but at a 60% allocation about $0.39M of spot in the first quarter and up to $1.56M a year if it lasts); or extend today's agreements by six months and re-bid ferric ($1.72M of saving forgone, spot buying continues)."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 4",
+            "m": "Volumes, cover, bids, qualification"
+          },
+          {
+            "n": "Your answers while planning",
+            "m": "How Corrigan's ferric bid counts"
+          }
+        ],
+        "checks": [
+          "The recommendation names its remaining caveats.",
+          "Each alternative states what it loses."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited · 2",
+            "t": "Energy's plans are the November 2025 vintage; Pemberton's duplicate vendor record is still open.",
+            "p": "Paper · Schedule · Slides",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "rank ways to award by: saving, continuity of ferric, approval by 12 November",
+          "option 1 → $3,437,330",
+          "option 2 → $3,961,700 less exposure"
+        ],
+        "traceN": 3
+      },
+      "n6": {
+        "dur": "51 s",
+        "conf": "medium",
+        "live": [
+          "compose from template Chemicals award schedule 2024 to 2026",
+          "lot awards of seven"
+        ],
+        "summary": [
+          "Built the deliverables agreed while planning, on the recommendation chosen: the award paper on the committee template, the award schedule in the 2024 structure (award summary, lot awards, prices, volumes by business, continuity, approvals, evidence), and a short deck with the award on its own slides. Every figure is linked to the step that produced it.",
+          "They are on the Deliverables tab, built part by part. Change anything in the chat (another option, a supplier to leave out) and they are rebuilt as the next version."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 5",
+            "m": "Figures and the recommendation"
+          },
+          {
+            "n": "Template: chemicals award schedule 2024 to 2026",
+            "m": "The structure the committee approved in 2023"
+          }
+        ],
+        "checks": [
+          "Every figure links back to its step."
+        ],
+        "caveats": [],
+        "trace": [
+          "compose schedule from template t-prior-award-2024 → 7 sheets, 42 figures",
+          "compose paper from t-pc-award-paper → 8 sections",
+          "compose deck from t-pc-award-deck → 7 slides"
+        ],
+        "traceN": 4
+      }
+    },
+    "contentCorriganExcluded": {
+      "n3": {
+        "dur": "44 s · re-run",
+        "conf": "high",
+        "live": [
+          "leave Corrigan out of ferric",
+          "L2 re-run"
+        ],
+        "summary": [
+          "Re-run after your steer: Corrigan is <b>left out of ferric chloride</b>, and Sabine Coast carries all of L2 at $448.00 a ton landed. The award saving moves to <b>$3.21M</b> (6.1%), $0.22M a year less than with Corrigan as secondary.",
+          "That is a judgement, not a reading: Corrigan is qualified and its bid is the lowest; it is left out for continuity only. Ferric then has one source until a second is qualified."
+        ],
+        "table": {
+          "cols": [
+            "Ferric award",
+            "Landed a ton",
+            "Ferric cost a year",
+            "Award saving"
+          ],
+          "num": [
+            1,
+            2,
+            3
+          ],
+          "rows": [
+            [
+              "Sabine Coast 70% · Corrigan 30%",
+              "$438.10",
+              "$9.94M",
+              "$3.44M"
+            ],
+            [
+              "Sabine Coast alone (your steer)",
+              "$448.00",
+              "$10.17M",
+              "$3.21M"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+            "m": "25,000 tons a year; two trains",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "n": "Your steer",
+            "m": "\"Leave Corrigan out of ferric\""
+          }
+        ],
+        "checks": [
+          "The award recomputes with L2 at Sabine Coast alone.",
+          "The other six lots are unchanged."
+        ],
+        "caveats": [
+          {
+            "k": "Judgement · from your steer",
+            "t": "A qualified bidder is left out for continuity; ferric has one source.",
+            "p": "Award · Paper · Slides"
+          }
+        ],
+        "trace": [
+          "set L2 split Sabine Coast 1.0 → $448.00 landed",
+          "recompute award → $3,212,600 a year"
+        ],
+        "traceN": 4
+      },
+      "n5": {
+        "dur": "38 s",
+        "conf": "medium",
+        "live": [
+          "compare three ways to award",
+          "by lot · as bid · extend"
+        ],
+        "summary": [
+          "<b>Award by lot on landed cost, with ferric chloride to Sabine Coast alone: $3.21M a year (6.1%).</b> Ferric then has one source.",
+          "The alternatives: award as bid with Corrigan primary on ferric ($3.96M a year, but at a 60% allocation about $0.39M of spot in the first quarter and up to $1.56M a year if it lasts); or extend today's agreements by six months and re-bid ferric ($1.72M of saving forgone, spot buying continues)."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 4",
+            "m": "Volumes, cover, bids, qualification"
+          },
+          {
+            "n": "Your answers while planning",
+            "m": "How Corrigan's ferric bid counts"
+          }
+        ],
+        "checks": [
+          "The recommendation names its remaining caveats.",
+          "Each alternative states what it loses."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited · 2",
+            "t": "Energy's plans are the November 2025 vintage; Pemberton's duplicate vendor record is still open.",
+            "p": "Paper · Schedule · Slides",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "rank ways to award by: saving, continuity of ferric, approval by 12 November",
+          "option 1 → $3,212,600",
+          "option 2 → $3,961,700 less exposure"
+        ],
+        "traceN": 3
+      }
+    },
+    "forkContent": {
+      "idx": {
+        "dur": "36 s",
+        "conf": "medium",
+        "live": [
+          "re-price L3 at the index +10%",
+          "Gulf caustic index"
+        ],
+        "summary": [
+          "<b>If the Gulf caustic index rises 10% from January</b>, both today's price and Pemberton's bid move with it, and the caustic saving grows by $0.12M to $1.36M a year. The award saving becomes $3.56M. The index is not forecast here; this shows the clause works both ways."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "C-CHM-2024-03_Caustic_Supply_Agreement_Arcadia.pdf",
+            "m": "Clause 6: quarterly index steps",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:ctr-caustic"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Paper",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "re-price L3 both sides at index x 1.10",
+          "recompute award"
+        ],
+        "traceN": 3
+      },
+      "fm": {
+        "dur": "33 s",
+        "conf": "medium",
+        "live": [
+          "ferric all from Sabine Coast",
+          "L2"
+        ],
+        "summary": [
+          "<b>If Corrigan does not come back in 2027</b>, Sabine Coast carries all of L2 at $448.00 landed and the award saves $3.21M a year. Sabine Coast's capacity letter covers that volume."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+            "m": "25,000 tons a year",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:sabine-capacity"
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Paper",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "set L2 Sabine Coast 1.0",
+          "recompute award"
+        ],
+        "traceN": 3
+      },
+      "vol": {
+        "dur": "35 s",
+        "conf": "medium",
+        "live": [
+          "re-read every lot at the run rate",
+          "96,730 tons"
+        ],
+        "summary": [
+          "<b>At the FY26 run rate</b> (96,730 tons, Ashby left out) the same award saves $3.25M a year, $0.19M less than on the 2027 plans. The percentage barely moves: the saving is in the prices, not the volume."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Shared with the main run"
+          },
+          {
+            "n": "ops.dosing_plan",
+            "mono": true,
+            "m": "Run-rate tons by site",
+            "drill": {
+              "view": "volumes",
+              "note": ""
+            }
+          }
+        ],
+        "checks": [
+          "Same checks as step 3."
+        ],
+        "caveats": [
+          {
+            "k": "Inherited",
+            "t": "Same caveats as the main run.",
+            "p": "Paper",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "re-read volumes at run rate",
+          "recompute award"
+        ],
+        "traceN": 3
+      }
+    },
+    "findings": {
+      "F1": {
+        "id": "F1",
+        "h": "The three businesses use 102,280 tons a year of the seven chemicals on the 2027 plans: $52.46M at today's contract prices and freight.",
+        "d": "Hazardous Waste takes most of the lime and caustic soda, Water nearly all the ferric chloride, hypochlorite and carbon, Energy most of the sulfuric acid. The plans are +5.7% on the run rate, most of it Ashby; Energy's plans are the November 2025 vintage.",
+        "from": "n1",
+        "cav": [
+          "Energy volumes provisional"
+        ],
+        "drill": {
+          "view": "volumes",
+          "note": "Volumes by chemical and business, with the plan dates."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "The three businesses use 102,280 tons a year of the seven chemicals on the 2027 plans: $52.46M at today's contract prices and freight.",
+          "detail": "Hazardous Waste takes most of the lime and caustic soda, Water nearly all the ferric chloride, hypochlorite and carbon, Energy most of the sulfuric acid. The plans are +5.7% on the run rate, most of it Ashby; Energy's plans are the November 2025 vintage.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "2027 dosing plans by site and chemical",
+              "source": "bramwell_ops.dosing_plan",
+              "asOf": "2026-09-18",
+              "ref": {
+                "sheet": "volumes"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Energy plans are the November 2025 vintage",
+              "source": "Chemical_Dosing_Plans_2027.xlsx",
+              "asOf": "2026-09-18",
+              "ref": {
+                "doc": "DOC:dosing-2027"
+              }
+            }
+          ],
+          "drill": {
+            "view": "volumes",
+            "note": "Volumes by chemical and business, with the plan dates."
+          }
+        }
+      },
+      "F2": {
+        "id": "F2",
+        "h": "Five water plants hold less than ten days of ferric chloride against a 14-day minimum; spot buys since 12 October have cost $52,604 above contract.",
+        "d": "Corrigan has shipped 60% of contract volume under force majeure since its fire on 2 October and cannot confirm when full supply returns. Sabine Coast fills the gap at $548 a ton under exception FMX: 41 lines, 360 tons. Every other chemical is above its minimum.",
+        "from": "n2",
+        "cav": [
+          "Allocation is a statement, not supply"
+        ],
+        "drill": {
+          "view": "cover",
+          "note": "Ferric cover by plant; the spot lines under Data."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "Five water plants hold less than ten days of ferric chloride against a 14-day minimum; spot buys since 12 October have cost $52,604 above contract.",
+          "detail": "Corrigan has shipped 60% of contract volume under force majeure since its fire on 2 October and cannot confirm when full supply returns. Sabine Coast fills the gap at $548 a ton under exception FMX: 41 lines, 360 tons. Every other chemical is above its minimum.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Ferric chloride positions at 27 October",
+              "source": "bramwell_erp.plant_stock",
+              "asOf": "2026-10-27",
+              "ref": {
+                "sheet": "cover"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Allocation 60% from 12 October; restoration not confirmed",
+              "source": "Corrigan_Force_Majeure_Notice_2026-10-09.pdf",
+              "asOf": "2026-10-09",
+              "ref": {
+                "doc": "DOC:fm-notice"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant manager: Fenmoor at about six days",
+              "source": "Thread F2",
+              "asOf": "2026-10-22",
+              "ref": {
+                "thread": "F2"
+              }
+            }
+          ],
+          "drill": {
+            "view": "cover",
+            "note": "Ferric cover by plant; the spot lines under Data."
+          }
+        }
+      },
+      "F3": {
+        "id": "F3",
+        "h": "On landed cost among qualified bidders the award saves $3.44M a year (6.6%); caustic soda is $1.25M of it.",
+        "d": "Pemberton wins hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep their lots at lower prices; ferric goes to Sabine Coast with Corrigan as a 30% secondary once its force majeure lifts, at about today's cost. Three lower prices as bid are not awardable: freight makes Brightwater dearer, and Ostler and Pemberton polymer are not qualified.",
+        "from": "n3",
+        "cav": [],
+        "drill": {
+          "view": "bids",
+          "note": "Every bid by lot on landed cost."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "On landed cost among qualified bidders the award saves $3.44M a year (6.6%); caustic soda is $1.25M of it.",
+          "detail": "Pemberton wins hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep their lots at lower prices; ferric goes to Sabine Coast with Corrigan as a 30% secondary once its force majeure lifts, at about today's cost. Three lower prices as bid are not awardable: freight makes Brightwater dearer, and Ostler and Pemberton polymer are not qualified.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "SE-2026-031 bids by lot",
+              "source": "bramwell_srm.bid",
+              "asOf": "2026-10-16",
+              "ref": {
+                "sheet": "bids"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Bid export: price and freight per ton",
+              "source": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+              "asOf": "2026-10-16",
+              "ref": {
+                "doc": "DOC:bid-export"
+              }
+            }
+          ],
+          "drill": {
+            "view": "bids",
+            "note": "Every bid by lot on landed cost."
+          }
+        }
+      },
+      "F3b": {
+        "id": "F3b",
+        "h": "With Corrigan left out of ferric, the award saves $3.21M a year (6.1%); ferric costs $0.23M a year more than today.",
+        "d": "Sabine Coast carries all of L2 at $448.00 a ton landed and confirms the capacity. The other six lots are unchanged. Leaving a qualified bidder out is your call, recorded on the plan.",
+        "from": "n3",
+        "cav": [
+          "Judgement: from your steer"
+        ],
+        "drill": {
+          "view": "bids",
+          "note": "L2 with Sabine Coast alone."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "With Corrigan left out of ferric, the award saves $3.21M a year (6.1%); ferric costs $0.23M a year more than today.",
+          "detail": "Sabine Coast carries all of L2 at $448.00 a ton landed and confirms the capacity. The other six lots are unchanged. Leaving a qualified bidder out is your call, recorded on the plan.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "SE-2026-031 bids by lot",
+              "source": "bramwell_srm.bid",
+              "asOf": "2026-10-16",
+              "ref": {
+                "sheet": "bids"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Sabine Coast capacity: 25,000 tons a year",
+              "source": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+              "asOf": "2026-10-19",
+              "ref": {
+                "doc": "DOC:sabine-capacity"
+              }
+            }
+          ],
+          "drill": {
+            "view": "bids",
+            "note": "L2 with Sabine Coast alone."
+          }
+        }
+      },
+      "F4": {
+        "id": "F4",
+        "h": "Every awarded bidder is qualified and can carry its volume; Pemberton's second vendor record must be closed before the contracts start.",
+        "d": "Sabine Coast states 25,000 tons a year of ferric on two trains. Pemberton is V10031 and V10032 with one tax number, and its spot orders on V10032 already sit outside the sulfuric acid contract. Corrigan has an open corrective action request, which the policy allows only on a secondary award.",
+        "from": "n4",
+        "cav": [
+          "Duplicate vendor record open"
+        ],
+        "drill": {
+          "view": "bids",
+          "note": "Qualification and continuity by awarded bidder."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Every awarded bidder is qualified and can carry its volume; Pemberton's second vendor record must be closed before the contracts start.",
+          "detail": "Sabine Coast states 25,000 tons a year of ferric on two trains. Pemberton is V10031 and V10032 with one tax number, and its spot orders on V10032 already sit outside the sulfuric acid contract. Corrigan has an open corrective action request, which the policy allows only on a secondary award.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "Qualification register at 20 October",
+              "source": "Supplier_Qualification_Register_2026-10.xlsx",
+              "asOf": "2026-10-20",
+              "ref": {
+                "doc": "DOC:qual-register"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Accounts payable: two Pemberton vendor records",
+              "source": "Thread P1",
+              "asOf": "2026-10-08",
+              "ref": {
+                "thread": "P1"
+              }
+            }
+          ],
+          "drill": {
+            "view": "bids",
+            "note": "Qualification and continuity by awarded bidder."
+          }
+        }
+      }
+    },
+    "findingsCorriganExcluded": {
+      "F1": {
+        "id": "F1",
+        "h": "The three businesses use 102,280 tons a year of the seven chemicals on the 2027 plans: $52.46M at today's contract prices and freight.",
+        "d": "Hazardous Waste takes most of the lime and caustic soda, Water nearly all the ferric chloride, hypochlorite and carbon, Energy most of the sulfuric acid. The plans are +5.7% on the run rate, most of it Ashby; Energy's plans are the November 2025 vintage.",
+        "from": "n1",
+        "cav": [
+          "Energy volumes provisional"
+        ],
+        "drill": {
+          "view": "volumes",
+          "note": "Volumes by chemical and business, with the plan dates."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "The three businesses use 102,280 tons a year of the seven chemicals on the 2027 plans: $52.46M at today's contract prices and freight.",
+          "detail": "Hazardous Waste takes most of the lime and caustic soda, Water nearly all the ferric chloride, hypochlorite and carbon, Energy most of the sulfuric acid. The plans are +5.7% on the run rate, most of it Ashby; Energy's plans are the November 2025 vintage.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "2027 dosing plans by site and chemical",
+              "source": "bramwell_ops.dosing_plan",
+              "asOf": "2026-09-18",
+              "ref": {
+                "sheet": "volumes"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Energy plans are the November 2025 vintage",
+              "source": "Chemical_Dosing_Plans_2027.xlsx",
+              "asOf": "2026-09-18",
+              "ref": {
+                "doc": "DOC:dosing-2027"
+              }
+            }
+          ],
+          "drill": {
+            "view": "volumes",
+            "note": "Volumes by chemical and business, with the plan dates."
+          }
+        }
+      },
+      "F2": {
+        "id": "F2",
+        "h": "Five water plants hold less than ten days of ferric chloride against a 14-day minimum; spot buys since 12 October have cost $52,604 above contract.",
+        "d": "Corrigan has shipped 60% of contract volume under force majeure since its fire on 2 October and cannot confirm when full supply returns. Sabine Coast fills the gap at $548 a ton under exception FMX: 41 lines, 360 tons. Every other chemical is above its minimum.",
+        "from": "n2",
+        "cav": [
+          "Allocation is a statement, not supply"
+        ],
+        "drill": {
+          "view": "cover",
+          "note": "Ferric cover by plant; the spot lines under Data."
+        },
+        "base": {
+          "id": "f2",
+          "headline": "Five water plants hold less than ten days of ferric chloride against a 14-day minimum; spot buys since 12 October have cost $52,604 above contract.",
+          "detail": "Corrigan has shipped 60% of contract volume under force majeure since its fire on 2 October and cannot confirm when full supply returns. Sabine Coast fills the gap at $548 a ton under exception FMX: 41 lines, 360 tons. Every other chemical is above its minimum.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Ferric chloride positions at 27 October",
+              "source": "bramwell_erp.plant_stock",
+              "asOf": "2026-10-27",
+              "ref": {
+                "sheet": "cover"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Allocation 60% from 12 October; restoration not confirmed",
+              "source": "Corrigan_Force_Majeure_Notice_2026-10-09.pdf",
+              "asOf": "2026-10-09",
+              "ref": {
+                "doc": "DOC:fm-notice"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Plant manager: Fenmoor at about six days",
+              "source": "Thread F2",
+              "asOf": "2026-10-22",
+              "ref": {
+                "thread": "F2"
+              }
+            }
+          ],
+          "drill": {
+            "view": "cover",
+            "note": "Ferric cover by plant; the spot lines under Data."
+          }
+        }
+      },
+      "F3b": {
+        "id": "F3b",
+        "h": "With Corrigan left out of ferric, the award saves $3.21M a year (6.1%); ferric costs $0.23M a year more than today.",
+        "d": "Sabine Coast carries all of L2 at $448.00 a ton landed and confirms the capacity. The other six lots are unchanged. Leaving a qualified bidder out is your call, recorded on the plan.",
+        "from": "n3",
+        "cav": [
+          "Judgement: from your steer"
+        ],
+        "drill": {
+          "view": "bids",
+          "note": "L2 with Sabine Coast alone."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "With Corrigan left out of ferric, the award saves $3.21M a year (6.1%); ferric costs $0.23M a year more than today.",
+          "detail": "Sabine Coast carries all of L2 at $448.00 a ton landed and confirms the capacity. The other six lots are unchanged. Leaving a qualified bidder out is your call, recorded on the plan.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "SE-2026-031 bids by lot",
+              "source": "bramwell_srm.bid",
+              "asOf": "2026-10-16",
+              "ref": {
+                "sheet": "bids"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Sabine Coast capacity: 25,000 tons a year",
+              "source": "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+              "asOf": "2026-10-19",
+              "ref": {
+                "doc": "DOC:sabine-capacity"
+              }
+            }
+          ],
+          "drill": {
+            "view": "bids",
+            "note": "L2 with Sabine Coast alone."
+          }
+        }
+      },
+      "F4": {
+        "id": "F4",
+        "h": "Every awarded bidder is qualified and can carry its volume; Pemberton's second vendor record must be closed before the contracts start.",
+        "d": "Sabine Coast states 25,000 tons a year of ferric on two trains. Pemberton is V10031 and V10032 with one tax number, and its spot orders on V10032 already sit outside the sulfuric acid contract. Corrigan has an open corrective action request, which the policy allows only on a secondary award.",
+        "from": "n4",
+        "cav": [
+          "Duplicate vendor record open"
+        ],
+        "drill": {
+          "view": "bids",
+          "note": "Qualification and continuity by awarded bidder."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Every awarded bidder is qualified and can carry its volume; Pemberton's second vendor record must be closed before the contracts start.",
+          "detail": "Sabine Coast states 25,000 tons a year of ferric on two trains. Pemberton is V10031 and V10032 with one tax number, and its spot orders on V10032 already sit outside the sulfuric acid contract. Corrigan has an open corrective action request, which the policy allows only on a secondary award.",
+          "evidence": [
+            {
+              "kind": "document",
+              "text": "Qualification register at 20 October",
+              "source": "Supplier_Qualification_Register_2026-10.xlsx",
+              "asOf": "2026-10-20",
+              "ref": {
+                "doc": "DOC:qual-register"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Accounts payable: two Pemberton vendor records",
+              "source": "Thread P1",
+              "asOf": "2026-10-08",
+              "ref": {
+                "thread": "P1"
+              }
+            }
+          ],
+          "drill": {
+            "view": "bids",
+            "note": "Qualification and continuity by awarded bidder."
+          }
+        }
+      }
+    },
+    "recommendations": [
+      {
+        "id": "r1",
+        "title": "Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts",
+        "summary": "Pemberton for hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep lime, polymer and carbon at their new prices; Sabine Coast primary on ferric with Corrigan capped at 30%, starting only when Corrigan lifts the force majeure in writing. Close Pemberton's duplicate vendor record before 1 January.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.44M · 6.6%",
+            "tone": "good"
+          },
+          {
+            "label": "Ferric sources",
+            "value": "two",
+            "tone": "good"
+          },
+          {
+            "label": "Spot exposure",
+            "value": "none from January",
+            "tone": "good"
+          },
+          {
+            "label": "Approval",
+            "value": "Procurement Committee"
+          }
+        ],
+        "tradeoff": "Ferric costs about what it does today instead of the $0.52M a year less Corrigan's bid offers, and 10% of the volume rests on Energy's November 2025 plans.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Helena needs the chemicals award for the 12 November committee."
+          },
+          {
+            "kind": "read",
+            "text": "Read the 2027 plans and today's prices and freight.",
+            "figure": "$52.46M today",
+            "ref": {
+              "sheet": "volumes"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Five water plants are under ten days of ferric while Corrigan ships 60%.",
+            "figure": "360 tons on spot",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: landed cost among qualified suppliers; a supplier without continuity is capped or secondary.",
+            "ref": {
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Compared the 20 bids on landed cost.",
+            "figure": "$3.44M",
+            "ref": {
+              "sheet": "bids"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Sabine Coast can carry all of ferric on two trains.",
+            "figure": "25,000 tons",
+            "ref": {
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Award by lot on landed cost and keep Corrigan as a capped secondary until it can show supply."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Award on lowest landed cost as bid, with Corrigan primary on ferric chloride",
+        "summary": "The same award on six lots, and ferric to Corrigan at $415.00 landed, the lowest bid.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.96M · 7.5%",
+            "tone": "good"
+          },
+          {
+            "label": "Rests on",
+            "value": "an unconfirmed restart",
+            "tone": "crit"
+          },
+          {
+            "label": "Spot in the first quarter",
+            "value": "$0.39M",
+            "tone": "warn"
+          },
+          {
+            "label": "If it lasts the year",
+            "value": "$1.56M",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "The highest saving on paper, but at a 60% allocation 40% of ferric is bought on spot until Corrigan restarts, and Corrigan cannot say when.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award take Corrigan's lowest bid on ferric?"
+          },
+          {
+            "kind": "read",
+            "text": "Corrigan cannot confirm when full supply returns.",
+            "ref": {
+              "doc": "DOC:fm-notice"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "At 60% the balance is bought at $548 a ton.",
+            "figure": "$0.39M",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it once Corrigan shows its plant is back."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Extend the 2026 agreements by six months and re-bid ferric in the first quarter",
+        "summary": "Keep every supplier at today's prices to 30 June 2027, re-run L2 when Corrigan's restart is known, and qualify Ostler and Pemberton polymer in the meantime.",
+        "figures": [
+          {
+            "label": "Saving forgone",
+            "value": "$1.72M (half a year)",
+            "tone": "warn"
+          },
+          {
+            "label": "Corrigan restart",
+            "value": "known by then",
+            "tone": "good"
+          },
+          {
+            "label": "Spot buying",
+            "value": "continues",
+            "tone": "crit"
+          },
+          {
+            "label": "Bidders",
+            "value": "asked to hold prices",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Buys time for the ferric decision and two qualifications, but gives up half a year of saving and keeps the plants on spot volume.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award wait for Corrigan?"
+          },
+          {
+            "kind": "read",
+            "text": "Bids are valid for 90 days.",
+            "ref": {
+              "doc": "DOC:rfp"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if the committee will not decide ferric without Corrigan's restart date."
+          }
+        ]
+      }
+    ],
+    "recommendationsCorriganExcluded": [
+      {
+        "id": "r1",
+        "title": "Award by lot on landed cost, with ferric chloride to Sabine Coast alone",
+        "summary": "Pemberton for hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep lime, polymer and carbon at their new prices; Sabine Coast alone on ferric. Close Pemberton's duplicate vendor record before 1 January.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.21M · 6.1%",
+            "tone": "good"
+          },
+          {
+            "label": "Ferric sources",
+            "value": "one",
+            "tone": "warn"
+          },
+          {
+            "label": "Spot exposure",
+            "value": "none from January",
+            "tone": "good"
+          },
+          {
+            "label": "Approval",
+            "value": "Procurement Committee"
+          }
+        ],
+        "tradeoff": "Leaves a qualified, lower bid out: $0.22M a year less than with Corrigan as secondary, and one source for ferric.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Helena needs the chemicals award for the 12 November committee."
+          },
+          {
+            "kind": "read",
+            "text": "Read the 2027 plans and today's prices and freight.",
+            "figure": "$52.46M today",
+            "ref": {
+              "sheet": "volumes"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Five water plants are under ten days of ferric while Corrigan ships 60%.",
+            "figure": "360 tons on spot",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: landed cost among qualified suppliers; a supplier without continuity is capped or secondary.",
+            "ref": {
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Compared the 20 bids on landed cost.",
+            "figure": "$3.21M",
+            "ref": {
+              "sheet": "bids"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Sabine Coast can carry all of ferric on two trains.",
+            "figure": "25,000 tons",
+            "ref": {
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Award by lot on landed cost with Sabine Coast alone on ferric."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Award on lowest landed cost as bid, with Corrigan primary on ferric chloride",
+        "summary": "The same award on six lots, and ferric to Corrigan at $415.00 landed, the lowest bid.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.96M · 7.5%",
+            "tone": "good"
+          },
+          {
+            "label": "Rests on",
+            "value": "an unconfirmed restart",
+            "tone": "crit"
+          },
+          {
+            "label": "Spot in the first quarter",
+            "value": "$0.39M",
+            "tone": "warn"
+          },
+          {
+            "label": "If it lasts the year",
+            "value": "$1.56M",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "The highest saving on paper, but at a 60% allocation 40% of ferric is bought on spot until Corrigan restarts, and Corrigan cannot say when.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award take Corrigan's lowest bid on ferric?"
+          },
+          {
+            "kind": "read",
+            "text": "Corrigan cannot confirm when full supply returns.",
+            "ref": {
+              "doc": "DOC:fm-notice"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "At 60% the balance is bought at $548 a ton.",
+            "figure": "$0.39M",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it once Corrigan shows its plant is back."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Extend the 2026 agreements by six months and re-bid ferric in the first quarter",
+        "summary": "Keep every supplier at today's prices to 30 June 2027, re-run L2 when Corrigan's restart is known, and qualify Ostler and Pemberton polymer in the meantime.",
+        "figures": [
+          {
+            "label": "Saving forgone",
+            "value": "$1.72M (half a year)",
+            "tone": "warn"
+          },
+          {
+            "label": "Corrigan restart",
+            "value": "known by then",
+            "tone": "good"
+          },
+          {
+            "label": "Spot buying",
+            "value": "continues",
+            "tone": "crit"
+          },
+          {
+            "label": "Bidders",
+            "value": "asked to hold prices",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Buys time for the ferric decision and two qualifications, but gives up half a year of saving and keeps the plants on spot volume.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award wait for Corrigan?"
+          },
+          {
+            "kind": "read",
+            "text": "Bids are valid for 90 days.",
+            "ref": {
+              "doc": "DOC:rfp"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if the committee will not decide ferric without Corrigan's restart date."
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-award-paper",
+        "label": "Award paper: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee, 12 November, through Helena Marsh, Chief Procurement Officer",
+        "purpose": "The award by lot on landed cost, what it saves, and how ferric chloride stays supplied",
+        "template": "Procurement Committee: award paper",
+        "templateId": "t-pc-award-paper",
+        "why": "Helena asked for the paper on the committee template by 5 November."
+      },
+      {
+        "id": "sub-award-schedule",
+        "label": "Award schedule: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee and the contract owners",
+        "purpose": "Lot awards, prices, volumes by business, continuity and approvals, in the structure the committee approved in 2023",
+        "template": "Your prior deliverables: chemicals award schedule 2024 to 2026",
+        "templateId": "t-prior-award-2024",
+        "why": "The committee asked for award papers in the 2024 structure."
+      },
+      {
+        "id": "sub-award-deck",
+        "label": "Committee slides: treatment chemicals award",
+        "audience": "Procurement Committee, Thursday 12 November",
+        "purpose": "Walk the committee through the award, the saving and ferric continuity",
+        "template": "Procurement Committee: award slides",
+        "templateId": "t-pc-award-deck",
+        "why": "The chair wants the chemicals award on its own slides."
+      }
+    ],
+    "gaps": [
+      "Corrigan has not confirmed when full ferric supply returns; the 30% secondary starts only when it does, in writing.",
+      "Energy's 2027 dosing plans are the November 2025 vintage (10% of the volume); they are refreshed after the Harlow outage in March.",
+      "Pemberton has two vendor records (V10031, V10032); the contracts must sit on one before 1 January or spot orders leak outside them."
+    ],
+    "gapsCorriganExcluded": [
+      "Corrigan stays out of ferric for the whole term; if it restarts in writing, ferric can be re-bid at the 2028 mid-term review.",
+      "Sabine Coast is the only ferric source from 1 January; its capacity letter of 19 October is the only proof of the 25,000 tons, and no second train has been audited.",
+      "Energy's 2027 dosing plans are the November 2025 vintage (10% of the volume); they are refreshed after the Harlow outage in March.",
+      "Pemberton has two vendor records (V10031, V10032); the contracts must sit on one before 1 January or spot orders leak outside them."
+    ],
+    "extraDeliverables": [
+      {
+        "id": "sub-savings-note",
+        "label": "Savings program note: the chemicals award",
+        "audience": "Sofia Brandt, Finance Business Partner, Procurement",
+        "purpose": "What the award saves against today's landed cost, and what does not count as a saving",
+        "template": "Procurement Committee: savings program note",
+        "templateId": "t-pc-savings-note",
+        "why": "Avoided premiums are not savings; finance books only the landed-cost saving."
+      },
+      {
+        "id": "sub-event-summary",
+        "label": "Sourcing event summary: SE-2026-031",
+        "audience": "Imani Okoro, Category Manager, Chemicals and Process Materials",
+        "purpose": "The event, the twenty bids, the evaluation and the award, for the sourcing record",
+        "template": "Sourcing: sourcing event summary",
+        "templateId": "t-src-event-summary",
+        "why": "Every sourcing event closes with a summary on file."
+      }
+    ]
+  },
+  "watch": {
+    "prompt": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "Look across the group before an emergency purchase · the holder stays at or above its own safety stock · expedites up to $25k are approved by Rafael",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Inventory_and_Critical_Spares_Standard_2025.pdf",
+        "res": "Class A items · chemical cover 14 days water, 10 hazardous waste, 7 energy · outage materials ready 14 days ahead",
+        "rv": [
+          "watch",
+          "src:std"
+        ]
+      },
+      {
+        "tool": "scan mm.plant_stock · mm.reservation · pur.po_line",
+        "res": "2,782 critical positions at 36 sites · open lines with promised dates · reservations of released work orders",
+        "rv": [
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "read the load calendar",
+        "res": "Stock, orders and reservations load nightly at 02:00. Next: tonight, Wednesday 28 October",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "\"Treatment chemicals award\" reads the same ferric cover; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "search for a storeroom distribution list",
+        "res": "No storeroom list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Critical positions below safety stock are reviewed daily · Ravensworth Kiln 2 outage from 9 November · Corrigan at 60% on ferric",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "fires",
+        "title": "What should make it fire?",
+        "text": "Positions dip below safety stock every week and most have an order landing in time. The rule can fire only when something will run short before it can be replenished, or on every position below safety stock.",
+        "tiles": [
+          {
+            "v": "short",
+            "t": "When a position will run short before its next receipt",
+            "s": "The ones that need action"
+          },
+          {
+            "v": "early",
+            "t": "Also when an outage reservation is not covered 14 days ahead",
+            "s": "What the standard asks for outages",
+            "rec": true
+          },
+          {
+            "v": "always",
+            "t": "A digest of every load",
+            "s": "A short reading each morning"
+          }
+        ]
+      },
+      {
+        "key": "tell",
+        "title": "Who is told when it fires?",
+        "text": "No storeroom list is connected. The note goes out without waiting for you, so pick who should see it.",
+        "tiles": [
+          {
+            "v": "me",
+            "t": "Just me",
+            "s": "I decide who hears"
+          },
+          {
+            "v": "buyers",
+            "t": "Me and the buyers",
+            "s": "Whoever places the orders"
+          },
+          {
+            "v": "sites",
+            "t": "Me, the buyers and the site leads",
+            "s": "Everyone who can release or move stock"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the load flagged, and size it",
+        "purpose": "Which positions will run short before they can be replenished, and by how much.",
+        "how": "Every critical position against its safety stock, its reservations and its next confirmed receipt: on hand, what is needed by when, the shortfall. Limited to the positions in the load that fired the rule.",
+        "draws": [
+          "mm.plant_stock",
+          "mm.reservation",
+          "pur.po_line"
+        ],
+        "check": "Every flagged position recomputes from on hand, safety stock, reservations and promised dates."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone is on it",
+        "purpose": "Is this new, and is someone already handling it.",
+        "how": "Supplier date changes, released reservations, the Corrigan allocation, and what the buyers, the outage manager and the plants have said.",
+        "draws": [
+          "pur.po_line (promised date history)",
+          "Outlook: outage, buyers, plants (R1, R2, F2)",
+          "Ravensworth_Kiln2_Outage_Material_Readiness_2026-10-23.xlsx"
+        ],
+        "check": "Every cause is dated and sourced."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Look across the group: stock, expedites, substitutes",
+        "purpose": "What the rest of the group holds, and what the suppliers can still do.",
+        "how": "For each position: other sites holding the same material above their own safety stock, the freight to move it, expedites the suppliers have offered, and approved substitutes.",
+        "draws": [
+          "mm.plant_stock (all sites)",
+          "Inter-site_Transfer_Procedure.pdf",
+          "Outlook: buyers (R2)"
+        ],
+        "check": "No holder is taken below its own safety stock."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with what it costs and what it protects, checked against open goals.",
+        "how": "Each option with its cost, the positions it covers, the days of outage it protects, who has to agree, and an honest statement where nothing can be done in time; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Treatment chemicals award",
+          "Inventory_and_Critical_Spares_Standard_2025.pdf"
+        ],
+        "check": "Every option states what it costs and what it covers."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables, act and tell you",
+        "purpose": "Build what was agreed at set-up, take the actions that run by themselves, hold the others for your OK, and tell the people you chose.",
+        "how": "The positions, why they are short, what the group holds, the options and the moves; on the stock exception note template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: stock exception note"
+        ],
+        "check": "Every figure in the note links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "content": {
+      "w1": {
+        "dur": "31 s",
+        "conf": "high",
+        "live": [
+          "read the 02:00 load",
+          "2,782 positions"
+        ],
+        "summary": [
+          "<b>Nineteen critical positions will run short before their next receipt.</b> Nine are reserved for the Ravensworth Kiln 2 outage (9 November to 20 November); eight of them have no receipt before the date they are needed. Seven are ferric chloride at water plants under the 14-day minimum, and three are spares at Harlow CHP, Pellham and Union Quay.",
+          "Only the Ravensworth thermocouples are covered by an order landing before they are needed. The reservations were released by the outage planner on 27 October and reached SAP in this load."
+        ],
+        "table": {
+          "cols": [
+            "Item",
+            "Site",
+            "Needed",
+            "On hand",
+            "Needed by",
+            "Next receipt"
+          ],
+          "num": [
+            2,
+            3
+          ],
+          "rows": [
+            [
+              "Refractory brick",
+              "Ravensworth Incinerator",
+              "46",
+              "22",
+              "10 November",
+              "19 November"
+            ],
+            [
+              "Refractory castable",
+              "Ravensworth Incinerator",
+              "16",
+              "9",
+              "11 November",
+              "24 November"
+            ],
+            [
+              "Refractory anchors",
+              "Ravensworth Incinerator",
+              "30",
+              "14",
+              "10 November",
+              "27 November"
+            ],
+            [
+              "Burner nozzle assembly",
+              "Ravensworth Incinerator",
+              "1",
+              "0",
+              "17 November",
+              "4 December"
+            ],
+            [
+              "ID fan bearing",
+              "Ravensworth Incinerator",
+              "2",
+              "1",
+              "12 November",
+              "8 December"
+            ],
+            [
+              "Quench pump mechanical seal kit",
+              "Ravensworth Incinerator",
+              "3",
+              "1",
+              "13 November",
+              "30 November"
+            ],
+            [
+              "Flue gas expansion joint",
+              "Ravensworth Incinerator",
+              "1",
+              "0",
+              "14 November",
+              "20 November"
+            ],
+            [
+              "Thermocouple assembly",
+              "Ravensworth Incinerator",
+              "12",
+              "6",
+              "18 November",
+              "16 November"
+            ],
+            [
+              "Ash conveyor chain",
+              "Ravensworth Incinerator",
+              "2",
+              "1",
+              "12 November",
+              "1 December"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Fenmoor",
+              "83.3",
+              "36.9",
+              "3 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Holloway Creek",
+              "66.6",
+              "35.2",
+              "4 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Stanwick",
+              "61.1",
+              "35.3",
+              "5 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Marston Reach",
+              "55.5",
+              "36.9",
+              "6 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Quinton Lakes",
+              "50",
+              "34.3",
+              "6 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Pellham",
+              "50",
+              "42.1",
+              "8 November",
+              "none"
+            ],
+            [
+              "Ferric chloride 40%",
+              "Brantley",
+              "44.4",
+              "40",
+              "9 November",
+              "none"
+            ],
+            [
+              "Moving grate bar",
+              "Harlow CHP",
+              "60",
+              "38",
+              "now",
+              "10 December"
+            ],
+            [
+              "UV lamp set",
+              "Pellham",
+              "2",
+              "1",
+              "now",
+              "2 December"
+            ],
+            [
+              "Chiller compressor service kit",
+              "Union Quay District Energy",
+              "1",
+              "0",
+              "now",
+              "none"
+            ]
+          ],
+          "warn": 0
+        },
+        "receipts": [
+          {
+            "n": "mm.plant_stock",
+            "mono": true,
+            "m": "Positions at the 28 October load",
+            "drill": {
+              "view": "positions",
+              "note": ""
+            }
+          },
+          {
+            "n": "mm.reservation",
+            "mono": true,
+            "m": "Reservations of WO-884120 and the outage work orders",
+            "drill": {
+              "view": "positions",
+              "note": ""
+            }
+          },
+          {
+            "n": "pur.po_line",
+            "mono": true,
+            "m": "Open lines and promised dates",
+            "drill": {
+              "view": "positions",
+              "note": ""
+            }
+          }
+        ],
+        "checks": [
+          "Every position recomputes from on hand, safety stock and promised dates."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "Promised dates as of 02:00; arrivals are not tracked.",
+            "p": "Note",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "read_table mm.plant_stock snapshot 2026-10-28 → 2,782 critical positions",
+          "join mm.reservation, pur.po_line → 19 projected short",
+          "8 outage items with no receipt before need"
+        ],
+        "traceN": 5
+      },
+      "w2": {
+        "dur": "42 s",
+        "conf": "medium",
+        "live": [
+          "read promised date history · mailbox",
+          "3 causes"
+        ],
+        "summary": [
+          "<b>The outage gap opened this week.</b> Holcombe moved its 30 pallets of brick from 2 November to 19 November after a kiln at its plant went down; Vantor quotes the burner nozzle for 4 December and is under a corrective action request; and the reservations reached SAP only last night. Tomasz Wierzbicki raised eight of the nine items on 23 October.",
+          "<b>The ferric gap is the Corrigan allocation</b>: 60% of volume since 12 October, topped up week by week on spot. No spot volume is confirmed yet for the week of 2 November."
+        ],
+        "receipts": [
+          {
+            "n": "Thread R1 · Kiln 2 material readiness",
+            "m": "Eight of nine items not ready",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R1"
+            }
+          },
+          {
+            "n": "Thread R2 · Holcombe revised dates",
+            "m": "Brick moved to 19 November; six pallets can come on 6 November",
+            "drill": {
+              "view": "mail",
+              "note": "",
+              "thread": "R2"
+            }
+          },
+          {
+            "n": "Ravensworth_Kiln2_Outage_Material_Readiness_2026-10-23.xlsx",
+            "m": "Readiness at 23 October",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:rav-readiness"
+            }
+          }
+        ],
+        "checks": [
+          "Every cause has a date and a source."
+        ],
+        "caveats": [],
+        "trace": [
+          "read pur.po_line promised date history → Holcombe +17 days",
+          "read_mail threads R1, R2, F2",
+          "read_document readiness list 23 October"
+        ],
+        "traceN": 6
+      },
+      "w3": {
+        "dur": "48 s",
+        "conf": "high",
+        "live": [
+          "read stock at every site",
+          "36 sites"
+        ],
+        "summary": [
+          "<b>The group holds what covers nine of the positions</b>, without taking any holder below its own safety stock: brick and anchors at the Northern Distribution Center; castable, anchors and the burner nozzle at Kilmarsh; a spare ID fan bearing of the same size at Harlow CHP, an Energy plant; seal kits at the Central Distribution Center; ash chain at Corley Flats; grate bars at Wexcombe.",
+          "Holcombe can expedite 6 pallets of brick, 4 tons of castable and 8 boxes of anchors, and Orrin the expansion joint, for $18,140 in all, inside Rafael's approval. Castellan holds an approved equivalent of the Union Quay chiller kit. Hazardous Waste's ferric surplus is about 84.8 tons, 1.6 days of water use: not worth the tanker moves, so ferric stays with Sabine Coast spot volume."
+        ],
+        "table": {
+          "cols": [
+            "Item",
+            "Quantity",
+            "From",
+            "To",
+            "Cost"
+          ],
+          "num": [
+            1,
+            4
+          ],
+          "rows": [
+            [
+              "Refractory brick",
+              "18",
+              "Northern Distribution Center",
+              "Ravensworth Incinerator",
+              "$1,450"
+            ],
+            [
+              "Refractory brick",
+              "6",
+              "Holcombe Refractories (expedite by 6 November)",
+              "Ravensworth Incinerator",
+              "$5,800"
+            ],
+            [
+              "Refractory castable",
+              "3",
+              "Kilmarsh Incinerator",
+              "Ravensworth Incinerator",
+              "$2,380"
+            ],
+            [
+              "Refractory castable",
+              "4",
+              "Holcombe Refractories (expedite by 5 November)",
+              "Ravensworth Incinerator",
+              "$1,900"
+            ],
+            [
+              "Refractory anchors",
+              "6",
+              "Northern Distribution Center",
+              "Ravensworth Incinerator",
+              "$1,450"
+            ],
+            [
+              "Refractory anchors",
+              "2",
+              "Kilmarsh Incinerator",
+              "Ravensworth Incinerator",
+              "$2,380"
+            ],
+            [
+              "Refractory anchors",
+              "8",
+              "Holcombe Refractories (expedite by 7 November)",
+              "Ravensworth Incinerator",
+              "$640"
+            ],
+            [
+              "Burner nozzle assembly",
+              "1",
+              "Kilmarsh Incinerator",
+              "Ravensworth Incinerator",
+              "$2,380"
+            ],
+            [
+              "ID fan bearing",
+              "1",
+              "Harlow CHP",
+              "Ravensworth Incinerator",
+              "$610"
+            ],
+            [
+              "Quench pump mechanical seal kit",
+              "2",
+              "Central Distribution Center",
+              "Ravensworth Incinerator",
+              "$1,180"
+            ],
+            [
+              "Flue gas expansion joint",
+              "1",
+              "Orrin Flexible Connectors (expedite by 12 November)",
+              "Ravensworth Incinerator",
+              "$9,800"
+            ],
+            [
+              "Ash conveyor chain",
+              "1",
+              "Corley Flats Stabilization and Landfill",
+              "Ravensworth Incinerator",
+              "$940"
+            ],
+            [
+              "Moving grate bar",
+              "40",
+              "Wexcombe CHP",
+              "Harlow CHP",
+              "$1,720"
+            ],
+            [
+              "UV lamp set",
+              "1",
+              "Central Distribution Center",
+              "Pellham Water Treatment Works",
+              "$260"
+            ],
+            [
+              "Chiller compressor service kit",
+              "1",
+              "Castellan Industrial Supply (approved equivalent, 5 days)",
+              "Union Quay District Energy",
+              "$1,250"
+            ],
+            [
+              "Ferric chloride",
+              "153 tons",
+              "Sabine Coast spot this week",
+              "7 water plants",
+              "$22,338"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "mm.plant_stock (all sites)",
+            "mono": true,
+            "m": "Holders above their own safety stock",
+            "drill": {
+              "view": "positions",
+              "note": ""
+            }
+          },
+          {
+            "n": "Inter-site_Transfer_Procedure.pdf",
+            "m": "Standard cost; holder stays above safety stock",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:transfer-proc"
+            }
+          },
+          {
+            "n": "Stock_cover_working_2026-10.docx",
+            "m": "Your notes: Kilmarsh, the Northern DC and Harlow first",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:my-stock-working"
+            }
+          }
+        ],
+        "checks": [
+          "No holder goes below its own safety stock.",
+          "Each expedite is inside the approval limit."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "That Kilmarsh and Harlow confirm the releases; each storeroom lead confirms before a transfer ships.",
+            "p": "Note · Moves",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "for each position: read other sites above safety stock → 10 transfers",
+          "read supplier offers → 4 expedites",
+          "ferric: Hazardous Waste surplus 84.8 tons → not moved"
+        ],
+        "traceN": 7
+      },
+      "w4": {
+        "dur": "25 s",
+        "conf": "medium",
+        "live": [
+          "read the standard and the open goals",
+          "3 options"
+        ],
+        "summary": [
+          "Three courses of action: <b>move stock from six sites, expedite four orders, top up ferric on spot and use the approved chiller kit, for $56.5k, and the outage starts on 9 November</b>; expedite everything from the suppliers ($164.2k, and four items still cannot arrive in time, so the outage risks running about 9 days over, $1.33M of margin); or move the outage back a week ($1.04M of lost margin).",
+          "The first is inside Rafael's approval and the transfer procedure. The open chemicals award goal is not changed: the ferric spot volume continues only until the new contracts start on 1 January."
+        ],
+        "table": {
+          "cols": [
+            "Option",
+            "Cost",
+            "Covers",
+            "Outage"
+          ],
+          "num": [
+            1
+          ],
+          "rows": [
+            [
+              "Move, expedite four, spot, substitute",
+              "$56.5k",
+              "all 19",
+              "on date"
+            ],
+            [
+              "Expedite everything",
+              "$164.2k",
+              "15 of 19",
+              "about 9 days over"
+            ],
+            [
+              "Move the outage a week",
+              "$1.04M",
+              "the outage only",
+              "16 November"
+            ]
+          ]
+        },
+        "receipts": [
+          {
+            "n": "From steps 1 to 3",
+            "m": "Positions, causes, what the group holds"
+          },
+          {
+            "n": "Inventory_and_Critical_Spares_Standard_2025.pdf",
+            "m": "Sections 5 and 6: group first; expedite approval",
+            "drill": {
+              "view": "documents",
+              "note": "",
+              "doc": "DOC:inv-standard"
+            }
+          },
+          {
+            "n": "Goal: Treatment chemicals award",
+            "m": "Reads the same ferric cover; nothing changes in it"
+          }
+        ],
+        "checks": [
+          "Each option states what it costs and covers.",
+          "Every open plan on the same items is named or excluded."
+        ],
+        "caveats": [
+          {
+            "k": "Assumption",
+            "t": "That Holcombe and Orrin hold the expedite dates they offered; arrivals are not tracked.",
+            "p": "Note",
+            "assume": true
+          }
+        ],
+        "trace": [
+          "compose option: move + expedite + spot + substitute → $56,478",
+          "compose option: expedite all → $164,200",
+          "read_goal g-chemicals-award-2027 → no change"
+        ],
+        "traceN": 4
+      },
+      "w5": {
+        "dur": "18 s",
+        "conf": "high",
+        "live": [
+          "compose from template Stock exception note",
+          "1 page"
+        ],
+        "summary": [
+          "Sent the note to you, the buyers and the site leads: the positions, why they are short, what the group holds, the three options and the moves. It is also in Submissions as a draft you can finish."
+        ],
+        "receipts": [
+          {
+            "n": "From steps 1 to 4",
+            "m": "Every figure linked"
+          },
+          {
+            "n": "Template: stock exception note",
+            "m": "What we ask, positions, why, options, recommendation"
+          }
+        ],
+        "checks": [
+          "Every figure links back to its step."
+        ],
+        "caveats": [],
+        "trace": [
+          "compose note from t-sc-stock-note → 5 sections",
+          "send to Rafael Duarte, Leon Varga, Anika Sorensen, Tomasz Wierzbicki, 6 storeroom leads"
+        ],
+        "traceN": 2
+      }
+    },
+    "findings": {
+      "W1": {
+        "id": "W1",
+        "h": "Nineteen critical positions will run short before their next receipt; nine are reserved for the Ravensworth Kiln 2 outage, which starts 9 November.",
+        "d": "Eight of the outage items have no receipt before the date they are needed; only the thermocouples are covered. Seven ferric chloride positions at water plants are under the 14-day minimum, and three spares at Harlow CHP, Pellham and Union Quay are below safety stock with no receipt in time.",
+        "from": "w1",
+        "cav": [
+          "Promised dates as of 02:00"
+        ],
+        "drill": {
+          "view": "positions",
+          "note": "The positions with their need dates and next receipts."
+        },
+        "base": {
+          "id": "f1",
+          "headline": "Nineteen critical positions will run short before their next receipt; nine are reserved for the Ravensworth Kiln 2 outage, which starts 9 November.",
+          "detail": "Eight of the outage items have no receipt before the date they are needed; only the thermocouples are covered. Seven ferric chloride positions at water plants are under the 14-day minimum, and three spares at Harlow CHP, Pellham and Union Quay are below safety stock with no receipt in time.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Critical positions at the 28 October load",
+              "source": "bramwell_erp.plant_stock",
+              "asOf": "2026-10-28",
+              "ref": {
+                "sheet": "positions"
+              }
+            },
+            {
+              "kind": "table",
+              "text": "Reservations of the Kiln 2 work orders",
+              "source": "bramwell_erp.reservation",
+              "asOf": "2026-10-28",
+              "ref": {
+                "sheet": "positions"
+              }
+            }
+          ],
+          "drill": {
+            "view": "positions",
+            "note": "The positions with their need dates and next receipts."
+          }
+        }
+      },
+      "W2": {
+        "id": "W2",
+        "h": "The outage gap opened when Holcombe and Vantor moved their dates and the reservations were released; the ferric gap is Corrigan's 60% allocation.",
+        "d": "Holcombe moved its brick to 19 November after a kiln at its plant went down; Vantor, the only qualified nozzle source, quotes 4 December and is under a corrective action request. No ferric spot volume is confirmed for the week of 2 November.",
+        "from": "w2",
+        "cav": [],
+        "drill": {
+          "view": "mail",
+          "note": "The outage and buyer threads.",
+          "thread": "R1"
+        },
+        "base": {
+          "id": "f2",
+          "headline": "The outage gap opened when Holcombe and Vantor moved their dates and the reservations were released; the ferric gap is Corrigan's 60% allocation.",
+          "detail": "Holcombe moved its brick to 19 November after a kiln at its plant went down; Vantor, the only qualified nozzle source, quotes 4 December and is under a corrective action request. No ferric spot volume is confirmed for the week of 2 November.",
+          "evidence": [
+            {
+              "kind": "mail",
+              "text": "Outage manager: eight of nine items not ready",
+              "source": "Thread R1",
+              "asOf": "2026-10-23",
+              "ref": {
+                "thread": "R1"
+              }
+            },
+            {
+              "kind": "mail",
+              "text": "Buyer: Holcombe moved its brick; can expedite six pallets",
+              "source": "Thread R2",
+              "asOf": "2026-10-24",
+              "ref": {
+                "thread": "R2"
+              }
+            }
+          ],
+          "drill": {
+            "view": "mail",
+            "note": "The outage and buyer threads.",
+            "thread": "R1"
+          }
+        }
+      },
+      "W3": {
+        "id": "W3",
+        "h": "The group holds what covers nine of the positions without taking any holder below its own safety stock; one move crosses from Energy to Hazardous Waste.",
+        "d": "Kilmarsh, the Northern and Central Distribution Centers, Corley Flats, Wexcombe and Harlow CHP can release what is needed; Harlow's spare ID fan bearing goes to Ravensworth. Four expedites the suppliers offered cost $18,140. Hazardous Waste's ferric surplus is too small to move.",
+        "from": "w3",
+        "cav": [
+          "Releases need each storeroom lead to confirm"
+        ],
+        "drill": {
+          "view": "positions",
+          "note": "What every other site holds above its safety stock."
+        },
+        "base": {
+          "id": "f3",
+          "headline": "The group holds what covers nine of the positions without taking any holder below its own safety stock; one move crosses from Energy to Hazardous Waste.",
+          "detail": "Kilmarsh, the Northern and Central Distribution Centers, Corley Flats, Wexcombe and Harlow CHP can release what is needed; Harlow's spare ID fan bearing goes to Ravensworth. Four expedites the suppliers offered cost $18,140. Hazardous Waste's ferric surplus is too small to move.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Stock of the same materials at every site",
+              "source": "bramwell_erp.plant_stock",
+              "asOf": "2026-10-28",
+              "ref": {
+                "sheet": "positions"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Transfers at standard cost; holder stays above safety stock",
+              "source": "Inter-site_Transfer_Procedure.pdf",
+              "asOf": "2025-04-01",
+              "ref": {
+                "doc": "DOC:transfer-proc"
+              }
+            }
+          ],
+          "drill": {
+            "view": "positions",
+            "note": "What every other site holds above its safety stock."
+          }
+        }
+      },
+      "W4": {
+        "id": "W4",
+        "h": "Covering every position costs $56.5k; letting the outage run over costs $148,000 a day.",
+        "d": "Ten transfers ($14,750 of freight), four expedites ($18,140), 153 tons of ferric on spot ($22,338 above contract) and one approved substitute. Expediting everything instead costs $164.2k and still leaves four items late.",
+        "from": "w4",
+        "cav": [],
+        "drill": {
+          "view": "positions",
+          "note": "The moves, expedites and spot volume with their cost."
+        },
+        "base": {
+          "id": "f4",
+          "headline": "Covering every position costs $56.5k; letting the outage run over costs $148,000 a day.",
+          "detail": "Ten transfers ($14,750 of freight), four expedites ($18,140), 153 tons of ferric on spot ($22,338 above contract) and one approved substitute. Expediting everything instead costs $164.2k and still leaves four items late.",
+          "evidence": [
+            {
+              "kind": "table",
+              "text": "Freight by lane and expedite offers",
+              "source": "bramwell_erp.po_line",
+              "asOf": "2026-10-28",
+              "ref": {
+                "sheet": "positions"
+              }
+            },
+            {
+              "kind": "document",
+              "text": "Lost disposal margin per day",
+              "source": "Ravensworth_Kiln2_Outage_Scope_2026.pdf",
+              "asOf": "2026-08-28",
+              "ref": {
+                "doc": "DOC:rav-scope"
+              }
+            }
+          ],
+          "drill": {
+            "view": "positions",
+            "note": "The moves, expedites and spot volume with their cost."
+          }
+        }
+      }
+    },
+    "recommendations": [
+      {
+        "id": "r1",
+        "title": "Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit",
+        "summary": "Release ten transfers at standard cost (Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the Northern and Central Distribution Centers), take the four expedites Holcombe and Orrin offered, ask Anika Sorensen for 153 tons of ferric on spot this week, and order Castellan's approved chiller kit on a recorded exception.",
+        "figures": [
+          {
+            "label": "Cost",
+            "value": "$56.5k",
+            "tone": "good"
+          },
+          {
+            "label": "Positions covered",
+            "value": "all 19",
+            "tone": "good"
+          },
+          {
+            "label": "Outage",
+            "value": "starts 9 November",
+            "tone": "good"
+          },
+          {
+            "label": "Across businesses",
+            "value": "1 move",
+            "tone": null
+          }
+        ],
+        "tradeoff": "Kilmarsh, Harlow and the distribution centers run at their own safety stock until their replacement orders land, and the ferric spot premium continues until the new contracts start.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The rule fired: 19 positions will run short before they can be replenished. What can still be done?"
+          },
+          {
+            "kind": "read",
+            "text": "Read every position against its reservation and its next receipt.",
+            "figure": "8 outage items late",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Holcombe and Vantor moved their dates this week.",
+            "figure": "brick 19 November",
+            "ref": {
+              "thread": "R2"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the standard: look across the group before an emergency purchase.",
+            "ref": {
+              "doc": "DOC:inv-standard"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Other sites hold what covers most of it above their own safety stock.",
+            "figure": "10 transfers",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Harlow CHP has a spare fan bearing of the same size.",
+            "ref": {
+              "doc": "DOC:my-stock-working"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Move what the group holds, expedite the rest, and keep the outage on date."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Expedite everything from the suppliers",
+        "summary": "Leave other sites' stock where it is and pay the suppliers to bring every shortfall forward.",
+        "figures": [
+          {
+            "label": "Cost",
+            "value": "$164.2k",
+            "tone": "warn"
+          },
+          {
+            "label": "Still late",
+            "value": "4 items",
+            "tone": "crit"
+          },
+          {
+            "label": "Outage at risk",
+            "value": "about 9 days",
+            "tone": "crit"
+          },
+          {
+            "label": "Margin at risk",
+            "value": "$1.33M",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "Keeps every site's own stock, but the nozzle, bearing, chain and expansion joint cannot come from the suppliers in time, and it costs about three times as much.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the suppliers bring it all forward?"
+          },
+          {
+            "kind": "read",
+            "text": "Four items have lead times past the need date.",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only as a fallback if a site will not release."
+          }
+        ]
+      },
+      {
+        "id": "r3",
+        "title": "Move the Kiln 2 outage back a week, to 16 November",
+        "summary": "Hold the outage until the brick and nozzle arrive from the suppliers; notify the permit authority of the new date.",
+        "figures": [
+          {
+            "label": "Lost margin",
+            "value": "$1.04M",
+            "tone": "crit"
+          },
+          {
+            "label": "Kiln 2 hours",
+            "value": "beyond the planned limit",
+            "tone": "warn"
+          },
+          {
+            "label": "Ferric",
+            "value": "still needs spot volume",
+            "tone": "warn"
+          },
+          {
+            "label": "Notification",
+            "value": "permit authority",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Needs nothing from other sites, but costs more than the other two together and leaves the ferric positions as they are.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the outage wait for the suppliers?"
+          },
+          {
+            "kind": "read",
+            "text": "Each day costs $148,000.",
+            "ref": {
+              "doc": "DOC:rav-scope"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if a transfer falls through."
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-stock-note",
+        "label": "Stock exception note: the 28 October load",
+        "audience": "Tomasz Wierzbicki, Leon Varga, Anika Sorensen and the site storeroom leads",
+        "purpose": "Release the transfers and expedites so the Kiln 2 outage starts on date and the water plants stay supplied",
+        "template": "Supply chain: stock exception note",
+        "templateId": "t-sc-stock-note",
+        "why": "The transfers need each storeroom lead to confirm before the trucks are booked on 30 October."
+      },
+      {
+        "id": "sub-transfer-list",
+        "label": "Transfer and expedite list: Ravensworth Kiln 2 outage",
+        "audience": "Leon Varga and the storerooms at Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the distribution centers",
+        "purpose": "Each move and expedite with its quantity, freight and approval",
+        "template": "Supply chain: transfer and expedite list",
+        "templateId": "t-sc-transfer-list",
+        "why": "Leon raises the stock transport orders and the expedites from it."
+      }
+    ],
+    "gaps": [
+      "Whether Kilmarsh and Harlow confirm their releases before the trucks are booked on 30 October.",
+      "Whether Holcombe ships the six expedited pallets on 6 November; the other 18 come from the Northern Distribution Center.",
+      "Carrier tracking is not connected: the expedites rest on the suppliers' promised dates."
+    ],
+    "execute": {
+      "r1": {
+        "title": "Move, expedite, top up ferric and order the substitute",
+        "steps": [
+          "Draft the stock exception note and the transfer and expedite list, from the findings",
+          "Send them to Tomasz Wierzbicki, Leon Varga, Anika Sorensen and the storeroom leads, asking for the 10 releases to be confirmed",
+          "Raise the four expedite requests to Holcombe and Orrin ($18,140, inside Rafael Duarte's approval)",
+          "Ask Anika Sorensen for 153 tons of ferric on spot this week, and log the chiller kit exception"
+        ],
+        "done": "Note and list sent; 10 releases asked for; four expedites raised; ferric spot volume requested."
+      },
+      "r2": {
+        "title": "Expedite everything from the suppliers",
+        "steps": [
+          "Draft the stock exception note from the findings",
+          "Send it to Leon Varga and the outage manager",
+          "Raise expedite requests on every short position",
+          "Tell Tomasz Wierzbicki which four items still cannot arrive in time"
+        ],
+        "done": "Note sent; expedites raised; four items flagged as still late."
+      },
+      "r3": {
+        "title": "Move the outage back a week",
+        "steps": [
+          "Draft the stock exception note from the findings",
+          "Send it to Tomasz Wierzbicki and Rafael Duarte",
+          "Ask the outage manager to re-plan from 16 November",
+          "Flag the ferric positions to Anika Sorensen"
+        ],
+        "done": "Note sent; outage re-plan requested; ferric flagged."
+      }
+    },
+    "extraDeliverables": [
+      {
+        "id": "sub-shortage-review",
+        "label": "Monthly shortage review: the Kiln 2 outage",
+        "audience": "Rafael Duarte and the site leads",
+        "purpose": "The short positions, the moves and what is still late, on the monthly review slides",
+        "template": "Supply chain: monthly shortage review",
+        "templateId": "t-sc-shortage-review",
+        "why": "The November review falls inside the outage."
+      },
+      {
+        "id": "sub-scorecard-update",
+        "label": "Supplier scorecard update: Holcombe and Vantor",
+        "audience": "Leon Varga, Buyer, MRO and Critical Spares",
+        "purpose": "The two date moves on each supplier's delivery record",
+        "template": "Supply chain: supplier scorecard",
+        "templateId": "t-sc-supplier-scorecard",
+        "why": "Both suppliers moved a promised date this week."
+      }
+    ],
+    "actions": {
+      "_about": "Agreed when the watch is set up: each kind of action runs by itself (auto) or waits for your OK (ask). When the watch fires it does the chosen option's actions under these modes. {to} is who is told (tellNames by the answer to the question tell).",
+      "categories": [
+        {
+          "key": "send",
+          "text": "Send the deliverables to the people who are told",
+          "why": "Internal; nothing is committed",
+          "mode": "auto"
+        },
+        {
+          "key": "releases",
+          "text": "Ask the storeroom leads to confirm the transfers",
+          "why": "A request inside the group",
+          "mode": "auto"
+        },
+        {
+          "key": "sto",
+          "text": "Ask the buyer to raise the stock transport orders",
+          "why": "A request; Leon Varga raises them",
+          "mode": "auto"
+        },
+        {
+          "key": "spot",
+          "text": "Ask the chemicals buyer for spot volume under the framework",
+          "why": "A request; Anika Sorensen buys inside the framework",
+          "mode": "auto"
+        },
+        {
+          "key": "substitute",
+          "text": "Log an approved substitute as a stock exception",
+          "why": "A record; the substitute is already approved",
+          "mode": "auto"
+        },
+        {
+          "key": "expedite",
+          "text": "Raise expedite requests with suppliers",
+          "why": "Costs money and goes to suppliers",
+          "mode": "ask",
+          "outside": true
+        },
+        {
+          "key": "outage",
+          "text": "Ask the outage manager to move an outage",
+          "why": "Moves a plant outage and costs disposal margin",
+          "mode": "ask"
+        }
+      ],
+      "tellNames": {
+        "me": "you",
+        "buyers": "you, Leon Varga and Anika Sorensen",
+        "sites": "you, Leon Varga, Anika Sorensen and the storeroom leads at the sites involved"
+      },
+      "byOption": {
+        "r1": [
+          {
+            "cat": "send",
+            "text": "Send the stock exception note and the transfer list to {to}"
+          },
+          {
+            "cat": "releases",
+            "text": "Ask the storeroom leads at the six holding sites to confirm the 10 releases"
+          },
+          {
+            "cat": "sto",
+            "text": "Ask Leon Varga to raise the stock transport orders for the 10 transfers"
+          },
+          {
+            "cat": "expedite",
+            "text": "Raise the four expedite requests with Holcombe and Orrin ($18,140, inside Rafael Duarte's approval)"
+          },
+          {
+            "cat": "spot",
+            "text": "Ask Anika Sorensen for 153 tons of ferric on spot this week"
+          },
+          {
+            "cat": "substitute",
+            "text": "Log the approved chiller kit as a stock exception"
+          }
+        ],
+        "r2": [
+          {
+            "cat": "send",
+            "text": "Send the stock exception note to {to}"
+          },
+          {
+            "cat": "expedite",
+            "text": "Raise expedite requests on every short position"
+          },
+          {
+            "cat": "send",
+            "text": "Tell Tomasz Wierzbicki which four items still cannot arrive in time"
+          }
+        ],
+        "r3": [
+          {
+            "cat": "send",
+            "text": "Send the stock exception note to {to}"
+          },
+          {
+            "cat": "outage",
+            "text": "Ask Tomasz Wierzbicki to re-plan the Kiln 2 outage from 16 November"
+          },
+          {
+            "cat": "send",
+            "text": "Flag the ferric positions to Anika Sorensen"
+          }
+        ]
+      }
+    }
+  },
+  "schedule": {
+    "reads": [
+      {
+        "tool": "read the close calendar",
+        "res": "Each month closes on the fifth working day; the next is the 6 November close for October",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "reuse the agreed plan",
+        "res": "Six steps, no checkpoint, from the goal you just ran",
+        "rv": [
+          "watch",
+          "steps"
+        ]
+      },
+      {
+        "tool": "scan pur.po_line · mm.plant_stock · ops.dosing_plan",
+        "res": "Spend, cover and plans, read fresh each run; the mailbox is read at run time",
+        "rv": [
+          "against",
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "search for a distribution list",
+        "res": "No procurement list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      }
+    ],
+    "actions": {
+      "categories": [
+        {
+          "key": "send",
+          "text": "Send the refreshed deliverables to Helena Marsh and Imani Okoro",
+          "why": "Internal; nothing is committed",
+          "mode": "auto"
+        },
+        {
+          "key": "cover",
+          "text": "Tell Anika Sorensen which water plants are under the 14-day ferric minimum",
+          "why": "Internal",
+          "mode": "auto"
+        }
+      ],
+      "run": [
+        {
+          "cat": "send",
+          "text": "Send the refreshed deliverables to Helena Marsh and Imani Okoro"
+        },
+        {
+          "cat": "cover",
+          "text": "Tell Anika Sorensen which water plants are under the 14-day ferric minimum this month"
+        }
+      ]
+    }
+  },
+  "generic": {
+    "reads": [
+      {
+        "tool": "resolve the goal against the role graph",
+        "res": "\"<the goal in the analyst's words>\" → 34 governed measures, the sites and materials, documents and mail",
+        "rv": [
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan pur.po_line · src.contract",
+        "res": "33,009 order lines in 2026 · 50 group contracts",
+        "rv": [
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "scan mm.plant_stock · mm.reservation",
+        "res": "2,782 critical positions at 36 sites · reservations of released work orders",
+        "rv": [
+          "src:srm"
+        ]
+      },
+      {
+        "tool": "read Outlook · OneDrive",
+        "res": "16 threads and 31 documents linked to the role",
+        "rv": [
+          "src:mail"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Landed cost among qualified suppliers · group stock before emergency buys · allocations are statements, not supply",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "match the goal to a recorded analysis",
+        "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+        "warn": true,
+        "rv": [
+          "miss:generic"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "g1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Ground the goal in the role graph",
+        "purpose": "Which measures, sites, materials and documents the goal names.",
+        "how": "Resolve every term in the goal to a governed measure, a site, a material or a document; list anything that does not resolve.",
+        "draws": [
+          "Supply Chain Analyst graph v1"
+        ],
+        "check": "Every term maps to something the graph holds, or is listed as unresolved."
+      },
+      {
+        "id": "g2",
+        "col": 1,
+        "row": 1,
+        "type": "compute",
+        "title": "State the current position",
+        "purpose": "Stock, orders and spend for everything in scope.",
+        "how": "From the latest stock snapshot, the open order lines and the spend to date.",
+        "draws": [
+          "mm.plant_stock",
+          "pur.po_line",
+          "src.contract"
+        ],
+        "check": "Totals reconcile to the governed measures within rounding."
+      },
+      {
+        "id": "g3",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Read what the documents and the mailbox say that the tables do not",
+        "purpose": "Dated statements that differ from SAP or the contracts platform.",
+        "how": "Supplier, plant and internal statements with dates or quantities.",
+        "draws": [
+          "Outlook mailbox",
+          "OneDrive documents"
+        ],
+        "check": "Nothing is attributed without a dated reference."
+      },
+      {
+        "id": "g4",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Set out the ways forward and test them against the constraints",
+        "purpose": "At least two courses of action with their trade-offs.",
+        "how": "Against the policy, the inventory standard and the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Group_Procurement_Policy_2025.pdf",
+          "Inventory_and_Critical_Spares_Standard_2025.pdf"
+        ],
+        "check": "Each course states what it costs and what it protects."
+      }
+    ],
+    "edges": [
+      [
+        "g1",
+        "g2"
+      ],
+      [
+        "g2",
+        "g3"
+      ],
+      [
+        "g3",
+        "g4"
+      ]
+    ],
+    "content": {
+      "g1": {
+        "dur": "27 s",
+        "conf": "low",
+        "live": [
+          "read the graph",
+          "position"
+        ],
+        "summary": [
+          "Resolved the goal to the graph: the site, the material and the measures it names. One term does not resolve to a governed measure in this copy."
+        ],
+        "receipts": [
+          {
+            "n": "Supply Chain Analyst graph v1",
+            "m": "Governed measures and the latest snapshot"
+          }
+        ],
+        "checks": [
+          "Shown as read; no recorded analysis."
+        ],
+        "caveats": [],
+        "trace": [
+          "resolve terms",
+          "read position"
+        ],
+        "traceN": 2
+      },
+      "g2": {
+        "dur": "34 s",
+        "conf": "low",
+        "live": [
+          "read the graph",
+          "position"
+        ],
+        "summary": [
+          "Read the position: stock on hand, safety stock, open orders and their promised dates for the items in scope."
+        ],
+        "receipts": [
+          {
+            "n": "Supply Chain Analyst graph v1",
+            "m": "Governed measures and the latest snapshot"
+          }
+        ],
+        "checks": [
+          "Shown as read; no recorded analysis."
+        ],
+        "caveats": [],
+        "trace": [
+          "resolve terms",
+          "read position"
+        ],
+        "traceN": 2
+      },
+      "g3": {
+        "dur": "41 s",
+        "conf": "low",
+        "live": [
+          "read the graph",
+          "position"
+        ],
+        "summary": [
+          "Read the documents and the mailbox for dated statements about the items; none changes the position."
+        ],
+        "receipts": [
+          {
+            "n": "Supply Chain Analyst graph v1",
+            "m": "Governed measures and the latest snapshot"
+          }
+        ],
+        "checks": [
+          "Shown as read; no recorded analysis."
+        ],
+        "caveats": [],
+        "trace": [
+          "resolve terms",
+          "read position"
+        ],
+        "traceN": 2
+      },
+      "g4": {
+        "dur": "48 s",
+        "conf": "low",
+        "live": [
+          "read the graph",
+          "position"
+        ],
+        "summary": [
+          "Set out the ways forward the standard allows. Without a recorded analysis there are no findings to land; the position is what this goal keeps."
+        ],
+        "receipts": [
+          {
+            "n": "Supply Chain Analyst graph v1",
+            "m": "Governed measures and the latest snapshot"
+          }
+        ],
+        "checks": [
+          "Shown as read; no recorded analysis."
+        ],
+        "caveats": [],
+        "trace": [
+          "resolve terms",
+          "read position"
+        ],
+        "traceN": 2
+      }
+    },
+    "deliverables": [
+      {
+        "id": "gen-memo",
+        "label": "Findings memo",
+        "audience": "Rafael Duarte, Head of Supply Chain Planning and Inventory",
+        "purpose": "What the analysis found, the ways forward and what is not established",
+        "format": "Memo",
+        "on": true,
+        "mode": "ai"
+      },
+      {
+        "id": "gen-deck",
+        "label": "Short slide pack",
+        "audience": "The Procurement Committee",
+        "purpose": "The position in five slides",
+        "format": "Slide pack",
+        "on": false,
+        "mode": "ai"
+      }
+    ],
+    "actions": {
+      "categories": [
+        {
+          "key": "send",
+          "text": "Send the deliverables to you",
+          "why": "Nothing is committed",
+          "mode": "auto"
+        }
+      ]
+    }
+  },
+  "library": {
+    "bids": {
+      "id": "bids",
+      "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+      "ext": "Excel · 186 KB",
+      "from": "onedrive",
+      "icon": "sheet",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:bid-export"
+      }
+    },
+    "policy": {
+      "id": "policy",
+      "n": "Group_Procurement_Policy_2025.pdf",
+      "ext": "PDF · 340 KB",
+      "from": "onedrive",
+      "icon": "doc",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:proc-policy"
+      }
+    },
+    "mywork": {
+      "id": "mywork",
+      "n": "Chemicals_award_working_2026-10.xlsx",
+      "ext": "Excel · 58 KB",
+      "from": "onedrive",
+      "icon": "sheet",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:my-award-working"
+      }
+    },
+    "dosing": {
+      "id": "dosing",
+      "n": "Chemical_Dosing_Plans_2027.xlsx",
+      "ext": "Excel · 210 KB",
+      "from": "onedrive",
+      "icon": "sheet",
+      "drill": {
+        "view": "documents",
+        "note": "",
+        "doc": "DOC:dosing-2027"
+      }
+    },
+    "a3": {
+      "id": "a3",
+      "n": "Energy dosing plans for 2027",
+      "ext": "Thread A3 · Energy · 15 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "A3"
+      }
+    },
+    "f3": {
+      "id": "f3",
+      "n": "Sabine Coast: ferric capacity for 2027",
+      "ext": "Thread F3 · chemicals · 19 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "F3"
+      }
+    },
+    "a1": {
+      "id": "a1",
+      "n": "Chemicals award paper for the 12 November committee",
+      "ext": "Thread A1 · committee · 20 Oct",
+      "from": "outlook",
+      "icon": "mail",
+      "drill": {
+        "view": "mail",
+        "note": "",
+        "thread": "A1"
+      }
+    }
+  },
+  "savedPlans": [
+    {
+      "id": "ap-award",
+      "name": "Chemicals award: spend, cover, bids, continuity",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+          "s": "186 KB"
+        },
+        {
+          "id": "seed",
+          "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+          "s": "240 KB"
+        }
+      ],
+      "steps": [
+        "State what the group buys and what it costs today",
+        "Check supply today: cover at each plant and the Corrigan allocation",
+        "Compare the bids on landed cost",
+        "Check qualification and continuity of each awarded bidder",
+        "Three ways to award",
+        "Build the deliverables you chose"
+      ],
+      "from": "Treatment chemicals award 2024 to 2026",
+      "by": "Imani Okoro",
+      "at": "16 Nov 2023",
+      "case": "once"
+    },
+    {
+      "id": "ap-shortfall",
+      "name": "Stock shortfall: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the load flagged, and size it",
+        "Why it happened, and whether anyone is on it",
+        "Look across the group: stock, expedites, substitutes",
+        "What can still be done, including nothing",
+        "Build the deliverables, act and tell you"
+      ],
+      "from": "Critical position short before its next receipt",
+      "by": "Rafael Duarte",
+      "at": "21 Oct 2026",
+      "case": "watch"
+    }
+  ]
+}

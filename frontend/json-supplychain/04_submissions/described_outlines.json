@@ -1,0 +1,421 @@
+{
+  "_meta": {
+    "package": "supply_chain_analyst_updated_demo_data_package_2026-11-10",
+    "tenant": "Bramwell Environmental Group (fictional; the Supply Chain Analyst demo world)",
+    "dataset": "BRAMWELL",
+    "asOf": "2026-10-27",
+    "today": "2026-11-10",
+    "note": "How the agent reads a deliverable described in words (\"Create one for me\", or \"add your own\" in the deliverables card): the example descriptions per goal, the outline each gives, the reading line by line and the picture each section earns. Deterministic: the same words give the same outline. Phrases that need a source that is not connected are said, not filled.",
+    "updates": "supply_chain_analyst_demo_data_package_2026-10-27"
+  },
+  "byGoal": {
+    "g-chemicals-award-2027": [
+      {
+        "format": "Slide pack",
+        "text": "A slide pack for the Procurement Committee on 12 November. One slide with the award at a glance and the saving a year. One slide on what the three businesses buy and what it costs today. One slide on the bids by lot on landed cost. One slide on ferric chloride cover under the Corrigan force majeure. One slide comparing our prices with the market index for each chemical. One slide on the Ashby expansion and what it adds from 2027. Close with the decision asked, then the sources.",
+        "proposal": {
+          "format": "Slide pack",
+          "audience": "Procurement Committee",
+          "sections": [
+            {
+              "heading": "Award at a glance and the saving a year",
+              "role": "summary",
+              "because": "One slide with the award at a glance and the saving a year"
+            },
+            {
+              "heading": "What the three businesses buy and what it costs today",
+              "role": "findings",
+              "because": "One slide on what the three businesses buy and what it costs today"
+            },
+            {
+              "heading": "Bids by lot on landed cost",
+              "role": "findings",
+              "because": "One slide on the bids by lot on landed cost"
+            },
+            {
+              "heading": "Ferric chloride cover under the Corrigan force majeure",
+              "role": "findings",
+              "because": "One slide on ferric chloride cover under the Corrigan force majeure"
+            },
+            {
+              "heading": "Decision asked",
+              "role": "purpose",
+              "because": "Close with the decision asked"
+            },
+            {
+              "heading": "Sources",
+              "role": "evidence",
+              "because": "the sources"
+            }
+          ],
+          "reading": [
+            "\"A slide pack for the Procurement Committee on 12 November\" → who it is for: Procurement Committee.",
+            "\"One slide with the award at a glance and the saving a year\" → one slide: the headline position and recommendation.",
+            "\"One slide on what the three businesses buy and what it costs today\" → one slide: findings and figures from the analysis.",
+            "\"One slide on the bids by lot on landed cost\" → one slide: findings and figures from the analysis.",
+            "\"One slide on ferric chloride cover under the Corrigan force majeure\" → one slide: findings and figures from the analysis.",
+            "\"One slide comparing our prices with the market index for each chemical\" → needs market price indices, which is not a connected source; nothing in the graph can fill this slide.",
+            "\"Close with the decision asked\" → one slide: a decision the reader takes.",
+            "\"the sources\" → one slide: the evidence lines.",
+            "Could not place: \"One slide comparing our prices with the market index for each chemical\", \"One slide on the Ashby expansion and what it adds from 2027\". Add a section for it below if it matters.",
+            "Content comes from \"Treatment chemicals award 2027 to 2029, for the Procurement Committee\" (Agent Compass): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": [
+            "One slide comparing our prices with the market index for each chemical",
+            "One slide on the Ashby expansion and what it adds from 2027"
+          ]
+        },
+        "visuals": [
+          {
+            "kind": "waterfall",
+            "title": "Treatment chemicals: today's landed cost to the award ($M a year)"
+          },
+          {
+            "kind": "hbar-pairs",
+            "title": "Annual cost by chemical: today against the award"
+          },
+          {
+            "kind": "table",
+            "title": "SE-2026-031: the award by lot on landed cost"
+          },
+          {
+            "kind": "hbar",
+            "title": "Ferric chloride cover at 27 October: plants under the minimum"
+          },
+          {
+            "kind": "waterfall",
+            "title": "Treatment chemicals: today's landed cost to the award ($M a year)"
+          },
+          {
+            "kind": "diagram",
+            "title": "What the findings rest on"
+          }
+        ]
+      },
+      {
+        "format": "Dashboard",
+        "text": "A dashboard for Helena Marsh. Headline tiles: today's landed cost, award cost, saving a year and plants under the ferric minimum. Cost by chemical, today and from January. The bids by lot. Ferric cover by plant. Qualification of each bidder.",
+        "proposal": {
+          "format": "Dashboard",
+          "audience": "Helena Marsh",
+          "sections": [
+            {
+              "heading": "Headline tiles",
+              "role": "summary",
+              "hint": "Today's landed cost, award cost, saving a year and plants under the ferric minimum",
+              "because": "Headline tiles: today's landed cost, award cost, saving a year and plants under the ferric minimum"
+            },
+            {
+              "heading": "Cost by chemical, today and from January",
+              "role": "findings",
+              "because": "Cost by chemical, today and from January"
+            },
+            {
+              "heading": "Bids by lot",
+              "role": "findings",
+              "because": "The bids by lot"
+            },
+            {
+              "heading": "Ferric cover by plant",
+              "role": "findings",
+              "because": "Ferric cover by plant"
+            },
+            {
+              "heading": "Qualification of each bidder",
+              "role": "findings",
+              "because": "Qualification of each bidder"
+            },
+            {
+              "heading": "Open decisions",
+              "role": "purpose"
+            },
+            {
+              "heading": "Data behind the panels",
+              "role": "evidence"
+            }
+          ],
+          "reading": [
+            "\"A dashboard for Helena Marsh\" → who it is for: Helena Marsh.",
+            "\"Headline tiles: today's landed cost, award cost, saving a year and plants under the ferric minimum\" → one panel: the headline position and recommendation.",
+            "\"Cost by chemical, today and from January\" → one panel: findings and figures from the analysis.",
+            "\"The bids by lot\" → one panel: findings and figures from the analysis.",
+            "\"Ferric cover by plant\" → one panel: findings and figures from the analysis.",
+            "\"Qualification of each bidder\" → one panel: findings and figures from the analysis.",
+            "Added what a dashboard always needs: open decisions, data behind the panels.",
+            "Content comes from \"Treatment chemicals award 2027 to 2029, for the Procurement Committee\" (Agent Compass): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": []
+        },
+        "visuals": [
+          {
+            "kind": "waterfall",
+            "title": "Treatment chemicals: today's landed cost to the award ($M a year)"
+          },
+          {
+            "kind": "hbar-pairs",
+            "title": "Annual cost by chemical: today against the award"
+          },
+          {
+            "kind": "table",
+            "title": "SE-2026-031: the award by lot on landed cost"
+          },
+          {
+            "kind": "hbar",
+            "title": "Ferric chloride cover at 27 October: plants under the minimum"
+          },
+          {
+            "kind": "table",
+            "title": "Qualification and continuity of the bidders"
+          },
+          {
+            "kind": "waterfall",
+            "title": "Treatment chemicals: today's landed cost to the award ($M a year)"
+          },
+          {
+            "kind": "diagram",
+            "title": "What the findings rest on"
+          }
+        ]
+      },
+      {
+        "format": "Email",
+        "text": "An email to Helena Marsh: the award we propose and the saving a year in one line, why ferric goes to Sabine Coast alone, the three open items and who closes them, and the paper attached.",
+        "proposal": {
+          "format": "Email",
+          "audience": "Helena Marsh",
+          "sections": [
+            {
+              "heading": "Subject and the ask in one line",
+              "role": "purpose"
+            },
+            {
+              "heading": "Award we propose and the saving a year in one line",
+              "role": "summary",
+              "because": "the award we propose and the saving a year in one line"
+            },
+            {
+              "heading": "Why ferric goes to Sabine Coast alone",
+              "role": "why",
+              "because": "why ferric goes to Sabine Coast alone"
+            },
+            {
+              "heading": "Three open items and who closes them",
+              "role": "assumptions",
+              "because": "the three open items and who closes them"
+            },
+            {
+              "heading": "Paper attached",
+              "role": "evidence",
+              "because": "the paper attached"
+            }
+          ],
+          "reading": [
+            "\"An email to Helena Marsh\" → who it is for: Helena Marsh.",
+            "\"the award we propose and the saving a year in one line\" → one paragraph: the headline position and recommendation.",
+            "\"why ferric goes to Sabine Coast alone\" → one paragraph: why the recommendation is what it is.",
+            "\"the three open items and who closes them\" → one paragraph: what is not established.",
+            "\"the paper attached\" → one paragraph: the evidence lines.",
+            "Added what a email always needs: subject and the ask in one line.",
+            "Content comes from \"Treatment chemicals award 2027 to 2029, for the Procurement Committee\" (Agent Compass): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": []
+        },
+        "visuals": [
+          null,
+          {
+            "kind": "waterfall",
+            "title": "Treatment chemicals: today's landed cost to the award ($M a year)"
+          },
+          null,
+          null,
+          null
+        ]
+      }
+    ],
+    "g-stock-cover": [
+      {
+        "format": "Slide pack",
+        "text": "A slide pack for Rafael Duarte's Thursday review: the 19 items short in the 28 October load, why they are short, what the group holds that covers them, the three options with their cost, how the agent got there, and the timeline to the outage.",
+        "proposal": {
+          "format": "Slide pack",
+          "audience": "Rafael Duarte's Thursday review",
+          "sections": [
+            {
+              "heading": "Title and position in one line",
+              "role": "summary"
+            },
+            {
+              "heading": "19 items short in the 28 October load",
+              "role": "findings",
+              "because": "the 19 items short in the 28 October load"
+            },
+            {
+              "heading": "Why they are short",
+              "role": "why",
+              "because": "why they are short"
+            },
+            {
+              "heading": "What the group holds that covers them",
+              "role": "findings",
+              "because": "what the group holds that covers them"
+            },
+            {
+              "heading": "Three options with their cost",
+              "role": "options",
+              "because": "the three options with their cost"
+            },
+            {
+              "heading": "How the agent got there",
+              "role": "why",
+              "because": "how the agent got there"
+            },
+            {
+              "heading": "Timeline to the outage",
+              "role": "next",
+              "because": "the timeline to the outage"
+            },
+            {
+              "heading": "Decisions asked",
+              "role": "purpose"
+            },
+            {
+              "heading": "Sources and as-of dates",
+              "role": "evidence"
+            }
+          ],
+          "reading": [
+            "\"A slide pack for Rafael Duarte's Thursday review\" → who it is for: Rafael Duarte's Thursday review.",
+            "\"the 19 items short in the 28 October load\" → one slide: findings and figures from the analysis.",
+            "\"why they are short\" → one slide: why the recommendation is what it is.",
+            "\"what the group holds that covers them\" → one slide: findings and figures from the analysis.",
+            "\"the three options with their cost\" → one slide: the options with their figures and trade-offs.",
+            "\"how the agent got there\" → one slide: why the recommendation is what it is.",
+            "\"the timeline to the outage\" → one slide: next steps with owners.",
+            "Added what a slide pack always needs: title and position in one line, decisions asked, sources and as-of dates.",
+            "Content comes from \"No critical spare or chemical below safety stock: check every nightly load\" (Agent Ledger): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": []
+        },
+        "visuals": [
+          {
+            "kind": "kpis",
+            "title": "Headline figures"
+          },
+          {
+            "kind": "table",
+            "title": "Critical positions short before replenishment, 28 October load"
+          },
+          {
+            "kind": "diagram",
+            "title": "How the agent got to the recommendation"
+          },
+          {
+            "kind": "table",
+            "title": "Moves, expedites and spot volume that cover the positions"
+          },
+          {
+            "kind": "table",
+            "title": "The options side by side"
+          },
+          {
+            "kind": "diagram",
+            "title": "How the agent got to the recommendation"
+          },
+          {
+            "kind": "diagram",
+            "title": "What happens next"
+          },
+          {
+            "kind": "kpis",
+            "title": "Headline figures"
+          },
+          {
+            "kind": "diagram",
+            "title": "What the findings rest on"
+          }
+        ]
+      },
+      {
+        "format": "Email",
+        "text": "An email to the storeroom leads at Kilmarsh, Harlow CHP, Corley Flats and Wexcombe: what we ask each of them to release, by Friday 30 October, and the transfer list attached.",
+        "proposal": {
+          "format": "Email",
+          "audience": "Storeroom leads at Kilmarsh, Harlow CHP, Corley Flats and Wexcombe",
+          "sections": [
+            {
+              "heading": "What we ask each of them to release, by Friday 30 October",
+              "role": "purpose",
+              "because": "what we ask each of them to release, by Friday 30 October"
+            },
+            {
+              "heading": "Transfer list attached",
+              "role": "evidence",
+              "because": "the transfer list attached"
+            }
+          ],
+          "reading": [
+            "\"An email to the storeroom leads at Kilmarsh, Harlow CHP, Corley Flats and Wexcombe\" → who it is for: Storeroom leads at Kilmarsh, Harlow CHP, Corley Flats and Wexcombe.",
+            "\"what we ask each of them to release, by Friday 30 October\" → one paragraph: a decision the reader takes.",
+            "\"the transfer list attached\" → one paragraph: the evidence lines.",
+            "Content comes from \"No critical spare or chemical below safety stock: check every nightly load\" (Agent Ledger): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": []
+        },
+        "visuals": [
+          null,
+          null
+        ]
+      },
+      {
+        "format": "Workbook",
+        "text": "A spreadsheet for Leon Varga: every transfer with from site, to site, material, quantity and freight, every expedite with supplier, promised date and cost, and the source for each line.",
+        "proposal": {
+          "format": "Workbook",
+          "audience": "Leon Varga",
+          "sections": [
+            {
+              "heading": "Cover: what this workbook holds and as of when",
+              "role": "purpose"
+            },
+            {
+              "heading": "Every transfer with from site, to site, material, quantity and freight",
+              "role": "findings",
+              "because": "every transfer with from site, to site, material, quantity and freight"
+            },
+            {
+              "heading": "Every expedite with supplier, promised date and cost",
+              "role": "findings",
+              "because": "every expedite with supplier, promised date and cost"
+            },
+            {
+              "heading": "Source for each line",
+              "role": "evidence",
+              "because": "the source for each line"
+            }
+          ],
+          "reading": [
+            "\"A spreadsheet for Leon Varga\" → who it is for: Leon Varga.",
+            "\"every transfer with from site, to site, material, quantity and freight\" → one sheet: findings and figures from the analysis.",
+            "\"every expedite with supplier, promised date and cost\" → one sheet: findings and figures from the analysis.",
+            "\"the source for each line\" → one sheet: the evidence lines.",
+            "Added what a spreadsheet always needs: cover: what this workbook holds and as of when.",
+            "Content comes from \"No critical spare or chemical below safety stock: check every nightly load\" (Agent Ledger): 4 findings, 3 recommendations."
+          ],
+          "unreadPhrases": []
+        },
+        "visuals": [
+          null,
+          {
+            "kind": "table",
+            "title": "Transfers between sites that cover the positions"
+          },
+          {
+            "kind": "table",
+            "title": "Expedites, spot volume and the substitute"
+          },
+          null
+        ]
+      }
+    ]
+  }
+}

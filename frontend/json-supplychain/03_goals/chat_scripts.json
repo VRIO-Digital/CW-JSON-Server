@@ -1,0 +1,462 @@
+{
+  "note": "The agent's lines as recorded in the transcripts (the transcripts are authoritative; every message there carries its card and order), de-duplicated, with what the analyst said just before. chipsByStage is the chip row and composer at the end of each transcript.",
+  "recorded": [
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of our chemical deliveries?",
+      "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+      "card": "reads"
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of our chemical deliveries?",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and end on a question rather than land findings. The two examples carry full analyses.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "What is the carbon footprint of our chemical deliveries?",
+      "text": "Last thing before I start: what should I hand you at the end? No template in your library matches this goal, so I would design the structure.",
+      "card": "deliv"
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Run it",
+      "text": "That is everything. Running the four steps now; you do not need to stay.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Run it",
+      "text": "All steps run. The goal names a measure the graph does not compute in this copy, so I have the position but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state it as a range from the recorded positions? Either way, the two example goals are where the full journeys are.",
+      "card": null
+    },
+    {
+      "transcript": "generic_typed_goal.json",
+      "case": "generic",
+      "mode": "once",
+      "after": "Drop it from the goal",
+      "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_01_first_question.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Two things I could not find, then what you want at the end; one at a time. After that I run it to the end without stopping.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_02_deliverables.json",
+      "case": "once",
+      "mode": "once",
+      "after": "The 2027 dosing plans, Energy marked provisional",
+      "text": "Last thing before I start: what should I hand you at the end? Your brief asks for all three, so they are ticked. Untick any you do not need, pick the template for each, or add another.",
+      "card": "deliv"
+    },
+    {
+      "transcript": "once_award_03_running.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "That is everything I need. Running it now, start to finish: six steps, then I accept the findings, choose the top recommendation and build the four deliverables. You do not need to stay; it lands under Executed on the left, and the workflow is on the right if you want to watch.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_05_delivered.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "Done. **Award paper**, **Award schedule**, **Committee slides** and **A one-page memo for Adrian Kell on the saving and the ferric risk** are built and open on the right.\n\n**Award by lot on landed cost: $3.44M a year (6.6%), with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts.** Pemberton’s duplicate vendor record is the gap I would close first, because spot orders leak outside the contract until it is merged.\n\nI accepted the four findings and chose option 1 of three; both are under Findings if you want to check them. To change anything, say so here: another option, a supplier to leave out, a section to rewrite. The deliverables are rebuilt.",
+      "card": "delivered"
+    },
+    {
+      "transcript": "once_award_06_option3_rebuilt.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Use option 3 instead",
+      "text": "Rebuilding **Award paper**, **Award schedule**, **Committee slides** and **A one-page memo for Adrian Kell on the saving and the ferric risk** on option 3: **Extend the 2026 agreements by six months and re-bid ferric in the first quarter**. They come back on the right, part by part.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_06_option3_rebuilt.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Use option 3 instead",
+      "text": "Rebuilt on option 3, as version 2. The earlier version is in the log.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_07_steered_rebuilt_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Leave Corrigan out of ferric",
+      "text": "Here is what that changes. Nothing re-runs until you apply it.",
+      "card": "diff"
+    },
+    {
+      "transcript": "once_award_07_steered_rebuilt_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Leave Corrigan out of ferric",
+      "text": "Re-ran step 3 and everything after it with your instruction. The award now saves **$3.21M a year (6.1%)** with ferric chloride to Sabine Coast alone, $0.22M a year less than with Corrigan as a capped secondary, and no second source on ferric. **Award paper**, **Award schedule**, **Committee slides** and **A one-page memo for Adrian Kell on the saving and the ferric risk** are rebuilt on it as version 3, and the plan records leaving Corrigan out as your call.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_07_steered_rebuilt_saved.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Save this plan",
+      "text": "Saved as **“Chemicals award: spend, cover, bids, continuity”**, on the left under Saved plans. A new goal can start from it.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+      "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Nothing is missing; only what you want at the end, then I run it.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "That is everything I need. Running it now, start to finish: six steps, then I accept the findings, choose the top recommendation and build the two deliverables. You do not need to stay; it lands under Executed on the left, and the workflow is on the right if you want to watch.",
+      "card": null
+    },
+    {
+      "transcript": "once_award_documents_web.json",
+      "case": "once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "Done. **Award paper** and **Award schedule** are built and open on the right.\n\n**Award by lot on landed cost: $3.44M a year (6.6%), with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts.** Pemberton’s duplicate vendor record is the gap I would close first, because spot orders leak outside the contract until it is merged.\n\nI accepted the four findings and chose option 1 of three; both are under Findings if you want to check them. To change anything, say so here: another option, a supplier to leave out, a section to rewrite. The deliverables are rebuilt.",
+      "card": "delivered"
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every month-end close, refresh the treatment chemicals position and the award schedule.",
+      "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+      "card": "reads"
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "After every month-end close, refresh the treatment chemicals position and the award schedule.",
+      "text": "The plan for the watch is on the right. One thing I could not find, then what you want at the end; one at a time. After that I run it to the end without stopping.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Just me",
+      "text": "Last thing: what it builds after every close, and what it may do with it. Ticked is what the award plan built.",
+      "card": "deliv"
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Arm the watch",
+      "text": "Armed. It runs after the 6 November close, then every month: the six steps, the top option, the three deliverables rebuilt and sent. You hear from me when it is done. Nothing runs until then.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Simulate: run now",
+      "text": "**Running.** The scheduled run has started; the six steps run by themselves and the schedule is refreshed at the end. You do not need to be here for this.",
+      "card": null
+    },
+    {
+      "transcript": "schedule_monthly_run.json",
+      "case": "schedule",
+      "mode": "watch",
+      "after": "Simulate: run now",
+      "text": "Done after the close. **Award paper**, **Award schedule** and **Committee slides** are rebuilt on option 1 and open on the right; 2 actions done. The goal stays armed for the next close.",
+      "card": "delivered"
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "19 critical positions in the 28 October load will run short before they can be replenished: what can still be done?",
+      "text": "Last thing before I start: what should I hand you at the end?",
+      "card": "deliv"
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "That is everything I need. Running it now, start to finish: five steps, then I accept the findings, choose the top recommendation and build the two deliverables. You do not need to stay; it lands under Executed on the left, and the workflow is on the right if you want to watch.",
+      "card": null
+    },
+    {
+      "transcript": "shortfall_once.json",
+      "case": "overrun-once",
+      "mode": "once",
+      "after": "Run it",
+      "text": "Done. **Stock exception note** and **Transfer and expedite list** are built on option 1 and open on the right: **move stock from six sites, expedite four orders, top up ferric on spot and use the approved chiller kit**, $56.5k, which keeps the outage on 9 November.\n\nI accepted the four findings and chose the top option; both are under Findings. Nothing is executed from a one-off goal; a standing goal can do that. Change anything here and the deliverables are rebuilt.",
+      "card": "delivered"
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+      "text": "The plan for the watch is on the right. Two things I could not find, then what you want at the end; one at a time. After that I run it to the end without stopping.",
+      "card": null
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Me and the buyers",
+      "text": "Last thing before I arm it: what it builds each time it fires, and what it may do about it without asking you. Anything that costs money or goes outside the company waits for your OK unless you say otherwise.",
+      "card": "deliv"
+    },
+    {
+      "transcript": "watch_new_armed.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Arm the watch",
+      "text": "Armed. I check every critical position at the nightly load; the next load is tonight, 02:00 on 28 October. When it fires I run the five steps, choose the top option, build the two deliverables, do the six kinds of action you let me do by myself, hold the one that need your OK, and tell you. The Kiln 2 reservations are about to be released, so expect this to fire.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_running.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+      "text": "Armed. I check every critical position at the nightly load (02:00) against its safety stock, its reservations and its next confirmed receipt. Nothing runs until a position will run short before it can be replenished, or an outage reservation is not covered 14 days ahead.\n\nThe plan on the right is what runs when it fires: five steps, no checkpoint. Then I choose the top option, build the stock exception note and the transfer list, do the actions agreed at set-up and tell you, the buyers and the site leads. Anything that goes to a supplier or costs money waits for your OK.",
+      "card": null
+    },
+    {
+      "transcript": "watch_rule_01_fired_running.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight’s load (28 October)",
+      "text": "**Fired.** The 02:00 load released the Kiln 2 reservations and carried Holcombe’s and Vantor’s new dates; nineteen critical positions will now run short before their next receipt. **Nine are for the Ravensworth Kiln 2 outage on 9 November and seven are ferric chloride at water plants.** Running the five steps now; then I choose the top option, build the note and the list, do what you let me do by myself and tell you. You do not need to be here for this.",
+      "card": "fired"
+    },
+    {
+      "transcript": "watch_rule_02_handled_one_waiting.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Simulate tonight’s load (28 October)",
+      "text": "Handled. **Nineteen critical positions would have run short before they could be replenished, nine of them for the Kiln 2 outage that starts on 9 November.** Holcombe and Vantor moved their dates this week, and Corrigan’s 60% allocation keeps seven water plants under the ferric minimum.\n\nI chose option 1: **Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit**. The stock exception note and the transfer list are built and open on the right, and 5 of 6 actions are done. One waits for your OK, because it costs money and goes outside the company: approve it above, or leave it. The watch stays armed for tonight’s load.",
+      "card": "delivered"
+    },
+    {
+      "transcript": "watch_rule_03_approved.json",
+      "case": "watch",
+      "mode": "watch",
+      "after": "Approve: Raise the four expedite requests with Holcombe and Orrin ($18,140, inside Rafael Duarte's approval)",
+      "text": "Done: raise the four expedite requests with Holcombe and Orrin ($18,140, inside Rafael Duarte's approval). Nothing else waits for you.",
+      "card": null
+    }
+  ],
+  "chipsByStage": {
+    "generic_typed_goal.json": {
+      "stage": "running",
+      "status": "ready",
+      "chips": [
+        "Open the data",
+        "Save this plan"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask where it is, or pause it…"
+      }
+    },
+    "once_award_01_first_question.json": {
+      "stage": "questions",
+      "status": "draft",
+      "chips": [],
+      "composer": {
+        "on": true,
+        "ph": "Answer here, or pick an option above"
+      }
+    },
+    "once_award_02_deliverables.json": {
+      "stage": "questions",
+      "status": "draft",
+      "chips": [],
+      "composer": {
+        "on": true,
+        "ph": "Or say it: \"only the award paper\", \"also a savings note\", \"run it\"…"
+      }
+    },
+    "once_award_03_running.json": {
+      "stage": "running",
+      "status": "running",
+      "chips": [
+        "What are you doing now?"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask where it is, or pause it…"
+      }
+    },
+    "once_award_04_building.json": {
+      "stage": "running",
+      "status": "running",
+      "chips": [
+        "What are you doing now?"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask where it is, or pause it…"
+      }
+    },
+    "once_award_05_delivered.json": {
+      "stage": "running",
+      "status": "delivered",
+      "chips": [
+        "Leave Corrigan out of ferric",
+        "Use option 3 instead",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything: another option, a supplier, a section…"
+      }
+    },
+    "once_award_06_option3_rebuilt.json": {
+      "stage": "running",
+      "status": "delivered",
+      "chips": [
+        "Leave Corrigan out of ferric",
+        "Use option 3 instead",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything: another option, a supplier, a section…"
+      }
+    },
+    "once_award_07_steered_rebuilt_saved.json": {
+      "stage": "running",
+      "status": "delivered",
+      "chips": [
+        "Use option 3 instead",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything: another option, a supplier, a section…"
+      }
+    },
+    "once_award_documents_web.json": {
+      "stage": "running",
+      "status": "delivered",
+      "chips": [
+        "Leave Corrigan out of ferric",
+        "Use option 3 instead",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Change anything: another option, a supplier, a section…"
+      }
+    },
+    "schedule_monthly_run.json": {
+      "stage": "armed",
+      "status": "executed",
+      "chips": [
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "shortfall_once.json": {
+      "stage": "running",
+      "status": "delivered",
+      "chips": [
+        "Why option 1?",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask where it is, or pause it…"
+      }
+    },
+    "watch_new_armed.json": {
+      "stage": "armed",
+      "status": "armed",
+      "chips": [
+        "Simulate tonight’s load (28 October)",
+        "What will it look like when it fires?",
+        "Open the chemicals award goal"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_01_fired_running.json": {
+      "stage": "armed",
+      "status": "fired",
+      "chips": [
+        "What are you doing now?"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_02_handled_one_waiting.json": {
+      "stage": "armed",
+      "status": "executed",
+      "chips": [
+        "Approve it",
+        "Why option 1?",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    },
+    "watch_rule_03_approved.json": {
+      "stage": "armed",
+      "status": "executed",
+      "chips": [
+        "Why option 1?",
+        "Show me the findings",
+        "Make more deliverables in Submissions"
+      ],
+      "composer": {
+        "on": true,
+        "ph": "Ask about the watch, or change it between checks…"
+      }
+    }
+  }
+}

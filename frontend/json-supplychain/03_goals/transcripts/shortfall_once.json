@@ -1,0 +1,717 @@
+{
+  "note": "The 19 short positions asked once: nothing to clarify, the note and the list agreed, five steps, option 1 chosen automatically, both built. Nothing is executed from a one-off goal.",
+  "journey": {
+    "id": "g-nineteen-positions-in-the-28-october-bw094",
+    "mode": "once",
+    "kind": "once",
+    "case": "overrun-once",
+    "title": "Nineteen positions in the 28 October load short before replenishment",
+    "agent": {
+      "name": "Agent Sentinel",
+      "icon": "experiment",
+      "colour": "#3b6e22"
+    },
+    "prompt": "19 critical positions in the 28 October load will run short before they can be replenished: what can still be done?",
+    "files": [],
+    "stage": "running",
+    "status": "delivered",
+    "rv": [
+      "against",
+      "memory",
+      "watch",
+      "src:std",
+      "src:erp",
+      "where",
+      "src:cal",
+      "prior",
+      "until",
+      "steps",
+      "deliv"
+    ],
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "Look across the group before an emergency purchase · the holder stays at or above its own safety stock · expedites up to $25k are approved by Rafael",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Inventory_and_Critical_Spares_Standard_2025.pdf",
+        "res": "Class A items · chemical cover 14 days water, 10 hazardous waste, 7 energy · outage materials ready 14 days ahead",
+        "rv": [
+          "watch",
+          "src:std"
+        ]
+      },
+      {
+        "tool": "scan mm.plant_stock · mm.reservation · pur.po_line",
+        "res": "2,782 critical positions at 36 sites · open lines with promised dates · reservations of released work orders",
+        "rv": [
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "read the load calendar",
+        "res": "Stock, orders and reservations load nightly at 02:00. Next: tonight, Wednesday 28 October",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "\"Treatment chemicals award\" reads the same ferric cover; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Critical positions below safety stock are reviewed daily · Ravensworth Kiln 2 outage from 9 November · Corrigan at 60% on ferric",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {
+      "acc:W1": "auto",
+      "acc:W2": "auto",
+      "acc:W3": "auto",
+      "acc:W4": "auto"
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "end",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the load flagged, and size it",
+        "purpose": "Which positions will run short before they can be replenished, and by how much.",
+        "how": "Every critical position against its safety stock, its reservations and its next confirmed receipt: on hand, what is needed by when, the shortfall. Limited to the positions in the load that fired the rule.",
+        "draws": [
+          "mm.plant_stock",
+          "mm.reservation",
+          "pur.po_line"
+        ],
+        "check": "Every flagged position recomputes from on hand, safety stock, reservations and promised dates."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone is on it",
+        "purpose": "Is this new, and is someone already handling it.",
+        "how": "Supplier date changes, released reservations, the Corrigan allocation, and what the buyers, the outage manager and the plants have said.",
+        "draws": [
+          "pur.po_line (promised date history)",
+          "Outlook: outage, buyers, plants (R1, R2, F2)",
+          "Ravensworth_Kiln2_Outage_Material_Readiness_2026-10-23.xlsx"
+        ],
+        "check": "Every cause is dated and sourced."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Look across the group: stock, expedites, substitutes",
+        "purpose": "What the rest of the group holds, and what the suppliers can still do.",
+        "how": "For each position: other sites holding the same material above their own safety stock, the freight to move it, expedites the suppliers have offered, and approved substitutes.",
+        "draws": [
+          "mm.plant_stock (all sites)",
+          "Inter-site_Transfer_Procedure.pdf",
+          "Outlook: buyers (R2)"
+        ],
+        "check": "No holder is taken below its own safety stock."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with what it costs and what it protects, checked against open goals.",
+        "how": "Each option with its cost, the positions it covers, the days of outage it protects, who has to agree, and an honest statement where nothing can be done in time; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Treatment chemicals award",
+          "Inventory_and_Critical_Spares_Standard_2025.pdf"
+        ],
+        "check": "Every option states what it costs and what it covers."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables you chose",
+        "purpose": "Build what was agreed at set-up, take the actions that run by themselves, hold the others for your OK, and tell the people you chose.",
+        "how": "The positions, why they are short, what the group holds, the options and the moves; on the stock exception note template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: stock exception note"
+        ],
+        "check": "Every figure in the note links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "done",
+        "at": "14:15",
+        "text": "Done · 19 short · 8 late",
+        "caveat": true
+      },
+      "w2": {
+        "state": "done",
+        "at": "14:15",
+        "text": "Done · 3 causes"
+      },
+      "w3": {
+        "state": "done",
+        "at": "14:15",
+        "text": "Done · 10 transfers",
+        "caveat": true
+      },
+      "w4": {
+        "state": "done",
+        "at": "14:15",
+        "text": "Done · 3 options"
+      },
+      "w5": {
+        "state": "done",
+        "at": "14:15",
+        "text": "Done · two built"
+      }
+    },
+    "findings": [
+      "W1",
+      "W2",
+      "W3",
+      "W4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit",
+        "summary": "Release ten transfers at standard cost (Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the Northern and Central Distribution Centers), take the four expedites Holcombe and Orrin offered, ask Anika Sorensen for 153 tons of ferric on spot this week, and order Castellan's approved chiller kit on a recorded exception.",
+        "figures": [
+          {
+            "label": "Cost",
+            "value": "$56.5k",
+            "tone": "good"
+          },
+          {
+            "label": "Positions covered",
+            "value": "all 19",
+            "tone": "good"
+          },
+          {
+            "label": "Outage",
+            "value": "starts 9 November",
+            "tone": "good"
+          },
+          {
+            "label": "Across businesses",
+            "value": "1 move",
+            "tone": null
+          }
+        ],
+        "tradeoff": "Kilmarsh, Harlow and the distribution centers run at their own safety stock until their replacement orders land, and the ferric spot premium continues until the new contracts start.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The rule fired: 19 positions will run short before they can be replenished. What can still be done?"
+          },
+          {
+            "kind": "read",
+            "text": "Read every position against its reservation and its next receipt.",
+            "figure": "8 outage items late",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Holcombe and Vantor moved their dates this week.",
+            "figure": "brick 19 November",
+            "ref": {
+              "thread": "R2"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the standard: look across the group before an emergency purchase.",
+            "ref": {
+              "doc": "DOC:inv-standard"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Other sites hold what covers most of it above their own safety stock.",
+            "figure": "10 transfers",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Harlow CHP has a spare fan bearing of the same size.",
+            "ref": {
+              "doc": "DOC:my-stock-working"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Move what the group holds, expedite the rest, and keep the outage on date."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Expedite everything from the suppliers",
+        "summary": "Leave other sites' stock where it is and pay the suppliers to bring every shortfall forward.",
+        "figures": [
+          {
+            "label": "Cost",
+            "value": "$164.2k",
+            "tone": "warn"
+          },
+          {
+            "label": "Still late",
+            "value": "4 items",
+            "tone": "crit"
+          },
+          {
+            "label": "Outage at risk",
+            "value": "about 9 days",
+            "tone": "crit"
+          },
+          {
+            "label": "Margin at risk",
+            "value": "$1.33M",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "Keeps every site's own stock, but the nozzle, bearing, chain and expansion joint cannot come from the suppliers in time, and it costs about three times as much.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the suppliers bring it all forward?"
+          },
+          {
+            "kind": "read",
+            "text": "Four items have lead times past the need date.",
+            "ref": {
+              "sheet": "positions"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only as a fallback if a site will not release."
+          }
+        ],
+        "preferred": false
+      },
+      {
+        "id": "r3",
+        "title": "Move the Kiln 2 outage back a week, to 16 November",
+        "summary": "Hold the outage until the brick and nozzle arrive from the suppliers; notify the permit authority of the new date.",
+        "figures": [
+          {
+            "label": "Lost margin",
+            "value": "$1.04M",
+            "tone": "crit"
+          },
+          {
+            "label": "Kiln 2 hours",
+            "value": "beyond the planned limit",
+            "tone": "warn"
+          },
+          {
+            "label": "Ferric",
+            "value": "still needs spot volume",
+            "tone": "warn"
+          },
+          {
+            "label": "Notification",
+            "value": "permit authority",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Needs nothing from other sites, but costs more than the other two together and leaves the ferric positions as they are.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the outage wait for the suppliers?"
+          },
+          {
+            "kind": "read",
+            "text": "Each day costs $148,000.",
+            "ref": {
+              "doc": "DOC:rav-scope"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if a transfer falls through."
+          }
+        ],
+        "preferred": false
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-stock-note",
+        "label": "Stock exception note: the 28 October load",
+        "audience": "Tomasz Wierzbicki, Leon Varga, Anika Sorensen and the site storeroom leads",
+        "purpose": "Release the transfers and expedites so the Kiln 2 outage starts on date and the water plants stay supplied",
+        "template": "Supply chain: stock exception note",
+        "templateId": "t-sc-stock-note",
+        "why": "The transfers need each storeroom lead to confirm before the trucks are booked on 30 October."
+      },
+      {
+        "id": "sub-transfer-list",
+        "label": "Transfer and expedite list: Ravensworth Kiln 2 outage",
+        "audience": "Leon Varga and the storerooms at Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the distribution centers",
+        "purpose": "Each move and expedite with its quantity, freight and approval",
+        "template": "Supply chain: transfer and expedite list",
+        "templateId": "t-sc-transfer-list",
+        "why": "Leon raises the stock transport orders and the expedites from it."
+      }
+    ],
+    "started": [
+      "sub-stock-note",
+      "sub-transfer-list"
+    ],
+    "gaps": [
+      "Whether Kilmarsh and Harlow confirm their releases before the trucks are booked on 30 October.",
+      "Whether Holcombe ships the six expedited pallets on 6 November; the other 18 come from the Northern Distribution Center.",
+      "Carrier tracking is not connected: the expedites rest on the suppliers' promised dates."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "19 critical positions in the 28 October load will run short before they can be replenished: what can still be done?",
+        "files": [],
+        "id": "j102-bw094",
+        "at": "14:14"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "search role memory",
+              "res": "Look across the group before an emergency purchase · the holder stays at or above its own safety stock · expedites up to $25k are approved by Rafael",
+              "live": false
+            },
+            {
+              "tool": "read Inventory_and_Critical_Spares_Standard_2025.pdf",
+              "res": "Class A items · chemical cover 14 days water, 10 hazardous waste, 7 energy · outage materials ready 14 days ahead",
+              "live": false
+            },
+            {
+              "tool": "scan mm.plant_stock · mm.reservation · pur.po_line",
+              "res": "2,782 critical positions at 36 sites · open lines with promised dates · reservations of released work orders",
+              "live": false
+            },
+            {
+              "tool": "read the load calendar",
+              "res": "Stock, orders and reservations load nightly at 02:00. Next: tonight, Wednesday 28 October",
+              "live": false
+            },
+            {
+              "tool": "check open goals",
+              "res": "\"Treatment chemicals award\" reads the same ferric cover; I read it whenever this fires",
+              "live": false
+            },
+            {
+              "tool": "read the latest position",
+              "res": "Critical positions below safety stock are reviewed daily · Ravensworth Kiln 2 outage from 9 November · Corrigan at 60% on ferric",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "5 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j103-bw095",
+        "at": "14:14"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Nothing is missing; only what you want at the end, then I run it.",
+        "id": "j104-bw096",
+        "at": "14:14"
+      },
+      {
+        "who": "agent",
+        "text": "Last thing before I start: what should I hand you at the end?",
+        "card": {
+          "kind": "deliv",
+          "done": "Stock exception note · Transfer and expedite list"
+        },
+        "id": "j105-bw097",
+        "at": "14:14"
+      },
+      {
+        "who": "me",
+        "text": "Run it",
+        "id": "j106-bw098",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Running · plan v1 · 14:15",
+        "id": "j107-bw099",
+        "at": "14:15"
+      },
+      {
+        "who": "agent",
+        "text": "That is everything I need. Running it now, start to finish: five steps, then I accept the findings, choose the top recommendation and build the two deliverables. You do not need to stay; it lands under Executed on the left, and the workflow is on the right if you want to watch.",
+        "id": "j108-bw099",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · 19 positions short before their next receipt · 8 outage items late",
+        "id": "j109-bw100",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · eight of the nine outage items have no receipt before they are needed",
+        "id": "j110-bw100",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · Holcombe and Vantor moved their dates; ferric at 60% from Corrigan",
+        "id": "j111-bw101",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · the group holds what covers nine positions; four expedites offered",
+        "id": "j112-bw102",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · three options; moving stock and expediting four preferred, $56.5k",
+        "id": "j113-bw103",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Weighing the findings against the brief and the policies",
+        "id": "j114-bw103",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Findings accepted automatically · 4 of 4",
+        "id": "j115-bw104",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Top recommendation chosen · option 1",
+        "id": "j116-bw105",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Built · Stock exception note · 5 sections",
+        "id": "j117-bw106",
+        "at": "14:15"
+      },
+      {
+        "who": "event",
+        "text": "Built · Transfer and expedite list · 5 sheets",
+        "id": "j118-bw107",
+        "at": "14:16"
+      },
+      {
+        "who": "event",
+        "text": "Delivered · 14:16 · moved to Executed",
+        "id": "j119-bw108",
+        "at": "14:16"
+      },
+      {
+        "who": "agent",
+        "text": "Done. **Stock exception note** and **Transfer and expedite list** are built on option 1 and open on the right: **move stock from six sites, expedite four orders, top up ferric on spot and use the approved chiller kit**, $56.5k, which keeps the outage on 9 November.\n\nI accepted the four findings and chose the top option; both are under Findings. Nothing is executed from a one-off goal; a standing goal can do that. Change anything here and the deliverables are rebuilt.",
+        "card": {
+          "kind": "delivered"
+        },
+        "id": "j120-bw108",
+        "at": "14:16"
+      }
+    ],
+    "chips": [
+      "Why option 1?",
+      "Show me the findings",
+      "Make more deliverables in Submissions"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask where it is, or pause it…"
+    },
+    "log": [
+      {
+        "t": "14:15",
+        "who": "You",
+        "what": "Agreed what it hands over: Stock exception note: the 28 October load; Transfer and expedite list: Ravensworth Kiln 2 outage."
+      },
+      {
+        "t": "14:15",
+        "who": "You",
+        "what": "Started the run (plan v1)."
+      },
+      {
+        "t": "14:15",
+        "who": "Agent Sentinel",
+        "what": "Step 1 done · 19 positions short before their next receipt · 8 outage items late"
+      },
+      {
+        "t": "14:15",
+        "who": "Agent Sentinel",
+        "what": "Step 2 done · Holcombe and Vantor moved their dates; ferric at 60% from Corrigan"
+      },
+      {
+        "t": "14:15",
+        "who": "Agent Sentinel",
+        "what": "Step 3 done · the group holds what covers nine positions; four expedites offered"
+      },
+      {
+        "t": "14:15",
+        "who": "Agent Sentinel",
+        "what": "Step 4 done · three options; moving stock and expediting four preferred, $56.5k"
+      },
+      {
+        "t": "14:15",
+        "who": "Agent Sentinel",
+        "what": "Accepted the 4 findings and chose the top recommendation: Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit."
+      },
+      {
+        "t": "14:16",
+        "who": "Agent Sentinel",
+        "what": "Built 2 deliverables on option 1, move stock from six sites."
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "27 Oct, 14:15",
+        "label": "Nineteen positions in the 28 October load short before replenishment",
+        "status": "running"
+      }
+    ],
+    "flags": {},
+    "doneCount": 5,
+    "paused": false,
+    "deliv": [
+      {
+        "id": "sub-stock-note",
+        "label": "Stock exception note: the 28 October load",
+        "audience": "Tomasz Wierzbicki, Leon Varga, Anika Sorensen and the site storeroom leads",
+        "purpose": "Release the transfers and expedites so the Kiln 2 outage starts on date and the water plants stay supplied",
+        "why": "The transfers need each storeroom lead to confirm before the trucks are booked on 30 October.",
+        "format": "Memo",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-sc-stock-note"
+      },
+      {
+        "id": "sub-transfer-list",
+        "label": "Transfer and expedite list: Ravensworth Kiln 2 outage",
+        "audience": "Leon Varga and the storerooms at Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the distribution centers",
+        "purpose": "Each move and expedite with its quantity, freight and approval",
+        "why": "Leon raises the stock transport orders and the expedites from it.",
+        "format": "Workbook",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-sc-transfer-list"
+      },
+      {
+        "id": "sub-shortage-review",
+        "label": "Monthly shortage review: the Kiln 2 outage",
+        "audience": "Rafael Duarte and the site leads",
+        "purpose": "The short positions, the moves and what is still late, on the monthly review slides",
+        "why": "The November review falls inside the outage.",
+        "format": "Slide pack",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-sc-shortage-review"
+      },
+      {
+        "id": "sub-scorecard-update",
+        "label": "Supplier scorecard update: Holcombe and Vantor",
+        "audience": "Leon Varga, Buyer, MRO and Critical Spares",
+        "purpose": "The two date moves on each supplier's delivery record",
+        "why": "Both suppliers moved a promised date this week.",
+        "format": "Workbook",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-sc-supplier-scorecard"
+      }
+    ],
+    "delivConfirmed": true,
+    "acts": [],
+    "execActs": [],
+    "built": {
+      "sub-stock-note": "sub-stock-exception-note-the-28-october-load-bw109",
+      "sub-transfer-list": "sub-transfer-and-expedite-list-ravensworth-k-bw110"
+    },
+    "buildV": 1,
+    "agreedAt": "14:15",
+    "chosen": "r1",
+    "chosenBy": "auto",
+    "deliveredAt": "14:15",
+    "prog": null,
+    "executedAt": "14:16"
+  }
+}

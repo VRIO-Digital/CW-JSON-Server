@@ -1,0 +1,503 @@
+{
+  "note": "The 02:00 load of 28 October fires the watch: a notification goes out and the five steps run by themselves; steps 1 and 2 done.",
+  "journey": {
+    "id": "g-rule-stock-cover",
+    "mode": "watch",
+    "kind": "rule",
+    "case": "watch",
+    "title": "No critical spare or chemical below safety stock: check every nightly load",
+    "agent": {
+      "name": "Agent Ledger",
+      "icon": "radar",
+      "colour": "#9e3819"
+    },
+    "prompt": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+    "files": [],
+    "stage": "armed",
+    "status": "fired",
+    "rv": [
+      "against",
+      "memory",
+      "watch",
+      "src:std",
+      "src:erp",
+      "where",
+      "src:cal",
+      "prior",
+      "miss:tell",
+      "until",
+      "steps",
+      "fixed"
+    ],
+    "reads": [
+      {
+        "tool": "search role memory",
+        "res": "Look across the group before an emergency purchase · the holder stays at or above its own safety stock · expedites up to $25k are approved by Rafael",
+        "rv": [
+          "against",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read Inventory_and_Critical_Spares_Standard_2025.pdf",
+        "res": "Class A items · chemical cover 14 days water, 10 hazardous waste, 7 energy · outage materials ready 14 days ahead",
+        "rv": [
+          "watch",
+          "src:std"
+        ]
+      },
+      {
+        "tool": "scan mm.plant_stock · mm.reservation · pur.po_line",
+        "res": "2,782 critical positions at 36 sites · open lines with promised dates · reservations of released work orders",
+        "rv": [
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "read the load calendar",
+        "res": "Stock, orders and reservations load nightly at 02:00. Next: tonight, Wednesday 28 October",
+        "rv": [
+          "where",
+          "src:cal"
+        ]
+      },
+      {
+        "tool": "check open goals",
+        "res": "\"Treatment chemicals award\" reads the same ferric cover; I read it whenever this fires",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "search for a storeroom distribution list",
+        "res": "No storeroom list is connected; I need to know who to tell",
+        "warn": true,
+        "rv": [
+          "miss:tell"
+        ]
+      },
+      {
+        "tool": "read the latest position",
+        "res": "Critical positions below safety stock are reviewed daily · Ravensworth Kiln 2 outage from 9 November · Corrigan at 60% on ferric",
+        "warn": true,
+        "rv": [
+          "until"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "fires",
+        "title": "What should make it fire?",
+        "text": "Positions dip below safety stock every week and most have an order landing in time. The rule can fire only when something will run short before it can be replenished, or on every position below safety stock.",
+        "tiles": [
+          {
+            "v": "short",
+            "t": "When a position will run short before its next receipt",
+            "s": "The ones that need action"
+          },
+          {
+            "v": "early",
+            "t": "Also when an outage reservation is not covered 14 days ahead",
+            "s": "What the standard asks for outages",
+            "rec": true
+          },
+          {
+            "v": "always",
+            "t": "A digest of every load",
+            "s": "A short reading each morning"
+          }
+        ]
+      },
+      {
+        "key": "tell",
+        "title": "Who is told when it fires?",
+        "text": "No storeroom list is connected. The note goes out without waiting for you, so pick who should see it.",
+        "tiles": [
+          {
+            "v": "me",
+            "t": "Just me",
+            "s": "I decide who hears"
+          },
+          {
+            "v": "buyers",
+            "t": "Me and the buyers",
+            "s": "Whoever places the orders"
+          },
+          {
+            "v": "sites",
+            "t": "Me, the buyers and the site leads",
+            "s": "Everyone who can release or move stock"
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fires": "early",
+      "tell": "sites"
+    },
+    "over": {},
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "end",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Confirm what the load flagged, and size it",
+        "purpose": "Which positions will run short before they can be replenished, and by how much.",
+        "how": "Every critical position against its safety stock, its reservations and its next confirmed receipt: on hand, what is needed by when, the shortfall. Limited to the positions in the load that fired the rule.",
+        "draws": [
+          "mm.plant_stock",
+          "mm.reservation",
+          "pur.po_line"
+        ],
+        "check": "Every flagged position recomputes from on hand, safety stock, reservations and promised dates."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Why it happened, and whether anyone is on it",
+        "purpose": "Is this new, and is someone already handling it.",
+        "how": "Supplier date changes, released reservations, the Corrigan allocation, and what the buyers, the outage manager and the plants have said.",
+        "draws": [
+          "pur.po_line (promised date history)",
+          "Outlook: outage, buyers, plants (R1, R2, F2)",
+          "Ravensworth_Kiln2_Outage_Material_Readiness_2026-10-23.xlsx"
+        ],
+        "check": "Every cause is dated and sourced."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "gather",
+        "title": "Look across the group: stock, expedites, substitutes",
+        "purpose": "What the rest of the group holds, and what the suppliers can still do.",
+        "how": "For each position: other sites holding the same material above their own safety stock, the freight to move it, expedites the suppliers have offered, and approved substitutes.",
+        "draws": [
+          "mm.plant_stock (all sites)",
+          "Inter-site_Transfer_Procedure.pdf",
+          "Outlook: buyers (R2)"
+        ],
+        "check": "No holder is taken below its own safety stock."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "What can still be done, including nothing",
+        "purpose": "Each course of action with what it costs and what it protects, checked against open goals.",
+        "how": "Each option with its cost, the positions it covers, the days of outage it protects, who has to agree, and an honest statement where nothing can be done in time; read the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Goal: Treatment chemicals award",
+          "Inventory_and_Critical_Spares_Standard_2025.pdf"
+        ],
+        "check": "Every option states what it costs and what it covers."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables, act and tell you",
+        "purpose": "Build what was agreed at set-up, take the actions that run by themselves, hold the others for your OK, and tell the people you chose.",
+        "how": "The positions, why they are short, what the group holds, the options and the moves; on the stock exception note template.",
+        "draws": [
+          "Steps 1 to 4",
+          "Template: stock exception note"
+        ],
+        "check": "Every figure in the note links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "done",
+        "at": "14:10",
+        "text": "Done · 19 short · 8 late",
+        "caveat": true
+      },
+      "w2": {
+        "state": "done",
+        "at": "14:10",
+        "text": "Done · 3 causes"
+      },
+      "w3": {
+        "state": "done",
+        "at": "14:10",
+        "text": "Done · 10 transfers",
+        "caveat": true
+      },
+      "w4": {
+        "state": "running",
+        "at": "14:11"
+      },
+      "w5": {
+        "state": "pending"
+      }
+    },
+    "findings": [
+      "W1",
+      "W2",
+      "W3"
+    ],
+    "recs": [],
+    "outputs": [],
+    "started": [],
+    "gaps": [],
+    "chat": [
+      {
+        "id": "j1-bw001",
+        "who": "me",
+        "text": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+        "at": "21 Oct, 16:32"
+      },
+      {
+        "id": "j2-bw001",
+        "who": "event",
+        "text": "Watch armed · v1 · 21 Oct, 16:40 · Rafael Duarte",
+        "at": "21 Oct, 16:40"
+      },
+      {
+        "id": "j3-bw001",
+        "who": "agent",
+        "text": "Armed. I check every critical position at the nightly load (02:00) against its safety stock, its reservations and its next confirmed receipt. Nothing runs until a position will run short before it can be replenished, or an outage reservation is not covered 14 days ahead.\n\nThe plan on the right is what runs when it fires: five steps, no checkpoint. Then I choose the top option, build the stock exception note and the transfer list, do the actions agreed at set-up and tell you, the buyers and the site leads. Anything that goes to a supplier or costs money waits for your OK.",
+        "at": "21 Oct, 16:40"
+      },
+      {
+        "id": "j4-bw001",
+        "who": "event",
+        "text": "27 Oct · 02:00 load checked · 20 below safety stock, none short before its next receipt · next: tonight, 02:00",
+        "at": "27 Oct, 02:05"
+      },
+      {
+        "who": "me",
+        "text": "Simulate tonight’s load (28 October)",
+        "id": "j73-bw067",
+        "at": "14:10"
+      },
+      {
+        "who": "event",
+        "text": "28 Oct · 02:00 load · 2,782 positions · rule fired · 19 projected short",
+        "id": "j74-bw068",
+        "at": "14:10"
+      },
+      {
+        "who": "agent",
+        "text": "**Fired.** The 02:00 load released the Kiln 2 reservations and carried Holcombe’s and Vantor’s new dates; nineteen critical positions will now run short before their next receipt. **Nine are for the Ravensworth Kiln 2 outage on 9 November and seven are ferric chloride at water plants.** Running the five steps now; then I choose the top option, build the note and the list, do what you let me do by myself and tell you. You do not need to be here for this.",
+        "card": {
+          "kind": "fired"
+        },
+        "id": "j75-bw069",
+        "at": "14:10"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · 19 positions short before their next receipt · 8 outage items late",
+        "id": "j76-bw070",
+        "at": "14:10"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · eight of the nine outage items have no receipt before they are needed",
+        "id": "j77-bw070",
+        "at": "14:10"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · Holcombe and Vantor moved their dates; ferric at 60% from Corrigan",
+        "id": "j78-bw071",
+        "at": "14:10"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · the group holds what covers nine positions; four expedites offered",
+        "id": "j79-bw072",
+        "at": "14:11"
+      }
+    ],
+    "chips": [
+      "What are you doing now?"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask about the watch, or change it between checks…"
+    },
+    "log": [
+      {
+        "t": "21 Oct, 16:40",
+        "who": "Rafael Duarte",
+        "what": "Armed the watch (v1). Checks every critical position at the nightly load."
+      },
+      {
+        "t": "27 Oct, 02:05",
+        "who": "Agent Ledger",
+        "what": "Checked the 27 October load: 20 positions below safety stock, none short before its next receipt; no outage reservation released yet."
+      },
+      {
+        "t": "14:10",
+        "who": "Rule",
+        "what": "Fired at the 02:00 load of 28 October: 19 critical positions will run short before their next receipt, 9 of them reserved for the Ravensworth Kiln 2 outage."
+      },
+      {
+        "t": "14:10",
+        "who": "Agent Ledger",
+        "what": "Step 1 done · 19 positions short before their next receipt · 8 outage items late"
+      },
+      {
+        "t": "14:10",
+        "who": "Agent Ledger",
+        "what": "Step 2 done · Holcombe and Vantor moved their dates; ferric at 60% from Corrigan"
+      },
+      {
+        "t": "14:11",
+        "who": "Agent Ledger",
+        "what": "Step 3 done · the group holds what covers nine positions; four expedites offered"
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "28 Oct, 02:10",
+        "label": "Nightly load, 28 October · 19 positions short",
+        "status": "running"
+      }
+    ],
+    "flags": {},
+    "doneCount": 3,
+    "paused": false,
+    "deliv": [
+      {
+        "id": "sub-stock-note",
+        "label": "Stock exception note: the 28 October load",
+        "audience": "Tomasz Wierzbicki, Leon Varga, Anika Sorensen and the site storeroom leads",
+        "purpose": "Release the transfers and expedites so the Kiln 2 outage starts on date and the water plants stay supplied",
+        "why": "The transfers need each storeroom lead to confirm before the trucks are booked on 30 October.",
+        "format": "Memo",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-sc-stock-note"
+      },
+      {
+        "id": "sub-transfer-list",
+        "label": "Transfer and expedite list: Ravensworth Kiln 2 outage",
+        "audience": "Leon Varga and the storerooms at Kilmarsh, Harlow CHP, Corley Flats, Wexcombe and the distribution centers",
+        "purpose": "Each move and expedite with its quantity, freight and approval",
+        "why": "Leon raises the stock transport orders and the expedites from it.",
+        "format": "Workbook",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-sc-transfer-list"
+      },
+      {
+        "id": "sub-shortage-review",
+        "label": "Monthly shortage review: the Kiln 2 outage",
+        "audience": "Rafael Duarte and the site leads",
+        "purpose": "The short positions, the moves and what is still late, on the monthly review slides",
+        "why": "The November review falls inside the outage.",
+        "format": "Slide pack",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-sc-shortage-review"
+      },
+      {
+        "id": "sub-scorecard-update",
+        "label": "Supplier scorecard update: Holcombe and Vantor",
+        "audience": "Leon Varga, Buyer, MRO and Critical Spares",
+        "purpose": "The two date moves on each supplier's delivery record",
+        "why": "Both suppliers moved a promised date this week.",
+        "format": "Workbook",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-sc-supplier-scorecard"
+      }
+    ],
+    "delivConfirmed": true,
+    "acts": [
+      {
+        "key": "send",
+        "text": "Send the deliverables to the people who are told",
+        "why": "Internal; nothing is committed",
+        "mode": "auto"
+      },
+      {
+        "key": "releases",
+        "text": "Ask the storeroom leads to confirm the transfers",
+        "why": "A request inside the group",
+        "mode": "auto"
+      },
+      {
+        "key": "sto",
+        "text": "Ask the buyer to raise the stock transport orders",
+        "why": "A request; Leon Varga raises them",
+        "mode": "auto"
+      },
+      {
+        "key": "spot",
+        "text": "Ask the chemicals buyer for spot volume under the framework",
+        "why": "A request; Anika Sorensen buys inside the framework",
+        "mode": "auto"
+      },
+      {
+        "key": "substitute",
+        "text": "Log an approved substitute as a stock exception",
+        "why": "A record; the substitute is already approved",
+        "mode": "auto"
+      },
+      {
+        "key": "expedite",
+        "text": "Raise expedite requests with suppliers",
+        "why": "Costs money and goes to suppliers",
+        "mode": "ask",
+        "outside": true
+      },
+      {
+        "key": "outage",
+        "text": "Ask the outage manager to move an outage",
+        "why": "Moves a plant outage and costs disposal margin",
+        "mode": "ask"
+      }
+    ],
+    "execActs": [],
+    "built": {},
+    "buildV": 0,
+    "agreedAt": "21 Oct, 16:40",
+    "armedAt": "21 Oct 2026, 16:40",
+    "armedBy": "Rafael Duarte",
+    "nextCheck": "tonight’s load, 02:00 on 28 October"
+  }
+}

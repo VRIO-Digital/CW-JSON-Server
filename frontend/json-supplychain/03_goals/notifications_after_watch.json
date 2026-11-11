@@ -1,0 +1,27 @@
+[
+  {
+    "id": "n-g-rule-stock-cover-bw079-executed",
+    "at": "2026-10-27T14:11:45.100Z",
+    "kind": "executed",
+    "goalId": "g-rule-stock-cover",
+    "title": "Fired and handled: 1 action waits for your OK",
+    "text": "Agent Ledger ran the five steps on the 19 positions, chose option 1, built the note and the list and did 5 of 6 actions. Waiting for your OK: raise the four expedite requests with Holcombe and Orrin ($18,140, inside Rafael Duarte's approval).",
+    "read": false,
+    "tab": "deliverables",
+    "found": "Nineteen critical positions will run short before their next receipt; nine are reserved for the Ravensworth Kiln 2 outage, which starts 9 November.",
+    "rec": "Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit.",
+    "cta": "Review it"
+  },
+  {
+    "id": "n-g-rule-stock-cover-bw069-fired",
+    "at": "2026-10-27T14:10:32.380Z",
+    "kind": "fired",
+    "goalId": "g-rule-stock-cover",
+    "title": "Standing goal fired: positions short in tonight’s load",
+    "text": "Agent Ledger is handling it now: analysis, the top option, the note and the list, and the actions you agreed. You hear back when it is done.",
+    "read": false,
+    "tab": "runs",
+    "found": "Nineteen critical positions will run short before their next receipt; nine are reserved for the Ravensworth Kiln 2 outage, which starts 9 November.",
+    "cta": "Watch it run"
+  }
+]

@@ -1,0 +1,389 @@
+{
+  "note": "A goal with no recorded analysis: the findings memo agreed on a designed structure, the four steps run, and the run ends on a question; nothing is built, honestly.",
+  "journey": {
+    "id": "g-what-is-the-carbon-footprint-of-our--bw111",
+    "mode": "once",
+    "kind": "once",
+    "case": "generic",
+    "title": "What is the carbon footprint of our chemical deliveries?",
+    "agent": {
+      "name": "Agent Harbour",
+      "icon": "thunder",
+      "colour": "#1f4e9c"
+    },
+    "prompt": "What is the carbon footprint of our chemical deliveries?",
+    "files": [],
+    "stage": "running",
+    "status": "ready",
+    "rv": [
+      "scope",
+      "decision",
+      "src:erp",
+      "src:srm",
+      "src:mail",
+      "memory",
+      "success",
+      "fixed",
+      "miss:generic",
+      "steps",
+      "deliv"
+    ],
+    "reads": [
+      {
+        "tool": "resolve the goal against the role graph",
+        "res": "\"What is the carbon footprint of our chemical deliveries?\" → 34 governed measures, the sites and materials, documents and mail",
+        "rv": [
+          "scope",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan pur.po_line · src.contract",
+        "res": "33,009 order lines in 2026 · 50 group contracts",
+        "rv": [
+          "src:erp"
+        ]
+      },
+      {
+        "tool": "scan mm.plant_stock · mm.reservation",
+        "res": "2,782 critical positions at 36 sites · reservations of released work orders",
+        "rv": [
+          "src:srm"
+        ]
+      },
+      {
+        "tool": "read Outlook · OneDrive",
+        "res": "16 threads and 31 documents linked to the role",
+        "rv": [
+          "src:mail"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Landed cost among qualified suppliers · group stock before emergency buys · allocations are statements, not supply",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "match the goal to a recorded analysis",
+        "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+        "warn": true,
+        "rv": [
+          "miss:generic"
+        ]
+      }
+    ],
+    "questions": [],
+    "answers": {},
+    "over": {},
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "end",
+    "nodes": [
+      {
+        "id": "g1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Ground the goal in the role graph",
+        "purpose": "Which measures, sites, materials and documents the goal names.",
+        "how": "Resolve every term in the goal to a governed measure, a site, a material or a document; list anything that does not resolve.",
+        "draws": [
+          "Supply Chain Analyst graph v1"
+        ],
+        "check": "Every term maps to something the graph holds, or is listed as unresolved."
+      },
+      {
+        "id": "g2",
+        "col": 1,
+        "row": 1,
+        "type": "compute",
+        "title": "State the current position",
+        "purpose": "Stock, orders and spend for everything in scope.",
+        "how": "From the latest stock snapshot, the open order lines and the spend to date.",
+        "draws": [
+          "mm.plant_stock",
+          "pur.po_line",
+          "src.contract"
+        ],
+        "check": "Totals reconcile to the governed measures within rounding."
+      },
+      {
+        "id": "g3",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Read what the documents and the mailbox say that the tables do not",
+        "purpose": "Dated statements that differ from SAP or the contracts platform.",
+        "how": "Supplier, plant and internal statements with dates or quantities.",
+        "draws": [
+          "Outlook mailbox",
+          "OneDrive documents"
+        ],
+        "check": "Nothing is attributed without a dated reference."
+      },
+      {
+        "id": "g4",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Set out the ways forward and test them against the constraints",
+        "purpose": "At least two courses of action with their trade-offs.",
+        "how": "Against the policy, the inventory standard and the open goals on this role.",
+        "draws": [
+          "Steps 1 to 3",
+          "Group_Procurement_Policy_2025.pdf",
+          "Inventory_and_Critical_Spares_Standard_2025.pdf"
+        ],
+        "check": "Each course states what it costs and what it protects."
+      }
+    ],
+    "edges": [
+      [
+        "g1",
+        "g2"
+      ],
+      [
+        "g2",
+        "g3"
+      ],
+      [
+        "g3",
+        "g4"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "g1": {
+        "state": "done",
+        "at": "14:17",
+        "text": "Done"
+      },
+      "g2": {
+        "state": "done",
+        "at": "14:17",
+        "text": "Done"
+      },
+      "g3": {
+        "state": "done",
+        "at": "14:17",
+        "text": "Done"
+      },
+      "g4": {
+        "state": "done",
+        "at": "14:17",
+        "text": "Done"
+      }
+    },
+    "findings": [],
+    "recs": [],
+    "outputs": [],
+    "started": [],
+    "gaps": [],
+    "chat": [
+      {
+        "who": "me",
+        "text": "What is the carbon footprint of our chemical deliveries?",
+        "files": [],
+        "id": "j121-bw111",
+        "at": "14:16"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "resolve the goal against the role graph",
+              "res": "\"What is the carbon footprint of our chemical deliveries?\" → 34 governed measures, the sites and materials, documents and mail",
+              "live": false
+            },
+            {
+              "tool": "scan pur.po_line · src.contract",
+              "res": "33,009 order lines in 2026 · 50 group contracts",
+              "live": false
+            },
+            {
+              "tool": "scan mm.plant_stock · mm.reservation",
+              "res": "2,782 critical positions at 36 sites · reservations of released work orders",
+              "live": false
+            },
+            {
+              "tool": "read Outlook · OneDrive",
+              "res": "16 threads and 31 documents linked to the role",
+              "live": false
+            },
+            {
+              "tool": "search role memory",
+              "res": "Landed cost among qualified suppliers · group stock before emergency buys · allocations are statements, not supply",
+              "live": false
+            },
+            {
+              "tool": "match the goal to a recorded analysis",
+              "res": "No recorded analysis in this copy matches it; I can run the steps and show what the graph holds, but the findings will be thin",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "4 steps · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j122-bw112",
+        "at": "14:16"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. No recorded analysis in this copy matches this goal, so the run will show the position and end on a question rather than land findings. The two examples carry full analyses.",
+        "id": "j123-bw113",
+        "at": "14:17"
+      },
+      {
+        "who": "agent",
+        "text": "Last thing before I start: what should I hand you at the end? No template in your library matches this goal, so I would design the structure.",
+        "card": {
+          "kind": "deliv",
+          "done": "Findings memo"
+        },
+        "id": "j124-bw114",
+        "at": "14:17"
+      },
+      {
+        "who": "me",
+        "text": "Run it",
+        "id": "j125-bw115",
+        "at": "14:17"
+      },
+      {
+        "who": "event",
+        "text": "Running · plan v1 · 14:17",
+        "id": "j126-bw116",
+        "at": "14:17"
+      },
+      {
+        "who": "agent",
+        "text": "That is everything. Running the four steps now; you do not need to stay.",
+        "id": "j127-bw116",
+        "at": "14:17"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · Ground the goal in the role graph",
+        "id": "j128-bw117",
+        "at": "14:17"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · State the current position",
+        "id": "j129-bw118",
+        "at": "14:17"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · Read what the documents and the mailbox say that the tables do not",
+        "id": "j130-bw119",
+        "at": "14:17"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · Set out the ways forward and test them against the constraints",
+        "id": "j131-bw120",
+        "at": "14:17"
+      },
+      {
+        "who": "agent",
+        "text": "All steps run. The goal names a measure the graph does not compute in this copy, so I have the position but no recorded analysis to land as findings.\n\nShould I drop that measure from the goal, or state it as a range from the recorded positions? Either way, the two example goals are where the full journeys are.",
+        "id": "j132-bw121",
+        "at": "14:17"
+      },
+      {
+        "who": "me",
+        "text": "Drop it from the goal",
+        "id": "j133-bw122",
+        "at": "14:18"
+      },
+      {
+        "who": "agent",
+        "text": "Noted and logged against the goal. There are no recorded findings for it in this copy, so the plan, the run and the position are what this goal keeps. Start from an example to see the whole journey.",
+        "id": "j134-bw123",
+        "at": "14:18"
+      }
+    ],
+    "chips": [
+      "Open the data",
+      "Save this plan"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask where it is, or pause it…"
+    },
+    "log": [
+      {
+        "t": "14:17",
+        "who": "You",
+        "what": "Agreed what it hands over: Findings memo."
+      },
+      {
+        "t": "14:17",
+        "who": "You",
+        "what": "Started the run (plan v1)."
+      },
+      {
+        "t": "14:18",
+        "who": "You",
+        "what": "Answered: Drop it from the goal"
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "27 Oct, 14:17",
+        "label": "What is the carbon footprint of our chemical deliveries?",
+        "status": "running"
+      }
+    ],
+    "flags": {
+      "genericQ": true,
+      "answeredQ": true
+    },
+    "doneCount": 4,
+    "paused": false,
+    "deliv": [
+      {
+        "id": "gen-memo",
+        "label": "Findings memo",
+        "audience": "Rafael Duarte, Head of Supply Chain Planning and Inventory",
+        "purpose": "What the analysis found, the ways forward and what is not established",
+        "format": "Memo",
+        "on": true,
+        "mode": "ai"
+      },
+      {
+        "id": "gen-deck",
+        "label": "Short slide pack",
+        "audience": "The Procurement Committee",
+        "purpose": "The position in five slides",
+        "format": "Slide pack",
+        "on": false,
+        "mode": "ai"
+      }
+    ],
+    "delivConfirmed": true,
+    "acts": [],
+    "execActs": [],
+    "built": {},
+    "buildV": 0,
+    "agreedAt": "14:17"
+  }
+}

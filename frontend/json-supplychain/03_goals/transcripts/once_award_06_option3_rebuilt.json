@@ -1,0 +1,1020 @@
+{
+  "note": "After delivery the analyst opens Findings and picks option 3 (extend the 2026 agreements by six months and re-bid ferric): every deliverable is rebuilt as version 2 on it.",
+  "journey": {
+    "id": "g-treatment-chemicals-award-2027-to-20-bw002",
+    "mode": "once",
+    "kind": "once",
+    "case": "once",
+    "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+    "agent": {
+      "name": "Agent Compass",
+      "icon": "compass",
+      "colour": "#0f5c7b"
+    },
+    "prompt": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+    "files": [
+      {
+        "id": "seed",
+        "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+        "s": "186 KB"
+      },
+      {
+        "id": "seed",
+        "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+        "s": "240 KB"
+      }
+    ],
+    "stage": "running",
+    "status": "delivered",
+    "rv": [
+      "doc:bids",
+      "scope",
+      "doc:prior",
+      "deliver",
+      "src:erp",
+      "decision",
+      "as:vol",
+      "src:ops",
+      "as:fm",
+      "src:srm",
+      "src:mail",
+      "miss:vol",
+      "memory",
+      "success",
+      "fixed",
+      "miss:fm",
+      "steps",
+      "deliv"
+    ],
+    "reads": [
+      {
+        "tool": "read SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+        "res": "Seven lots, 10 bidders, price and freight per ton; bids closed 16 October",
+        "rv": [
+          "doc:bids",
+          "scope"
+        ]
+      },
+      {
+        "tool": "read Chemicals_Award_Schedule_2024-2026.xlsx",
+        "res": "Award summary, lot awards, prices, volumes by business, continuity, approvals, evidence: the structure the committee approved in 2023",
+        "rv": [
+          "doc:prior",
+          "deliver"
+        ]
+      },
+      {
+        "tool": "scan pur.po_line · src.contract_item",
+        "res": "$34.4M of the seven chemicals ordered to September by the three businesses · 2026 contract prices for every lot",
+        "rv": [
+          "src:erp",
+          "decision"
+        ]
+      },
+      {
+        "tool": "scan ops.dosing_plan",
+        "res": "2027 plans for 33 sites: 102,280 tons against 96,730 at the run rate · Energy plans dated November 2025",
+        "warn": true,
+        "rv": [
+          "as:vol",
+          "src:ops"
+        ]
+      },
+      {
+        "tool": "read mm.plant_stock · Corrigan force majeure notice",
+        "res": "Corrigan at 60% of ferric volume since 12 October · 5 water plants under ten days of cover",
+        "warn": true,
+        "rv": [
+          "as:fm",
+          "src:srm"
+        ]
+      },
+      {
+        "tool": "read Outlook: chemicals · committee",
+        "res": "Helena: paper, schedule and slides by 5 November · Imani: use the 2027 plans · Sabine Coast: 25,000 tons a year of ferric",
+        "rv": [
+          "src:mail",
+          "miss:vol"
+        ]
+      },
+      {
+        "tool": "search role memory",
+        "res": "Awards on landed cost among qualified suppliers · a supplier without continuity is capped or kept secondary · avoided premiums are not savings",
+        "rv": [
+          "memory",
+          "success",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "search for a confirmed restart date from Corrigan",
+        "res": "None: the notice expects the first quarter of 2027 and says it cannot confirm a date; no later message",
+        "warn": true,
+        "rv": [
+          "as:fm",
+          "miss:fm"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "fm",
+        "title": "Corrigan is in force majeure on ferric chloride: how should its bid count?",
+        "text": "Corrigan's L2 bid is the lowest at $415.00 a ton landed, but it has shipped 60% of contract volume since 12 October and cannot confirm when full supply returns. The policy lets a supplier without continuity be capped or kept as secondary.",
+        "tiles": [
+          {
+            "v": "secondary",
+            "t": "Secondary at 30%, only once the force majeure lifts",
+            "s": "Sabine Coast primary",
+            "rec": true
+          },
+          {
+            "v": "exclude",
+            "t": "Leave Corrigan out of ferric",
+            "s": "Sabine Coast alone; $0.22M a year less saving",
+            "rec": false
+          }
+        ]
+      },
+      {
+        "key": "vol",
+        "title": "Which volumes should the award rest on?",
+        "text": "The 2027 dosing plans add Ashby Water Treatment Works and come to 102,280 tons a year; the FY26 run rate is 96,730. Energy's plans, 10% of the volume, are the November 2025 vintage.",
+        "tiles": [
+          {
+            "v": "plan",
+            "t": "The 2027 dosing plans, Energy marked provisional",
+            "s": "What Imani asked for",
+            "rec": true
+          },
+          {
+            "v": "runrate",
+            "t": "The FY26 run rate",
+            "s": "Lower; leaves Ashby out"
+          },
+          {
+            "v": "both",
+            "t": "The plans, with the run rate beside them",
+            "s": "Shows the spread"
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "fm": "secondary",
+      "vol": "plan"
+    },
+    "over": {
+      "acc:F1": "auto",
+      "acc:F3": "auto",
+      "acc:F2": "auto",
+      "acc:F4": "auto"
+    },
+    "extraDocs": [],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "end",
+    "nodes": [
+      {
+        "id": "n1",
+        "col": 0,
+        "row": 1,
+        "type": "compute",
+        "title": "State what the group buys and what it costs today",
+        "purpose": "The seven chemicals by business, the 2027 volumes and today's landed cost.",
+        "how": "Volumes from the 2027 dosing plans by business and site; 2026 contract prices plus freight from the rate card; what was ordered to September as the check.",
+        "draws": [
+          "ops.dosing_plan",
+          "src.contract_item",
+          "pur.po_line",
+          "Freight_Rate_Card_2026.xlsx"
+        ],
+        "check": "Volumes sum to the dosing plans; spend to September reconciles to the order lines."
+      },
+      {
+        "id": "n2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Check supply today: cover at each plant and the Corrigan allocation",
+        "purpose": "How exposed each plant is while Corrigan ships 60%.",
+        "how": "Days of cover per plant and chemical against the minimum; Corrigan's order lines since 12 October; the spot lines under FMX and their premium. The allocation is quoted as Corrigan's statement, never counted as supply.",
+        "draws": [
+          "mm.plant_stock",
+          "pur.po_line (since 12 October)",
+          "Corrigan_Force_Majeure_Notice_2026-10-09.pdf",
+          "Outlook: chemicals (F1, F2)"
+        ],
+        "check": "Cover counts only what is in the tanks."
+      },
+      {
+        "id": "n3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Compare the bids on landed cost",
+        "purpose": "For each lot, the lowest qualified landed cost and what it saves.",
+        "how": "Price plus average freight for every bid, against today's landed cost, on the volumes agreed; unqualified bidders shown and not awarded.",
+        "draws": [
+          "src.bid",
+          "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+          "Supplier_Qualification_Register_2026-10.xlsx"
+        ],
+        "check": "Every lot's saving recomputes from volume, today's landed cost and the awarded landed cost."
+      },
+      {
+        "id": "n4",
+        "col": 2,
+        "row": 1,
+        "type": "gather",
+        "title": "Check qualification and continuity of each awarded bidder",
+        "purpose": "Whether every bidder the award names can be awarded and can keep supplying.",
+        "how": "For each awarded bidder: qualification for the lot, stated capacity against the volume, delivery record, any corrective action, and the vendor record the contract will sit on.",
+        "draws": [
+          "Supplier_Qualification_Register_2026-10.xlsx",
+          "src.supplier_scorecard",
+          "pur.vendor",
+          "Sabine_Coast_Capacity_Letter_2026-10-19.pdf",
+          "Group_Procurement_Policy_2025.pdf"
+        ],
+        "check": "Every awarded bidder is qualified and can carry its volume, or the gap is named."
+      },
+      {
+        "id": "n5",
+        "col": 3,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Three ways to award",
+        "purpose": "One award to put to the committee, with what it trades off.",
+        "how": "Weigh the award by lot on landed cost against awarding as bid with Corrigan primary, or extending today's agreements and re-bidding ferric; state each trade-off and every caveat that reached it.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your answers while planning"
+        ],
+        "check": "The recommendation names its remaining caveats and the alternatives it rejected."
+      },
+      {
+        "id": "n6",
+        "col": 4,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables you chose",
+        "purpose": "What you agreed while planning, built on the recommendation chosen: for Helena by 5 November.",
+        "how": "The award paper on the committee template; the award schedule in the 2024 structure; a short deck with the award on its own slides. Every figure linked to the step that produced it.",
+        "draws": [
+          "Steps 1 to 5",
+          "Template: chemicals award schedule 2024 to 2026"
+        ],
+        "check": "Every figure links back to its step."
+      }
+    ],
+    "edges": [
+      [
+        "n1",
+        "n2"
+      ],
+      [
+        "n1",
+        "n3"
+      ],
+      [
+        "n2",
+        "n4"
+      ],
+      [
+        "n3",
+        "n4"
+      ],
+      [
+        "n4",
+        "n5"
+      ],
+      [
+        "n5",
+        "n6"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "n1": {
+        "state": "done",
+        "at": "14:02",
+        "text": "Done · $52.46M today"
+      },
+      "n2": {
+        "state": "done",
+        "at": "14:02",
+        "text": "Done · 5 plants under 10 days",
+        "caveat": true
+      },
+      "n3": {
+        "state": "done",
+        "at": "14:02",
+        "text": "Done · $3.44M a year"
+      },
+      "n4": {
+        "state": "done",
+        "at": "14:02",
+        "text": "Done · 1 gap"
+      },
+      "n5": {
+        "state": "done",
+        "at": "14:02",
+        "text": "Done · 1 preferred, 2 alternatives"
+      },
+      "n6": {
+        "state": "done",
+        "at": "14:03",
+        "text": "Done · four deliverables built"
+      }
+    },
+    "findings": [
+      "F1",
+      "F3",
+      "F2",
+      "F4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts",
+        "summary": "Pemberton for hypochlorite, caustic soda and sulfuric acid; Grayhaven, Kestler and Norrland keep lime, polymer and carbon at their new prices; Sabine Coast primary on ferric with Corrigan capped at 30%, starting only when Corrigan lifts the force majeure in writing. Close Pemberton's duplicate vendor record before 1 January.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.44M · 6.6%",
+            "tone": "good"
+          },
+          {
+            "label": "Ferric sources",
+            "value": "two",
+            "tone": "good"
+          },
+          {
+            "label": "Spot exposure",
+            "value": "none from January",
+            "tone": "good"
+          },
+          {
+            "label": "Approval",
+            "value": "Procurement Committee"
+          }
+        ],
+        "tradeoff": "Ferric costs about what it does today instead of the $0.52M a year less Corrigan's bid offers, and 10% of the volume rests on Energy's November 2025 plans.",
+        "preferred": false,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Helena needs the chemicals award for the 12 November committee."
+          },
+          {
+            "kind": "read",
+            "text": "Read the 2027 plans and today's prices and freight.",
+            "figure": "$52.46M today",
+            "ref": {
+              "sheet": "volumes"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Five water plants are under ten days of ferric while Corrigan ships 60%.",
+            "figure": "360 tons on spot",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the policy: landed cost among qualified suppliers; a supplier without continuity is capped or secondary.",
+            "ref": {
+              "doc": "DOC:proc-policy"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Compared the 20 bids on landed cost.",
+            "figure": "$3.44M",
+            "ref": {
+              "sheet": "bids"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Sabine Coast can carry all of ferric on two trains.",
+            "figure": "25,000 tons",
+            "ref": {
+              "doc": "DOC:sabine-capacity"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Award by lot on landed cost and keep Corrigan as a capped secondary until it can show supply."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Award on lowest landed cost as bid, with Corrigan primary on ferric chloride",
+        "summary": "The same award on six lots, and ferric to Corrigan at $415.00 landed, the lowest bid.",
+        "figures": [
+          {
+            "label": "Saving a year",
+            "value": "$3.96M · 7.5%",
+            "tone": "good"
+          },
+          {
+            "label": "Rests on",
+            "value": "an unconfirmed restart",
+            "tone": "crit"
+          },
+          {
+            "label": "Spot in the first quarter",
+            "value": "$0.39M",
+            "tone": "warn"
+          },
+          {
+            "label": "If it lasts the year",
+            "value": "$1.56M",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "The highest saving on paper, but at a 60% allocation 40% of ferric is bought on spot until Corrigan restarts, and Corrigan cannot say when.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award take Corrigan's lowest bid on ferric?"
+          },
+          {
+            "kind": "read",
+            "text": "Corrigan cannot confirm when full supply returns.",
+            "ref": {
+              "doc": "DOC:fm-notice"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "At 60% the balance is bought at $548 a ton.",
+            "figure": "$0.39M",
+            "ref": {
+              "sheet": "cover"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only worth it once Corrigan shows its plant is back."
+          }
+        ],
+        "preferred": false
+      },
+      {
+        "id": "r3",
+        "title": "Extend the 2026 agreements by six months and re-bid ferric in the first quarter",
+        "summary": "Keep every supplier at today's prices to 30 June 2027, re-run L2 when Corrigan's restart is known, and qualify Ostler and Pemberton polymer in the meantime.",
+        "figures": [
+          {
+            "label": "Saving forgone",
+            "value": "$1.72M (half a year)",
+            "tone": "warn"
+          },
+          {
+            "label": "Corrigan restart",
+            "value": "known by then",
+            "tone": "good"
+          },
+          {
+            "label": "Spot buying",
+            "value": "continues",
+            "tone": "crit"
+          },
+          {
+            "label": "Bidders",
+            "value": "asked to hold prices",
+            "tone": "warn"
+          }
+        ],
+        "tradeoff": "Buys time for the ferric decision and two qualifications, but gives up half a year of saving and keeps the plants on spot volume.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "Could the award wait for Corrigan?"
+          },
+          {
+            "kind": "read",
+            "text": "Bids are valid for 90 days.",
+            "ref": {
+              "doc": "DOC:rfp"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Only if the committee will not decide ferric without Corrigan's restart date."
+          }
+        ],
+        "preferred": true
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-award-paper",
+        "label": "Award paper: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee, 12 November, through Helena Marsh, Chief Procurement Officer",
+        "purpose": "The award by lot on landed cost, what it saves, and how ferric chloride stays supplied",
+        "template": "Procurement Committee: award paper",
+        "templateId": "t-pc-award-paper",
+        "why": "Helena asked for the paper on the committee template by 5 November."
+      },
+      {
+        "id": "sub-award-schedule",
+        "label": "Award schedule: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee and the contract owners",
+        "purpose": "Lot awards, prices, volumes by business, continuity and approvals, in the structure the committee approved in 2023",
+        "template": "Your prior deliverables: chemicals award schedule 2024 to 2026",
+        "templateId": "t-prior-award-2024",
+        "why": "The committee asked for award papers in the 2024 structure."
+      },
+      {
+        "id": "sub-award-deck",
+        "label": "Committee slides: treatment chemicals award",
+        "audience": "Procurement Committee, Thursday 12 November",
+        "purpose": "Walk the committee through the award, the saving and ferric continuity",
+        "template": "Procurement Committee: award slides",
+        "templateId": "t-pc-award-deck",
+        "why": "The chair wants the chemicals award on its own slides."
+      }
+    ],
+    "started": [
+      "sub-award-paper",
+      "sub-award-schedule",
+      "sub-award-deck",
+      "custom-bw011"
+    ],
+    "gaps": [
+      "Corrigan has not confirmed when full ferric supply returns; the 30% secondary starts only when it does, in writing.",
+      "Energy's 2027 dosing plans are the November 2025 vintage (10% of the volume); they are refreshed after the Harlow outage in March.",
+      "Pemberton has two vendor records (V10031, V10032); the contracts must sit on one before 1 January or spot orders leak outside them."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+        "files": [
+          {
+            "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+            "s": "186 KB"
+          },
+          {
+            "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+            "s": "240 KB"
+          }
+        ],
+        "id": "j5-bw003",
+        "at": "14:00"
+      },
+      {
+        "who": "agent",
+        "text": "Reading what you gave me, then checking what is connected. The plan fills in on the right as I go.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "read SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+              "res": "Seven lots, 10 bidders, price and freight per ton; bids closed 16 October",
+              "live": false
+            },
+            {
+              "tool": "read Chemicals_Award_Schedule_2024-2026.xlsx",
+              "res": "Award summary, lot awards, prices, volumes by business, continuity, approvals, evidence: the structure the committee approved in 2023",
+              "live": false
+            },
+            {
+              "tool": "scan pur.po_line · src.contract_item",
+              "res": "$34.4M of the seven chemicals ordered to September by the three businesses · 2026 contract prices for every lot",
+              "live": false
+            },
+            {
+              "tool": "scan ops.dosing_plan",
+              "res": "2027 plans for 33 sites: 102,280 tons against 96,730 at the run rate · Energy plans dated November 2025",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "read mm.plant_stock · Corrigan force majeure notice",
+              "res": "Corrigan at 60% of ferric volume since 12 October · 5 water plants under ten days of cover",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "read Outlook: chemicals · committee",
+              "res": "Helena: paper, schedule and slides by 5 November · Imani: use the 2027 plans · Sabine Coast: 25,000 tons a year of ferric",
+              "live": false
+            },
+            {
+              "tool": "search role memory",
+              "res": "Awards on landed cost among qualified suppliers · a supplier without continuity is capped or kept secondary · avoided premiums are not savings",
+              "live": false
+            },
+            {
+              "tool": "search for a confirmed restart date from Corrigan",
+              "res": "None: the notice expects the first quarter of 2027 and says it cannot confirm a date; no later message",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "draft the plan",
+              "res": "6 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j6-bw004",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "The plan is on the right: what we are answering, what I am working from, and how I would go about it. Two things I could not find, then what you want at the end; one at a time. After that I run it to the end without stopping.",
+        "id": "j7-bw005",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "fm",
+          "done": "secondary at 30% once the force majeure lifts"
+        },
+        "id": "j8-bw006",
+        "at": "14:01"
+      },
+      {
+        "who": "me",
+        "text": "Secondary at 30%, only once the force majeure lifts",
+        "id": "j9-bw007",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "vol",
+          "done": "the 2027 dosing plans, Energy provisional"
+        },
+        "id": "j10-bw008",
+        "at": "14:01"
+      },
+      {
+        "who": "me",
+        "text": "The 2027 dosing plans, Energy marked provisional",
+        "id": "j11-bw009",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "Last thing before I start: what should I hand you at the end? Your brief asks for all three, so they are ticked. Untick any you do not need, pick the template for each, or add another.",
+        "card": {
+          "kind": "deliv",
+          "done": "Award paper · Award schedule · Committee slides · A one-page memo for Adrian Kell on the saving and the ferric risk"
+        },
+        "id": "j12-bw010",
+        "at": "14:01"
+      },
+      {
+        "who": "me",
+        "text": "Run it",
+        "id": "j13-bw012",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Running · plan v1 · 14:02",
+        "id": "j14-bw013",
+        "at": "14:02"
+      },
+      {
+        "who": "agent",
+        "text": "That is everything I need. Running it now, start to finish: six steps, then I accept the findings, choose the top recommendation and build the four deliverables. You do not need to stay; it lands under Executed on the left, and the workflow is on the right if you want to watch.",
+        "id": "j15-bw013",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · 102,280 tons a year, $52.46M at today’s prices",
+        "id": "j16-bw014",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Provisional finding · The three businesses use 102,280 tons a year of the seven chemicals on the 2027 plans: $52.46M at today's contract prices and freight.",
+        "id": "j17-bw014",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · award saves $3.44M a year on landed cost",
+        "id": "j18-bw015",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · five water plants under ten days of ferric; Corrigan at 60%",
+        "id": "j19-bw016",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Qualification check running",
+        "id": "j20-bw017",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · every awarded bidder qualified; one duplicate vendor record to close",
+        "id": "j21-bw018",
+        "at": "14:02"
+      },
+      {
+        "who": "event",
+        "text": "Step 5 done · recommendation: award by lot, $3.44M a year",
+        "id": "j22-bw019",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Weighing the findings against the brief and the policies",
+        "id": "j23-bw020",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Findings accepted automatically · 4 of 4",
+        "id": "j24-bw021",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Top recommendation chosen · option 1",
+        "id": "j25-bw022",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Built · Award paper · 8 sections",
+        "id": "j26-bw028",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Built · Award schedule · 7 sheets",
+        "id": "j27-bw029",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Built · Committee slides · 7 slides",
+        "id": "j28-bw030",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Built · A one-page memo for Adrian Kell on the saving and the ferric risk · 5 sections",
+        "id": "j29-bw031",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Delivered · 14:04 · moved to Executed",
+        "id": "j30-bw032",
+        "at": "14:04"
+      },
+      {
+        "who": "agent",
+        "text": "Done. **Award paper**, **Award schedule**, **Committee slides** and **A one-page memo for Adrian Kell on the saving and the ferric risk** are built and open on the right.\n\n**Award by lot on landed cost: $3.44M a year (6.6%), with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts.** Pemberton’s duplicate vendor record is the gap I would close first, because spot orders leak outside the contract until it is merged.\n\nI accepted the four findings and chose option 1 of three; both are under Findings if you want to check them. To change anything, say so here: another option, a supplier to leave out, a section to rewrite. The deliverables are rebuilt.",
+        "card": {
+          "kind": "delivered"
+        },
+        "id": "j31-bw032",
+        "at": "14:04"
+      },
+      {
+        "who": "me",
+        "text": "Use option 3 instead",
+        "id": "j32-bw033",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Option 3 chosen by you · 14:04",
+        "id": "j33-bw033",
+        "at": "14:04"
+      },
+      {
+        "who": "agent",
+        "text": "Rebuilding **Award paper**, **Award schedule**, **Committee slides** and **A one-page memo for Adrian Kell on the saving and the ferric risk** on option 3: **Extend the 2026 agreements by six months and re-bid ferric in the first quarter**. They come back on the right, part by part.",
+        "id": "j34-bw033",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Built · Award paper · 8 sections",
+        "id": "j35-bw034",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Built · Award schedule · 7 sheets",
+        "id": "j36-bw035",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Built · Committee slides · 7 slides",
+        "id": "j37-bw036",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Built · A one-page memo for Adrian Kell on the saving and the ferric risk · 5 sections",
+        "id": "j38-bw037",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Deliverables rebuilt · version 2 · on option 3",
+        "id": "j39-bw037",
+        "at": "14:04"
+      },
+      {
+        "who": "agent",
+        "text": "Rebuilt on option 3, as version 2. The earlier version is in the log.",
+        "id": "j40-bw038",
+        "at": "14:04"
+      }
+    ],
+    "chips": [
+      "Leave Corrigan out of ferric",
+      "Use option 3 instead",
+      "Show me the findings",
+      "Make more deliverables in Submissions"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Change anything: another option, a supplier, a section…"
+    },
+    "log": [
+      {
+        "t": "14:02",
+        "who": "You",
+        "what": "Agreed what it hands over: Award paper: treatment chemicals 2027 to 2029; Award schedule: treatment chemicals 2027 to 2029; Committee slides: treatment chemicals award; A one-page memo for Adrian Kell on the saving and the ferric risk."
+      },
+      {
+        "t": "14:02",
+        "who": "You",
+        "what": "Started the run (plan v1)."
+      },
+      {
+        "t": "14:02",
+        "who": "Agent Compass",
+        "what": "Step 1 done · 102,280 tons a year, $52.46M at today’s prices"
+      },
+      {
+        "t": "14:02",
+        "who": "Agent Compass",
+        "what": "Step 3 done · award saves $3.44M a year on landed cost"
+      },
+      {
+        "t": "14:02",
+        "who": "Agent Compass",
+        "what": "Step 2 done. Five water plants under ten days of ferric; Corrigan shipping 60%; spot buys under FMX."
+      },
+      {
+        "t": "14:02",
+        "who": "Agent Compass",
+        "what": "Step 4 done · every awarded bidder qualified; one duplicate vendor record to close"
+      },
+      {
+        "t": "14:03",
+        "who": "Agent Compass",
+        "what": "Step 5 done · recommendation: award by lot, $3.44M a year"
+      },
+      {
+        "t": "14:03",
+        "who": "Agent Compass",
+        "what": "Accepted the 4 findings and chose the top recommendation: Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts."
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Compass",
+        "what": "Built 4 deliverables on option 1, award by lot on landed cost."
+      },
+      {
+        "t": "14:04",
+        "who": "You",
+        "what": "Chose option 3 instead: Extend the 2026 agreements by six months and re-bid ferric in the first quarter"
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "27 Oct, 14:02",
+        "label": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+        "status": "executed"
+      }
+    ],
+    "flags": {
+      "steerAvail": true,
+      "cpAnswered": true
+    },
+    "doneCount": 6,
+    "paused": false,
+    "deliv": [
+      {
+        "id": "sub-award-paper",
+        "label": "Award paper: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee, 12 November, through Helena Marsh, Chief Procurement Officer",
+        "purpose": "The award by lot on landed cost, what it saves, and how ferric chloride stays supplied",
+        "why": "Helena asked for the paper on the committee template by 5 November.",
+        "format": "Document",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-pc-award-paper"
+      },
+      {
+        "id": "sub-award-schedule",
+        "label": "Award schedule: treatment chemicals 2027 to 2029",
+        "audience": "Procurement Committee and the contract owners",
+        "purpose": "Lot awards, prices, volumes by business, continuity and approvals, in the structure the committee approved in 2023",
+        "why": "The committee asked for award papers in the 2024 structure.",
+        "format": "Workbook",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-prior-award-2024"
+      },
+      {
+        "id": "sub-award-deck",
+        "label": "Committee slides: treatment chemicals award",
+        "audience": "Procurement Committee, Thursday 12 November",
+        "purpose": "Walk the committee through the award, the saving and ferric continuity",
+        "why": "The chair wants the chemicals award on its own slides.",
+        "format": "Slide pack",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-pc-award-deck"
+      },
+      {
+        "id": "sub-savings-note",
+        "label": "Savings program note: the chemicals award",
+        "audience": "Sofia Brandt, Finance Business Partner, Procurement",
+        "purpose": "What the award saves against today's landed cost, and what does not count as a saving",
+        "why": "Avoided premiums are not savings; finance books only the landed-cost saving.",
+        "format": "Memo",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-pc-savings-note"
+      },
+      {
+        "id": "sub-event-summary",
+        "label": "Sourcing event summary: SE-2026-031",
+        "audience": "Imani Okoro, Category Manager, Chemicals and Process Materials",
+        "purpose": "The event, the twenty bids, the evaluation and the award, for the sourcing record",
+        "why": "Every sourcing event closes with a summary on file.",
+        "format": "Document",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-src-event-summary"
+      },
+      {
+        "id": "custom-bw011",
+        "label": "A one-page memo for Adrian Kell on the saving and the ferric risk",
+        "audience": "Adrian Kell",
+        "purpose": "A one-page memo for Adrian Kell on the saving and the ferric risk",
+        "format": "Memo",
+        "on": true,
+        "mode": "ai",
+        "describe": "A one-page memo for Adrian Kell on the saving and the ferric risk",
+        "custom": true,
+        "templateId": "t-desc-custom-bw011-bw023"
+      }
+    ],
+    "delivConfirmed": true,
+    "acts": [],
+    "execActs": [],
+    "built": {
+      "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw024",
+      "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw025",
+      "sub-award-deck": "sub-committee-slides-treatment-chemicals-awa-bw026",
+      "custom-bw011": "sub-a-one-page-memo-for-adrian-kell-on-the-s-bw027"
+    },
+    "buildV": 2,
+    "agreedAt": "14:02",
+    "chosen": "r3",
+    "chosenBy": "you",
+    "deliveredAt": "14:04",
+    "prog": null,
+    "executedAt": "14:04"
+  }
+}

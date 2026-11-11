@@ -1,0 +1,258 @@
+{
+  "_about": "The Goals list at the end of the recorded session, one line per goal, and the saved plans.",
+  "order": [
+    "g-monthly-chemicals-position-after-eve-bw124",
+    "g-what-is-the-carbon-footprint-of-our--bw111",
+    "g-nineteen-positions-in-the-28-october-bw094",
+    "g-no-critical-spare-or-chemical-below--bw084",
+    "g-treatment-chemicals-award-2027-to-20-bw048",
+    "g-treatment-chemicals-award-2027-to-20-bw002",
+    "g-rule-stock-cover"
+  ],
+  "saved": [
+    {
+      "id": "ap-chemicals-award-spend-cover-bids-con-bw157",
+      "name": "Chemicals award: spend, cover, bids, continuity",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+          "s": "186 KB"
+        },
+        {
+          "id": "seed",
+          "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+          "s": "240 KB"
+        }
+      ],
+      "steps": [
+        "State what the group buys and what it costs today",
+        "Check supply today: cover at each plant and the Corrigan allocation",
+        "Compare the bids on landed cost",
+        "Check qualification and continuity of each awarded bidder",
+        "Three ways to award",
+        "Build the deliverables you chose"
+      ],
+      "from": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "by": "You",
+      "at": "27 Oct 2026",
+      "case": "once"
+    },
+    {
+      "id": "ap-award",
+      "name": "Chemicals award: spend, cover, bids, continuity",
+      "mode": "once",
+      "kind": "once",
+      "prompt": "Helena needs the treatment chemicals award for the Procurement Committee on Thursday 12 November, with the paper by 5 November. Work out what we buy across Water, Hazardous Waste and Energy and what it costs today, compare the bids in SE-2026-031 on landed cost, show how many days of cover each plant holds under the Corrigan force majeure, and draft the award paper, the award schedule in the 2024 structure and a few slides for the committee. Attached: the bid comparison export and the 2024 award schedule.",
+      "files": [
+        {
+          "id": "seed",
+          "n": "SE-2026-031_Bid_comparison_export_2026-10-16.xlsx",
+          "s": "186 KB"
+        },
+        {
+          "id": "seed",
+          "n": "Chemicals_Award_Schedule_2024-2026.xlsx",
+          "s": "240 KB"
+        }
+      ],
+      "steps": [
+        "State what the group buys and what it costs today",
+        "Check supply today: cover at each plant and the Corrigan allocation",
+        "Compare the bids on landed cost",
+        "Check qualification and continuity of each awarded bidder",
+        "Three ways to award",
+        "Build the deliverables you chose"
+      ],
+      "from": "Treatment chemicals award 2024 to 2026",
+      "by": "Imani Okoro",
+      "at": "16 Nov 2023",
+      "case": "once"
+    },
+    {
+      "id": "ap-shortfall",
+      "name": "Stock shortfall: size, cause, options",
+      "mode": "watch",
+      "kind": "rule",
+      "prompt": "Keep every critical spare and treatment chemical above safety stock across all our sites. Check each nightly load of stock, open orders and work order reservations; when something is going to fall short before it can be replenished, size it, look at what the rest of the group holds, and work out what can still be done before I ask.",
+      "files": [],
+      "steps": [
+        "Confirm what the load flagged, and size it",
+        "Why it happened, and whether anyone is on it",
+        "Look across the group: stock, expedites, substitutes",
+        "What can still be done, including nothing",
+        "Build the deliverables, act and tell you"
+      ],
+      "from": "Critical position short before its next receipt",
+      "by": "Rafael Duarte",
+      "at": "21 Oct 2026",
+      "case": "watch"
+    }
+  ],
+  "goals": {
+    "g-monthly-chemicals-position-after-eve-bw124": {
+      "id": "g-monthly-chemicals-position-after-eve-bw124",
+      "title": "Monthly chemicals position: after every month-end close",
+      "mode": "watch",
+      "kind": "schedule",
+      "case": "schedule",
+      "stage": "armed",
+      "status": "executed",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw149",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw150",
+        "sub-award-deck": "sub-committee-slides-treatment-chemicals-awa-bw151"
+      },
+      "runs": [
+        {
+          "id": "r1",
+          "at": "27 Oct, 14:19",
+          "label": "Scheduled run · after the 6 November close",
+          "status": "executed"
+        }
+      ]
+    },
+    "g-what-is-the-carbon-footprint-of-our--bw111": {
+      "id": "g-what-is-the-carbon-footprint-of-our--bw111",
+      "title": "What is the carbon footprint of our chemical deliveries?",
+      "mode": "once",
+      "kind": "once",
+      "case": "generic",
+      "stage": "running",
+      "status": "ready",
+      "agent": "Agent Harbour",
+      "chosen": null,
+      "chosenBy": null,
+      "built": {},
+      "runs": [
+        {
+          "id": "r1",
+          "at": "27 Oct, 14:17",
+          "label": "What is the carbon footprint of our chemical deliveries?",
+          "status": "running"
+        }
+      ]
+    },
+    "g-nineteen-positions-in-the-28-october-bw094": {
+      "id": "g-nineteen-positions-in-the-28-october-bw094",
+      "title": "Nineteen positions in the 28 October load short before replenishment",
+      "mode": "once",
+      "kind": "once",
+      "case": "overrun-once",
+      "stage": "running",
+      "status": "delivered",
+      "agent": "Agent Sentinel",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "built": {
+        "sub-stock-note": "sub-stock-exception-note-the-28-october-load-bw109",
+        "sub-transfer-list": "sub-transfer-and-expedite-list-ravensworth-k-bw110"
+      },
+      "runs": [
+        {
+          "id": "r1",
+          "at": "27 Oct, 14:15",
+          "label": "Nineteen positions in the 28 October load short before replenishment",
+          "status": "running"
+        }
+      ]
+    },
+    "g-no-critical-spare-or-chemical-below--bw084": {
+      "id": "g-no-critical-spare-or-chemical-below--bw084",
+      "title": "No critical spare or chemical below safety stock: check every nightly load",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "armed",
+      "agent": "Agent Keel",
+      "chosen": null,
+      "chosenBy": null,
+      "built": {},
+      "runs": []
+    },
+    "g-treatment-chemicals-award-2027-to-20-bw048": {
+      "id": "g-treatment-chemicals-award-2027-to-20-bw048",
+      "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "delivered",
+      "agent": "Agent Beacon",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw065",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw066"
+      },
+      "runs": [
+        {
+          "id": "r1",
+          "at": "27 Oct, 14:08",
+          "label": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "status": "executed"
+        }
+      ]
+    },
+    "g-treatment-chemicals-award-2027-to-20-bw002": {
+      "id": "g-treatment-chemicals-award-2027-to-20-bw002",
+      "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "mode": "once",
+      "kind": "once",
+      "case": "once",
+      "stage": "running",
+      "status": "delivered",
+      "agent": "Agent Compass",
+      "chosen": "r1",
+      "chosenBy": "you",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw024",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw025",
+        "sub-award-deck": "sub-committee-slides-treatment-chemicals-awa-bw026",
+        "custom-bw011": "sub-a-one-page-memo-for-adrian-kell-on-the-s-bw027",
+        "sub-savings-note": "sub-savings-program-note-the-chemicals-award-bw156",
+        "custom-bw154": "sub-a-one-page-dashboard-of-the-award-by-lot-bw153"
+      },
+      "runs": [
+        {
+          "id": "r1",
+          "at": "27 Oct, 14:02",
+          "label": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "status": "executed"
+        }
+      ]
+    },
+    "g-rule-stock-cover": {
+      "id": "g-rule-stock-cover",
+      "title": "No critical spare or chemical below safety stock: check every nightly load",
+      "mode": "watch",
+      "kind": "rule",
+      "case": "watch",
+      "stage": "armed",
+      "status": "executed",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "built": {
+        "sub-stock-note": "sub-stock-exception-note-the-28-october-load-bw080",
+        "sub-transfer-list": "sub-transfer-and-expedite-list-ravensworth-k-bw081",
+        "sub-scorecard-update": "sub-supplier-scorecard-update-holcombe-and-v-bw152"
+      },
+      "runs": [
+        {
+          "id": "r1",
+          "at": "28 Oct, 02:10",
+          "label": "Nightly load, 28 October · 19 positions short",
+          "status": "executed"
+        }
+      ]
+    }
+  }
+}

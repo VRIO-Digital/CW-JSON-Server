@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "package": "supply_chain_analyst_updated_demo_data_package_2026-11-10",
+    "tenant": "Bramwell Environmental Group (fictional; the Supply Chain Analyst demo world)",
+    "dataset": "BRAMWELL",
+    "asOf": "2026-10-27",
+    "today": "2026-11-10",
+    "note": "Submissions in the 4 November flow: make more from an analysis that has run. No reader, structure or outline steps; a deliverable takes about 15 to 17 seconds at normal pace and fills in part by part.",
+    "updates": "supply_chain_analyst_demo_data_package_2026-10-27"
+  },
+  "steps": [
+    {
+      "step": 1,
+      "screen": "Goal › Delivered card (\"Make more deliverables in Submissions\"), or Submissions › New",
+      "action": "Pick an analysis that has run",
+      "analyses": [
+        {
+          "id": "g-monthly-chemicals-position-after-eve-bw124",
+          "title": "Monthly chemicals position: after every month-end close",
+          "run": "Scheduled run · after the 6 November close",
+          "deliverables": 3
+        },
+        {
+          "id": "g-nineteen-positions-in-the-28-october-bw094",
+          "title": "Nineteen positions in the 28 October load short before replenishment",
+          "run": "Nineteen positions in the 28 October load short before replenishment",
+          "deliverables": 2
+        },
+        {
+          "id": "g-treatment-chemicals-award-2027-to-20-bw048",
+          "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "run": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "deliverables": 2
+        },
+        {
+          "id": "g-treatment-chemicals-award-2027-to-20-bw002",
+          "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "run": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+          "deliverables": 6
+        },
+        {
+          "id": "g-rule-stock-cover",
+          "title": "No critical spare or chemical below safety stock: check every nightly load",
+          "run": "Nightly load, 28 October · 19 positions short",
+          "deliverables": 3
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "screen": "Submissions › What to make",
+      "action": "Tick more from what the agent suggests, or describe one in words; pick the template for each the same four ways",
+      "offered": {
+        "once": [
+          "Savings program note: the chemicals award",
+          "Sourcing event summary: SE-2026-031"
+        ],
+        "watch": [
+          "Monthly shortage review: the Kiln 2 outage",
+          "Supplier scorecard update: Holcombe and Vantor"
+        ]
+      },
+      "picked": {
+        "analysis": "g-treatment-chemicals-award-2027-to-20-bw002",
+        "deliverable": "sub-savings-program-note-the-chemicals-award-bw156"
+      }
+    },
+    {
+      "step": 3,
+      "screen": "Submissions › Building",
+      "action": "Create: preparation lines (reading the analysis, the option it rests on, the template), then part by part (\"Writing section k of n\")",
+      "built": "sub-savings-program-note-the-chemicals-award-bw156",
+      "timing": {
+        "firstPrepLines": 3,
+        "nextPrepLines": 2,
+        "prepLineMs": 1900,
+        "firstPartMs": 1700,
+        "perPartMs": 1500,
+        "betweenDeliverablesMs": 900,
+        "note": "Scaled by ?pace= like the rest of the prototype; a seven-part document takes about 16 seconds."
+      }
+    },
+    {
+      "step": 4,
+      "screen": "Submissions › Deliverable",
+      "action": "Make another from the same analysis, in words",
+      "description": "a one-page dashboard of the award by lot and the saving for Helena Marsh",
+      "built": "sub-a-one-page-dashboard-of-the-award-by-lot-bw153",
+      "designedTemplate": "t-desc-custom-bw154-bw155"
+    },
+    {
+      "step": 5,
+      "screen": "Goal (the handled watch run) › Make more in Submissions",
+      "action": "Tick the supplier scorecard update and Create",
+      "analysis": "g-rule-stock-cover",
+      "built": "sub-supplier-scorecard-update-holcombe-and-v-bw152"
+    },
+    {
+      "step": 6,
+      "screen": "Submissions › Deliverable",
+      "action": "Select any text and ask for a change; download; mark reviewed",
+      "note": "Edits stay on this deliverable; a rebuild from the goal makes the next version and keeps the log."
+    }
+  ]
+}

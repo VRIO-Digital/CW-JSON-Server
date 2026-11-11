@@ -1,0 +1,387 @@
+{
+  "planRows": {
+    "scope": "What is in scope",
+    "decision": "The decision it informs",
+    "deliver": "What gets delivered",
+    "success": "What counts as success",
+    "memory": "From role memory",
+    "fixed": "Fixed by policy",
+    "doc:bids": "The bid export",
+    "doc:prior": "The 2024 award schedule",
+    "src:erp": "SAP purchasing and stock",
+    "src:srm": "Contracts and bids",
+    "src:ops": "Operations: dosing plans",
+    "src:mail": "Mailbox",
+    "src:std": "Inventory standard",
+    "src:cal": "Load calendar",
+    "as:fm": "How Corrigan counts",
+    "as:vol": "Which volumes",
+    "miss:fm": "Needs you: Corrigan",
+    "miss:vol": "Needs you: volumes",
+    "miss:tell": "Needs you: who is told",
+    "watch": "What is watched",
+    "against": "Checked against",
+    "where": "Where it is checked",
+    "prior": "Open goals it reads",
+    "until": "Latest position",
+    "steps": "The steps",
+    "web": "From the web",
+    "miss:generic": "No recorded analysis"
+  },
+  "startScreen": {
+    "toggle": [
+      "Answer once",
+      "Keep watching"
+    ],
+    "composer": "Textarea, attachments, a + menu (Upload from your computer; Connected: Web search toggle, OneDrive, Outlook, Azure SQL), the web-search pill, Send.",
+    "examples": {
+      "once": [
+        "Use the treatment chemicals award example",
+        "19 positions short in the 28 October load: what can still be done?"
+      ],
+      "watch": [
+        "Use the critical stock example",
+        "Chemicals position after every month-end close"
+      ]
+    },
+    "caseDetection": {
+      "once": "'award', 'bid', 'tender', 'SE-2026-031', 'chemicals', 'landed cost', 'force majeure', 'Corrigan', 'committee' → case once; 'short', 'stockout', 'safety stock', 'outage', 'reservation', 'expedite', 'transfer' → case overrun-once (the watch analysis run once); otherwise generic",
+      "watch": "'every month', 'after every close', 'month-end' style words or the schedule example → kind schedule; 'safety stock', 'critical', 'spares', 'stock', 'reservation', 'load' → case watch (rule); otherwise generic rule"
+    }
+  },
+  "flow": "4 November 2026: every human input is taken once, at the start. A one-off goal plans, asks only what it could not find, agrees the deliverables and the template for each, then runs to the end by itself: findings accepted automatically, the top option chosen automatically, the deliverables built. A standing goal agrees the same at set-up plus the actions it may take; when it fires it runs, chooses, acts, builds and tells you. Anything can be changed afterwards; the deliverables are rebuilt as the next version.",
+  "kinds": {
+    "once": {
+      "label": "Answer once",
+      "journeyBar": [
+        "Plan",
+        "Your input",
+        "Run",
+        "Delivered"
+      ],
+      "panelTabs": [
+        "plan",
+        "workflow",
+        "findings",
+        "deliverables",
+        "data",
+        "log"
+      ]
+    },
+    "watch": {
+      "label": "Keep watching",
+      "kinds": [
+        "rule",
+        "schedule"
+      ],
+      "journeyBar": [
+        "Plan",
+        "Your input",
+        "Armed",
+        "Run and act",
+        "Handled"
+      ],
+      "panelTabs": [
+        "plan",
+        "workflow",
+        "findings",
+        "deliverables",
+        "data",
+        "log"
+      ]
+    }
+  },
+  "panelTabs": {
+    "order": [
+      "plan",
+      "workflow",
+      "findings",
+      "deliverables",
+      "data",
+      "log"
+    ],
+    "rule": "Always the same six tabs in the same order, from the first message to the last. A tab with nothing in it yet says what will land there. The panel opens on the tab that matters at that moment (Plan while briefing, Workflow while it runs, Deliverables when it is done); the order never changes.",
+    "contents": {
+      "plan": "Open points (Missing in orange until answered, then Clarified in green with the answer and where it came from), then the plan rows and the deliverables agreed",
+      "workflow": "The steps as a graph; a \"working now\" card per running step with its calls one by one, a progress bar and the seconds elapsed",
+      "findings": "Every finding (tagged \"Accepted automatically\"), its evidence and data, and all the options with \"Why this\" and \"Use this instead\". On a standing goal also the runs and the actions with their states",
+      "deliverables": "The deliverables, built part by part in front of you (a chip per deliverable: done, being built, waiting), then complete; download or open in Submissions",
+      "data": "The tables behind the findings",
+      "log": "Every event, change and version"
+    }
+  },
+  "stages": {
+    "reading": "The agent reads what it was given and what is connected (about twenty seconds at normal pace). The feed in the chat shows one tool call per line; each line reveals plan rows. The composer is off. Ends with the steps drafted.",
+    "questions": "Your input, all of it in one step. Only what the reads could not find, one card at a time (kind 'q'); each answered point turns from Missing to Clarified on the Plan tab. Then the deliverables card (kind 'deliv'): the deliverables the goal suggests, ticked, and more offered unticked; add your own in words; for each the template, Recommended, From the library, Upload your own or Create one for me. A standing goal's card also sets each kind of action to By itself or Ask me first. One click: Run it, or Arm the watch.",
+    "running": "(once) No second agreement and no checkpoint. Steps run (about ten seconds each); findings land as steps finish; then findings accepted automatically (over['acc:<id>'] = 'auto'), the top option chosen automatically (chosenBy 'auto'), the deliverables built part by part (prog: {sids, i, shown}). Status 'delivered'; the goal moves to Executed.",
+    "armed": "(watch) Armed. Nothing runs until the rule fires or the schedule is due (\"Simulate tonight’s load\" or 'Simulate: run now' in the demo). On firing: a notification; status 'fired' while the steps run; then accept, choose, build and act by themselves: actions set to By itself are done, the others wait (state 'waiting') under Needs you until Approve or Leave it. Status 'executed'; a notification says what it found, what it chose and what it did. The watch stays armed.",
+    "after": "Look back, change anything: 'Use this instead' on another option, or a steer in the chat (\"Leave Corrigan out of ferric\": step 3 and everything after it re-run). Every deliverable is rebuilt as the next version (version, basis; the earlier version stays in the log). On a standing goal, what was done stays done and the new option's actions wait for your OK."
+  },
+  "statuses": [
+    "draft",
+    "running",
+    "ready",
+    "delivered",
+    "armed",
+    "fired",
+    "executing",
+    "executed"
+  ],
+  "statusNotes": {
+    "ready": "only a goal with no recorded analysis: the run ends on a question and nothing is built",
+    "delivered": "one-off goal, deliverables built",
+    "executed": "standing goal run handled (actions done or waiting)"
+  },
+  "nodeStates": [
+    "pending",
+    "running",
+    "done",
+    "stale"
+  ],
+  "deliverables": {
+    "templateModes": {
+      "recommended": "Recommended (the agent picks from the library)",
+      "library": "From the library",
+      "upload": "Upload your own (read into a \"Your file\" template)",
+      "ai": "Create one for me (the agent designs the structure from your words)"
+    },
+    "spec": "DelivSpec: id, label, audience, purpose, why, format, on, mode, recId, templateId, describe, uploadName, custom",
+    "offered": {
+      "once": [
+        "Savings program note: the chemicals award",
+        "Sourcing event summary: SE-2026-031"
+      ],
+      "watch": [
+        "Monthly shortage review: the Kiln 2 outage",
+        "Supplier scorecard update: Holcombe and Vantor"
+      ]
+    },
+    "built": "journey.built maps each deliverable id to its submission id; buildV is the version; the submissions carry journeyId, delivId, version and basis"
+  },
+  "actions": {
+    "modes": {
+      "auto": "By itself",
+      "ask": "Ask me first"
+    },
+    "states": [
+      "todo",
+      "done",
+      "waiting",
+      "approved",
+      "declined"
+    ],
+    "rule": "Internal requests run by themselves; anything that commits money or goes outside the company waits for your OK, unless you set it to By itself at set-up.",
+    "categories": {
+      "watch": [
+        {
+          "key": "send",
+          "text": "Send the deliverables to the people who are told",
+          "why": "Internal; nothing is committed",
+          "mode": "auto"
+        },
+        {
+          "key": "releases",
+          "text": "Ask the storeroom leads to confirm the transfers",
+          "why": "A request inside the group",
+          "mode": "auto"
+        },
+        {
+          "key": "sto",
+          "text": "Ask the buyer to raise the stock transport orders",
+          "why": "A request; Leon Varga raises them",
+          "mode": "auto"
+        },
+        {
+          "key": "spot",
+          "text": "Ask the chemicals buyer for spot volume under the framework",
+          "why": "A request; Anika Sorensen buys inside the framework",
+          "mode": "auto"
+        },
+        {
+          "key": "substitute",
+          "text": "Log an approved substitute as a stock exception",
+          "why": "A record; the substitute is already approved",
+          "mode": "auto"
+        },
+        {
+          "key": "expedite",
+          "text": "Raise expedite requests with suppliers",
+          "why": "Costs money and goes to suppliers",
+          "mode": "ask",
+          "outside": true
+        },
+        {
+          "key": "outage",
+          "text": "Ask the outage manager to move an outage",
+          "why": "Moves a plant outage and costs disposal margin",
+          "mode": "ask"
+        }
+      ],
+      "schedule": [
+        {
+          "key": "send",
+          "text": "Send the refreshed deliverables to Helena Marsh and Imani Okoro",
+          "why": "Internal; nothing is committed",
+          "mode": "auto"
+        },
+        {
+          "key": "cover",
+          "text": "Tell Anika Sorensen which water plants are under the 14-day ferric minimum",
+          "why": "Internal",
+          "mode": "auto"
+        }
+      ]
+    }
+  },
+  "journeyBarRule": {
+    "plan": "stage reading",
+    "input": "stage questions or plan (sub: answered of total, the deliverables card counts as one)",
+    "armed": "watch: status armed",
+    "run": "once: status running; watch: status fired or executing (sub: done of N)",
+    "delivered": "once: status delivered or ready",
+    "handled": "watch: status executed (sub: n for your OK while actions wait)"
+  },
+  "notifications": {
+    "kinds": [
+      "fired",
+      "findings",
+      "executed"
+    ],
+    "toast": "Top right, with a call to action (Watch it run, Open it, Review it)",
+    "bell": "Every notice stays in the bell drawer; unread count on the bell",
+    "fields": [
+      "title",
+      "text",
+      "found",
+      "rec",
+      "cta"
+    ],
+    "recorded": "notifications_after_watch.json",
+    "executedOpens": "the Deliverables tab"
+  },
+  "dock": "While the card waiting for you is scrolled out of sight, a bar docks above the message box ('Pick the deliverables, then run it', 'Approve or leave the held action'), with 'Go to it'.",
+  "resumeLine": "Reopening a goal with history shows one line: 'Back on this. Step n of N, <label>. Next: <what it needs>.' or, when done, that the deliverables are on the right.",
+  "listGroups": {
+    "Needs you": "goals being briefed (questions or the deliverables card open), and standing-goal runs with an action waiting for your OK",
+    "Running": "one-off goals running, standing goals firing",
+    "Standing goals": "every armed watch, with \"Simulate tonight’s load\" / 'Simulate: run now'",
+    "Executed": "one-off goals delivered and standing-goal runs handled, each with its deliverables",
+    "Saved plans": "saved plans with 'new goal from it'"
+  },
+  "timings": {
+    "pace": "Every delay is multiplied by ?pace= in the address (default 1; 0.05 runs twenty times faster). A virtual clock (?clock=ISO) makes the times shown deterministic.",
+    "reading": "About twenty seconds of read lines before the first question; each next question after a short pause",
+    "onceRun": [
+      [
+        "n1 running",
+        1400
+      ],
+      [
+        "n1 done, F1 lands, n2 and n3 running",
+        10500
+      ],
+      [
+        "n3 done, F3 lands",
+        9000
+      ],
+      [
+        "n2 done, F2 lands",
+        3000
+      ],
+      [
+        "n4 running",
+        900
+      ],
+      [
+        "n4 done, F4 lands, n5 running",
+        10000
+      ],
+      [
+        "n5 done (options)",
+        10500
+      ],
+      [
+        "findings accepted automatically",
+        3200
+      ],
+      [
+        "top option chosen automatically",
+        2800
+      ],
+      [
+        "n6 running, building starts",
+        1500
+      ]
+    ],
+    "watchRun": [
+      [
+        "w1 running",
+        1500
+      ],
+      [
+        "w1 done, W1 lands, w2 and w3 running",
+        10000
+      ],
+      [
+        "w2 done, W2 lands",
+        9500
+      ],
+      [
+        "w3 done, W3 lands, w4 running",
+        2500
+      ],
+      [
+        "w4 done (options)",
+        10000
+      ],
+      [
+        "findings accepted automatically",
+        3200
+      ],
+      [
+        "top option chosen automatically",
+        2800
+      ],
+      [
+        "w5 running, building starts",
+        1500
+      ]
+    ],
+    "build": {
+      "perPartMs": 950,
+      "betweenDeliverablesMs": 1330,
+      "rebuildPerPartMs": 500
+    },
+    "actions": [
+      [
+        "first action",
+        2000
+      ],
+      [
+        "each further action",
+        1700
+      ]
+    ],
+    "steerRerun": [
+      [
+        "n3 done again (contentKey n3b), F3 → F3b",
+        8000
+      ],
+      [
+        "each downstream step re-done",
+        4500
+      ]
+    ],
+    "measured": "At normal pace: the one-off example about 75 seconds from Run it to delivered (about 50 of steps, 25 of building); the watch about 65 seconds from firing to handled; a deliverable made in Submissions about 16 seconds."
+  },
+  "controls": {
+    "Tiles on a question card": "answer the open point; the Plan tab shows it Clarified with the answer and its source",
+    "Deliverables card": "tick or untick; add your own in words with a format; for each the template mode; on a standing goal By itself / Ask me first per kind of action; Run it / Arm the watch",
+    "Use this instead": "on another option under Findings: chosenBy you, every deliverable rebuilt as the next version; on a standing goal the new option's actions wait for your OK",
+    "Steer chip": "'Leave Corrigan out of ferric' → diff card → Apply: step 3 stale then done (n3b), F3 → F3b, the steps after it re-done, the saving moves to $3.21M a year (6.1%) with ferric chloride to Sabine Coast alone, the option chosen goes back to the top one and every deliverable is rebuilt on it",
+    "Approve / Leave it": "on a held action, from the Deliverables tab or the chat",
+    "Make more deliverables in Submissions": "opens Submissions on this analysis with the make card",
+    "Save this plan": "adds a saved plan to the list",
+    "Simulate": "fires the rule (the load of 28 October 02:00) or runs the schedule now"
+  }
+}

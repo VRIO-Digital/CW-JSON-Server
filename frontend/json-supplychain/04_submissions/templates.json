@@ -1,0 +1,539 @@
+{
+  "_meta": {
+    "package": "supply_chain_analyst_updated_demo_data_package_2026-11-10",
+    "tenant": "Bramwell Environmental Group (fictional; the Supply Chain Analyst demo world)",
+    "dataset": "BRAMWELL",
+    "asOf": "2026-10-27",
+    "today": "2026-11-10",
+    "exported_from": "Composed by _build/submissions_supply.py from the datasets and the Goals layer; carried into this update and changed for the 4 November flow.",
+    "note": "The template library. A deliverable is built on a template in four ways: recommended (the agent picks one from this library), from the library (you pick), upload your own (read into a \"Your file\" template) or create one for me (the agent designs the structure from your words and keeps it as a \"Described for a goal\" template). The files are in templates/ at the package root. designedInSession: the 2 the recorded session designed.",
+    "updates": "supply_chain_analyst_demo_data_package_2026-10-27"
+  },
+  "section_roles": [
+    "purpose",
+    "summary",
+    "findings",
+    "options",
+    "why",
+    "evidence",
+    "assumptions",
+    "next",
+    "free"
+  ],
+  "stages": [
+    "draft",
+    "reviewed"
+  ],
+  "template_modes": {
+    "recommended": "Recommended",
+    "library": "From the library",
+    "upload": "Upload your own",
+    "ai": "Create one for me"
+  },
+  "families": [
+    "Procurement Committee",
+    "Supply chain",
+    "Sourcing",
+    "Your prior deliverables",
+    "Described for a goal",
+    "Your file"
+  ],
+  "templates": [
+    {
+      "id": "t-prior-award-2024",
+      "name": "Chemicals award schedule 2024 to 2026 (as approved).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your 2023 award schedule to the Procurement Committee, structure read from the file: S-1 to S-5, open items and an evidence index.",
+      "file": "Chemicals_Award_Schedule_2024-2026.xlsx",
+      "sections": [
+        {
+          "heading": "S-1 Award summary",
+          "role": "summary"
+        },
+        {
+          "heading": "S-2 Volumes by chemical and business",
+          "role": "findings",
+          "hint": "Tons a year by chemical for Water, Hazardous Waste and Energy, with the plan date."
+        },
+        {
+          "heading": "S-3 Bids and prices by lot",
+          "role": "findings",
+          "hint": "Every bid per lot on price, freight and landed cost; the awarded bidder and what the award saves a year."
+        },
+        {
+          "heading": "S-4 Supply continuity and qualification",
+          "role": "findings",
+          "hint": "Primary and secondary per lot, ferric chloride cover at each plant under the force majeure, qualification status."
+        },
+        {
+          "heading": "S-5 Approvals and contract dates",
+          "role": "free",
+          "hint": "Approval level, committee date, contract start and end, price review clause."
+        },
+        {
+          "heading": "Open items",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-pc-q2",
+      "name": "Procurement Committee, Q2 2026 pack.pptx",
+      "family": "Your prior deliverables",
+      "format": "Slide pack",
+      "note": "Your Q2 pack to the Procurement Committee, structure read from the file: a title slide and six slides.",
+      "file": "Procurement Committee, Q2 2026 pack.pptx",
+      "sections": [
+        {
+          "heading": "Spend and savings at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "Spend against plan by business",
+          "role": "findings"
+        },
+        {
+          "heading": "Contract coverage and leakage",
+          "role": "findings"
+        },
+        {
+          "heading": "Awards for approval",
+          "role": "purpose"
+        },
+        {
+          "heading": "Supplier risk",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Appendix: sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-prior-scorecards-q3",
+      "name": "Supplier scorecards, Q3 2026 (as issued).xlsx",
+      "family": "Your prior deliverables",
+      "format": "Workbook",
+      "note": "Your Q3 scorecards to the category managers, structure read from the file: cover, three sheets, evidence index.",
+      "file": "Supplier scorecards, Q3 2026 (as issued).xlsx",
+      "sections": [
+        {
+          "heading": "Cover",
+          "role": "purpose"
+        },
+        {
+          "heading": "On time in full by supplier",
+          "role": "findings"
+        },
+        {
+          "heading": "Quality and corrective actions",
+          "role": "findings"
+        },
+        {
+          "heading": "Price against contract",
+          "role": "free",
+          "hint": "Invoice price against contract price per line, with the variance."
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-pc-award-paper",
+      "name": "Award paper",
+      "family": "Procurement Committee",
+      "format": "Document",
+      "note": "The paper the Procurement Committee reads before it approves an award above $10M a year: the decision, the bids, continuity, options, risks.",
+      "file": "Procurement_Committee_award_paper_template.docx",
+      "sections": [
+        {
+          "heading": "Decision asked and approval level",
+          "role": "purpose"
+        },
+        {
+          "heading": "What we buy and from whom",
+          "role": "findings",
+          "hint": "Tons a year by chemical and business on the 2027 dosing plans, at today's contract prices and freight."
+        },
+        {
+          "heading": "Bids and evaluation on landed cost",
+          "role": "findings",
+          "hint": "Every bid by lot on landed cost among qualified bidders, and what the award saves a year."
+        },
+        {
+          "heading": "Supply continuity and risk",
+          "role": "findings",
+          "hint": "Ferric chloride cover at the water plants under the force majeure, and the spot buys since 12 October."
+        },
+        {
+          "heading": "Options considered",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        },
+        {
+          "heading": "Assumptions and open points",
+          "role": "assumptions"
+        }
+      ]
+    },
+    {
+      "id": "t-pc-award-deck",
+      "name": "Award slides",
+      "family": "Procurement Committee",
+      "format": "Slide pack",
+      "note": "A few slides for the committee meeting itself: the award, the saving, continuity, the decision.",
+      "file": "Award_slides_template.pptx",
+      "sections": [
+        {
+          "heading": "The award at a glance",
+          "role": "summary"
+        },
+        {
+          "heading": "What we buy and what it costs today",
+          "role": "findings",
+          "hint": "Tons a year by chemical and business on the 2027 dosing plans."
+        },
+        {
+          "heading": "The bids by lot on landed cost",
+          "role": "findings",
+          "hint": "What the award saves a year among qualified bidders."
+        },
+        {
+          "heading": "Ferric chloride: cover and the force majeure",
+          "role": "findings"
+        },
+        {
+          "heading": "Three ways to award",
+          "role": "options"
+        },
+        {
+          "heading": "Decision asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Sources",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-pc-monthly-report",
+      "name": "Monthly procurement report",
+      "family": "Procurement Committee",
+      "format": "Dashboard",
+      "note": "Spend against plan, contract coverage, leakage and savings, refreshed after every month-end close.",
+      "file": "Monthly_procurement_report_template.pptx",
+      "sections": [
+        {
+          "heading": "Headline tiles",
+          "role": "summary",
+          "hint": "Spend to date, under contract, leakage, savings secured."
+        },
+        {
+          "heading": "Spend against plan by business",
+          "role": "findings"
+        },
+        {
+          "heading": "Leakage by category",
+          "role": "findings"
+        },
+        {
+          "heading": "Open decisions",
+          "role": "purpose"
+        },
+        {
+          "heading": "Data behind the panels",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-pc-savings-note",
+      "name": "Savings program note",
+      "family": "Procurement Committee",
+      "format": "Memo",
+      "note": "One page to the CFO when the savings program moves: secured against target, what changed, what is asked.",
+      "file": "Savings_program_note_template.docx",
+      "sections": [
+        {
+          "heading": "What we ask",
+          "role": "purpose"
+        },
+        {
+          "heading": "Where the program stands",
+          "role": "summary"
+        },
+        {
+          "heading": "What moved this month",
+          "role": "findings"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        }
+      ]
+    },
+    {
+      "id": "t-sc-stock-note",
+      "name": "Stock exception note",
+      "family": "Supply chain",
+      "format": "Memo",
+      "note": "One page to the buyers and the storeroom leads when critical positions will run short: the positions, the cause, the moves, the ask.",
+      "file": "Stock_exception_note_template.docx",
+      "sections": [
+        {
+          "heading": "What we ask, and by when",
+          "role": "purpose"
+        },
+        {
+          "heading": "The positions and their exposure",
+          "role": "findings",
+          "hint": "Positions short before their next receipt: the outage items, the ferric chloride and the spares."
+        },
+        {
+          "heading": "Why it happened",
+          "role": "findings",
+          "hint": "Which suppliers moved their dates, and the allocation behind the ferric gap."
+        },
+        {
+          "heading": "Options",
+          "role": "options"
+        },
+        {
+          "heading": "Recommendation",
+          "role": "summary"
+        }
+      ]
+    },
+    {
+      "id": "t-sc-transfer-list",
+      "name": "Transfer and expedite list",
+      "family": "Supply chain",
+      "format": "Workbook",
+      "note": "What Leon raises the stock transport orders and expedites from: every move with quantity, freight and approval.",
+      "file": "Transfer_and_expedite_list_template.xlsx",
+      "sections": [
+        {
+          "heading": "Cover: what moves, from where, by when",
+          "role": "purpose"
+        },
+        {
+          "heading": "Transfers between sites",
+          "role": "findings",
+          "hint": "From site, to site, material, quantity, what the holder keeps above its own safety stock, freight."
+        },
+        {
+          "heading": "Expedites and spot orders",
+          "role": "findings",
+          "hint": "Supplier, material, quantity, promised date, cost of the expedites, the ferric on spot and the substitute."
+        },
+        {
+          "heading": "Approvals",
+          "role": "next",
+          "hint": "Who confirms each release and each expedite, and by when."
+        },
+        {
+          "heading": "Sources per line",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-sc-shortage-review",
+      "name": "Monthly shortage review",
+      "family": "Supply chain",
+      "format": "Slide pack",
+      "note": "The monthly review with Rafael and the buyers: what ran short, why, what it cost, what changes.",
+      "file": "Monthly_shortage_review_template.pptx",
+      "sections": [
+        {
+          "heading": "The month in one line",
+          "role": "summary"
+        },
+        {
+          "heading": "Positions short this month",
+          "role": "findings"
+        },
+        {
+          "heading": "Causes by supplier",
+          "role": "findings"
+        },
+        {
+          "heading": "What we changed",
+          "role": "options"
+        },
+        {
+          "heading": "Next month",
+          "role": "next"
+        }
+      ]
+    },
+    {
+      "id": "t-sc-supplier-scorecard",
+      "name": "Supplier scorecard",
+      "family": "Supply chain",
+      "format": "Workbook",
+      "note": "A quarterly scorecard per supplier: on time in full, quality, price against contract, corrective actions.",
+      "file": "Supplier_scorecard_template.xlsx",
+      "sections": [
+        {
+          "heading": "Cover and period",
+          "role": "purpose"
+        },
+        {
+          "heading": "On time in full",
+          "role": "findings"
+        },
+        {
+          "heading": "Quality and corrective actions",
+          "role": "findings"
+        },
+        {
+          "heading": "Price against contract",
+          "role": "findings"
+        },
+        {
+          "heading": "Evidence index",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-src-event-summary",
+      "name": "Sourcing event summary",
+      "family": "Sourcing",
+      "format": "Document",
+      "note": "What a sourcing event asked for, who bid, how the bids compare, before the award paper is written.",
+      "file": "Sourcing_event_summary_template.docx",
+      "sections": [
+        {
+          "heading": "The event and its scope",
+          "role": "purpose"
+        },
+        {
+          "heading": "Bidders and what they offered",
+          "role": "findings"
+        },
+        {
+          "heading": "How the bids compare",
+          "role": "findings"
+        },
+        {
+          "heading": "Questions for the category manager",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-src-contract-request",
+      "name": "Contract change request",
+      "family": "Sourcing",
+      "format": "Document",
+      "note": "What the contracts team needs to change a contract, a vendor record or a price in the catalogue.",
+      "file": "Contract_change_request_template.docx",
+      "sections": [
+        {
+          "heading": "Change asked",
+          "role": "purpose"
+        },
+        {
+          "heading": "Why: what the current setup costs",
+          "role": "findings"
+        },
+        {
+          "heading": "Contracts, vendors and items affected",
+          "role": "free",
+          "hint": "Contract, vendor id, item, current setup, change."
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        },
+        {
+          "heading": "Evidence",
+          "role": "evidence"
+        }
+      ]
+    }
+  ],
+  "designedInSession": [
+    {
+      "id": "t-desc-custom-bw154-bw155",
+      "name": "A one-page dashboard of the award by lot and the saving for Helena Marsh (designed for this goal)",
+      "family": "Described for a goal",
+      "format": "Dashboard",
+      "note": "a one-page dashboard of the award by lot and the saving for Helena Marsh",
+      "sections": [
+        {
+          "heading": "Headline tiles",
+          "role": "summary",
+          "hint": "The three or four figures that say where things stand; each tile opens its rows."
+        },
+        {
+          "heading": "Award by lot",
+          "role": "findings"
+        },
+        {
+          "heading": "Saving",
+          "role": "findings"
+        },
+        {
+          "heading": "Open decisions",
+          "role": "purpose"
+        },
+        {
+          "heading": "Data behind the panels",
+          "role": "evidence"
+        }
+      ]
+    },
+    {
+      "id": "t-desc-custom-bw011-bw023",
+      "name": "A one-page memo for Adrian Kell on the saving and the ferric risk (designed for this goal)",
+      "family": "Described for a goal",
+      "format": "Memo",
+      "note": "A one-page memo for Adrian Kell on the saving and the ferric risk",
+      "sections": [
+        {
+          "heading": "The ask",
+          "role": "purpose"
+        },
+        {
+          "heading": "In short",
+          "role": "summary"
+        },
+        {
+          "heading": "Saving",
+          "role": "findings"
+        },
+        {
+          "heading": "Ferric risk",
+          "role": "assumptions"
+        },
+        {
+          "heading": "Next steps",
+          "role": "next"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "_about": "The analyses that have run at the end of the recorded session, as Submissions lists them: each with the run, the option its deliverables rest on (and who chose it), and every deliverable made from it, in the goal or later in Submissions (delivery id to submission id).",
+  "analyses": [
+    {
+      "id": "g-monthly-chemicals-position-after-eve-bw124",
+      "title": "Monthly chemicals position: after every month-end close",
+      "run": "Scheduled run · after the 6 November close",
+      "mode": "watch",
+      "case": "schedule",
+      "status": "executed",
+      "executedAt": "14:21",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "option": "Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw149",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw150",
+        "sub-award-deck": "sub-committee-slides-treatment-chemicals-awa-bw151"
+      },
+      "actions": [
+        {
+          "cat": "send",
+          "text": "Send the refreshed deliverables to Helena Marsh and Imani Okoro",
+          "state": "done"
+        },
+        {
+          "cat": "cover",
+          "text": "Tell Anika Sorensen which water plants are under the 14-day ferric minimum this month",
+          "state": "done"
+        }
+      ]
+    },
+    {
+      "id": "g-nineteen-positions-in-the-28-october-bw094",
+      "title": "Nineteen positions in the 28 October load short before replenishment",
+      "run": "Nineteen positions in the 28 October load short before replenishment",
+      "mode": "once",
+      "case": "overrun-once",
+      "status": "delivered",
+      "executedAt": "14:16",
+      "agent": "Agent Sentinel",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "option": "Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit",
+      "built": {
+        "sub-stock-note": "sub-stock-exception-note-the-28-october-load-bw109",
+        "sub-transfer-list": "sub-transfer-and-expedite-list-ravensworth-k-bw110"
+      },
+      "actions": []
+    },
+    {
+      "id": "g-treatment-chemicals-award-2027-to-20-bw048",
+      "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "run": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "mode": "once",
+      "case": "once",
+      "status": "delivered",
+      "executedAt": "14:10",
+      "agent": "Agent Beacon",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "option": "Award by lot on landed cost, with ferric chloride to Sabine Coast and Corrigan as a 30% secondary once its force majeure lifts",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw065",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw066"
+      },
+      "actions": []
+    },
+    {
+      "id": "g-treatment-chemicals-award-2027-to-20-bw002",
+      "title": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "run": "Treatment chemicals award 2027 to 2029, for the Procurement Committee",
+      "mode": "once",
+      "case": "once",
+      "status": "delivered",
+      "executedAt": "14:04",
+      "agent": "Agent Compass",
+      "chosen": "r1",
+      "chosenBy": "you",
+      "option": "Award by lot on landed cost, with ferric chloride to Sabine Coast alone",
+      "built": {
+        "sub-award-paper": "sub-award-paper-treatment-chemicals-2027-to--bw024",
+        "sub-award-schedule": "sub-award-schedule-treatment-chemicals-2027--bw025",
+        "sub-award-deck": "sub-committee-slides-treatment-chemicals-awa-bw026",
+        "custom-bw011": "sub-a-one-page-memo-for-adrian-kell-on-the-s-bw027",
+        "sub-savings-note": "sub-savings-program-note-the-chemicals-award-bw156",
+        "custom-bw154": "sub-a-one-page-dashboard-of-the-award-by-lot-bw153"
+      },
+      "actions": []
+    },
+    {
+      "id": "g-rule-stock-cover",
+      "title": "No critical spare or chemical below safety stock: check every nightly load",
+      "run": "Nightly load, 28 October · 19 positions short",
+      "mode": "watch",
+      "case": "watch",
+      "status": "executed",
+      "executedAt": "14:11",
+      "agent": "Agent Ledger",
+      "chosen": "r1",
+      "chosenBy": "auto",
+      "option": "Move stock from six sites, expedite four orders, top up ferric on spot, and use the approved chiller kit",
+      "built": {
+        "sub-stock-note": "sub-stock-exception-note-the-28-october-load-bw080",
+        "sub-transfer-list": "sub-transfer-and-expedite-list-ravensworth-k-bw081",
+        "sub-scorecard-update": "sub-supplier-scorecard-update-holcombe-and-v-bw152"
+      },
+      "actions": [
+        {
+          "cat": "send",
+          "text": "Send the stock exception note and the transfer list to you, Leon Varga, Anika Sorensen and the storeroom leads at the sites involved",
+          "state": "done"
+        },
+        {
+          "cat": "releases",
+          "text": "Ask the storeroom leads at the six holding sites to confirm the 10 releases",
+          "state": "done"
+        },
+        {
+          "cat": "sto",
+          "text": "Ask Leon Varga to raise the stock transport orders for the 10 transfers",
+          "state": "done"
+        },
+        {
+          "cat": "expedite",
+          "text": "Raise the four expedite requests with Holcombe and Orrin ($18,140, inside Rafael Duarte's approval)",
+          "state": "approved"
+        },
+        {
+          "cat": "spot",
+          "text": "Ask Anika Sorensen for 153 tons of ferric on spot this week",
+          "state": "done"
+        },
+        {
+          "cat": "substitute",
+          "text": "Log the approved chiller kit as a stock exception",
+          "state": "done"
+        }
+      ]
+    }
+  ]
+}
