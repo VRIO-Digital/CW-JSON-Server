@@ -19,6 +19,7 @@ export interface WizardDraft {
   roleId: string | null
   industry: string | null
   utilitiesFound: boolean
+  utilitiesAvailable: boolean
   utilities: string[]
   reportsTo: string
   responsibilitiesReady: boolean

@@ -100,6 +100,8 @@ export interface RoleStepDraft {
   roleId: string | null
   industry: string | null
   utilitiesFound: boolean
+  /** Whether the connected data has *any* business for this industry to select — see `roleIssue`. */
+  utilitiesAvailable: boolean
   utilities: string[]
   reportsTo: string
 }
@@ -108,7 +110,14 @@ export function roleIssue(d: RoleStepDraft): string | null {
   if (!d.roleId) return 'Pick the role this analyst plays.'
   if (!d.industry) return 'Pick the industry the role works in.'
   if (!d.utilitiesFound) return 'Wait for the utilities to be found in your connected data.'
-  if (d.utilities.length === 0) return 'Select at least one utility this role covers.'
+  /*
+   * **An industry the data does not carry is still a pickable industry.** The scan says so
+   * honestly (`UTILITIES[industry].none`) rather than inventing a business to select — so
+   * requiring a selection here would turn that honest "nothing found" into a dead end the
+   * reader can only escape by picking a different industry. The requirement stays exactly
+   * where it has teeth: an industry that *does* have businesses still needs at least one kept.
+   */
+  if (d.utilitiesAvailable && d.utilities.length === 0) return 'Select at least one utility this role covers.'
   if (!EMAIL.test(d.reportsTo.trim())) return 'Add the email address of the person this role reports to.'
   return null
 }

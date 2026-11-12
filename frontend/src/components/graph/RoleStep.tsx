@@ -114,7 +114,7 @@ export default function RoleStep({
         </div>
       ) : null}
 
-      {scan.done && utilities.length > 0 ? (
+      {scan.done && (utilities.length > 0 || scanned?.found.length === 0) ? (
         <>
           <div className="ng-field">
             <label className="ng-label" htmlFor="nr-reports">

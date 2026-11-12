@@ -902,6 +902,42 @@ function trackForecastAdded(inner: Document) {
 }
 
 /**
+ * "Add a template" never clears its own draft between opens. Confirmed from use: the `#name` and
+ * `#note` inputs are destroyed and recreated every time the drawer opens — a marker attribute set on
+ * one never survives a close/reopen — but they remount holding the *previous* template's text, because
+ * what persists is the parent's draft state, never reset on a successful submit or on open. A reader
+ * who does not notice and retype a new name passes the required-name check (stale text is not empty)
+ * and "Add to the library" silently duplicates the template already there rather than making a new
+ * one — which is exactly what reads as "can't create a template": every attempt reproduces the one
+ * already in the list.
+ *
+ * Applied from the frame, never by editing the generated file: as soon as a fresh `#name` mounts, it
+ * and `#note` are blanked through the native setter, so the drawer always opens empty — which is what
+ * "Add a template" has to mean for a second template to be possible at all.
+ */
+function clearStaleTemplateDraft(inner: Document) {
+  const win = inner.defaultView
+  if (!win) return
+  const blank = (el: HTMLInputElement) => {
+    const setter = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')?.set
+    if (!setter || !el.value) return
+    setter.call(el, '')
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  new MutationObserver((records) => {
+    for (const rec of records) {
+      for (const node of rec.addedNodes) {
+        if (!(node instanceof win.HTMLElement)) continue
+        const name = node.matches('#name') ? (node as HTMLInputElement) : node.querySelector<HTMLInputElement>('#name')
+        if (name) blank(name)
+        const note = node.matches('#note') ? (node as HTMLInputElement) : node.querySelector<HTMLInputElement>('#note')
+        if (note) blank(note)
+      }
+    }
+  }).observe(inner.body, { childList: true, subtree: true })
+}
+
+/**
  * The rail is React-managed inside the frame, so the button cannot be placed once: opening a goal or
  * a draft re-renders the rail's children and a tight viewport remounts the whole `<aside>`. A
  * MutationObserver re-inserts it whenever a rail is missing one — the `injectSessionTab` precedent,
@@ -1168,6 +1204,7 @@ export default function GoalsSubmissionPage({ view }: { view: View }) {
             dropChipAttachments(inner)
             notifyOnSimulate(inner)
             badgeNotices(inner)
+            clearStaleTemplateDraft(inner)
 
             const win = inner.defaultView
             if (!win) return

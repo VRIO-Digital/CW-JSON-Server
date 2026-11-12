@@ -967,7 +967,34 @@
       "rationale": "Resolves across keolis_valmont_ppm.ppm at high confidence (0.90)."
     }
   ],
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-capital-program-analyst-mwd9v2en0",
+      "name": "Capital Program Analyst",
+      "status": "draft",
+      "domain_id": "contract-recovery",
+      "role": {
+        "role_id": "cpa",
+        "role_name": "Capital Program Analyst",
+        "industry": "transit",
+        "utilities": [],
+        "reports_to": "roshan.cheeyapana@vriodigital.com",
+        "responsibilities": [],
+        "tasks": {},
+        "out": {},
+        "job_description": null
+      },
+      "business_need": "",
+      "personas": [],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 2,
+      "updated_at": "2026-11-12T08:14:31.151Z"
+    }
+  ],
   "graph_use_case_templates": [
     {
       "template_id": "fleet-infrastructure-renewal",

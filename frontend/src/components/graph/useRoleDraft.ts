@@ -65,6 +65,8 @@ export function useRoleDraft() {
 
   const role = roleById(roleId)
   const inScope = useMemo(() => areas.filter((a) => !out[a.id]), [areas, out])
+  /** Whether the industry's own scan has anything to select — an empty `found` is not a dead end. */
+  const utilitiesAvailable = Boolean(industry && (UTILITIES[industry]?.found.length ?? 0) > 0)
 
   function resetResponsibilities() {
     setAreas([])
@@ -239,11 +241,12 @@ export function useRoleDraft() {
     roleId,
     industry,
     utilitiesFound: scan.done,
+    utilitiesAvailable,
     utilities,
     reportsTo,
     ready,
     inScopeCount: inScope.length,
-    roleProblem: roleIssue({ roleId, industry, utilitiesFound: scan.done, utilities, reportsTo }),
+    roleProblem: roleIssue({ roleId, industry, utilitiesFound: scan.done, utilitiesAvailable, utilities, reportsTo }),
     responsibilitiesProblem: responsibilitiesIssue({ ready, inScope: inScope.length }),
     // what the steps draw
     role,

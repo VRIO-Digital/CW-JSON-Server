@@ -360,6 +360,7 @@ export default function NewGraphPage() {
     roleId: roleDraft.roleId,
     industry: roleDraft.industry,
     utilitiesFound: roleDraft.utilitiesFound,
+    utilitiesAvailable: roleDraft.utilitiesAvailable,
     utilities: roleDraft.utilities,
     reportsTo: roleDraft.reportsTo,
     responsibilitiesReady: roleDraft.ready,
