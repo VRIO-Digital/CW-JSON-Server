@@ -350,8 +350,15 @@ export default function DocumentViewer({
              * line nobody is watching, and the block is inherited by any tab the document opens
              * (`window.open`'s popup carries the opener's sandbox), which is where the template preview's
              * own download buttons live. Reported from use as buttons that did nothing.
+             *
+             * `allow-forms` for the same reason, found the same way: Keolis's "Add a template" drawer
+             * posts through a real `<form>`, and without this flag the browser blocks the submission —
+             * `Blocked form submission to '' because the form's frame is sandboxed and the 'allow-forms'
+             * permission is not set` — repeated on every attempt, with nothing on screen saying so. The
+             * drawer looks filled in and the press looks like it did nothing, which is this same class of
+             * failure as the missing download flag, not a bug in the generated document.
              */
-            sandbox="allow-same-origin allow-scripts allow-modals allow-popups allow-downloads"
+            sandbox="allow-same-origin allow-scripts allow-modals allow-popups allow-downloads allow-forms"
             /*
              * **The document's own mock-API pill is hidden, and hidden rather than deleted.**
              *
