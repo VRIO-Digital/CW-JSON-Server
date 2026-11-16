@@ -28,7 +28,7 @@ npm run audit      # fail if ANY advisory is present
 npm run audit:fix  # npm audit fix
 npm run preflight  # lint + build + audit — run before pushing
 ```
-
+##
 ## Vulnerability gate
 
 `scripts/audit-gate.mjs` runs `npm audit --json`, and **exits non-zero if any
