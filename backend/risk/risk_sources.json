@@ -304,8 +304,262 @@
       "confidence": 0.88
     }
   ],
-  "drives": [],
-  "drive_credentials": [],
+  "drives": [
+    {
+      "drive_id": "risk-contract-repository",
+      "display_name": "Contract Repository",
+      "kind": "shared_drive",
+      "owner": "nishant.srivastav@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_01_contracts",
+          "name": "Contracts",
+          "path": "/Contract Repository/Contracts",
+          "description": "Contracts, read off the Contract Risk Analyst package's own document catalogue.",
+          "documents": [
+            {
+              "document_id": "DOC:hc-contract",
+              "name": "Harlow_Creek_OM_Agreement_2018.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "o_m_agreement",
+              "doc_type_label": "O&M agreement",
+              "linked_entity": "City of Harlow Creek",
+              "project_code": "NCO-047",
+              "pages": 4,
+              "size_mb": 0.002,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2018-06-12",
+              "char_count": 1599,
+              "chunk_count": 4,
+              "chunks_derived": true,
+              "excerpt": "OPERATIONS AND MAINTENANCE AGREEMENT\nCity of Harlow Creek, Georgia and Northline Contract Operations, Inc.\n\n2.1 Term. Ten years from 1 July 2018 to 30 June 2028.\n\n3.1 Scope of services. The Operator shall operate and maintain (a) the Harlow Creek Wastewater Treatment Plant, (b) the wastewater collection system including 14 lift stations, and (c) biosolids handling, hauling and disposal.\n9.4 Capita"
+            },
+            {
+              "document_id": "DOC:af-contract",
+              "name": "Ashby_Falls_OM_Agreement_2017.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "o_m_agreement",
+              "doc_type_label": "O&M agreement",
+              "linked_entity": "Town of Ashby Falls",
+              "project_code": "NCO-111",
+              "pages": 2,
+              "size_mb": 0.001,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2017-05-30",
+              "char_count": 761,
+              "chunk_count": 2,
+              "chunks_derived": true,
+              "excerpt": "AGREEMENT FOR OPERATION AND MAINTENANCE OF THE WATER AND SEWER SYSTEMS\nTown of Ashby Falls, Massachusetts and Northline Contract Operations, Inc.\n\n2.1 Initial term. Five years from 1 July 2017.\n2.2 Renewal. The Town may renew for one further term of five years. [Exercised 14 March 2022; the Agreement ends 30 June 2027. No further option.]\n\n3.1 Scope. Water treatment, water distribution, wastewater"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_02_legal",
+          "name": "Legal",
+          "path": "/Contract Repository/Legal",
+          "description": "Legal, read off the Contract Risk Analyst package's own document catalogue.",
+          "documents": [
+            {
+              "document_id": "DOC:hc-demand",
+              "name": "Baines_Ortega_Demand_Letter_2026-11-19.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "demand_letter",
+              "doc_type_label": "Demand letter",
+              "linked_entity": "Baines & Ortega LLP",
+              "project_code": "NCO-047",
+              "pages": 2,
+              "size_mb": 0.001,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-11-19",
+              "char_count": 982,
+              "chunk_count": 2,
+              "chunks_derived": true,
+              "excerpt": "BAINES & ORTEGA LLP\n19 November 2026\n\nBy email and certified mail\nNorthline Contract Operations, Inc., Legal Department\ncc: City Attorney, City of Harlow Creek\n\nRe: Notice of claim and demand, Harlow Creek Wastewater Treatment Plant\n\nWe represent 23 residents of the Mill Pond and Eastgate neighbourhoods. Since May 2026 our clients have suffered recurring noxious odors from the plant and from bioso"
+            },
+            {
+              "document_id": "DOC:claims-proc",
+              "name": "Claims_Notice_and_Legal_Hold_Procedure.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "procedure",
+              "doc_type_label": "Procedure",
+              "linked_entity": "Northline Legal",
+              "project_code": null,
+              "pages": 1,
+              "size_mb": 0,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2025-02-01",
+              "char_count": 452,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "CLAIMS NOTICE AND LEGAL HOLD\n\n1. A written demand or pre-suit notice goes to Legal within one working day.\n2. Legal issues a document hold the same day.\n3. The insurer is notified within 30 days of a written demand.\n4. After a demand, contact with the claimants about the matter goes through Legal. Routine service contact (returning a complaint call) continues, logged.\n5. The client is told where t"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_03_operations",
+          "name": "Operations",
+          "path": "/Contract Repository/Operations",
+          "description": "Operations, read off the Contract Risk Analyst package's own document catalogue.",
+          "documents": [
+            {
+              "document_id": "DOC:hc-complaints",
+              "name": "Harlow_Creek_Odor_Complaint_Log_2026.xlsx",
+              "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "doc_type": "complaint_log",
+              "doc_type_label": "Complaint log",
+              "linked_entity": "Northline Contract Operations",
+              "project_code": "NCO-047",
+              "pages": 1,
+              "size_mb": 0.001,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-11-19",
+              "char_count": 702,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "ODOR COMPLAINT LOG 2026, Harlow Creek WWTP\n\n#  Date        Time   Street            Biosolids load-out that day   Returned call\n1  14 May      16:10  Mill Pond Rd      Yes, 13:00 to 17:00           Yes, 15 May\n2  9 July      15:40  Eastgate Dr       Yes, 12:30 to 16:30           Yes, 10 July\n3  21 August   17:05  Mill Pond Rd      Yes, 13:00 to 17:00           Yes, 24 August\n4  30 Sept     11:20  "
+            },
+            {
+              "document_id": "DOC:rm-sampling",
+              "name": "Red_Mesa_Sampling_Plan_and_Exceptions_2026.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "sampling_plan",
+              "doc_type_label": "Sampling plan",
+              "linked_entity": "Northline Contract Operations",
+              "project_code": "NCO-184",
+              "pages": 1,
+              "size_mb": 0.001,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-11-19",
+              "char_count": 570,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "SAMPLING PLAN 2026, Red Mesa Regional Water Reclamation Facility\nPermit: weekly composite for BOD, TSS, total nitrogen; reuse turbidity daily.\n\nEXCEPTIONS THIS YEAR\n1  Saturday 12 September   Weekly total nitrogen composite not collected. Shift covered on overtime by one operator.\n2  Sunday 15 November      Weekly TSS composite collected, not delivered to the lab within holding time. Shift covered"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_04_client_documents",
+          "name": "Client documents",
+          "path": "/Contract Repository/Client documents",
+          "description": "Client documents, read off the Contract Risk Analyst package's own document catalogue.",
+          "documents": [
+            {
+              "document_id": "DOC:hc-cip",
+              "name": "City_of_Harlow_Creek_CIP_FY2027-2031.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "capital_improvement_plan",
+              "doc_type_label": "Capital improvement plan",
+              "linked_entity": "City of Harlow Creek",
+              "project_code": "NCO-047",
+              "pages": 1,
+              "size_mb": 0,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-06-22",
+              "char_count": 460,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "CAPITAL IMPROVEMENT PLAN FY2027 to FY2031, adopted 22 June 2026\n\nWastewater\n  Lift station 6 and 9 rehabilitation        $1,450,000   FY2027   Funded (revenue bonds)\n  Headworks screen replacement               $620,000     FY2028   Funded\n  Biofilter media and fan replacement        $380,000     FY2027   Unfunded; carried from FY2024\n  Aeration blower upgrade                    $2,100,000   FY203"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_05_contract_operations",
+          "name": "Contract Operations",
+          "path": "/Contract Repository/Contract Operations",
+          "description": "Contract Operations, read off the Contract Risk Analyst package's own document catalogue.",
+          "documents": [
+            {
+              "document_id": "DOC:calder-review",
+              "name": "Calder_Valley_Loss_Review_2026-03.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "loss_review",
+              "doc_type_label": "Loss review",
+              "linked_entity": "Northline Contract Operations",
+              "project_code": null,
+              "pages": 2,
+              "size_mb": 0.001,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-03-12",
+              "char_count": 877,
+              "chunk_count": 2,
+              "chunks_derived": true,
+              "excerpt": "CALDER VALLEY WWTP: REVIEW OF THE LOST RENEWAL\nPrepared for the Contract Operations leadership team, March 2026\n\nWe operated Calder Valley for eleven years without a notice of violation. The County re-bid the contract in 2025 and awarded it to Clearbrook Operations in December. Our price was 4% above theirs.\n\nWhat changed in the year before:\n  March 2025    The utilities director who signed both r"
+            },
+            {
+              "document_id": "DOC:renewal-2025",
+              "name": "Renewal_Review_2025-12.pptx",
+              "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "doc_type": "review_pack",
+              "doc_type_label": "Review pack",
+              "linked_entity": "Northline Contract Operations",
+              "project_code": null,
+              "pages": 1,
+              "size_mb": 0,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2025-12-03",
+              "char_count": 206,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "RENEWAL REVIEW, December 2025\n\n1  Contracts ending in the next 18 months\n2  Revenue at stake, by region\n3  Contracts on a renewal plan\n4  Lessons from Calder Valley\n5  Decisions asked of the leadership team"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "risk-my-drive",
+      "display_name": "My Drive",
+      "kind": "my_drive",
+      "owner": "nishant.srivastav@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_01_my_drive",
+          "name": "My Drive",
+          "path": "/My Drive",
+          "description": "Personal working files, not filed under a shared folder.",
+          "documents": [
+            {
+              "document_id": "DOC:my-notes",
+              "name": "Renewal_review_working_notes_2026-11.xlsx",
+              "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "doc_type": "working_notes",
+              "doc_type_label": "Working notes",
+              "linked_entity": "Northline Contract Operations",
+              "project_code": null,
+              "pages": 1,
+              "size_mb": 0,
+              "entities": 1,
+              "contract_no": null,
+              "modified": "2026-11-16",
+              "char_count": 209,
+              "chunk_count": 1,
+              "chunks_derived": true,
+              "excerpt": "WORKING NOTES, renewal review\n\nEvergreen contracts: count them. A client that can leave on notice decides every year.\nNPS from a predecessor: do not rely on it. Rate those contracts on what has happened since."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "drive_credentials": [
+    {
+      "drive_id": "risk-contract-repository",
+      "credential_handle": "drive-handle-b4bda665"
+    },
+    {
+      "drive_id": "risk-my-drive",
+      "credential_handle": "drive-handle-fb778712"
+    }
+  ],
   "document_extractions": {},
   "mail_corpus": {
     "documents": [
