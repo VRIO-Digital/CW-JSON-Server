@@ -86,6 +86,18 @@ seeded.whatif = {
   generators: [],
   candidate_pools: [],
   resolvable: [],
+  /*
+   * `whatif` is `primary` in MERGE_PLAN — "one facility, one appetite line... a merged frame is not
+   * a frame" — so `seedValue` carries the whole object, `document` included. `seed-dataset.js`'s own
+   * override list above does not clear it, which is a latent gap in that script: CAPEX's real
+   * rendered lens (`W1_what_if_lens.html`, "What-if — Veolia CapEx") would otherwise show up under
+   * RISK's name. The real per-package ingests already know to null this —
+   * `ingest-arcwood-json.mjs` sets `whatif.document = null` for the identical reason, "CAPEX's
+   * structure, rows emptied, no framed document" — so this follows that precedent rather than
+   * seed-dataset.js's. With no document, the What-if page falls back to the *computed* lens, over
+   * the facility/generators/candidate_pools just emptied above — "nothing to compare", not CAPEX's.
+   */
+  document: null,
 }
 
 seeded.reports = {
@@ -99,11 +111,51 @@ seeded.reports = {
     scope_line: `the ${TARGET} dataset, which holds no rows yet`,
     source_trace: `Traces to: nothing yet — ${TARGET}/db.json has not been populated.`,
   },
+  /*
+   * `authoring_document` is `primary` and, unlike `whatif`/`studio_graph`, a dataset that ships a
+   * real package genuinely has its own — Arcwood's is "report_authoring_simplified_v3.html" too,
+   * but *its own* `governance.document` names Ironbridge, a different roster_total, a different
+   * file. RISK ships no such package at all, so CAPEX's value is not "the same artifact RISK also
+   * has" — it is the one case this key's own MERGE_PLAN comment already names: "EPA has none, which
+   * is why `both` shows no authoring document rather than CAPEX's." RISK is that case here.
+   */
+  authoring_document: null,
+  /*
+   * Same again: CAPEX's own description of its own roster ("projects", its own field list) and its
+   * own 7-project authoring-preview fixture. Arcwood has its own of each (roster "generators", a
+   * different fixture) because it ships a real package; RISK does not, so the MERGE_PLAN comment's
+   * "EPA has neither" is RISK's answer too — low risk either way ("nothing reads them, so resolving
+   * to undefined costs a description rather than a page"), but no reason to leave CAPEX's sitting
+   * here misdescribing a roster RISK does not have.
+   */
+  register: null,
+  authoring_fixture: null,
+  governance: {
+    ...seeded.reports.governance,
+    /*
+     * Same reasoning, for the **rendered** Audit & Governance screen a dataset ships instead of a
+     * computed one: CAPEX's names Northline Water Group and a real `roster_total` (3768) computed
+     * over CAPEX's own 60 projects. RISK has no register to compute one over, so null is the
+     * documented answer for a dataset with no screen of its own — "EPA has none... both frames
+     * nothing and falls back to the computed page, which is the honest answer."
+     */
+    document: null,
+  },
 }
 
 seeded.audit = { ...seeded.audit, stats: [], events: [], policies: [], policy_total: 0 }
 seeded.traces = { ...seeded.traces, stats: [], items: [] }
 seeded.evals = { ...seeded.evals, stats: [], runs: [], checks: [] }
+
+/*
+ * `studio_graph` is *also* `primary` and separate from `graph_studio` above — "the graph a dataset
+ * **ships**... CAPEX ships the real thing" (380 KB of its actual structured/document/bridge export).
+ * `seedValue('primary', …)` carried it whole, same bug as `whatif.document`. MERGE_PLAN's own note
+ * says the right value for a dataset that ships none: "EPA ships none, so `both` derives its lanes
+ * exactly as it did" — null, so every lane reader falls back to deriving from RISK's own (empty)
+ * `projects`/`document_extractions` instead of reading CAPEX's shipped graph.
+ */
+seeded.studio_graph = null
 
 seeded.graph_studio = {
   ...seeded.graph_studio,
@@ -123,6 +175,22 @@ seeded.graph_studio = {
 }
 
 /* ---------------- refuse to write something that cannot be served ---------------- */
+
+/*
+ * `_meta`/`_provenance` are `primary` too, and MERGE_PLAN's own comment on `_meta` names exactly
+ * this hazard under `both`: "claiming one package's provenance for it would be the most misleading
+ * thing this key could do." A freshly-seeded RISK is not CAPEX's package's output either —
+ * `seedValue` carried CAPEX's `_meta.package: "veolia_capex_demo_data_package_…"` verbatim, which
+ * is that same false claim sitting in RISK's own file rather than behind a `both` merge.
+ */
+seeded._meta = {
+  package: null,
+  tenant: 'Northline Water Group',
+  schema_source: `${TARGET}'s structure is CAPEX's, emptied — see ingest-risk-json.mjs`,
+  generated_by: 'backend/scripts/ingest-risk-json.mjs',
+  note: `${TARGET} ships no package of its own. Re-run ingest-risk-json.mjs to regenerate.`,
+}
+seeded._provenance = {}
 
 const problems = []
 for (const key of Object.keys(MERGE_PLAN)) {
