@@ -8,6 +8,7 @@ import AISubmissionsPage from './pages/AISubmissionsPage'
 import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CatalogPage from './pages/CatalogPage'
+import ContractRiskPage from './pages/ContractRiskPage'
 import DbEditorPage from './pages/DbEditorPage'
 import DoctorPage from './pages/DoctorPage'
 import GoalsSubmissionPage from './pages/GoalsSubmissionPage'
@@ -164,6 +165,14 @@ export const routes: RouteObject[] = [
           /* Two framed prototype builds, one per entry, behind the publish gate — see GoalsSubmissionPage. */
           { path: 'goals', element: <GoalsSubmissionPage view="goals" /> },
           { path: 'submission', element: <GoalsSubmissionPage view="submission" /> },
+          /*
+           * Contract Risk Analyst — a vendored reference prototype for Northline Water Group (CAPEX's
+           * tenant), self-contained and ungated (see ContractRiskPage). URL-only for now, no NAV_ITEMS
+           * entry, the same arrangement as /trace and /validation below.
+           */
+          { path: 'contract-risk/ask', element: <ContractRiskPage view="ask" /> },
+          { path: 'contract-risk/goals', element: <ContractRiskPage view="goals" /> },
+          { path: 'contract-risk/submissions', element: <ContractRiskPage view="submission" /> },
           /*
            * Users and persona access — the two tabs that configure who sees what.
            *
