@@ -5018,9 +5018,15 @@ export interface SchemaPlanTable {
   profiled: boolean
   label: string
   grain: string
-  column_count: number
-  /** How many the dictionary held before. 0 for a table whose columns were synthesised. */
-  previous_column_count: number
+  /**
+   * `null` when the table's own catalogued column count is unstated — see `BrowseTable.columns`'s
+   * own note. A dataset-only preview (no file read, see the section header above) carries this
+   * straight off the table's catalogue entry, so a source whose package never gives a schema at all
+   * (RISK's structured source) hits the same honest null here that browsing hits.
+   */
+  column_count: number | null
+  /** How many the dictionary held before. 0 for a table whose columns were synthesised; null for the same reason `column_count` can be. */
+  previous_column_count: number | null
   /**
    * How many columns the Catalog says this table has **now** — the number on screen.
    *
@@ -5029,7 +5035,7 @@ export interface SchemaPlanTable {
    * the figure a reader was looking at went 24 → 3. Applying replaces the count with the file's, so
    * this is what the preview puts before the arrow.
    */
-  catalogued_column_count: number
+  catalogued_column_count: number | null
   added: string[]
   /**
    * Columns the dictionary holds now and this file does not name.
@@ -5096,9 +5102,10 @@ const SCHEMA_PLAN_FIELDS = {
       profiled: bool,
       label: str,
       grain: str,
-      column_count: num,
-      previous_column_count: num,
-      catalogued_column_count: num,
+      /* Nullable for the same reason BROWSE_PAYLOAD's own `columns` is — see that schema's note. */
+      column_count: nullable(num),
+      previous_column_count: nullable(num),
+      catalogued_column_count: nullable(num),
       added: arrayOf(str),
       dropped: arrayOf(str),
       orphaned_notes: arrayOf(str),
