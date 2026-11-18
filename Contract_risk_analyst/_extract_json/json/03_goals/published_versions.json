@@ -1,0 +1,37 @@
+{
+  "_about": "What the goal keeps for every version after the first: what changed and what it did to the scores.",
+  "versions": [
+    {
+      "v": 2,
+      "at": "20 Nov, 09:12",
+      "why": "Scoring changed: new signal: Boil water notices in the last twelve months; red flag on Boil water notices in the last twelve months; thresholds of Days sales outstanding",
+      "changes": [
+        "New signal **Boil water notices in the last twelve months** in Water Quality and Contaminants. Rule: 1 = none in twelve months; 2 = one in twelve months; 3 = two or three in twelve months; 4 = more than three in twelve months (my proposal; change it on the Plan tab). It is a **red flag**: at its worst case the project rates at least 3.",
+        "**Days sales outstanding**: 1 = under 45 days; 2 = 45 to 60 days; 3 = 60 to 75 days; 4 = 75 days or more. The thresholds were 45, 60, 90 (days)."
+      ],
+      "effect": {
+        "ratings_before": [
+          44,
+          190,
+          66,
+          0
+        ],
+        "ratings_after": [
+          42,
+          188,
+          70,
+          0
+        ],
+        "scores_moved": 71,
+        "up": [
+          "Orrin Point 1 to 3",
+          "Mossley Crossing 1 to 3",
+          "Drummond Valley 2 to 3",
+          "Linden Hollow 2 to 3"
+        ],
+        "down": [],
+        "plans_changed": 25
+      }
+    }
+  ]
+}

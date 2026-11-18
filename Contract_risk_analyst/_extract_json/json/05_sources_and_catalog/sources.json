@@ -1,0 +1,423 @@
+{
+  "connected": [
+    "Operations data hub (214 tables)",
+    "Contract repository (2,460 documents)",
+    "Three shared mailboxes",
+    "The public web"
+  ],
+  "used_by_the_scorecard": [
+    {
+      "kind": "document",
+      "name": "Bid library and reference lists",
+      "signals": [
+        "im6"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "Capital improvement plans and annual reports to the client",
+      "signals": [
+        "in2"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "Consent orders in the compliance folder, checked against the regulator's enforcement page",
+      "signals": [
+        "li2"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "Emergency response plans and drill records",
+      "signals": [
+        "rs4"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "Legal matter files, checked against the county court docket",
+      "signals": [
+        "li1"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "Notices of violation in the compliance folder, checked against the state enforcement page",
+      "signals": [
+        "en3"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "SCADA security assessments",
+      "signals": [
+        "rs3"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The client's capital improvement plan and budget",
+      "signals": [
+        "in5"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract and its amendments",
+      "signals": [
+        "gr1"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, compensation article",
+      "signals": [
+        "cr7"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, fee adjustment article",
+      "signals": [
+        "cr9"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, performance article",
+      "signals": [
+        "cr8"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, scope of services",
+      "signals": [
+        "cr3",
+        "cr5",
+        "cr6",
+        "in1"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, staffing clause · hr.license",
+      "signals": [
+        "st2"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, term article",
+      "signals": [
+        "im4"
+      ]
+    },
+    {
+      "kind": "document",
+      "name": "The signed contract, termination article",
+      "signals": [
+        "im5"
+      ]
+    },
+    {
+      "kind": "mail",
+      "name": "Client mail and meeting notes",
+      "signals": [
+        "cl3"
+      ]
+    },
+    {
+      "kind": "mail",
+      "name": "Client mail to the Regional VP and above",
+      "signals": [
+        "cp6"
+      ]
+    },
+    {
+      "kind": "mail",
+      "name": "Project leader and client mail",
+      "signals": [
+        "cp1"
+      ]
+    },
+    {
+      "kind": "mail",
+      "name": "The legal notices mailbox and the project leaders' mail",
+      "signals": [
+        "li3"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "asset.register",
+      "signals": [
+        "in7"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "cmms.work_order",
+      "signals": [
+        "in3",
+        "in4",
+        "in6"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "crm.nps_response",
+      "signals": [
+        "cu1",
+        "cu2",
+        "cu3"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ehs.incident · ops.hours",
+      "signals": [
+        "os1",
+        "os2"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ehs.observation · hr.roster",
+      "signals": [
+        "os3"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "fin.ar_aging",
+      "signals": [
+        "cr2"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "fin.change_order",
+      "signals": [
+        "fp4"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "fin.community_spend",
+      "signals": [
+        "co4",
+        "co5"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "fin.contract_pnl",
+      "signals": [
+        "fp1",
+        "fp2",
+        "fp3",
+        "im2"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "fin.gl_detail",
+      "signals": [
+        "fp5"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "gis.parcels_2mi",
+      "signals": [
+        "sp1"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "hr.license · ops.labor_weekly",
+      "signals": [
+        "st6"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "hr.requisition",
+      "signals": [
+        "st1"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "hr.roster",
+      "signals": [
+        "cr4",
+        "st3",
+        "st5"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "lab.result · state rule register (web)",
+      "signals": [
+        "iq7"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "master.contract",
+      "signals": [
+        "cr1",
+        "im3"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "master.contract · fin.contract_pnl",
+      "signals": [
+        "im1"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ops.complaint_log",
+      "signals": [
+        "co1"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ops.compliance_daily",
+      "signals": [
+        "en1"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ops.labor_weekly",
+      "signals": [
+        "st4"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "ops.overflow_event",
+      "signals": [
+        "en5"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "plantdata.login_audit",
+      "signals": [
+        "en4"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "plantdata.results",
+      "signals": [
+        "iq1",
+        "iq3",
+        "iq4",
+        "iq5",
+        "iq6"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "plantdata.results · the client's capital plan",
+      "signals": [
+        "iq2"
+      ]
+    },
+    {
+      "kind": "table",
+      "name": "plantdata.sample_schedule · plantdata.results",
+      "signals": [
+        "en2"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "Council and board agendas and minutes",
+      "signals": [
+        "cp3",
+        "cp5"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "EPA ECHO and the state permit register",
+      "signals": [
+        "en6"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "Federal Register and the state rule dockets",
+      "signals": [
+        "iq8"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "FEMA flood maps and NOAA storm events",
+      "signals": [
+        "rs1"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "Local news about the plant and the client",
+      "signals": [
+        "co2",
+        "co3"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "Municipal bond ratings and adopted budgets",
+      "signals": [
+        "cp4"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "Procurement notices and award minutes",
+      "signals": [
+        "cl2"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "richstatespoorstates.org · State Liability System Survey",
+      "signals": [
+        "sl1"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "State and county election calendars",
+      "signals": [
+        "cp2"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "State operator registers and trade press",
+      "signals": [
+        "cl1"
+      ]
+    },
+    {
+      "kind": "web",
+      "name": "U.S. Drought Monitor",
+      "signals": [
+        "rs2"
+      ]
+    }
+  ]
+}

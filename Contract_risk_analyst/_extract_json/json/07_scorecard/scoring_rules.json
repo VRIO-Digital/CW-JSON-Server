@@ -1,0 +1,34 @@
+{
+  "scale": "1 is good, 4 is bad",
+  "signal": "Each signal scores 1 to 4 on its written rule.",
+  "factor": "A factor is the weighted average of its signals.",
+  "project": "Factors are weighted into two halves (what we control, what we do not control). The project score is the average of the two halves; the person can choose the higher of the two instead.",
+  "rating": {
+    "1": "score under 1.5",
+    "2": "1.5 to under 2.5",
+    "3": "2.5 to under 3.5",
+    "4": "3.5 or more"
+  },
+  "rating_names": [
+    "Low",
+    "Low to medium",
+    "Medium to high",
+    "High"
+  ],
+  "red_flags": {
+    "rule": "A red-flag signal at its worst case rates the project at least 3 (score floor 2.5).",
+    "in_proposal": [
+      "li3",
+      "cp3"
+    ]
+  },
+  "stake": "What is at stake is read beside the score and sets the priority; it is not averaged in.",
+  "priority": {
+    "Act now": "High risk and a lot at stake",
+    "Manage": "High risk, less at stake",
+    "Watch": "A lot at stake and close to the line",
+    "Routine": "Nothing to do today"
+  },
+  "direction": "Rose or fell = the score moved by more than 0.08 in 90 days.",
+  "version_rule": "The dashboard gets a new version only when the scoring changes. A morning check refreshes the same version."
+}

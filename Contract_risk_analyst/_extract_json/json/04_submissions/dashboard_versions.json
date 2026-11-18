@@ -1,0 +1,39 @@
+{
+  "_about": "The version of the dashboard is the version of the scoring: versions / showing / why / refreshed are what the dashboard shows. submission_store_version is an internal counter in the prototype that also goes up when the file is rebuilt at a refresh; nothing on screen shows it, and the demo app should not use it as the version.",
+  "points": [
+    {
+      "at": "first scoring",
+      "what": "All 300 projects scored for the first time.",
+      "versions": [
+        "v1 · scoring of 19 Nov, 14:04"
+      ],
+      "showing": "1",
+      "why": "First scoring",
+      "refreshed": "Scored 19 Nov, 14:04",
+      "submission_store_version": 1
+    },
+    {
+      "at": "morning check",
+      "what": "The 06:00 check refreshed the figures. The scoring did not change, so the version did not change.",
+      "versions": [
+        "v1 · scoring of 19 Nov, 14:04"
+      ],
+      "showing": "1",
+      "why": "First scoring",
+      "refreshed": "Refreshed 20 Nov, 06:08, at the morning check",
+      "submission_store_version": 2
+    },
+    {
+      "at": "scoring changed",
+      "what": "Two changes asked for in the chat were published. A change to the scoring is the only thing that makes a new version.",
+      "versions": [
+        "v2 · scoring of 20 Nov, 09:12",
+        "v1 · scoring of 19 Nov, 14:04"
+      ],
+      "showing": "2",
+      "why": "Scoring changed: new signal: Boil water notices in the last twelve months; red flag on Boil water notices in the last twelve months; thresholds of Days sales outstanding",
+      "refreshed": "Scored 20 Nov, 09:12",
+      "submission_store_version": 3
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "H1-1",
+    "thread": "H1",
+    "n": 1,
+    "at": "2026-11-19T16:42:00",
+    "subject": "Notice of claim and demand: Harlow Creek Wastewater Treatment Plant",
+    "sender": "L. Ortega, Baines & Ortega LLP",
+    "project": "NCO-047",
+    "situation": "",
+    "text": "Counsel,\n\nPlease find attached our notice of claim and demand on behalf of 23 residents of the Mill Pond and Eastgate neighbourhoods. A copy has gone to the City Attorney. We ask for a response within 30 days.\n\nL. Ortega",
+    "labels": [],
+    "attachments": [
+      "Baines_Ortega_Demand_Letter_2026-11-19.pdf"
+    ],
+    "noise": false,
+    "mailboxes": [
+      "legal-notices"
+    ],
+    "evidence_for": "A written demand before suit, received in the legal notices mailbox at 16:42 on 19 November."
+  },
+  {
+    "id": "H2-1",
+    "thread": "H2",
+    "n": 1,
+    "at": "2026-11-03T17:10:00",
+    "subject": "Odor call, Eastgate Dr",
+    "sender": "Wade Pruitt",
+    "project": "NCO-047",
+    "situation": "",
+    "text": "Marisol, another odor call this afternoon during load-out, Eastgate again. That is five this year. The biofilter media is nine years old and the City has not funded the replacement. I will call the resident back tomorrow.\n\nWade",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "southeast-ops"
+    ],
+    "evidence_for": "The project leader's account of the complaints and their cause."
+  },
+  {
+    "id": "H2-2",
+    "thread": "H2",
+    "n": 2,
+    "at": "2026-11-19T18:25:00",
+    "subject": "Re: Odor call, Eastgate Dr",
+    "sender": "Wade Pruitt",
+    "project": "NCO-047",
+    "situation": "",
+    "text": "Sixth one this afternoon, Mill Pond Rd, again during load-out. Logged tonight. I did not get back to the 3 November caller, we have been one operator short since September.\n\nWade",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "southeast-ops"
+    ],
+    "evidence_for": "The sixth complaint, and that two calls were not returned."
+  },
+  {
+    "id": "H3-1",
+    "thread": "H3",
+    "n": 1,
+    "at": "2026-10-08T10:02:00",
+    "subject": "Council questions on plant odor",
+    "sender": "Greg Talbot, City Manager, Harlow Creek",
+    "project": "NCO-047",
+    "situation": "",
+    "text": "Wade, two council members asked about the smell at Tuesday's session. Can you give me something I can say on 8 December? I know the biofilter is ours to fund; it did not make the budget again.\n\nGreg",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "southeast-ops"
+    ],
+    "evidence_for": "The client is under pressure from its council, and accepts the biofilter is the City's to fund."
+  },
+  {
+    "id": "A1-1",
+    "thread": "A1",
+    "n": 1,
+    "at": "2026-08-19T09:15:00",
+    "subject": "Introductions: new DPW Director",
+    "sender": "Miles Fontaine",
+    "project": "NCO-111",
+    "situation": "",
+    "text": "Daniel, Karen Whitlock started as DPW Director on Monday, from the Brindle Valley district where they run their own plants. Bob retired at the end of July. I have asked for an introductory meeting; nothing in the calendar yet.\n\nMiles",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "northeast-ops"
+    ],
+    "evidence_for": "The client lead changed in August; the NPS on file was given by the predecessor."
+  },
+  {
+    "id": "A2-1",
+    "thread": "A2",
+    "n": 1,
+    "at": "2026-11-10T14:38:00",
+    "subject": "Request: cost by scope for the Board",
+    "sender": "Karen Whitlock, DPW Director, Ashby Falls",
+    "project": "NCO-111",
+    "situation": "",
+    "text": "Miles, for the Board's options review I need your annual fee broken down by scope (water treatment, distribution, wastewater treatment, collection) and your staffing by scope, by 24 November.\n\nKaren Whitlock",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "northeast-ops"
+    ],
+    "evidence_for": "The client is costing the alternatives ahead of the 2 December meeting."
+  },
+  {
+    "id": "R1-1",
+    "thread": "R1",
+    "n": 1,
+    "at": "2026-11-19T17:50:00",
+    "subject": "Missed TSS composite, 15 November",
+    "sender": "Hana Delgado",
+    "project": "NCO-184",
+    "situation": "",
+    "text": "Grant, we lost the weekly TSS composite on Sunday: collected but it sat past holding time, Luis was alone on overtime again. That is the second missed sample this quarter. Both operator posts are still open (since 31 August and 14 September); two offers were declined in October.\n\nHana",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "west-ops"
+    ],
+    "evidence_for": "Why the sample was missed, and that both posts have been open more than 60 days."
+  },
+  {
+    "id": "R2-1",
+    "thread": "R2",
+    "n": 1,
+    "at": "2026-10-27T11:20:00",
+    "subject": "Red Mesa operator offers declined",
+    "sender": "Nadia Brooks",
+    "project": "NCO-184",
+    "situation": "",
+    "text": "Hana, both candidates declined. Our offer was about 9% under what the Phoenix utilities are paying for Grade 3. I can re-post at a revised grade if Grant approves.\n\nNadia",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "west-ops"
+    ],
+    "evidence_for": "Why the positions stay open."
+  },
+  {
+    "id": "P1-1",
+    "thread": "P1",
+    "n": 1,
+    "at": "2026-11-16T09:05:00",
+    "subject": "Renewal risk review for 2 December",
+    "sender": "Renee Halvorsen",
+    "project": "",
+    "situation": "",
+    "text": "For the portfolio review on 2 December I need the renewal risk review: of the contracts that decide in the next 18 months, which are we most likely to lose, what are they worth, and what do we do about each. I do not want another Calder Valley. Use last year's pack as the structure.\n\nRenee",
+    "labels": [],
+    "attachments": [
+      "Renewal_Review_2025-12.pptx"
+    ],
+    "noise": false,
+    "mailboxes": [
+      "conops-leadership"
+    ],
+    "evidence_for": "Who asked for the renewal review, by when and in what form."
+  },
+  {
+    "id": "P2-1",
+    "thread": "P2",
+    "n": 1,
+    "at": "2026-11-17T15:30:00",
+    "subject": "Re: Renewal risk review for 2 December",
+    "sender": "Tom Brandvold",
+    "project": "",
+    "situation": "",
+    "text": "Renee, one request: count the evergreen contracts. Calder taught us that a client who can walk on notice is deciding every year, whatever the end date says.\n\nTom",
+    "labels": [],
+    "attachments": [],
+    "noise": false,
+    "mailboxes": [
+      "conops-leadership"
+    ],
+    "evidence_for": "A regional view on whether evergreen contracts count as up for renewal."
+  }
+]

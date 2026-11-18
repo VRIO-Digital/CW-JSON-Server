@@ -1,0 +1,253 @@
+{
+  "_about": "Questions typed in free words, on the demo run scorecard after the morning check. The prototype matches on key words; it is not a language model. result: answered = it gives the right kind of answer; miss = it says it cannot answer and the real Ask should; beside the point = it answers a nearby question; decline = it says it cannot answer and that is right.",
+  "examples": [
+    {
+      "typed": "tell me for which all projects the risk increased in the last 90 days and what are the reasons",
+      "prototype_answer_kind": "risers",
+      "result": "answered",
+      "note": null,
+      "summary": "9 projects rose in the last 90 days; 5 of them now rate 3 or 4. The largest rise is Ashby Falls (+0.83).",
+      "rows": 9
+    },
+    {
+      "typed": "for Sable Creek wastewater treatment plant, what is the status and why did the risk go up?",
+      "prototype_answer_kind": "site:NCO-287",
+      "result": "answered",
+      "note": null,
+      "summary": "Sable Creek rates 3 (medium to high) with a risk score of 2.73. It rose by 0.15 over the last 90 days. Priority: manage.",
+      "rows": 8
+    },
+    {
+      "typed": "tell me which projects have not recorded any safety observation in the last 2 weeks",
+      "prototype_answer_kind": "obs",
+      "result": "answered",
+      "note": null,
+      "summary": "46 projects have not recorded a safety observation in the last two weeks. The longest gap is Osric Flats: 73 days. 27 of them already rate 3 or 4.",
+      "rows": 46
+    },
+    {
+      "typed": "compare Ashby Falls and Red Mesa",
+      "prototype_answer_kind": "compare",
+      "result": "answered",
+      "note": null,
+      "summary": "Ashby Falls scores 2.50 (rating 3) and Red Mesa scores 1.67 (rating 2). They differ most on competitive landscape: 3.17 against 1.00.",
+      "rows": 16
+    },
+    {
+      "typed": "which sites are behind on overtime",
+      "prototype_answer_kind": "sig:st4",
+      "result": "answered",
+      "note": null,
+      "summary": "56 projects run overtime above 13% of payroll. Together they bill $244.8M a year, and 27 of them already rate 3 or 4.",
+      "rows": 56
+    },
+    {
+      "typed": "whose risk increased and why",
+      "prototype_answer_kind": "risers",
+      "result": "answered",
+      "note": null,
+      "summary": "9 projects rose in the last 90 days; 5 of them now rate 3 or 4. The largest rise is Ashby Falls (+0.83).",
+      "rows": 9
+    },
+    {
+      "typed": "which contracts got worse",
+      "prototype_answer_kind": "risers",
+      "result": "answered",
+      "note": null,
+      "summary": "9 projects rose in the last 90 days; 5 of them now rate 3 or 4. The largest rise is Ashby Falls (+0.83).",
+      "rows": 9
+    },
+    {
+      "typed": "what changed overnight",
+      "prototype_answer_kind": "morning",
+      "result": "answered",
+      "note": null,
+      "summary": "3 projects changed at this morning's check; 2 moved up a rating.",
+      "rows": 3
+    },
+    {
+      "typed": "show me the top 10 riskiest contracts",
+      "prototype_answer_kind": "top10",
+      "result": "answered",
+      "note": null,
+      "summary": "The ten highest scores run from 3.24 (Linden Falls) to 2.83. Together these ten bill $52.4M a year.",
+      "rows": 10
+    },
+    {
+      "typed": "how much revenue is at risk",
+      "prototype_answer_kind": "revenue",
+      "result": "answered",
+      "note": null,
+      "summary": "$307.9M a year sits in contracts that rate 3 or 4: 66 of 300 projects, 22% of revenue. 25 of them need action now, worth $164.0M.",
+      "rows": 0
+    },
+    {
+      "typed": "what should I worry about today",
+      "prototype_answer_kind": "worry",
+      "result": "answered",
+      "note": null,
+      "summary": "Five projects deserve your attention this week: high risk and a lot at stake, and 3 are still getting worse.",
+      "rows": 5
+    },
+    {
+      "typed": "why is Ashby Falls a 3",
+      "prototype_answer_kind": "site:NCO-111",
+      "result": "answered",
+      "note": null,
+      "summary": "Ashby Falls rates 3 (medium to high) with a risk score of 2.50. It rose by 0.83 over the last 90 days, and it moved from 2 to 3 at this morning's check. Priority: act now.",
+      "rows": 8
+    },
+    {
+      "typed": "what is the plan for Harlow Creek",
+      "prototype_answer_kind": "plan:NCO-047",
+      "result": "answered",
+      "note": null,
+      "summary": "Harlow Creek has 10 actions in its mitigation plan. If they land, the score goes from 2.50 to 2.28 and the rating from 3 to 2.",
+      "rows": 10
+    },
+    {
+      "typed": "which sites have permit violations",
+      "prototype_answer_kind": "sig:en3",
+      "result": "answered",
+      "note": null,
+      "summary": "97 projects received a notice of violation in the last three years. Together they bill $448.4M a year, and 43 of them already rate 3 or 4.",
+      "rows": 97
+    },
+    {
+      "typed": "which contracts come up for renewal next year",
+      "prototype_answer_kind": "renew",
+      "result": "answered",
+      "note": null,
+      "summary": "55 contracts come up in the next 18 months, worth $263.6M a year. 15 of them rate 3 or 4: $73.7M a year that is both at risk and up for decision.",
+      "rows": 20
+    },
+    {
+      "typed": "how is the score calculated",
+      "prototype_answer_kind": "how",
+      "result": "answered",
+      "note": null,
+      "summary": "Every project gets one risk score from 1 (good) to 4 (bad), made from 70 signals in 16 factors.",
+      "rows": 16
+    },
+    {
+      "typed": "Which projects rose in the last 90 days, and why?",
+      "prototype_answer_kind": "risers",
+      "result": "answered",
+      "note": null,
+      "summary": "9 projects rose in the last 90 days; 5 of them now rate 3 or 4. The largest rise is Ashby Falls (+0.83).",
+      "rows": 9
+    },
+    {
+      "typed": "which contracts are we most likely to lose",
+      "prototype_answer_kind": "top10",
+      "result": "answered",
+      "note": null,
+      "summary": "The ten highest scores run from 3.24 (Linden Falls) to 2.83. Together these ten bill $52.4M a year.",
+      "rows": 10
+    },
+    {
+      "typed": "where is turnover high",
+      "prototype_answer_kind": "sig:st3",
+      "result": "answered",
+      "note": null,
+      "summary": "47 projects kept under 75% of their staff over the year. Together they bill $193.1M a year, and 26 of them already rate 3 or 4.",
+      "rows": 47
+    },
+    {
+      "typed": "who has not paid us",
+      "prototype_answer_kind": "sig:cr2",
+      "result": "answered",
+      "note": null,
+      "summary": "36 projects have receivables older than 90 days. Together they bill $126.8M a year, and 22 of them already rate 3 or 4.",
+      "rows": 36
+    },
+    {
+      "typed": "what did the morning check find",
+      "prototype_answer_kind": "morning",
+      "result": "answered",
+      "note": null,
+      "summary": "3 projects changed at this morning's check; 2 moved up a rating.",
+      "rows": 3
+    },
+    {
+      "typed": "which signals have no data",
+      "prototype_answer_kind": "gaps",
+      "result": "answered",
+      "note": null,
+      "summary": "1 signal has no source in the connected data, and two more are only partly covered. Everything else is read at every check.",
+      "rows": 3
+    },
+    {
+      "typed": "how is the Southeast doing",
+      "prototype_answer_kind": "region:Southeast",
+      "result": "answered",
+      "note": null,
+      "summary": "Southeast has 60 projects; 15 of them rate 3 or 4, worth $69.3M a year. 4 projects rose in the last 90 days. Regional VP: Marisol Vega.",
+      "rows": 60
+    },
+    {
+      "typed": "give me a summary of the portfolio",
+      "prototype_answer_kind": "count",
+      "result": "answered",
+      "note": null,
+      "summary": "66 of 300 projects rate 3 or 4 today. 44 rate 1, 190 rate 2, 66 rate 3 and 0 rate 4.",
+      "rows": 0
+    },
+    {
+      "typed": "which contracts can the client terminate",
+      "prototype_answer_kind": "none",
+      "result": "miss",
+      "note": "The contract master has termination for convenience for every project, so the real Ask should list them.",
+      "summary": "I cannot answer that from the contract risk scorecard yet.",
+      "rows": 0
+    },
+    {
+      "typed": "how does this compare with last year",
+      "prototype_answer_kind": "none",
+      "result": "miss",
+      "note": "Twelve months of scores exist for every project, so the real Ask should answer.",
+      "summary": "I cannot answer that from the contract risk scorecard yet.",
+      "rows": 0
+    },
+    {
+      "typed": "which contracts should we walk away from",
+      "prototype_answer_kind": "none",
+      "result": "miss",
+      "note": "A judgement question. The real Ask should give the evidence (high risk, low margin, little at stake) and leave the decision to the person.",
+      "summary": "I cannot answer that from the contract risk scorecard yet.",
+      "rows": 0
+    },
+    {
+      "typed": "forecast next quarter",
+      "prototype_answer_kind": "none",
+      "result": "decline",
+      "note": "The scorecard does not forecast. Declining is the right answer.",
+      "summary": "I cannot answer that from the contract risk scorecard yet.",
+      "rows": 0
+    },
+    {
+      "typed": "which project leaders have the most risk",
+      "prototype_answer_kind": "top10",
+      "result": "beside the point",
+      "note": "The prototype answers with the ten riskiest projects. The real Ask should group by project leader.",
+      "summary": "The ten highest scores run from 3.24 (Linden Falls) to 2.83. Together these ten bill $52.4M a year.",
+      "rows": 10
+    },
+    {
+      "typed": "email the Regional VPs",
+      "prototype_answer_kind": "vps",
+      "result": "beside the point",
+      "note": "The prototype lists the Regional VPs. Ask answers questions; it does not send mail. The real Ask should say so.",
+      "summary": "Daniel Okoro, Northeast, has the most high-risk contracts: 17 of 60, worth $79.7M a year. 7 of them need action now.",
+      "rows": 5
+    },
+    {
+      "typed": "what is the weather like",
+      "prototype_answer_kind": "none",
+      "result": "decline",
+      "note": "Outside the scorecard. Declining is the right answer.",
+      "summary": "I cannot answer that from the contract risk scorecard yet.",
+      "rows": 0
+    }
+  ]
+}

@@ -1,0 +1,1525 @@
+{
+  "note": "Back in the standing goal, after the morning check. \"Change the scorecard\" in the chat: the analyst says what can be changed, that nothing is published until the person says so, and offers four examples.",
+  "journey": {
+    "id": "g-contract-risk-every-contract-scored--nc001",
+    "mode": "watch",
+    "kind": "rule",
+    "case": "watch",
+    "title": "Contract risk: every contract scored, and watched every morning",
+    "agent": {
+      "name": "Agent Ledger",
+      "icon": "radar",
+      "colour": "#9e3819"
+    },
+    "prompt": "I need to monitor the risk of all the contracts in our portfolio. Work out what the important risk factors and signals are from everything we have connected, and help me build the scorecard: what to measure, how to score it and how much each thing counts. Then watch every contract, and tell me when the risk of one goes up, why, and what we should do about it at that site.",
+    "files": [],
+    "stage": "armed",
+    "status": "executed",
+    "rv": [
+      "watch",
+      "src:fin",
+      "src:proc",
+      "src:mail",
+      "src:web",
+      "against",
+      "where",
+      "miss:frame",
+      "memory",
+      "prior",
+      "fixed",
+      "until",
+      "steps",
+      "miss:design",
+      "miss:check",
+      "frame",
+      "sheet",
+      "design",
+      "check",
+      "deliv"
+    ],
+    "reads": [
+      {
+        "tool": "look at what is connected",
+        "res": "Operations data hub (214 tables), the contract repository (2,460 documents), three shared mailboxes and the public web",
+        "rv": [
+          "watch",
+          "src:fin",
+          "src:proc",
+          "src:mail",
+          "src:web"
+        ]
+      },
+      {
+        "tool": "find the projects · master.contract",
+        "res": "300 active operations and maintenance projects in five regions, $1,375.4M a year, booked under 267 profit centers and running 425 facilities. I give each project one score",
+        "rv": [
+          "against",
+          "where"
+        ]
+      },
+      {
+        "tool": "look for a scoring template you already use",
+        "res": "None is connected. I found your Contracting Policy (the non-negotiable terms), three loss reviews and the monthly KPI pack, but nothing that says what to score and how. Upload yours, or I propose one",
+        "warn": true,
+        "rv": [
+          "miss:frame",
+          "memory"
+        ]
+      },
+      {
+        "tool": "read the contracts you lost or left since 2021",
+        "res": "7 contracts: 3 lost at renewal, 2 taken in-house, 2 ended early. What came first in each: a new client lead (5 of 7), margin under budget (7 of 7), in-house operation on a public agenda (both in-house losses)",
+        "rv": [
+          "prior"
+        ]
+      },
+      {
+        "tool": "fetch public sources",
+        "res": "richstatespoorstates.org (state liability ranking, 2026 edition) · EPA ECHO (permits) · FEMA flood maps · council and board agendas · municipal bond ratings",
+        "rv": [
+          "src:web",
+          "fixed"
+        ]
+      },
+      {
+        "tool": "check where each figure sits",
+        "res": "Not everything is recorded by project. Finance figures are booked by profit center, compliance and maintenance by facility, the client survey by client account. I say how each one is brought to the project and ask you to confirm",
+        "rv": [
+          "until",
+          "steps",
+          "miss:design",
+          "miss:check"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "key": "frame",
+        "title": "Do you have a scoring template?",
+        "text": "A file with your factors and their weights, the signals in each factor, and how each signal scores 1 to 4. If you have one I use it exactly as written. If not, I propose a scorecard. Either way it appears on the right once you answer.",
+        "tiles": [
+          {
+            "v": "upload",
+            "t": "Yes, I will upload it",
+            "s": "Use our factors, weights and rules as written"
+          },
+          {
+            "v": "none",
+            "t": "No. Propose one",
+            "s": "From what is connected and the contracts already lost"
+          }
+        ]
+      },
+      {
+        "key": "design",
+        "title": "This is how every project will be scored",
+        "text": "The scorecard is on the Plan tab: every factor with its share of the final score, every signal with its weight and its rule for 1 to 4. Drop a signal, add one to a factor, add a factor, or change a weight or a rule, there or here in the chat. The preview shows what each change does to your projects.",
+        "tiles": [
+          {
+            "v": "ok",
+            "t": "Score on it as it stands now",
+            "s": "You can change it at any time, also after the goal is live",
+            "rec": true
+          }
+        ]
+      },
+      {
+        "key": "check",
+        "title": "The data check: a few assumptions need your call",
+        "text": "I tested every signal against the connected data. Most are ready. Some figures do not sit at project level (profit center, facility, client account), and one signal has no source. The data check on the plan lists each signal, how it is measured, and the assumptions I would make to get one figure per project.",
+        "tiles": [
+          {
+            "v": "ok",
+            "t": "Confirm the assumptions as they stand",
+            "s": "Or change any of them on the plan first",
+            "rec": true
+          }
+        ]
+      }
+    ],
+    "answers": {
+      "frame": "upload",
+      "design": "ok",
+      "check": "ok"
+    },
+    "over": {
+      "acc:W1": "auto",
+      "acc:W2": "auto",
+      "acc:W3": "auto",
+      "acc:W4": "auto"
+    },
+    "extraDocs": [
+      {
+        "n": "Contract_Risk_Scorecard_Template.xlsx",
+        "took": "16 factors and 77 signals, with weights and a rule for 1 to 4 on each; used as written"
+      }
+    ],
+    "web": false,
+    "fixedExtra": [],
+    "version": 1,
+    "agreedV": 1,
+    "history": [],
+    "autonomy": "end",
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Read every signal again and re-score",
+        "purpose": "Which contracts changed, and by how much.",
+        "how": "Every signal of every contract read again from its source and scored on your bands; factor scores from your weights; the contracts whose readings changed, with the old and the new score.",
+        "draws": [
+          "Operations data hub",
+          "Contracts and documents",
+          "Mailboxes",
+          "Public web"
+        ],
+        "check": "Each score recomputes from its signals, bands and weights."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Read the evidence behind each change",
+        "purpose": "Why it changed, and what the contract says about it.",
+        "how": "The message, document, row or page behind each changed reading; then the agreement: liability, who pays for the fix, how the client can leave.",
+        "draws": [
+          "Mail: legal notices and operations",
+          "The signed agreements",
+          "Council agendas and local news"
+        ],
+        "check": "Every change points at a dated message, row or page."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Weigh what is at stake and where it is heading",
+        "purpose": "Which of the contracts that rose come first.",
+        "how": "Annual revenue, margin, months to a decision and how the contract can end, beside the risk; the twelve-month direction of each score; anything I read that your scorecard does not score.",
+        "draws": [
+          "master.contract · fin.contract_pnl",
+          "Twelve months of scores"
+        ],
+        "check": "What is at stake never changes the risk score unless you asked for it."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Write the mitigation plan for each site",
+        "purpose": "One action for every signal at 3 or 4 that can be moved, for that site.",
+        "how": "For each site: the action, written from the reading, the mail about it, the contract clause and what is public; the owner from the contract master, a date, and the score the plan would bring the project to. Facts of the site are listed, not actioned.",
+        "draws": [
+          "Steps 1 to 3",
+          "The contract master: who owns each contract"
+        ],
+        "check": "Every action names the signal it answers, an owner and a date."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Build the deliverables, act and tell you",
+        "purpose": "Build what was agreed at set-up, take the actions that run by themselves, hold the others for your OK, and tell the people you chose.",
+        "how": "The dashboard refreshed; then each rule that applies: tell the people named, build the deck on why it moved, write the plan. A rule set to \"ask me first\" waits for your OK.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your rules on the Plan tab"
+        ],
+        "check": "Only your rules run. Nothing is sent outside the company."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ],
+    "removed": [],
+    "ns": {
+      "w1": {
+        "state": "done",
+        "at": "14:04",
+        "text": "Done · 3 changed · 2 moved up",
+        "caveat": true
+      },
+      "w2": {
+        "state": "done",
+        "at": "14:04",
+        "text": "Done · demand letter"
+      },
+      "w3": {
+        "state": "done",
+        "at": "14:04",
+        "text": "Done · 2 to act on now",
+        "caveat": true
+      },
+      "w4": {
+        "state": "done",
+        "at": "14:04",
+        "text": "Done · a plan for each site"
+      },
+      "w5": {
+        "state": "done",
+        "at": "14:05",
+        "text": "Done · 11 done"
+      }
+    },
+    "findings": [
+      "W1",
+      "W2",
+      "W3",
+      "W4"
+    ],
+    "recs": [
+      {
+        "id": "r1",
+        "title": "Run the full plan at every contract that rose: an odor plan at Harlow Creek, a renewal plan at Ashby Falls, cover at Red Mesa",
+        "summary": "Harlow Creek: an odor source survey, load-out moved to mornings, the complaint calls returned and the Regional VP in front of the City Manager before the 8 December council. Ashby Falls: the Regional VP meets the new DPW Director before 2 December and the renewal plan starts now. Red Mesa: both posts covered from the West float pool on Monday and the sampling schedule given a second owner.",
+        "figures": [
+          {
+            "label": "Contracts acted on",
+            "value": "3 of 300"
+          },
+          {
+            "label": "Revenue they carry",
+            "value": "$17.3M a year",
+            "tone": "warn"
+          },
+          {
+            "label": "Plans written",
+            "value": "3, one per site",
+            "tone": "good"
+          },
+          {
+            "label": "Written for",
+            "value": "each site, by signal",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "Three regions get work this week, one of them for a contract that still rates 2.",
+        "preferred": true,
+        "story": [
+          {
+            "kind": "asked",
+            "text": "The watch fired: three contracts changed overnight. What should be done about each?"
+          },
+          {
+            "kind": "read",
+            "text": "Read the demand letter and the complaint log for Harlow Creek.",
+            "figure": "23 residents · 6 complaints",
+            "ref": {
+              "thread": "H1"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Read the agreement: liability is capped, consequential damages are not waived, odor capital is the City's.",
+            "ref": {
+              "doc": "DOC:hc-contract"
+            }
+          },
+          {
+            "kind": "found",
+            "text": "Harlow Creek crosses from 2 to 3 on your scorecard.",
+            "figure": "2.30 to 2.38",
+            "ref": {
+              "sheet": "contract",
+              "contract": "NCO-047"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "Red Mesa shows the pattern that came before five of seven notices of violation.",
+            "figure": "5 of 7",
+            "ref": {
+              "sheet": "contract",
+              "contract": "NCO-184"
+            }
+          },
+          {
+            "kind": "read",
+            "text": "Ashby Falls puts in-house operation on its 2 December agenda, seven months before the contract ends.",
+            "ref": {
+              "doc": "WEB:af-agenda"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Act on all three now: one because it moved, two because the record says what comes next."
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "title": "Plans only where a rating moved; list the rest in the Monday digest",
+        "summary": "Follow the ratings strictly: a contract that moved up gets the full plan today. A contract that rose inside its rating goes into the Monday digest.",
+        "figures": [
+          {
+            "label": "Contracts acted on",
+            "value": "1 of 300"
+          },
+          {
+            "label": "Actions opened",
+            "value": "7",
+            "tone": "good"
+          },
+          {
+            "label": "Red Mesa",
+            "value": "pattern left to run",
+            "tone": "crit"
+          },
+          {
+            "label": "Ashby Falls",
+            "value": "council meets first",
+            "tone": "crit"
+          }
+        ],
+        "tradeoff": "Simple to explain, since it follows the ratings. But the Ashby Falls board meets on 2 December, the same day as the review, and Red Mesa goes on with one licence holder working weekends.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "What if only a rating change triggers work?"
+          },
+          {
+            "kind": "found",
+            "text": "One contract changed rating.",
+            "figure": "1 of 3",
+            "ref": {
+              "sheet": "scorecard"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "The Ashby Falls board discusses in-house operation on the day of the portfolio review.",
+            "figure": "2 December",
+            "ref": {
+              "doc": "WEB:af-agenda"
+            }
+          },
+          {
+            "kind": "therefore",
+            "text": "Faithful to the scorecard, and late for the two it does not yet see."
+          }
+        ],
+        "preferred": false
+      },
+      {
+        "id": "r3",
+        "title": "Tell the owners now and decide the rest at the 2 December review",
+        "summary": "Tell the people who own each contract this morning. Take the contracts to the leadership team on 2 December and decide the plans there.",
+        "figures": [
+          {
+            "label": "Done today",
+            "value": "Owners told",
+            "tone": "good"
+          },
+          {
+            "label": "Days used of the 30",
+            "value": "13",
+            "tone": "crit"
+          },
+          {
+            "label": "Odor survey",
+            "value": "not started",
+            "tone": "crit"
+          },
+          {
+            "label": "Disruption this week",
+            "value": "none",
+            "tone": "good"
+          }
+        ],
+        "tradeoff": "The least work now. It uses 13 of the 30 days the letter gives, and the Ashby Falls board meets on the same day as the review.",
+        "story": [
+          {
+            "kind": "asked",
+            "text": "What if the decisions wait for the leadership team?"
+          },
+          {
+            "kind": "read",
+            "text": "The claims procedure asks for Legal within one working day and the insurer within 30.",
+            "ref": {
+              "doc": "DOC:claims-proc"
+            }
+          },
+          {
+            "kind": "compared",
+            "text": "The review is 12 days away; the letter gives 30.",
+            "figure": "13 of 30 days"
+          },
+          {
+            "kind": "therefore",
+            "text": "Allowed by the procedure, costly for the odor plan and for Ashby Falls."
+          }
+        ],
+        "preferred": false
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sub-risk-scorecard",
+        "label": "Contract risk dashboard: all contracts",
+        "audience": "Renee Halvorsen, SVP, Contract Operations, and the five Regional VPs",
+        "purpose": "The dashboard you designed, refreshed, with what changed overnight",
+        "template": "Contract risk: dashboard",
+        "templateId": "t-risk-scorecard",
+        "why": "Rebuilt after every check, so nobody has to collate it."
+      },
+      {
+        "id": "sub-risk-brief",
+        "label": "Why it moved: the contracts whose risk went up",
+        "audience": "The Regional VP and the project leader of each contract",
+        "purpose": "What moved, the evidence, what is at stake and the plan for the site",
+        "template": "Contract risk: why it moved",
+        "templateId": "t-risk-brief",
+        "why": "Your rule: a deck for every contract that moves up a rating."
+      },
+      {
+        "id": "sub-risk-plan",
+        "label": "Mitigation plan: site by site",
+        "audience": "The project leader and the Regional VP of each contract",
+        "purpose": "One action for every signal at 3 or 4 that can be moved, with an owner, a date and the score it would bring",
+        "template": "Contract risk: site mitigation plan",
+        "templateId": "t-risk-plan",
+        "why": "Your rule: a plan for the site when a signal reaches 3 or 4."
+      }
+    ],
+    "started": [
+      "sub-risk-scorecard",
+      "sub-risk-brief",
+      "sub-risk-plan"
+    ],
+    "gaps": [
+      "Whether the City of Harlow Creek received the same letter and how it will respond; the City Attorney was copied.",
+      "Legal has not yet confirmed the non-negotiable terms reading of the Harlow Creek agreement (no waiver of consequential damages).",
+      "The NPS of the new Ashby Falls DPW Director is not known; the score on file is her predecessor's."
+    ],
+    "chat": [
+      {
+        "who": "me",
+        "text": "I need to monitor the risk of all the contracts in our portfolio. Work out what the important risk factors and signals are from everything we have connected, and help me build the scorecard: what to measure, how to score it and how much each thing counts. Then watch every contract, and tell me when the risk of one goes up, why, and what we should do about it at that site.",
+        "files": [],
+        "id": "j1-nc001",
+        "at": "14:00"
+      },
+      {
+        "who": "agent",
+        "text": "Working out what to watch, where it lives, and when it settles enough to check. The plan fills in on the right.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "look at what is connected",
+              "res": "Operations data hub (214 tables), the contract repository (2,460 documents), three shared mailboxes and the public web",
+              "live": false
+            },
+            {
+              "tool": "find the projects · master.contract",
+              "res": "300 active operations and maintenance projects in five regions, $1,375.4M a year, booked under 267 profit centers and running 425 facilities. I give each project one score",
+              "live": false
+            },
+            {
+              "tool": "look for a scoring template you already use",
+              "res": "None is connected. I found your Contracting Policy (the non-negotiable terms), three loss reviews and the monthly KPI pack, but nothing that says what to score and how. Upload yours, or I propose one",
+              "warn": true,
+              "live": false
+            },
+            {
+              "tool": "read the contracts you lost or left since 2021",
+              "res": "7 contracts: 3 lost at renewal, 2 taken in-house, 2 ended early. What came first in each: a new client lead (5 of 7), margin under budget (7 of 7), in-house operation on a public agenda (both in-house losses)",
+              "live": false
+            },
+            {
+              "tool": "fetch public sources",
+              "res": "richstatespoorstates.org (state liability ranking, 2026 edition) · EPA ECHO (permits) · FEMA flood maps · council and board agendas · municipal bond ratings",
+              "live": false
+            },
+            {
+              "tool": "check where each figure sits",
+              "res": "Not everything is recorded by project. Finance figures are booked by profit center, compliance and maintenance by facility, the client survey by client account. I say how each one is brought to the project and ask you to confirm",
+              "live": false
+            },
+            {
+              "tool": "draft what I do when it fires",
+              "res": "5 steps · two side by side · no checkpoint",
+              "live": false
+            }
+          ]
+        },
+        "id": "j2-nc002",
+        "at": "14:00"
+      },
+      {
+        "who": "agent",
+        "text": "The plan for the watch is on the right. Three things I could not find, then what you want at the end; one at a time. After that I run it to the end without stopping.",
+        "id": "j3-nc003",
+        "at": "14:00"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "frame",
+          "done": "Yes, I will upload it"
+        },
+        "id": "j4-nc004",
+        "at": "14:00"
+      },
+      {
+        "who": "me",
+        "text": "Yes, I will upload it",
+        "id": "j5-nc005",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "Give me the file. I read your factors, your signals, your weights and your rule for 1 to 4, and I use them exactly as written.",
+        "card": {
+          "kind": "upload",
+          "done": "Contract_Risk_Scorecard_Template.xlsx"
+        },
+        "id": "j6-nc006",
+        "at": "14:01"
+      },
+      {
+        "who": "me",
+        "text": "",
+        "files": [
+          {
+            "n": "Not_a_template.xlsx",
+            "s": "file"
+          }
+        ],
+        "id": "j7-nc007",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "I could not find a scorecard in **Not_a_template.xlsx**. I look for a table with a Factor column and a Signal column, and when each signal scores 1, 2, 3 and 4. Use the template from the link in the upload box, or the sample.",
+        "id": "j8-nc007",
+        "at": "14:01"
+      },
+      {
+        "who": "me",
+        "text": "Uploaded Contract_Risk_Scorecard_Template.xlsx",
+        "id": "j9-nc008",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "Reading **Contract_Risk_Scorecard_Template.xlsx** now. It appears on the right, exactly as you wrote it, when I am through.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "open Contract_Risk_Scorecard_Template.xlsx",
+              "res": "One row per signal: factor, weights, and when it scores 1, 2, 3 and 4",
+              "live": false
+            },
+            {
+              "tool": "read the factors and their weights",
+              "res": "16 factors: 8 we control and 8 we do not, plus what is at stake",
+              "live": false
+            },
+            {
+              "tool": "read the signals and the rule for 1 to 4 on each",
+              "res": "77 signals, 2 marked as red flags. Used exactly as written",
+              "live": false
+            },
+            {
+              "tool": "match every signal to a connected source",
+              "res": "76 have a source. 1 has none: year of the last major upgrade",
+              "live": false
+            },
+            {
+              "tool": "look at three years of history behind every figure",
+              "res": "28 signals are scored on a figure. 5 follow a regulatory limit and stay as written. 2 put most projects in one score: safety observations per employee; local media coverage: % negative. I show the curve and a suggestion at the data check",
+              "live": false
+            },
+            {
+              "tool": "score all 300 projects once, exactly as written",
+              "res": "46 low, 189 low to medium, 65 medium to high, 0 high",
+              "live": false
+            }
+          ]
+        },
+        "id": "j10-nc009",
+        "at": "14:01"
+      },
+      {
+        "who": "agent",
+        "text": "Your template is on the right, **exactly as you wrote it**: 16 factors with their weights, what is at stake, and 77 signals with a rule for 1 to 4 on each. I added nothing and left nothing out.\n\nYou can still change anything, there or here in the chat.",
+        "id": "j11-nc010",
+        "at": "14:02"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "design",
+          "done": "Score on it as it stands now"
+        },
+        "id": "j12-nc011",
+        "at": "14:02"
+      },
+      {
+        "who": "me",
+        "text": "Score on it as it stands now",
+        "id": "j13-nc012",
+        "at": "14:03"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "q",
+          "key": "check",
+          "done": "Confirm the assumptions as they stand"
+        },
+        "id": "j14-nc013",
+        "at": "14:03"
+      },
+      {
+        "who": "me",
+        "text": "Confirm the assumptions as they stand",
+        "id": "j15-nc014",
+        "at": "14:03"
+      },
+      {
+        "who": "agent",
+        "text": "Last thing before I score everything. Two more things on the plan are yours to set: **what the dashboard shows**, and **what I do when a score rises**. Every site with a poor signal gets a mitigation plan in any case. Change them on the right, then build.",
+        "card": {
+          "kind": "deliv",
+          "done": "7 views on the dashboard · 7 rules, 6 by itself"
+        },
+        "id": "j16-nc015",
+        "at": "14:03"
+      },
+      {
+        "who": "me",
+        "text": "Build the scorecard and start watching",
+        "id": "j17-nc016",
+        "at": "14:03"
+      },
+      {
+        "who": "agent",
+        "text": "Building it: 70 signals for 300 projects.",
+        "card": {
+          "kind": "reads",
+          "lines": [
+            {
+              "tool": "read the operations data",
+              "res": "38 signals from the tables, by project, profit center and facility",
+              "live": false
+            },
+            {
+              "tool": "read the contracts and site documents",
+              "res": "15 signals, clause by clause",
+              "live": false
+            },
+            {
+              "tool": "read the mail and the public web",
+              "res": "17 signals: client mail, agendas, local media, public records",
+              "live": false
+            },
+            {
+              "tool": "score all 300 projects",
+              "res": "20,056 readings. 44 low, 192 low to medium, 64 medium to high, 0 high",
+              "live": false
+            },
+            {
+              "tool": "write a mitigation plan for every site with a poor signal",
+              "res": "295 sites, each from its own records",
+              "live": false
+            },
+            {
+              "tool": "build the dashboard",
+              "res": "7 views · published as version 1",
+              "live": false
+            }
+          ]
+        },
+        "id": "j18-nc017",
+        "at": "14:03"
+      },
+      {
+        "who": "event",
+        "text": "Watch armed · v1 · 19 Nov, 14:04",
+        "id": "j19-nc018",
+        "at": "14:04"
+      },
+      {
+        "who": "agent",
+        "text": "Done. **All 300 projects have one risk score each: 64 rate 3 or 4.** The **contract risk dashboard, version 1**, is published. Open any project for its score, why it scores that, and a mitigation plan written for that site.\n\n**Where you open it, every time:** **Submissions** in the left menu, under “Contract risk dashboard”. It is also on this goal’s **Deliverables** tab, which is open on the right now. Both show the same dashboard.\n\nFrom now on I read every signal each morning at 06:00 and refresh the dashboard, so what you open is always the latest. The version number changes only when you change the scoring: a signal, a weight or a rule. The next check is tomorrow’s morning check, 06:00 on 20 November. When a score rises I follow your 7 rules: 6 run by themselves, 1 wait for your OK. You can change the scoring at any time on the Plan tab; that is what makes version 2.",
+        "id": "j20-nc019",
+        "at": "14:04"
+      },
+      {
+        "who": "me",
+        "text": "Simulate tomorrow’s morning check (20 November)",
+        "id": "j21-nc021",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "20 Nov · 06:00 check · 300 contracts · rule fired · 3 changed, 2 moved up a rating",
+        "id": "j22-nc022",
+        "at": "14:04"
+      },
+      {
+        "who": "agent",
+        "text": "**Fired.** Since yesterday’s check three things arrived: a demand letter in the legal notices mailbox, a council agenda on the web, and a missed sample in the lab data. **3 of the 300 contracts changed overnight and 2 moved up a rating: Ashby Falls Water and Sewer, from 2 to 3; Harlow Creek WWTP, from 2 to 3.** Red Mesa rose inside its rating. Running the five steps now; then I do what your rules say and tell you.",
+        "id": "j23-nc022",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Step 1 done · every reading re-read · 3 contracts changed · Ashby Falls 2 to 3, Harlow Creek 2 to 3",
+        "id": "j24-nc023",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Step 2 done · a demand letter for 23 residents at Harlow Creek; in-house operation on the Ashby Falls agenda; a second missed sample at Red Mesa",
+        "id": "j25-nc025",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Step 3 done · what is at stake weighed · Ashby Falls and Harlow Creek now high risk with a lot at stake",
+        "id": "j26-nc026",
+        "at": "14:04"
+      },
+      {
+        "who": "event",
+        "text": "Step 4 done · a mitigation plan written for each site that rose",
+        "id": "j27-nc027",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Weighing the findings against the brief and the policies",
+        "id": "j28-nc027",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Findings accepted automatically · 4 of 4",
+        "id": "j29-nc028",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Top recommendation chosen · option 1",
+        "id": "j30-nc029",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Built · Contract risk dashboard · 6 panels",
+        "id": "j31-nc030",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Built · Why it moved · 9 slides",
+        "id": "j32-nc031",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Built · Mitigation plan · 5 sections",
+        "id": "j33-nc032",
+        "at": "14:05"
+      },
+      {
+        "who": "agent",
+        "text": "",
+        "card": {
+          "kind": "actions"
+        },
+        "id": "j34-nc033",
+        "at": "14:05"
+      },
+      {
+        "who": "event",
+        "text": "Executed · 14:06 · 11 actions done · moved to Executed",
+        "id": "j35-nc034",
+        "at": "14:06"
+      },
+      {
+        "who": "agent",
+        "text": "Handled. **3 of the 300 contracts changed overnight and 2 moved up a rating: Ashby Falls Water and Sewer, from 2 to 3; Harlow Creek WWTP, from 2 to 3.** Red Mesa rose inside its rating.\n\nFor Ashby Falls and Harlow Creek the owners are told, and **Contract risk dashboard**, **Why it moved** and **Mitigation plan** are built and open on the right. The dashboard is refreshed with the new position (open it in **Submissions** or on the Deliverables tab). It keeps its version number, because the scoring did not change. Also, 11 of 11 actions from your rules are done. I keep watching; the next check is tomorrow at 06:00.",
+        "card": {
+          "kind": "delivered"
+        },
+        "id": "j36-nc024",
+        "at": "14:06"
+      },
+      {
+        "who": "me",
+        "text": "Change the scorecard",
+        "id": "j37-nc037",
+        "at": "14:09"
+      },
+      {
+        "who": "agent",
+        "text": "Yes. Tell me in your own words what to change: add a signal or a factor, change where a signal scores 1 to 4, change how much a factor counts, drop something, or set a red flag. I draft it, show you what it does to the scores of all 300 projects, and publish it as **version 2** of the dashboard only when you say so. For example:",
+        "id": "j38-nc038",
+        "at": "14:09"
+      }
+    ],
+    "chips": [
+      "Add a signal for boil water notices in the last twelve months, under Water Quality and Contaminants, and make it a red flag",
+      "Change days sales outstanding: score 4 from 75 days",
+      "Add a factor for energy cost, with a signal for power cost against budget",
+      "Make Legal Action count for 18 instead of 25"
+    ],
+    "typing": false,
+    "composer": {
+      "on": true,
+      "ph": "Ask about the watch, or change it between checks…"
+    },
+    "log": [
+      {
+        "t": "14:03",
+        "who": "You",
+        "what": "Agreed what it hands over: Contract risk dashboard: all contracts; Why it moved: the contracts whose risk went up; Mitigation plan: site by site."
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Ledger",
+        "what": "Published the contract risk dashboard, version 1."
+      },
+      {
+        "t": "14:04",
+        "who": "You",
+        "what": "Armed the watch (v1)."
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Ledger",
+        "what": "Armed. First check: tomorrow’s morning check, 06:00 on 20 November."
+      },
+      {
+        "t": "14:04",
+        "who": "Rule",
+        "what": "Fired at the 06:00 check of 20 November: 3 of 300 contracts changed; Ashby Falls and Harlow Creek moved up a rating."
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Ledger",
+        "what": "Step 1 done · every reading re-read · 3 contracts changed · Ashby Falls 2 to 3, Harlow Creek 2 to 3"
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Ledger",
+        "what": "Step 2 done · a demand letter for 23 residents at Harlow Creek; in-house operation on the Ashby Falls agenda; a second missed sample at Red Mesa"
+      },
+      {
+        "t": "14:04",
+        "who": "Agent Ledger",
+        "what": "Step 3 done · what is at stake weighed · Ashby Falls and Harlow Creek now high risk with a lot at stake"
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Step 4 done · a mitigation plan written for each site that rose"
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Accepted the 4 findings and chose the top recommendation: Run the full plan at every contract that rose: an odor plan at Harlow Creek, a renewal plan at Ashby Falls, cover at Red Mesa."
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Built 3 deliverables on option 1, run the full plan at every contract that rose."
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Done: Refresh the dashboard for all 300 contracts."
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Done: Tell Daniel Okoro, Regional VP, and Miles Fontaine, project leader: Ashby Falls moved from 2 to 3, with the reason and the evidence."
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Done: Build the deck: why Ashby Falls moved from 2 to 3."
+      },
+      {
+        "t": "14:05",
+        "who": "Agent Ledger",
+        "what": "Done: Tell Marisol Vega, Regional VP, and Wade Pruitt, project leader: Harlow Creek moved from 2 to 3, with the reason and the evidence."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Build the deck: why Harlow Creek moved from 2 to 3."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Write the mitigation plan for Ashby Falls: 5 actions, each with an owner and a date."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Write the mitigation plan for Harlow Creek: 10 actions, each with an owner and a date."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Write the mitigation plan for Red Mesa: 7 actions, each with an owner and a date."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Tell Renee Halvorsen, SVP, Contract Operations: Ashby Falls is now high risk with a lot at stake."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: Tell Renee Halvorsen, SVP, Contract Operations: Harlow Creek is now high risk with a lot at stake."
+      },
+      {
+        "t": "14:06",
+        "who": "Agent Ledger",
+        "what": "Done: List Red Mesa in the Monday digest: the score rose, the rating held."
+      }
+    ],
+    "runs": [
+      {
+        "id": "r1",
+        "at": "20 Nov, 06:04",
+        "label": "Morning check, 20 November · Ashby Falls 2 to 3, Harlow Creek 2 to 3",
+        "status": "executed"
+      }
+    ],
+    "flags": {},
+    "doneCount": 5,
+    "paused": false,
+    "deliv": [
+      {
+        "id": "sub-risk-scorecard",
+        "label": "Contract risk dashboard: all contracts",
+        "audience": "Renee Halvorsen, SVP, Contract Operations, and the five Regional VPs",
+        "purpose": "The dashboard you designed, refreshed, with what changed overnight",
+        "why": "Rebuilt after every check, so nobody has to collate it.",
+        "format": "Dashboard",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-risk-scorecard"
+      },
+      {
+        "id": "sub-risk-brief",
+        "label": "Why it moved: the contracts whose risk went up",
+        "audience": "The Regional VP and the project leader of each contract",
+        "purpose": "What moved, the evidence, what is at stake and the plan for the site",
+        "why": "Your rule: a deck for every contract that moves up a rating.",
+        "format": "Slide pack",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-risk-brief"
+      },
+      {
+        "id": "sub-risk-plan",
+        "label": "Mitigation plan: site by site",
+        "audience": "The project leader and the Regional VP of each contract",
+        "purpose": "One action for every signal at 3 or 4 that can be moved, with an owner, a date and the score it would bring",
+        "why": "Your rule: a plan for the site when a signal reaches 3 or 4.",
+        "format": "Document",
+        "on": true,
+        "mode": "recommended",
+        "recId": "t-risk-plan"
+      },
+      {
+        "id": "sub-risk-review",
+        "label": "Monthly portfolio risk review: November",
+        "audience": "Renee Halvorsen and the Contract Operations leadership team",
+        "purpose": "Where the 300 contracts stand, what moved in the month, the actions open and overdue, and the contracts to discuss",
+        "why": "The leadership team reviews the portfolio on 2 December.",
+        "format": "Slide pack",
+        "on": false,
+        "mode": "recommended",
+        "recId": "t-risk-review-pack"
+      }
+    ],
+    "delivConfirmed": true,
+    "acts": [
+      {
+        "key": "dash",
+        "when": "After every check",
+        "text": "Refresh the dashboard",
+        "why": "So nobody collates it",
+        "mode": "auto"
+      },
+      {
+        "key": "tell",
+        "when": "A rating goes up",
+        "text": "Tell the Regional VP and the project leader of that contract, with the reason and the evidence",
+        "why": "Inside Northline",
+        "mode": "auto"
+      },
+      {
+        "key": "deck",
+        "when": "A rating goes up",
+        "text": "Build a short deck on why that contract's risk went up",
+        "why": "For the people who own it",
+        "mode": "auto"
+      },
+      {
+        "key": "plan",
+        "when": "A signal reaches 3 or 4",
+        "text": "Write the mitigation plan for that site, one action per signal, each with an owner and a date",
+        "why": "Specific to the site",
+        "mode": "auto"
+      },
+      {
+        "key": "svp",
+        "when": "A contract becomes \"Act now\"",
+        "text": "Tell the SVP, Contract Operations the same morning",
+        "why": "High risk with a lot at stake",
+        "mode": "auto"
+      },
+      {
+        "key": "digest",
+        "when": "A score rises but the rating holds",
+        "text": "List it in the Monday digest, with what changed",
+        "why": "Early warning, no noise",
+        "mode": "auto"
+      },
+      {
+        "key": "chase",
+        "when": "A plan action is 7 days late",
+        "text": "Remind the owner, and tell the Regional VP a week later",
+        "why": "A plan is only worth something if someone checks",
+        "mode": "ask"
+      }
+    ],
+    "execActs": [
+      {
+        "cat": "dash",
+        "text": "Refresh the dashboard for all 300 contracts",
+        "state": "done"
+      },
+      {
+        "cat": "tell",
+        "text": "Tell Daniel Okoro, Regional VP, and Miles Fontaine, project leader: Ashby Falls moved from 2 to 3, with the reason and the evidence",
+        "state": "done"
+      },
+      {
+        "cat": "deck",
+        "text": "Build the deck: why Ashby Falls moved from 2 to 3",
+        "state": "done"
+      },
+      {
+        "cat": "tell",
+        "text": "Tell Marisol Vega, Regional VP, and Wade Pruitt, project leader: Harlow Creek moved from 2 to 3, with the reason and the evidence",
+        "state": "done"
+      },
+      {
+        "cat": "deck",
+        "text": "Build the deck: why Harlow Creek moved from 2 to 3",
+        "state": "done"
+      },
+      {
+        "cat": "plan",
+        "text": "Write the mitigation plan for Ashby Falls: 5 actions, each with an owner and a date",
+        "state": "done"
+      },
+      {
+        "cat": "plan",
+        "text": "Write the mitigation plan for Harlow Creek: 10 actions, each with an owner and a date",
+        "state": "done"
+      },
+      {
+        "cat": "plan",
+        "text": "Write the mitigation plan for Red Mesa: 7 actions, each with an owner and a date",
+        "state": "done"
+      },
+      {
+        "cat": "svp",
+        "text": "Tell Renee Halvorsen, SVP, Contract Operations: Ashby Falls is now high risk with a lot at stake",
+        "state": "done"
+      },
+      {
+        "cat": "svp",
+        "text": "Tell Renee Halvorsen, SVP, Contract Operations: Harlow Creek is now high risk with a lot at stake",
+        "state": "done"
+      },
+      {
+        "cat": "digest",
+        "text": "List Red Mesa in the Monday digest: the score rose, the rating held",
+        "state": "done"
+      }
+    ],
+    "built": {
+      "sub-risk-scorecard": "sub-contract-risk-dashboard-all-contracts-nc020",
+      "sub-risk-brief": "sub-why-it-moved-the-contracts-whose-risk-we-nc035",
+      "sub-risk-plan": "sub-mitigation-plan-site-by-site-nc036"
+    },
+    "buildV": 2,
+    "draft": null,
+    "agreedAt": "14:04",
+    "armedAt": "19 Nov, 14:04",
+    "armedBy": "You",
+    "nextCheck": "tomorrow’s morning check, 06:00 on 20 November",
+    "deliveredAt": "14:05",
+    "chosen": "r1",
+    "chosenBy": "auto",
+    "prog": null,
+    "executedAt": "14:06"
+  },
+  "scorecard": {
+    "source": "uploaded",
+    "protect": "balanced",
+    "rule": "avg",
+    "size": "beside",
+    "on": {
+      "gr1": true,
+      "cr1": true,
+      "cr2": true,
+      "cr3": true,
+      "cr4": true,
+      "cr5": true,
+      "cr6": true,
+      "os1": true,
+      "os2": true,
+      "os3": true,
+      "en1": true,
+      "en2": true,
+      "en3": true,
+      "en4": true,
+      "st1": true,
+      "st2": true,
+      "st3": true,
+      "st4": true,
+      "cu1": true,
+      "cu2": true,
+      "cu3": true,
+      "co1": true,
+      "co2": true,
+      "co3": true,
+      "co4": true,
+      "co5": true,
+      "sl1": true,
+      "li1": true,
+      "li2": true,
+      "li3": true,
+      "in1": true,
+      "in2": false,
+      "in3": true,
+      "in4": true,
+      "in5": true,
+      "sp1": true,
+      "iq1": true,
+      "iq2": true,
+      "iq3": true,
+      "iq4": true,
+      "iq5": true,
+      "iq6": true,
+      "cr7": true,
+      "cr8": true,
+      "cr9": true,
+      "en5": true,
+      "en6": true,
+      "st5": true,
+      "st6": true,
+      "in6": true,
+      "in7": true,
+      "iq7": true,
+      "iq8": true,
+      "fp1": true,
+      "fp2": true,
+      "fp3": true,
+      "fp4": true,
+      "fp5": true,
+      "cp1": true,
+      "cp2": true,
+      "cp3": true,
+      "cp4": true,
+      "cp5": true,
+      "cp6": true,
+      "cl1": true,
+      "cl2": true,
+      "cl3": true,
+      "rs1": true,
+      "rs2": true,
+      "rs3": true,
+      "rs4": true,
+      "im1": true,
+      "im2": true,
+      "im3": true,
+      "im4": true,
+      "im5": true,
+      "im6": true
+    },
+    "fw": {
+      "gr": 8.7,
+      "cr": 17.4,
+      "os": 13,
+      "en": 17.4,
+      "st": 8.7,
+      "cu": 8.7,
+      "co": 13,
+      "sl": 7.1,
+      "li": 25,
+      "in": 17.9,
+      "sp": 14.3,
+      "iq": 7.1,
+      "fp": 13,
+      "cp": 14.3,
+      "cl": 7.1,
+      "rs": 7.1,
+      "im": 100
+    },
+    "sw": {
+      "gr1": 1,
+      "cr1": 9,
+      "cr2": 8.01,
+      "cr3": 7.02,
+      "cr4": 5.99,
+      "cr5": 4.99,
+      "cr6": 4.01,
+      "os1": 3,
+      "os2": 2,
+      "os3": 1,
+      "en1": 6.01,
+      "en2": 5,
+      "en3": 3.99,
+      "en4": 3,
+      "st1": 6.01,
+      "st2": 5,
+      "st3": 3.99,
+      "st4": 3,
+      "cu1": 3,
+      "cu2": 2,
+      "cu3": 1,
+      "co1": 4.99,
+      "co2": 4.01,
+      "co3": 3,
+      "co4": 2,
+      "co5": 1.01,
+      "sl1": 1,
+      "li1": 3,
+      "li2": 2,
+      "li3": 1,
+      "in1": 6.01,
+      "in3": 5,
+      "in4": 3.99,
+      "in5": 3,
+      "sp1": 1,
+      "iq1": 7.99,
+      "iq2": 6.98,
+      "iq3": 6.01,
+      "iq4": 5,
+      "iq5": 4,
+      "iq6": 2.99,
+      "cr7": 3.01,
+      "cr8": 1.98,
+      "cr9": 0.99,
+      "en5": 2,
+      "en6": 1.01,
+      "st5": 2,
+      "st6": 1.01,
+      "in6": 2,
+      "in7": 1.01,
+      "iq7": 2.02,
+      "iq8": 1.01,
+      "fp1": 4.99,
+      "fp2": 4.01,
+      "fp3": 3,
+      "fp4": 2,
+      "fp5": 1.01,
+      "cp1": 6.01,
+      "cp2": 5,
+      "cp3": 3.99,
+      "cp4": 3,
+      "cp5": 2,
+      "cp6": 1.01,
+      "cl1": 3,
+      "cl2": 2,
+      "cl3": 1,
+      "rs1": 4,
+      "rs2": 3,
+      "rs3": 2,
+      "rs4": 1,
+      "im1": 6.01,
+      "im2": 5,
+      "im3": 3.99,
+      "im4": 3,
+      "im5": 2,
+      "im6": 1.01
+    },
+    "cuts": {
+      "os3": [
+        3.5,
+        1.5,
+        0.5
+      ]
+    },
+    "map": {},
+    "flag": {
+      "li3": true,
+      "cp3": true
+    },
+    "panels": {
+      "kpi": true,
+      "matrix": true,
+      "movers": true,
+      "travel": true,
+      "ranked": true,
+      "heat": true,
+      "plans": true,
+      "grid": false,
+      "cover": false,
+      "back": false
+    },
+    "custom": [],
+    "customF": [],
+    "text": {},
+    "assume": {
+      "pc": "inherit",
+      "negdso": "mid",
+      "nps": "lowest",
+      "fac": "worst",
+      "hist": "keep"
+    },
+    "tpl": [
+      "gr1",
+      "cr1",
+      "cr2",
+      "cr3",
+      "cr4",
+      "cr5",
+      "cr6",
+      "cr7",
+      "cr8",
+      "cr9",
+      "os1",
+      "os2",
+      "os3",
+      "en1",
+      "en2",
+      "en3",
+      "en4",
+      "en5",
+      "en6",
+      "st1",
+      "st2",
+      "st3",
+      "st4",
+      "st5",
+      "st6",
+      "cu1",
+      "cu2",
+      "cu3",
+      "co1",
+      "co2",
+      "co3",
+      "co4",
+      "co5",
+      "fp1",
+      "fp2",
+      "fp3",
+      "fp4",
+      "fp5",
+      "sl1",
+      "li1",
+      "li2",
+      "li3",
+      "in1",
+      "in2",
+      "in3",
+      "in4",
+      "in5",
+      "in6",
+      "in7",
+      "sp1",
+      "iq1",
+      "iq2",
+      "iq3",
+      "iq4",
+      "iq5",
+      "iq6",
+      "iq7",
+      "iq8",
+      "cp1",
+      "cp2",
+      "cp3",
+      "cp4",
+      "cp5",
+      "cp6",
+      "cl1",
+      "cl2",
+      "cl3",
+      "rs1",
+      "rs2",
+      "rs3",
+      "rs4",
+      "im1",
+      "im2",
+      "im3",
+      "im4",
+      "im5",
+      "im6"
+    ],
+    "tplName": "Contract_Risk_Scorecard_Template.xlsx",
+    "histOn": [
+      "os3"
+    ],
+    "ok": {
+      "score": true,
+      "pc": true,
+      "negdso": true,
+      "nps": true,
+      "fac": true,
+      "hist": true
+    },
+    "edits": 2
+  },
+  "dashboard": {
+    "versions": [
+      "v1 · scoring of 19 Nov, 14:04"
+    ],
+    "showing": "1",
+    "why": "First scoring",
+    "refreshed": "Refreshed 20 Nov, 06:08, at the morning check"
+  },
+  "chips": [
+    "Add a signal for boil water notices in the last twelve months, under Water Quality and Contaminants, and make it a red flag",
+    "Change days sales outstanding: score 4 from 75 days",
+    "Add a factor for energy cost, with a signal for power cost against budget",
+    "Make Legal Action count for 18 instead of 25"
+  ]
+}

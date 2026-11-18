@@ -1,0 +1,185 @@
+[
+  {
+    "id": "t-risk-brief",
+    "name": "Why it moved",
+    "family": "Contract risk",
+    "format": "Slide pack",
+    "note": "A short deck for the people who own a contract whose risk went up: what moved, the evidence, what is at stake and the plan for the site.",
+    "file": "Why_it_moved_deck_template.pptx",
+    "sections": [
+      {
+        "heading": "What moved this morning",
+        "role": "purpose"
+      },
+      {
+        "heading": "Why the score went up",
+        "role": "findings",
+        "hint": "The signals that changed, with the old and the new score."
+      },
+      {
+        "heading": "Harlow Creek: the demand letter, and what the contract says",
+        "role": "findings",
+        "hint": "Liability, who funds the fix, how the client can leave."
+      },
+      {
+        "heading": "Red Mesa: rising inside its rating",
+        "role": "findings",
+        "hint": "Still rated 2."
+      },
+      {
+        "heading": "Ashby Falls: in-house operation on the agenda",
+        "role": "findings",
+        "hint": "Seven months before the contract ends."
+      },
+      {
+        "heading": "The plan for each site",
+        "role": "options",
+        "hint": "One action per signal, with an owner and a date."
+      },
+      {
+        "heading": "Why this plan",
+        "role": "why"
+      },
+      {
+        "heading": "Open points",
+        "role": "assumptions"
+      },
+      {
+        "heading": "Evidence",
+        "role": "evidence"
+      }
+    ]
+  },
+  {
+    "id": "t-risk-plan",
+    "name": "Site mitigation plan",
+    "family": "Contract risk",
+    "format": "Document",
+    "note": "For the project leader and the Regional VP: one action for every signal at 3 or 4 that can be moved, written for the site, and the score the plan would bring it to.",
+    "file": "Site_mitigation_plan_template.docx",
+    "sections": [
+      {
+        "heading": "What this plan is for",
+        "role": "purpose"
+      },
+      {
+        "heading": "Why the score went up",
+        "role": "findings",
+        "hint": "The signals that changed."
+      },
+      {
+        "heading": "The plan for each site",
+        "role": "options",
+        "hint": "One action per signal, with an owner and a date."
+      },
+      {
+        "heading": "What the plan would do to the score",
+        "role": "why"
+      },
+      {
+        "heading": "Facts of the site, and open points",
+        "role": "assumptions"
+      }
+    ]
+  },
+  {
+    "id": "t-risk-scorecard",
+    "name": "Contract risk dashboard",
+    "family": "Contract risk",
+    "format": "Dashboard",
+    "note": "The dashboard you designed, for all contracts, rebuilt after every check.",
+    "file": "Contract_risk_dashboard_template.html",
+    "sections": [
+      {
+        "heading": "Where the portfolio stands",
+        "role": "summary"
+      },
+      {
+        "heading": "What changed since the last check",
+        "role": "findings",
+        "hint": "Contracts whose readings changed."
+      },
+      {
+        "heading": "Ratings by region",
+        "role": "findings"
+      },
+      {
+        "heading": "The action list: high risk with a lot at stake",
+        "role": "findings"
+      },
+      {
+        "heading": "What needs a decision",
+        "role": "options"
+      },
+      {
+        "heading": "Sources",
+        "role": "evidence"
+      }
+    ]
+  },
+  {
+    "id": "t-risk-review-pack",
+    "name": "Monthly portfolio review",
+    "family": "Contract risk",
+    "format": "Slide pack",
+    "note": "For the leadership team each month: where the portfolio stands, what moved, and what to discuss.",
+    "file": "Monthly_portfolio_review_template.pptx",
+    "sections": [
+      {
+        "heading": "The portfolio this month",
+        "role": "summary"
+      },
+      {
+        "heading": "What moved, and why",
+        "role": "findings"
+      },
+      {
+        "heading": "Ratings by region",
+        "role": "findings"
+      },
+      {
+        "heading": "Actions open and overdue",
+        "role": "findings"
+      },
+      {
+        "heading": "Contracts to discuss",
+        "role": "options"
+      },
+      {
+        "heading": "Open points",
+        "role": "assumptions"
+      },
+      {
+        "heading": "Sources",
+        "role": "evidence"
+      }
+    ]
+  },
+  {
+    "id": "t-risk-tracker",
+    "name": "Mitigation tracker",
+    "family": "Contract risk",
+    "format": "Workbook",
+    "note": "Every open action with its contract, signal, owner, date and state.",
+    "file": "Mitigation_tracker_template.xlsx",
+    "sections": [
+      {
+        "heading": "Summary",
+        "role": "summary"
+      },
+      {
+        "heading": "Actions open and overdue",
+        "role": "findings",
+        "hint": "By contract, owner and due date."
+      },
+      {
+        "heading": "What needs a decision",
+        "role": "options"
+      },
+      {
+        "heading": "Sources",
+        "role": "evidence"
+      }
+    ]
+  }
+]

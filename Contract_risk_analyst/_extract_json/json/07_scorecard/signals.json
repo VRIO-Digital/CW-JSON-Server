@@ -1,0 +1,3099 @@
+[
+  {
+    "id": "gr1",
+    "factor": "gr",
+    "name": "Legal review of the non-negotiable terms",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Meets every non-negotiable term",
+      "Meets the three core terms, misses other important ones",
+      "Misses one of the three core terms (liability cap, consequential damages waiver, indemnity limited to negligence)",
+      "Misses the core terms and other important ones"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract and its amendments",
+      "how": "Read clause by clause; a draft for Legal to confirm"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 1,
+    "projects_by_score": [
+      131,
+      72,
+      71,
+      26
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr1",
+    "factor": "cr",
+    "name": "Prevailing wage state",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Not in a state with strict prevailing wage rules",
+      "",
+      "",
+      "In CA, MA, NY, IL, WA, NJ, CT or OR"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "master.contract",
+      "how": "State of the plant against the eight listed states"
+    },
+    "data_sits_at": "State",
+    "brought_to_project_by": "Every project in the state takes the state figure",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.2,
+    "projects_by_score": [
+      240,
+      0,
+      0,
+      60
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr2",
+    "factor": "cr",
+    "name": "Days sales outstanding",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Under 45 days",
+      "45 to 60 days",
+      "60 to 90 days",
+      "90 days or more"
+    ],
+    "figure": {
+      "thresholds": [
+        45,
+        60,
+        90
+      ],
+      "higher_is_worse": true,
+      "unit": "days"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.ar_aging",
+      "how": "Average receivables over revenue, times the days in the period"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.178,
+    "projects_by_score": [
+      149,
+      59,
+      56,
+      36
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr3",
+    "factor": "cr",
+    "name": "Biosolids handling in scope",
+    "rank": 3,
+    "rule_1_to_4": [
+      "No",
+      "",
+      "",
+      "Yes"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, scope of services",
+      "how": "Scope read from the contract and checked against the master list"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.156,
+    "projects_by_score": [
+      231,
+      0,
+      0,
+      69
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr4",
+    "factor": "cr",
+    "name": "Unionized workforce",
+    "rank": 4,
+    "rule_1_to_4": [
+      "No",
+      "",
+      "",
+      "Yes"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "hr.roster",
+      "how": "Bargaining unit on the site roster"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.133,
+    "projects_by_score": [
+      208,
+      0,
+      0,
+      92
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr5",
+    "factor": "cr",
+    "name": "Water distribution network in scope",
+    "rank": 5,
+    "rule_1_to_4": [
+      "No",
+      "Yes",
+      "",
+      ""
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, scope of services",
+      "how": "Scope read from the contract and checked against the master list"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.111,
+    "projects_by_score": [
+      225,
+      75,
+      0,
+      0
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr6",
+    "factor": "cr",
+    "name": "Sewer collection network in scope",
+    "rank": 6,
+    "rule_1_to_4": [
+      "No",
+      "Yes",
+      "",
+      ""
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, scope of services",
+      "how": "Scope read from the contract and checked against the master list"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.089,
+    "projects_by_score": [
+      220,
+      80,
+      0,
+      0
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "os1",
+    "factor": "os",
+    "name": "Lost-time injuries",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Zero",
+      "0.1 to 0.99",
+      "1 to 1.99",
+      "2 or more"
+    ],
+    "figure": {
+      "thresholds": [
+        0.1,
+        1,
+        2
+      ],
+      "higher_is_worse": true,
+      "unit": "per 200,000 hours"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ehs.incident · ops.hours",
+      "how": "Lost time injuries per 200,000 hours, rolling twelve months"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.5,
+    "projects_by_score": [
+      194,
+      40,
+      25,
+      41
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "os2",
+    "factor": "os",
+    "name": "Recordable injuries",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Zero",
+      "0.1 to 0.99",
+      "1 to 1.99",
+      "2 or more"
+    ],
+    "figure": {
+      "thresholds": [
+        0.1,
+        1,
+        2
+      ],
+      "higher_is_worse": true,
+      "unit": "per 200,000 hours"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ehs.incident · ops.hours",
+      "how": "Recordable injuries per 200,000 hours, rolling twelve months"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      162,
+      53,
+      32,
+      53
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "os3",
+    "factor": "os",
+    "name": "Safety observations per employee",
+    "rank": 3,
+    "rule_1_to_4": [
+      "2 or more a year",
+      "1.5 to 2 a year",
+      "1 to 1.5 a year",
+      "Under 1 a year"
+    ],
+    "figure": {
+      "thresholds": [
+        2,
+        1.5,
+        1
+      ],
+      "higher_is_worse": false,
+      "unit": "a year"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ehs.observation · hr.roster",
+      "how": "Near misses and safety observations submitted this year, per employee"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.167,
+    "projects_by_score": [
+      181,
+      45,
+      32,
+      42
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "en1",
+    "factor": "en",
+    "name": "Days within permit limits",
+    "rank": 1,
+    "rule_1_to_4": [
+      "100%",
+      "98% to under 100%",
+      "97% to under 98%",
+      "Under 97%"
+    ],
+    "figure": {
+      "thresholds": [
+        100,
+        98,
+        97
+      ],
+      "higher_is_worse": false,
+      "unit": "%"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ops.compliance_daily",
+      "how": "Share of permit days met, by site, three-year average"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.286,
+    "projects_by_score": [
+      147,
+      76,
+      31,
+      46
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "en2",
+    "factor": "en",
+    "name": "Required samples missed",
+    "rank": 2,
+    "rule_1_to_4": [
+      "0",
+      "1",
+      "2",
+      "3 or more"
+    ],
+    "figure": {
+      "thresholds": [
+        1,
+        2,
+        3
+      ],
+      "higher_is_worse": true,
+      "unit": "in three years"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.sample_schedule · plantdata.results",
+      "how": "Required samples with no result by the due date, this year"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.238,
+    "projects_by_score": [
+      171,
+      51,
+      23,
+      55
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "en3",
+    "factor": "en",
+    "name": "Notices of violation",
+    "rank": 3,
+    "rule_1_to_4": [
+      "0",
+      "1 a year",
+      "2 a year",
+      "3 or more a year"
+    ],
+    "figure": {
+      "thresholds": [
+        1,
+        2,
+        3
+      ],
+      "higher_is_worse": true,
+      "unit": "in three years"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Notices of violation in the compliance folder, checked against the state enforcement page",
+      "how": "Each notice read; the public record catches any not filed"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.19,
+    "projects_by_score": [
+      203,
+      39,
+      22,
+      36
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "en4",
+    "factor": "en",
+    "name": "Operators using the plant data system",
+    "rank": 4,
+    "rule_1_to_4": [
+      "Every day",
+      "Every other day",
+      "Weekly",
+      "Every two weeks or less"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.login_audit",
+      "how": "Operator logins per working day, last 90 days"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.143,
+    "projects_by_score": [
+      155,
+      60,
+      50,
+      35
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st1",
+    "factor": "st",
+    "name": "Positions open more than 60 days",
+    "rank": 1,
+    "rule_1_to_4": [
+      "None open over 60 days",
+      "",
+      "",
+      "One or more open over 60 days"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "hr.requisition",
+      "how": "Requisitions open longer than 60 days, by site"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.286,
+    "projects_by_score": [
+      193,
+      0,
+      0,
+      107
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st2",
+    "factor": "st",
+    "name": "Licensed operators against the contract",
+    "rank": 2,
+    "rule_1_to_4": [
+      "No licensed operator required",
+      "Required: holder and backup on the roster",
+      "Required: holder on the roster, no backup",
+      "Required: no holder and no backup"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, staffing clause · hr.license",
+      "how": "The licence level the contract requires against the licences on the roster"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.238,
+    "projects_by_score": [
+      36,
+      182,
+      58,
+      24
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st3",
+    "factor": "st",
+    "name": "Staff retention",
+    "rank": 3,
+    "rule_1_to_4": [
+      "Over 90%",
+      "80% to 90%",
+      "75% to 80%",
+      "Under 75%"
+    ],
+    "figure": {
+      "thresholds": [
+        90,
+        80,
+        75
+      ],
+      "higher_is_worse": false,
+      "unit": "%"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "hr.roster",
+      "how": "Staff at the start of the year still on the roster"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.19,
+    "projects_by_score": [
+      139,
+      76,
+      38,
+      47
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st4",
+    "factor": "st",
+    "name": "Overtime share of payroll",
+    "rank": 4,
+    "rule_1_to_4": [
+      "5% or below",
+      "6% to 9%",
+      "10% to 13%",
+      "Above 13%"
+    ],
+    "figure": {
+      "thresholds": [
+        6,
+        10,
+        13
+      ],
+      "higher_is_worse": true,
+      "unit": "% overtime"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ops.labor_weekly",
+      "how": "Overtime dollars over payroll dollars, last 13 weeks"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.143,
+    "projects_by_score": [
+      97,
+      102,
+      45,
+      56
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cu1",
+    "factor": "cu",
+    "name": "Client survey score for the site",
+    "rank": 1,
+    "rule_1_to_4": [
+      "9 to 10, would recommend us",
+      "7 to 8, neutral",
+      "5 to 6, unhappy",
+      "0 to 4, very unhappy"
+    ],
+    "figure": {
+      "thresholds": [
+        9,
+        7,
+        5
+      ],
+      "higher_is_worse": false,
+      "unit": "of 10"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "crm.nps_response",
+      "how": "The client's latest answer for the site"
+    },
+    "data_sits_at": "Client account",
+    "brought_to_project_by": "Matched to the project by client name; where a client answered more than once, the lowest answer counts",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.5,
+    "projects_by_score": [
+      112,
+      82,
+      39,
+      35
+    ],
+    "coverage": {
+      "n": 268,
+      "of": 300
+    }
+  },
+  {
+    "id": "cu2",
+    "factor": "cu",
+    "name": "Client survey score for the region",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Above 70",
+      "55 to 70",
+      "40 to 55",
+      "Under 40"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "crm.nps_response",
+      "how": "Revenue-weighted score across the region"
+    },
+    "data_sits_at": "Region",
+    "brought_to_project_by": "Every project in the region takes the regional figure",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      60,
+      180,
+      60,
+      0
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cu3",
+    "factor": "cu",
+    "name": "Client survey trend, five years",
+    "rank": 3,
+    "rule_1_to_4": [
+      "Increasing",
+      "Stable (scores 2.5)",
+      "",
+      "Declining by more than 10%"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "crm.nps_response",
+      "how": "Slope of the site score over five surveys"
+    },
+    "data_sits_at": "Client account",
+    "brought_to_project_by": "Matched to the project by client name; where a client answered more than once, the lowest answer counts",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.167,
+    "projects_by_score": [
+      90,
+      0,
+      129,
+      81
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "co1",
+    "factor": "co",
+    "name": "Odor complaints",
+    "rank": 1,
+    "rule_1_to_4": [
+      "0",
+      "1 to 3 a year",
+      "4 to 5 a year",
+      "More than 5 a year"
+    ],
+    "figure": {
+      "thresholds": [
+        1,
+        4,
+        6
+      ],
+      "higher_is_worse": true,
+      "unit": "in twelve months"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ops.complaint_log",
+      "how": "Odor complaints logged this year; mail to the site is read for ones not logged"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      145,
+      75,
+      31,
+      49
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "co2",
+    "factor": "co",
+    "name": "Local media coverage: % negative",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Under 40% negative",
+      "40% to 59%",
+      "60% to 79%",
+      "80% to 100%"
+    ],
+    "figure": {
+      "thresholds": [
+        40,
+        60,
+        80
+      ],
+      "higher_is_worse": true,
+      "unit": "% negative"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Local news about the plant and the client",
+      "how": "Every local media report of the last twelve months that names the plant or the operator is read and marked negative, neutral or positive. The figure is the negative reports divided by the total number of reports"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.267,
+    "projects_by_score": [
+      186,
+      38,
+      42,
+      34
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "co3",
+    "factor": "co",
+    "name": "Local media coverage: % positive",
+    "rank": 3,
+    "rule_1_to_4": [
+      "80% to 100% positive",
+      "60% to 79%",
+      "40% to 59%",
+      "Under 40%"
+    ],
+    "figure": {
+      "thresholds": [
+        80,
+        60,
+        40
+      ],
+      "higher_is_worse": false,
+      "unit": "% positive"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Local news about the plant and the client",
+      "how": "The same media reports. The figure is the positive reports divided by the total number of reports"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.2,
+    "projects_by_score": [
+      83,
+      83,
+      77,
+      57
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "co4",
+    "factor": "co",
+    "name": "Community investment per year",
+    "rank": 4,
+    "rule_1_to_4": [
+      "More than $20,000",
+      "$10,000 to $20,000",
+      "$1 to $10,000",
+      "$0"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.community_spend",
+      "how": "Sponsorships, outings and scholarships by cost centre"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.133,
+    "projects_by_score": [
+      69,
+      76,
+      84,
+      71
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "co5",
+    "factor": "co",
+    "name": "Community investment trend, five years",
+    "rank": 5,
+    "rule_1_to_4": [
+      "Increasing",
+      "Stable (scores 2.5)",
+      "",
+      "Declining by more than 10%"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.community_spend",
+      "how": "Slope of the annual spend over five years"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.067,
+    "projects_by_score": [
+      84,
+      0,
+      112,
+      104
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "sl1",
+    "factor": "sl",
+    "name": "Lawsuit cost ranking of the state",
+    "rank": 1,
+    "rule_1_to_4": [
+      "The 12 lowest-cost states",
+      "The next 13",
+      "The next 13",
+      "The 12 highest-cost states"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "richstatespoorstates.org · State Liability System Survey",
+      "how": "The 2026 edition, read from the page; checked again when a new edition is posted"
+    },
+    "data_sits_at": "State",
+    "brought_to_project_by": "Every project in the state takes the state figure",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 1,
+    "projects_by_score": [
+      60,
+      65,
+      102,
+      73
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "li1",
+    "factor": "li",
+    "name": "Lawsuits filed",
+    "rank": 1,
+    "rule_1_to_4": [
+      "No recent, past or ongoing lawsuits",
+      "None active; a history of low dollar claims",
+      "Low dollar enforcement or tort claims active now",
+      "High dollar enforcement or personal injury claims, active or in the last 3 years"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Legal matter files, checked against the county court docket",
+      "how": "Open and closed matters by site; public dockets catch suits not yet on the list"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.5,
+    "projects_by_score": [
+      192,
+      57,
+      32,
+      19
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "li2",
+    "factor": "li",
+    "name": "Consent orders",
+    "rank": 2,
+    "rule_1_to_4": [
+      "No consent order",
+      "",
+      "",
+      "Consent order"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Consent orders in the compliance folder, checked against the regulator's enforcement page",
+      "how": "Each order read for who it binds: the client, the operator or both"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      258,
+      0,
+      0,
+      42
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "li3",
+    "factor": "li",
+    "name": "Lawsuits threatened",
+    "rank": 3,
+    "rule_1_to_4": [
+      "No threatened lawsuits, no negative campaign",
+      "No active campaign; a history of complaints being addressed",
+      "An active negative campaign about legal action",
+      "Demand letters or pre-suit notices received"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "mail",
+      "name": "The legal notices mailbox and the project leaders' mail",
+      "how": "Demand letters, pre-suit notices and claim correspondence, read as they arrive"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": true,
+    "weight_in_factor": 0.167,
+    "projects_by_score": [
+      202,
+      59,
+      19,
+      20
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in1",
+    "factor": "in",
+    "name": "Services covered by the contract",
+    "rank": 1,
+    "rule_1_to_4": [
+      "1 to 2",
+      "3 to 4",
+      "5",
+      "6 to 7"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, scope of services",
+      "how": "Counted from the scope clause: treatment, distribution, collection, biosolids, stormwater, reuse"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.286,
+    "projects_by_score": [
+      203,
+      89,
+      8,
+      0
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in2",
+    "factor": "in",
+    "name": "Year of the last major upgrade",
+    "rank": 2,
+    "rule_1_to_4": [
+      "5 years ago or less",
+      "6 to 10 years",
+      "11 to 20 years",
+      "More than 20 years, or none"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Capital improvement plans and annual reports to the client",
+      "how": "The last major process upgrade named in the reports"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": "The capital project history is not in the connected data. Connect the asset register or the capital plan archive to add it.",
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0,
+    "projects_by_score": [
+      68,
+      79,
+      97,
+      56
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in3",
+    "factor": "in",
+    "name": "Maintenance hours logged to work orders",
+    "rank": 3,
+    "rule_1_to_4": [
+      "95% or more",
+      "90% to 95%",
+      "70% to 90%",
+      "70% or less"
+    ],
+    "figure": {
+      "thresholds": [
+        95,
+        90,
+        71
+      ],
+      "higher_is_worse": false,
+      "unit": "%"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "cmms.work_order",
+      "how": "Share of maintenance labour hours booked to a work order"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.238,
+    "projects_by_score": [
+      87,
+      83,
+      88,
+      42
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in4",
+    "factor": "in",
+    "name": "Planned maintenance done on time",
+    "rank": 4,
+    "rule_1_to_4": [
+      "95% or more",
+      "90% to 95%",
+      "70% to 90%",
+      "70% or less"
+    ],
+    "figure": {
+      "thresholds": [
+        95,
+        90,
+        71
+      ],
+      "higher_is_worse": false,
+      "unit": "%"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "cmms.work_order",
+      "how": "Planned maintenance work orders closed on time, last 90 days"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.19,
+    "projects_by_score": [
+      110,
+      87,
+      79,
+      24
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in5",
+    "factor": "in",
+    "name": "Client capital plan, next five years",
+    "rank": 5,
+    "rule_1_to_4": [
+      "Funded and approved",
+      "Partially funded",
+      "Planned but unfunded",
+      "None proposed"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The client's capital improvement plan and budget",
+      "how": "Read from the adopted plan and the council budget"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.143,
+    "projects_by_score": [
+      86,
+      87,
+      69,
+      58
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "sp1",
+    "factor": "sp",
+    "name": "Homes within two miles",
+    "rank": 1,
+    "rule_1_to_4": [
+      "0 to 2,000",
+      "2,001 to 4,000",
+      "4,001 to 10,000",
+      "More than 10,000"
+    ],
+    "figure": {
+      "thresholds": [
+        2000,
+        4000,
+        10000
+      ],
+      "higher_is_worse": true,
+      "unit": "homes"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "gis.parcels_2mi",
+      "how": "Residential parcels within 2 miles of the plant fence line; recounted when the county parcel file changes"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": null,
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 1,
+    "projects_by_score": [
+      95,
+      73,
+      82,
+      50
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "iq1",
+    "factor": "iq",
+    "name": "Lead in drinking water",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Under 60% of the action level",
+      "60% to 80% of the action level",
+      "80% to under the action level",
+      "At or above 15 ppb"
+    ],
+    "figure": {
+      "thresholds": [
+        9,
+        12,
+        15
+      ],
+      "higher_is_worse": true,
+      "unit": "ppb"
+    },
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results",
+      "how": "90th percentile of the latest tap sampling round"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "dw",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.222,
+    "projects_by_score": [
+      119,
+      32,
+      9,
+      7
+    ],
+    "coverage": {
+      "n": 167,
+      "of": 167
+    }
+  },
+  {
+    "id": "iq2",
+    "factor": "iq",
+    "name": "PFAS in drinking water",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Below the MCL",
+      "Exceeds the MCL; treatment in place or will be by 2029",
+      "Exceeds the MCL; treatment planned, may run past 2029",
+      "Exceeds the MCL; no planning under way"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results · the client's capital plan",
+      "how": "Latest results against the federal limits, and whether treatment is planned"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "dw",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.194,
+    "projects_by_score": [
+      116,
+      21,
+      15,
+      15
+    ],
+    "coverage": {
+      "n": 167,
+      "of": 167
+    }
+  },
+  {
+    "id": "iq3",
+    "factor": "iq",
+    "name": "Nitrogen in effluent",
+    "rank": 3,
+    "rule_1_to_4": [
+      "Under 50% of the permit limit for 12 months",
+      "Around 60% of the limit for 9 months",
+      "Around 70% of the limit for 3 months or more",
+      "Over 80% of the limit for 3 months or more"
+    ],
+    "figure": {
+      "thresholds": [
+        50,
+        66,
+        80
+      ],
+      "higher_is_worse": true,
+      "unit": "% of the limit"
+    },
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results",
+      "how": "Monthly average against the permit limit"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "ww",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.167,
+    "projects_by_score": [
+      114,
+      51,
+      36,
+      23
+    ],
+    "coverage": {
+      "n": 224,
+      "of": 224
+    }
+  },
+  {
+    "id": "iq4",
+    "factor": "iq",
+    "name": "Copper in drinking water",
+    "rank": 4,
+    "rule_1_to_4": [
+      "Under 60% of the action level",
+      "60% to 80% of the action level",
+      "80% to under the action level",
+      "At or above 1.3 ppm"
+    ],
+    "figure": {
+      "thresholds": [
+        0.8,
+        1.05,
+        1.3
+      ],
+      "higher_is_worse": true,
+      "unit": "ppm"
+    },
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results",
+      "how": "90th percentile of the latest tap sampling round"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "dw",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.139,
+    "projects_by_score": [
+      128,
+      19,
+      13,
+      7
+    ],
+    "coverage": {
+      "n": 167,
+      "of": 167
+    }
+  },
+  {
+    "id": "iq5",
+    "factor": "iq",
+    "name": "Suspended solids in effluent",
+    "rank": 5,
+    "rule_1_to_4": [
+      "Under 50% of the permit limit for 12 months",
+      "Around 60% of the limit for 9 months",
+      "Around 70% of the limit for 3 months or more",
+      "Over 80% of the limit for 3 months or more"
+    ],
+    "figure": {
+      "thresholds": [
+        50,
+        66,
+        80
+      ],
+      "higher_is_worse": true,
+      "unit": "% of the limit"
+    },
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results",
+      "how": "Monthly average against the permit limit"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "ww",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.111,
+    "projects_by_score": [
+      115,
+      55,
+      33,
+      21
+    ],
+    "coverage": {
+      "n": 224,
+      "of": 224
+    }
+  },
+  {
+    "id": "iq6",
+    "factor": "iq",
+    "name": "Phosphorus in effluent",
+    "rank": 6,
+    "rule_1_to_4": [
+      "Under 50% of the permit limit for 12 months",
+      "Around 60% of the limit for 9 months",
+      "Around 70% of the limit for 3 months or more",
+      "Over 80% of the limit for 3 months or more"
+    ],
+    "figure": {
+      "thresholds": [
+        50,
+        66,
+        80
+      ],
+      "higher_is_worse": true,
+      "unit": "% of the limit"
+    },
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "plantdata.results",
+      "how": "Monthly average against the permit limit"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": null,
+    "changes_between_checks": true,
+    "only_for": "ww",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.083,
+    "projects_by_score": [
+      108,
+      54,
+      42,
+      20
+    ],
+    "coverage": {
+      "n": 224,
+      "of": 224
+    }
+  },
+  {
+    "id": "cr7",
+    "factor": "cr",
+    "name": "Fixed-price exposure on energy, chemicals and biosolids",
+    "rank": 7,
+    "rule_1_to_4": [
+      "Costs passed through",
+      "Passed through above a threshold",
+      "Fixed, with a re-opener",
+      "Fixed for the term"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, compensation article",
+      "how": "Which costs the fee fixes and which pass through"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "Chemical cost rose 31% in 2022 on your fixed-fee contracts; 4 of them went to dispute.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.067,
+    "projects_by_score": [
+      115,
+      86,
+      64,
+      35
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr8",
+    "factor": "cr",
+    "name": "Performance guarantees and penalty clauses",
+    "rank": 8,
+    "rule_1_to_4": [
+      "None",
+      "Capped at 5% of the annual fee",
+      "Capped above 5%",
+      "Uncapped or per-day damages"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, performance article",
+      "how": "Guarantees, liquidated damages and their cap"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "Sets what one bad month costs. Read from the contract, clause by clause.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.044,
+    "projects_by_score": [
+      116,
+      92,
+      56,
+      36
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cr9",
+    "factor": "cr",
+    "name": "Price escalation clause",
+    "rank": 9,
+    "rule_1_to_4": [
+      "Indexed to cost, yearly",
+      "CPI, yearly",
+      "CPI with a cap under 3%",
+      "No escalator"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, fee adjustment article",
+      "how": "The index, the cap and how often it applies"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "A weak escalator is where margin went on 11 of your contracts since 2021.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.022,
+    "projects_by_score": [
+      101,
+      124,
+      51,
+      24
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "en5",
+    "factor": "en",
+    "name": "Sewer overflows (SSO and CSO)",
+    "rank": 5,
+    "rule_1_to_4": [
+      "None",
+      "1 to 2",
+      "3 to 5",
+      "6 or more"
+    ],
+    "figure": {
+      "thresholds": [
+        1,
+        3,
+        6
+      ],
+      "higher_is_worse": true,
+      "unit": "in twelve months"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "ops.overflow_event",
+      "how": "Reported overflows, rolling twelve months"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "The most visible failure. Two of your three consent orders began with overflows.",
+    "changes_between_checks": true,
+    "only_for": "ww",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.095,
+    "projects_by_score": [
+      120,
+      50,
+      27,
+      27
+    ],
+    "coverage": {
+      "n": 224,
+      "of": 224
+    }
+  },
+  {
+    "id": "en6",
+    "factor": "en",
+    "name": "Permit renewal status",
+    "rank": 6,
+    "rule_1_to_4": [
+      "Renewed in the last 2 years",
+      "Renews in 3 to 5 years",
+      "Renews within 2 years",
+      "Expired, running on extension"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "EPA ECHO and the state permit register",
+      "how": "Permit number matched to the site; expiry date and draft limits"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "A renewed permit usually brings tighter limits. The dates are public.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.048,
+    "projects_by_score": [
+      103,
+      86,
+      47,
+      64
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st5",
+    "factor": "st",
+    "name": "Site manager tenure",
+    "rank": 5,
+    "rule_1_to_4": [
+      "5 years or more",
+      "2 to 5 years",
+      "1 to 2 years",
+      "Under 1 year"
+    ],
+    "figure": {
+      "thresholds": [
+        5,
+        2,
+        1
+      ],
+      "higher_is_worse": false,
+      "unit": "years"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "hr.roster",
+      "how": "Start date of the project leader in the role"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "On your lost renewals the site manager had changed in the two years before, in 5 of 7.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.095,
+    "projects_by_score": [
+      104,
+      95,
+      48,
+      53
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "st6",
+    "factor": "st",
+    "name": "Key-person dependence",
+    "rank": 6,
+    "rule_1_to_4": [
+      "Three or more holders of each required licence",
+      "Two holders",
+      "One holder, backup in training",
+      "One holder, no backup"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "hr.license · ops.labor_weekly",
+      "how": "Holders of each licence the contract requires, and their hours"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "One licence holder leaving can put a plant out of compliance in a week.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.048,
+    "projects_by_score": [
+      89,
+      99,
+      44,
+      68
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in6",
+    "factor": "in",
+    "name": "Corrective against preventive maintenance",
+    "rank": 6,
+    "rule_1_to_4": [
+      "Under 20% corrective",
+      "20% to 35%",
+      "35% to 50%",
+      "50% or more"
+    ],
+    "figure": {
+      "thresholds": [
+        20,
+        35,
+        50
+      ],
+      "higher_is_worse": true,
+      "unit": "% corrective"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "cmms.work_order",
+      "how": "Corrective hours over all maintenance hours, twelve months"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "Shows whether assets are kept up or failing first.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.095,
+    "projects_by_score": [
+      100,
+      114,
+      58,
+      28
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "in7",
+    "factor": "in",
+    "name": "Asset age",
+    "rank": 7,
+    "rule_1_to_4": [
+      "Under 20 years",
+      "20 to 35 years",
+      "35 to 50 years",
+      "50 years or more"
+    ],
+    "figure": {
+      "thresholds": [
+        20,
+        35,
+        50
+      ],
+      "higher_is_worse": true,
+      "unit": "years"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "asset.register",
+      "how": "Weighted age of the critical assets"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "Older plants break more and cost more to keep compliant.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.048,
+    "projects_by_score": [
+      51,
+      103,
+      98,
+      48
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "iq7",
+    "factor": "iq",
+    "name": "PFAS in biosolids and effluent",
+    "rank": 7,
+    "rule_1_to_4": [
+      "Not detected",
+      "Detected, no state rule",
+      "Detected, state rule proposed",
+      "Detected, state rule in force"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": true,
+    "source": {
+      "kind": "table",
+      "name": "lab.result · state rule register (web)",
+      "how": "Lab results against the rules proposed or in force in the state"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "New state rules can close a biosolids outlet overnight.",
+    "changes_between_checks": true,
+    "only_for": "ww",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.056,
+    "projects_by_score": [
+      117,
+      56,
+      39,
+      12
+    ],
+    "coverage": {
+      "n": 224,
+      "of": 224
+    }
+  },
+  {
+    "id": "iq8",
+    "factor": "iq",
+    "name": "Rules on the way (nutrients, lead)",
+    "rank": 8,
+    "rule_1_to_4": [
+      "None proposed",
+      "Proposed, more than 3 years out",
+      "Final, takes effect within 3 years",
+      "In effect, plant not yet upgraded"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Federal Register and the state rule dockets",
+      "how": "Rules that apply to the permit, with their dates"
+    },
+    "data_sits_at": "State",
+    "brought_to_project_by": "Every project in the state takes the state figure",
+    "why": "Future limits need capital the client may not fund.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.028,
+    "projects_by_score": [
+      123,
+      85,
+      58,
+      34
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "fp1",
+    "factor": "fp",
+    "name": "Margin against budget",
+    "rank": 1,
+    "rule_1_to_4": [
+      "At or above budget",
+      "Up to 2 points under",
+      "2 to 5 points under",
+      "More than 5 points under"
+    ],
+    "figure": {
+      "thresholds": [
+        0,
+        -2,
+        -5
+      ],
+      "higher_is_worse": false,
+      "unit": "points"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.contract_pnl",
+      "how": "Actual margin less budget margin, year to date"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "Margin fell under budget before every one of the 7 contracts you lost or left since 2021.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      125,
+      73,
+      48,
+      54
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "fp2",
+    "factor": "fp",
+    "name": "Margin trend, 24 months",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Rising",
+      "Flat",
+      "Falling up to 3 points",
+      "Falling more than 3 points"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.contract_pnl",
+      "how": "Slope of monthly margin over 24 months"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "A steady slide is an earlier warning than one bad year.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.267,
+    "projects_by_score": [
+      88,
+      106,
+      62,
+      44
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "fp3",
+    "factor": "fp",
+    "name": "Cost overruns",
+    "rank": 3,
+    "rule_1_to_4": [
+      "Under 2% over plan",
+      "2% to 5%",
+      "5% to 10%",
+      "10% or more"
+    ],
+    "figure": {
+      "thresholds": [
+        2,
+        5,
+        10
+      ],
+      "higher_is_worse": true,
+      "unit": "% over plan"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.contract_pnl",
+      "how": "Labour, chemicals, energy and repairs against plan"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "Points to a site under strain or a contract priced too tight.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.2,
+    "projects_by_score": [
+      122,
+      61,
+      56,
+      61
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "fp4",
+    "factor": "fp",
+    "name": "Unbilled or disputed change orders",
+    "rank": 4,
+    "rule_1_to_4": [
+      "None",
+      "Under 1% of the annual fee",
+      "1% to 3%",
+      "More than 3%"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.change_order",
+      "how": "Open change orders older than 60 days, over the annual fee"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "Work done and not agreed turns into a dispute with the client.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.133,
+    "projects_by_score": [
+      157,
+      55,
+      47,
+      41
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "fp5",
+    "factor": "fp",
+    "name": "Penalties and liquidated damages paid",
+    "rank": 5,
+    "rule_1_to_4": [
+      "None in 3 years",
+      "One, minor",
+      "More than one",
+      "Above 1% of the annual fee"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.gl_detail",
+      "how": "Penalty accounts by contract, three years"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "A direct sign of not delivering what was promised.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.067,
+    "projects_by_score": [
+      192,
+      42,
+      26,
+      40
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp1",
+    "factor": "cp",
+    "name": "Change in key client contacts",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Same contacts for 3 years or more",
+      "Changed more than 18 months ago",
+      "Changed in the last 18 months",
+      "Changed in the last 6 months"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "mail",
+      "name": "Project leader and client mail",
+      "how": "New names and titles on the client side; introductions and hand-overs"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "A new utilities director or city manager came before 5 of your 7 losses.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.286,
+    "projects_by_score": [
+      168,
+      85,
+      38,
+      9
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp2",
+    "factor": "cp",
+    "name": "Election or council turnover",
+    "rank": 2,
+    "rule_1_to_4": [
+      "No election within 24 months",
+      "Election in 12 to 24 months",
+      "Election within 12 months",
+      "Majority changed in the last 12 months"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "State and county election calendars",
+      "how": "Seats on the ballot for the body that owns the contract"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "New officials review what their predecessors signed.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.238,
+    "projects_by_score": [
+      124,
+      93,
+      54,
+      29
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp3",
+    "factor": "cp",
+    "name": "Talk of in-house operation or a re-bid",
+    "rank": 3,
+    "rule_1_to_4": [
+      "None found",
+      "Raised once, more than a year ago",
+      "Raised by staff or a member this year",
+      "On a public agenda, or an adviser hired"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Council and board agendas and minutes",
+      "how": "Agendas and minutes searched for the contract, in-house operation and procurement"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "It was on a public agenda before both contracts you lost to in-house operation.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": true,
+    "weight_in_factor": 0.19,
+    "projects_by_score": [
+      248,
+      28,
+      12,
+      12
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp4",
+    "factor": "cp",
+    "name": "Client financial health",
+    "rank": 4,
+    "rule_1_to_4": [
+      "Rated AA or better, rates approved",
+      "Rated A",
+      "Rate increase deferred or outlook negative",
+      "Downgraded, or budget in deficit"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Municipal bond ratings and adopted budgets",
+      "how": "Rating, outlook and whether the rate increase passed"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "A client under budget pressure cuts scope or pushes on price.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.143,
+    "projects_by_score": [
+      120,
+      132,
+      37,
+      11
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp5",
+    "factor": "cp",
+    "name": "The contract in public meetings",
+    "rank": 5,
+    "rule_1_to_4": [
+      "Not mentioned",
+      "1 to 2 mentions",
+      "3 to 5 mentions",
+      "6 or more"
+    ],
+    "figure": {
+      "thresholds": [
+        1,
+        3,
+        6
+      ],
+      "higher_is_worse": true,
+      "unit": "mentions in twelve months"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Council and board agendas and minutes",
+      "how": "Mentions of the operator or the plant, twelve months"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "Shows the contract is under political attention.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.095,
+    "projects_by_score": [
+      158,
+      84,
+      43,
+      15
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cp6",
+    "factor": "cp",
+    "name": "Client escalations",
+    "rank": 6,
+    "rule_1_to_4": [
+      "None in twelve months",
+      "One, closed",
+      "Two or more, closed",
+      "One open with the client's director or above"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "mail",
+      "name": "Client mail to the Regional VP and above",
+      "how": "Complaints from client staff that went above the project leader"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "The working relationship breaking down, often before the survey shows it.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.048,
+    "projects_by_score": [
+      180,
+      64,
+      41,
+      15
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cl1",
+    "factor": "cl",
+    "name": "Competitor nearby",
+    "rank": 1,
+    "rule_1_to_4": [
+      "None within 50 miles",
+      "One within 50 miles",
+      "One in the same county",
+      "Two or more in the same county"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "State operator registers and trade press",
+      "how": "Who operates the neighbouring plants"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "A competitor next door can pitch your client any week.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.5,
+    "projects_by_score": [
+      150,
+      115,
+      34,
+      1
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cl2",
+    "factor": "cl",
+    "name": "Recent competitor wins",
+    "rank": 2,
+    "rule_1_to_4": [
+      "None in the region in 2 years",
+      "One in the region",
+      "One taken from us in the region",
+      "A competitor has presented to this client"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "Procurement notices and award minutes",
+      "how": "Awards in the region, and who presented to which board"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "Shows who has momentum in the region and how they are winning.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.333,
+    "projects_by_score": [
+      184,
+      65,
+      37,
+      14
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "cl3",
+    "factor": "cl",
+    "name": "Price pressure",
+    "rank": 3,
+    "rule_1_to_4": [
+      "None",
+      "Client asked for a benchmark",
+      "Client asked for a price review",
+      "Client said in writing that we cost too much"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "mail",
+      "name": "Client mail and meeting notes",
+      "how": "Requests for benchmarks, price reviews and budget cuts"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "A renewal decided on price favours the cheaper bid.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.167,
+    "projects_by_score": [
+      181,
+      57,
+      45,
+      17
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "rs1",
+    "factor": "rs",
+    "name": "Flood and extreme weather exposure",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Outside the 500-year flood zone",
+      "In the 500-year zone",
+      "In the 100-year zone",
+      "In the 100-year zone, flooded in the last 10 years"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "FEMA flood maps and NOAA storm events",
+      "how": "The plant address against the flood zone and the storm record"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "One storm can cause overflows and a year of violations.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.4,
+    "projects_by_score": [
+      165,
+      62,
+      54,
+      19
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "rs2",
+    "factor": "rs",
+    "name": "Drought and source water",
+    "rank": 2,
+    "rule_1_to_4": [
+      "No drought in 5 years",
+      "Moderate drought in 5 years",
+      "Severe drought in 2 years",
+      "Restrictions in force"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "web",
+      "name": "U.S. Drought Monitor",
+      "how": "The county of the source, weekly"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "Shortages strain operations and the client relationship.",
+    "changes_between_checks": true,
+    "only_for": "dw",
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.3,
+    "projects_by_score": [
+      79,
+      46,
+      25,
+      17
+    ],
+    "coverage": {
+      "n": 167,
+      "of": 167
+    }
+  },
+  {
+    "id": "rs3",
+    "factor": "rs",
+    "name": "Cybersecurity of plant controls",
+    "rank": 3,
+    "rule_1_to_4": [
+      "Assessed this year, no open findings",
+      "Assessed, findings closed on plan",
+      "Assessed, findings overdue",
+      "Not assessed in 3 years"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "SCADA security assessments",
+      "how": "The latest assessment and its open findings"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "A cyber incident can stop a plant and become a public crisis.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.2,
+    "projects_by_score": [
+      95,
+      99,
+      64,
+      42
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "rs4",
+    "factor": "rs",
+    "name": "Emergency response readiness",
+    "rank": 4,
+    "rule_1_to_4": [
+      "Plan current, drill this year",
+      "Plan current, no drill this year",
+      "Plan older than 3 years",
+      "No plan on file"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Emergency response plans and drill records",
+      "how": "Date of the plan and of the last drill"
+    },
+    "data_sits_at": "Facility",
+    "brought_to_project_by": "The project takes its worst facility",
+    "why": "A badly handled emergency is remembered at renewal.",
+    "changes_between_checks": true,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.1,
+    "projects_by_score": [
+      123,
+      97,
+      59,
+      21
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im1",
+    "factor": "im",
+    "name": "Annual contract revenue",
+    "rank": 1,
+    "rule_1_to_4": [
+      "Under $2M",
+      "$2M to $4M",
+      "$4M to $7M",
+      "$7M or more"
+    ],
+    "figure": {
+      "thresholds": [
+        2,
+        4,
+        7
+      ],
+      "higher_is_worse": true,
+      "unit": "$M a year"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "master.contract · fin.contract_pnl",
+      "how": "Fee billed, last twelve months"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "Bigger contracts deserve attention first.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.286,
+    "projects_by_score": [
+      4,
+      149,
+      112,
+      35
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im2",
+    "factor": "im",
+    "name": "Margin contribution",
+    "rank": 2,
+    "rule_1_to_4": [
+      "Under $150k",
+      "$150k to $400k",
+      "$400k to $800k",
+      "$800k or more"
+    ],
+    "figure": {
+      "thresholds": [
+        150,
+        400,
+        800
+      ],
+      "higher_is_worse": true,
+      "unit": "$k a year"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "fin.contract_pnl",
+      "how": "Margin in dollars, last twelve months"
+    },
+    "data_sits_at": "Profit center",
+    "brought_to_project_by": "Each project takes the figure of its profit center",
+    "why": "A high-margin loss hurts far more than a break-even one.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.238,
+    "projects_by_score": [
+      1,
+      116,
+      133,
+      50
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im3",
+    "factor": "im",
+    "name": "Months to renewal or end",
+    "rank": 3,
+    "rule_1_to_4": [
+      "More than 36 months",
+      "18 to 36 months",
+      "12 to 18 months",
+      "Under 12 months"
+    ],
+    "figure": {
+      "thresholds": [
+        36,
+        18,
+        12
+      ],
+      "higher_is_worse": false,
+      "unit": "months"
+    },
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "table",
+      "name": "master.contract",
+      "how": "End date of the current term"
+    },
+    "data_sits_at": "Project",
+    "brought_to_project_by": "Already at project level",
+    "why": "Sets the urgency. Risk close to a decision must be acted on now.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.19,
+    "projects_by_score": [
+      147,
+      78,
+      37,
+      38
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im4",
+    "factor": "im",
+    "name": "Options left at the end of the term",
+    "rank": 4,
+    "rule_1_to_4": [
+      "Renewal options left, at our choice",
+      "One mutual option left",
+      "",
+      "No option left: goes to bid"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, term article",
+      "how": "Renewal options used and left"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "A term that rolls on is safer than an open re-tender.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.143,
+    "projects_by_score": [
+      133,
+      102,
+      0,
+      65
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im5",
+    "factor": "im",
+    "name": "Termination for convenience",
+    "rank": 5,
+    "rule_1_to_4": [
+      "No",
+      "",
+      "",
+      "Yes"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "The signed contract, termination article",
+      "how": "Whether the client can end the agreement without cause, and the notice"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "The contract can be lost at any time, not only at renewal.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.095,
+    "projects_by_score": [
+      210,
+      0,
+      0,
+      90
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  },
+  {
+    "id": "im6",
+    "factor": "im",
+    "name": "Strategic and reference value",
+    "rank": 6,
+    "rule_1_to_4": [
+      "Standard",
+      "Used as a reference in bids",
+      "Regional anchor",
+      "Flagship"
+    ],
+    "figure": null,
+    "follows_regulatory_limit": false,
+    "source": {
+      "kind": "document",
+      "name": "Bid library and reference lists",
+      "how": "How often the contract is named in our own proposals"
+    },
+    "data_sits_at": "Signed contract",
+    "brought_to_project_by": "One signed contract per project",
+    "why": "Losing a flagship damages other bids.",
+    "changes_between_checks": false,
+    "only_for": null,
+    "no_source": null,
+    "red_flag_in_proposal": false,
+    "weight_in_factor": 0.048,
+    "projects_by_score": [
+      195,
+      59,
+      27,
+      19
+    ],
+    "coverage": {
+      "n": 300,
+      "of": 300
+    }
+  }
+]

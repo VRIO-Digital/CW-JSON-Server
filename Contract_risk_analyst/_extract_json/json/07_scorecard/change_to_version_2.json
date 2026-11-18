@@ -1,0 +1,189 @@
+{
+  "about": "The goal is live and the morning check of 20 November has run. The person opens the standing goal and asks in the chat for two changes. The analyst drafts them, shows this change plan, and publishes version 2 of the dashboard when told to. Version 1 is the demo_run scorecard.",
+  "from": {
+    "scorecard": "demo_run",
+    "version": 1,
+    "as_of": "2026-11-20T06:00"
+  },
+  "to": {
+    "scorecard": "version_2",
+    "version": 2,
+    "published": "2026-11-20T09:12"
+  },
+  "asked_in_the_chat": [
+    "Add a signal for boil water notices in the last twelve months, under Water Quality and Contaminants, and make it a red flag",
+    "Change days sales outstanding: score 4 from 75 days"
+  ],
+  "steps_the_analyst_shows": [
+    "understand the change",
+    "apply it to a draft of the scorecard",
+    "look for the data in what is connected",
+    "score all 300 projects on the draft",
+    "compare with version 1",
+    "write the mitigation plans again where they change"
+  ],
+  "changes": [
+    {
+      "kind": "new signal",
+      "signal": {
+        "id": "u1",
+        "factor": "iq",
+        "name": "Boil water notices in the last twelve months",
+        "rank": 99,
+        "rule_1_to_4": [
+          "None in twelve months",
+          "One in twelve months",
+          "Two or three in twelve months",
+          "More than three in twelve months"
+        ],
+        "figure": null,
+        "follows_regulatory_limit": false,
+        "source": {
+          "kind": "table",
+          "name": "Operations data hub",
+          "how": "The closest fields found for the description; shown for you to confirm"
+        },
+        "data_sits_at": "Project",
+        "brought_to_project_by": "Already at project level",
+        "why": "You asked for it.",
+        "changes_between_checks": true,
+        "only_for": "dw",
+        "no_source": null,
+        "red_flag_in_proposal": true,
+        "weight_in_factor": 0.027,
+        "projects_by_score": [
+          111,
+          30,
+          17,
+          9
+        ],
+        "coverage": {
+          "n": 167,
+          "of": 167
+        }
+      },
+      "red_flag": true,
+      "rule_proposed_by": "the analyst",
+      "applies_to": "projects that treat drinking water",
+      "projects_with_a_reading": 167,
+      "projects_at_3_or_4": 26,
+      "projects_at_its_worst_case": 9
+    },
+    {
+      "kind": "thresholds",
+      "signal": "cr2",
+      "name": "Days sales outstanding",
+      "thresholds_before": [
+        45,
+        60,
+        90
+      ],
+      "thresholds_after": [
+        45,
+        60,
+        75
+      ],
+      "unit": "days",
+      "rule_after": [
+        "Under 45 days",
+        "45 to 60 days",
+        "60 to 75 days",
+        "75 days or more"
+      ]
+    }
+  ],
+  "effect": {
+    "factors_in_the_score": [
+      16,
+      16
+    ],
+    "signals_in_the_score": [
+      70,
+      71
+    ],
+    "ratings_before": [
+      44,
+      190,
+      66,
+      0
+    ],
+    "ratings_after": [
+      42,
+      188,
+      70,
+      0
+    ],
+    "rated_3_or_4": [
+      66,
+      70
+    ],
+    "revenue_rated_3_or_4": [
+      307930000,
+      325820000
+    ],
+    "act_now": [
+      25,
+      25
+    ],
+    "scores_that_move": 71,
+    "largest_move": 1.071,
+    "projects_up_a_rating": [
+      {
+        "id": "NCO-271",
+        "site": "Orrin Point",
+        "rating_before": 1,
+        "rating_after": 3,
+        "score_before": 1.429,
+        "score_after": 2.5
+      },
+      {
+        "id": "NCO-297",
+        "site": "Mossley Crossing",
+        "rating_before": 1,
+        "rating_after": 3,
+        "score_before": 1.459,
+        "score_after": 2.5
+      },
+      {
+        "id": "NCO-197",
+        "site": "Drummond Valley",
+        "rating_before": 2,
+        "rating_after": 3,
+        "score_before": 1.646,
+        "score_after": 2.5
+      },
+      {
+        "id": "NCO-245",
+        "site": "Linden Hollow",
+        "rating_before": 2,
+        "rating_after": 3,
+        "score_before": 2.14,
+        "score_after": 2.5
+      }
+    ],
+    "projects_down_a_rating": [],
+    "mitigation_plans_that_change": 25
+  },
+  "when_published": [
+    "All 300 projects are scored again. The dashboard becomes version 2 and says why.",
+    "Version 1 stays in the version list of the dashboard.",
+    "The mitigation plans are written again for 25 sites.",
+    "Nobody is alerted. The scores move because the scoring changed, not because something happened at a site.",
+    "The next morning check uses the new scoring."
+  ],
+  "other_requests_the_chat_understands": [
+    "add a factor, with a first signal",
+    "change how much a factor counts",
+    "drop or put back a signal or a factor",
+    "make a signal a red flag, or take the flag off",
+    "take the thresholds of a figure from history",
+    "set all three thresholds of a figure",
+    "take the higher of the two halves, or their average"
+  ],
+  "refused": [
+    "thresholds that are out of order",
+    "a rule that follows a regulatory or permit limit",
+    "a signal that is already on the scorecard",
+    "a request it cannot read: it gives examples instead of guessing"
+  ]
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "theme": "The portfolio",
+    "persona": "Chief Operating Officer",
+    "questions": [
+      "How much of our revenue sits in high-risk contracts?",
+      "How many projects rate 3 or 4 today?",
+      "Which ten projects carry the most risk?",
+      "Which projects need action now?",
+      "Which region carries the most risk?",
+      "Which Regional VP has the most high-risk contracts?",
+      "How are our ten largest contracts rated?",
+      "What should I worry about this week?"
+    ]
+  },
+  {
+    "theme": "What moved",
+    "persona": "SVP, Contract Operations",
+    "questions": [
+      "For which projects did the risk increase in the last 90 days, and why?",
+      "Which projects improved in the last 90 days?",
+      "What changed since yesterday’s check?",
+      "Which projects moved into high risk?",
+      "Which region got worse over the last 90 days?",
+      "Which project had the largest rise in risk?",
+      "Is the portfolio getting riskier or safer?",
+      "Which high-risk projects are still getting worse?"
+    ]
+  },
+  {
+    "theme": "One project",
+    "persona": "Regional VP",
+    "questions": [
+      "What is the status of Sable Creek WWTP and why did the risk go up?",
+      "Why did Harlow Creek move to a rating of 3?",
+      "What is the mitigation plan for Harlow Creek?",
+      "What is at stake at Ashby Falls?",
+      "What is happening at Red Mesa?",
+      "Compare Harlow Creek and Sable Creek",
+      "Who owns Ashby Falls and what should they do first?"
+    ]
+  },
+  {
+    "theme": "Safety and compliance",
+    "persona": "Director, Environmental Compliance and Safety",
+    "questions": [
+      "Which projects have not recorded a safety observation in the last two weeks?",
+      "Which sites have the highest lost-time injury rate?",
+      "Where is workplace safety the weakest?",
+      "Which projects missed required samples?",
+      "Which projects received a notice of violation?",
+      "Which sites are under a consent order?",
+      "Which permits are up for renewal with tighter limits?",
+      "Which plants are over the PFAS limits?"
+    ]
+  },
+  {
+    "theme": "People and operations",
+    "persona": "SVP, Contract Operations",
+    "questions": [
+      "Which sites have positions open for more than 60 days?",
+      "Where is overtime above 13% of payroll?",
+      "Which sites lack a licensed operator or a backup?",
+      "Which sites have a new site manager?",
+      "Where is staff retention under 75%?",
+      "Which sites are behind on planned maintenance?",
+      "Which sites depend on one key person?"
+    ]
+  },
+  {
+    "theme": "Money",
+    "persona": "Chief Financial Officer",
+    "questions": [
+      "Which projects have receivables older than 90 days?",
+      "Which contracts run under their budget margin?",
+      "Which high-risk contracts are also losing margin?",
+      "Where are change orders unbilled or in dispute?",
+      "Which contracts paid penalties in the last three years?",
+      "Which contracts carry fixed-price exposure on energy and chemicals?",
+      "How much margin is at risk in the high-risk contracts?"
+    ]
+  },
+  {
+    "theme": "Client, community and competition",
+    "persona": "Chief Commercial Officer",
+    "questions": [
+      "Which contracts come up for renewal in the next 18 months, and which of those are high risk?",
+      "Where is the client talking about in-house operation or a re-bid?",
+      "Where did the key client contact change?",
+      "Which clients have an election or council turnover coming?",
+      "Where are competitors active?",
+      "Where is local media coverage mostly negative?",
+      "Which sites get the most odor complaints?",
+      "Which clients gave us a low survey score?",
+      "Where are lawsuits threatened or filed?"
+    ]
+  },
+  {
+    "theme": "Plans and the scorecard",
+    "persona": "SVP, Contract Operations",
+    "questions": [
+      "How many sites have a mitigation plan, and what happens to the risk if the plans land?",
+      "Which actions are due first?",
+      "Who owns the most mitigation actions?",
+      "Which factor drives the most risk across the portfolio?",
+      "Which red flags are raised today?",
+      "How is the risk score made?",
+      "What data is missing from the scorecard?",
+      "Would the scorecard have caught the contracts we lost?"
+    ]
+  }
+]

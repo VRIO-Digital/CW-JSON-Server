@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Northeast",
+    "rvp": "Daniel Okoro",
+    "states": [
+      "MA",
+      "CT",
+      "NJ",
+      "NY",
+      "PA",
+      "NH",
+      "ME",
+      "RI",
+      "MD"
+    ],
+    "nps": 61,
+    "contracts": 60,
+    "revenue": 285570000
+  },
+  {
+    "name": "Southeast",
+    "rvp": "Marisol Vega",
+    "states": [
+      "GA",
+      "FL",
+      "SC",
+      "NC",
+      "TN",
+      "AL",
+      "MS",
+      "VA",
+      "KY"
+    ],
+    "nps": 52,
+    "contracts": 60,
+    "revenue": 276010000
+  },
+  {
+    "name": "Midwest",
+    "rvp": "Tom Brandvold",
+    "states": [
+      "OH",
+      "IN",
+      "IL",
+      "MI",
+      "WI",
+      "MN",
+      "IA",
+      "MO",
+      "KS"
+    ],
+    "nps": 72,
+    "contracts": 60,
+    "revenue": 290340000
+  },
+  {
+    "name": "South Central",
+    "rvp": "Priya Raman",
+    "states": [
+      "TX",
+      "OK",
+      "LA",
+      "AR",
+      "NM"
+    ],
+    "nps": 58,
+    "contracts": 59,
+    "revenue": 243330000
+  },
+  {
+    "name": "West",
+    "rvp": "Grant Leung",
+    "states": [
+      "CA",
+      "AZ",
+      "WA",
+      "OR",
+      "ID",
+      "CO",
+      "NV",
+      "UT"
+    ],
+    "nps": 66,
+    "contracts": 61,
+    "revenue": 280100000
+  }
+]
