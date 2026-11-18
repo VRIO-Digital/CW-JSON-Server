@@ -5963,6 +5963,18 @@ Four tabs — **Add User**, **Dataset**, **Persona Configuration** and **Report 
 → `settingsStore` → `GET /settings`, served from **`db.settings`** — a key of the merged document,
 stored on disk in the shared `backend/settings.json` because it is the tenant's rather than a dataset's.
 
+**It is reachable two ways, at two different addresses, and only one of them needs a session.**
+`/:ds/settings`, inside `RequireAuth`, is what the sidebar actually links to for a signed-in reader,
+inside the `App` shell with its sidebar. **`/admin`, declared at the top level in `routes.tsx` beside
+`/doctor`, is the same page with no session at all** — a typed address has to answer rather than
+bounce to `/login` and strand whoever typed it. It is `/admin` rather than `/settings` so the two
+routes cannot be read as one address with two names. It works because the gate was always the frontend
+route guard: `GET /settings` and `PATCH /settings/personas/:roleId/nav` check no session, and
+`SettingsPage` already tolerates a null identity (`identity?.email ?? null`, for the Add User tab's
+"you" marker). It renders with no `<App>` shell — so no sidebar — reusing `.app-content`'s own padding
+rather than restating it. It is **not** in `NAV_ITEMS`: a signed-in reader still reaches Settings from
+the sidebar, not from this address.
+
 **The Dataset tab is the one that is not about `db.settings`.** It administers which dataset 
 the whole console reads — see *Two datasets* above — and it is here because confirming it signs the 
 reader out, which is a reconfiguration rather than navigation. Nothing on it is written to 

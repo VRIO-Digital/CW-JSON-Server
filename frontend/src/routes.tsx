@@ -77,6 +77,38 @@ export const routes: RouteObject[] = [
    */
   { path: '/doctor', element: <DoctorPage /> },
 
+  /*
+   * Settings, reachable with no session at all, at its own address rather than at `/settings` —
+   * https://cw.vriodigital.com/admin has to answer for someone who has not signed in, not just
+   * redirect to `/login` and strand them. The in-app route (`/:ds/settings`, inside `RequireAuth`
+   * below) is what the sidebar actually links to for a signed-in reader and keeps that name; this
+   * is the same page at a *different*, no-session address, the same arrangement `/doctor` already
+   * uses and for the same reason — a page meant to work before or without a session cannot sit
+   * behind the login redirect or behind `/:ds`, where `DatasetPathGate` would rewrite its address
+   * on the way in. `/admin` rather than `/settings` here so the two addresses cannot be confused
+   * for one route with two names.
+   *
+   * `SettingsPage` already tolerates no identity (`identity?.email ?? null`), and nothing it reads
+   * or writes — `GET /settings`, `PATCH /settings/personas/:roleId/nav` — checks a session: the
+   * frontend route guard was the only real gate this page ever had, so removing it here is the
+   * whole change. The dataset it reads is still whatever `currentDataset()` holds in
+   * `localStorage`, the same module every in-app request already reads it from regardless of which
+   * route rendered the page.
+   *
+   * No `<App>` shell, so no sidebar — reusing `.app-content` from `App.css` for its padding rather
+   * than restating it, so this and the in-app route read identically. URL-only, no `NAV_ITEMS`
+   * entry: a reader who is signed in reaches Settings from the sidebar at `/:ds/settings`, not from
+   * this address.
+   */
+  {
+    path: '/admin',
+    element: (
+      <div className="app-content">
+        <SettingsPage />
+      </div>
+    ),
+  },
+
   {
     element: <RequireAuth />,
 
