@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom'
 import App from './App'
+import { currentDataset } from './api/dataset'
 import DatasetPathGate from './components/shell/DatasetPathGate'
 import DatasetRedirect from './components/shell/DatasetRedirect'
 import RequireAuth from './components/shell/RequireAuth'
@@ -141,8 +142,15 @@ export const routes: RouteObject[] = [
            */
           { path: 'graph-studio', element: <GraphStudioPage /> },
           { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
-          // Ask queries a *published* graph, so it lists none until one is live.
-          { path: 'ask', element: <AskPage /> },
+          /*
+           * Ask queries a *published* graph, so it lists none until one is live — except for RISK,
+           * a dataset seeded deliberately empty (see ContractRiskPage): it has no graph to publish,
+           * so its own Ask (bundled in the same prototype as its Goals/Submissions) stands in. The
+           * check is a plain function call rather than a route-level branch that could go stale,
+           * because switching dataset always reloads the document — the same reason
+           * `goalsSubmissionFiles.ts` reads `currentDataset()` at module scope.
+           */
+          { path: 'ask', element: currentDataset() === 'RISK' ? <ContractRiskPage view="ask" /> : <AskPage /> },
           { path: 'catalog', element: <CatalogPage /> },
           /*
            * The report section — the authoring prototype from the demo package, vendored into
@@ -162,13 +170,19 @@ export const routes: RouteObject[] = [
           { path: 'what-if', element: <WhatIfPage /> },
           /* A framed showcase page, gated on nothing — see AISubmissionsPage for why. */
           { path: 'aisubmission', element: <AISubmissionsPage /> },
-          /* Two framed prototype builds, one per entry, behind the publish gate — see GoalsSubmissionPage. */
-          { path: 'goals', element: <GoalsSubmissionPage view="goals" /> },
-          { path: 'submission', element: <GoalsSubmissionPage view="submission" /> },
           /*
-           * Contract Risk Analyst — a vendored reference prototype for Northline Water Group (CAPEX's
-           * tenant), self-contained and ungated (see ContractRiskPage). URL-only for now, no NAV_ITEMS
-           * entry, the same arrangement as /trace and /validation below.
+           * Two framed prototype builds, one per entry, behind the publish gate — see
+           * GoalsSubmissionPage. RISK has no graph to publish (seeded deliberately empty), so its
+           * own Goals/Submissions — the rich, self-contained prototype, ungated — stand in here
+           * too, the same swap `ask` above makes and for the same reason.
+           */
+          { path: 'goals', element: currentDataset() === 'RISK' ? <ContractRiskPage view="goals" /> : <GoalsSubmissionPage view="goals" /> },
+          { path: 'submission', element: currentDataset() === 'RISK' ? <ContractRiskPage view="submission" /> : <GoalsSubmissionPage view="submission" /> },
+          /*
+           * The same three screens, at their own addresses — reachable regardless of which dataset
+           * is selected, for anyone who wants the Contract Risk Analyst prototype specifically
+           * without switching datasets. URL-only, no NAV_ITEMS entry, the same arrangement as
+           * /trace and /validation below.
            */
           { path: 'contract-risk/ask', element: <ContractRiskPage view="ask" /> },
           { path: 'contract-risk/goals', element: <ContractRiskPage view="goals" /> },
