@@ -3,8 +3,144 @@
     "review_items": [],
     "pivot": {},
     "canvas": {
-      "nodes": [],
-      "edges": []
+      "nodes": [
+        {
+          "node_id": "CONCEPT:Contract",
+          "label": "Contract",
+          "sublabel": "An operations and maintenance contract between Northline and a client.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 5,
+          "r": 12,
+          "x": 520,
+          "y": 300
+        },
+        {
+          "node_id": "CONCEPT:Client",
+          "label": "Client",
+          "sublabel": "The municipality or utility Northline serves under a contract.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 1,
+          "r": 12,
+          "x": 437.2,
+          "y": 472
+        },
+        {
+          "node_id": "CONCEPT:Site",
+          "label": "Site",
+          "sublabel": "The physical plant or system a contract runs.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 2,
+          "r": 12,
+          "x": 251,
+          "y": 514.5
+        },
+        {
+          "node_id": "CONCEPT:Region",
+          "label": "Region",
+          "sublabel": "One of the company's five operating regions.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 1,
+          "r": 12,
+          "x": 101.8,
+          "y": 395.5
+        },
+        {
+          "node_id": "CONCEPT:RegionalVP",
+          "label": "Regional VP",
+          "sublabel": "The Regional VP who owns a set of contracts.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 1,
+          "r": 12,
+          "x": 101.8,
+          "y": 204.5
+        },
+        {
+          "node_id": "CONCEPT:ProjectLeader",
+          "label": "Project Leader",
+          "sublabel": "The on-site leader running day-to-day delivery of a contract.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 1,
+          "r": 12,
+          "x": 251,
+          "y": 85.5
+        },
+        {
+          "node_id": "CONCEPT:Permit",
+          "label": "Permit",
+          "sublabel": "A regulatory permit a site holds and must renew.",
+          "type": "Concept",
+          "element_class": "concept",
+          "group": "Concept",
+          "source": "concept nomination; real column set (ingest-risk-column-profiles.mjs)",
+          "confidence": null,
+          "degree": 1,
+          "r": 12,
+          "x": 437.2,
+          "y": 128
+        }
+      ],
+      "edges": [
+        {
+          "from": "CONCEPT:Contract",
+          "to": "CONCEPT:Client",
+          "label": "is held with",
+          "detail": "master.contract's own client field."
+        },
+        {
+          "from": "CONCEPT:Contract",
+          "to": "CONCEPT:Site",
+          "label": "runs at",
+          "detail": "master.contract's own site field."
+        },
+        {
+          "from": "CONCEPT:Contract",
+          "to": "CONCEPT:Region",
+          "label": "reports into",
+          "detail": "master.contract's own region field."
+        },
+        {
+          "from": "CONCEPT:Contract",
+          "to": "CONCEPT:RegionalVP",
+          "label": "is owned by",
+          "detail": "master.contract's own regional_vp field."
+        },
+        {
+          "from": "CONCEPT:Contract",
+          "to": "CONCEPT:ProjectLeader",
+          "label": "is led on site by",
+          "detail": "master.contract's own project_leader field."
+        },
+        {
+          "from": "CONCEPT:Site",
+          "to": "CONCEPT:Permit",
+          "label": "operates under",
+          "detail": "signals.json's en6, \"Permit renewal status\"."
+        }
+      ]
     },
     "generated": {
       "must_review_total": 0,

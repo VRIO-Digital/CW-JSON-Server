@@ -448,7 +448,7 @@
     }
   ],
   "column_profiles": {
-    "risk.master.contract": [
+    "master.contract": [
       {
         "column_id": "id",
         "label": "id",
@@ -738,7 +738,7 @@
         "description": "A written account of the contract, where one exists."
       }
     ],
-    "risk.fin.ar_aging": [
+    "fin.ar_aging": [
       {
         "column_id": "days_sales_outstanding",
         "label": "Days sales outstanding",
@@ -752,7 +752,7 @@
         "description": "Average receivables over revenue, times the days in the period (days)."
       }
     ],
-    "risk.hr.roster": [
+    "hr.roster": [
       {
         "column_id": "unionized_workforce",
         "label": "Unionized workforce",
@@ -802,7 +802,7 @@
         "description": "Start date of the project leader in the role (years)."
       }
     ],
-    "risk.ehs.incident": [
+    "ehs.incident": [
       {
         "column_id": "lost_time_injuries",
         "label": "Lost-time injuries",
@@ -828,7 +828,7 @@
         "description": "Recordable injuries per 200,000 hours, rolling twelve months (per 200,000 hours)."
       }
     ],
-    "risk.ops.hours": [
+    "ops.hours": [
       {
         "column_id": "lost_time_injuries",
         "label": "Lost-time injuries",
@@ -854,7 +854,7 @@
         "description": "Recordable injuries per 200,000 hours, rolling twelve months (per 200,000 hours)."
       }
     ],
-    "risk.ehs.observation": [
+    "ehs.observation": [
       {
         "column_id": "safety_observations_per_employee",
         "label": "Safety observations per employee",
@@ -868,7 +868,7 @@
         "description": "Near misses and safety observations submitted this year, per employee (a year)."
       }
     ],
-    "risk.ops.compliance_daily": [
+    "ops.compliance_daily": [
       {
         "column_id": "days_within_permit_limits",
         "label": "Days within permit limits",
@@ -882,7 +882,7 @@
         "description": "Share of permit days met, by site, three-year average (%)."
       }
     ],
-    "risk.plantdata.sample_schedule": [
+    "plantdata.sample_schedule": [
       {
         "column_id": "required_samples_missed",
         "label": "Required samples missed",
@@ -896,7 +896,7 @@
         "description": "Required samples with no result by the due date, this year (in three years)."
       }
     ],
-    "risk.plantdata.results": [
+    "plantdata.results": [
       {
         "column_id": "required_samples_missed",
         "label": "Required samples missed",
@@ -982,7 +982,7 @@
         "description": "Monthly average against the permit limit (% of the limit)."
       }
     ],
-    "risk.plantdata.login_audit": [
+    "plantdata.login_audit": [
       {
         "column_id": "operators_using_the_plant_data_system",
         "label": "Operators using the plant data system",
@@ -996,7 +996,7 @@
         "description": "Operator logins per working day, last 90 days."
       }
     ],
-    "risk.hr.requisition": [
+    "hr.requisition": [
       {
         "column_id": "positions_open_more_than_60_days",
         "label": "Positions open more than 60 days",
@@ -1010,7 +1010,7 @@
         "description": "Requisitions open longer than 60 days, by site — One or more open over 60 days."
       }
     ],
-    "risk.ops.labor_weekly": [
+    "ops.labor_weekly": [
       {
         "column_id": "overtime_share_of_payroll",
         "label": "Overtime share of payroll",
@@ -1036,7 +1036,7 @@
         "description": "Holders of each licence the contract requires, and their hours."
       }
     ],
-    "risk.crm.nps_response": [
+    "crm.nps_response": [
       {
         "column_id": "client_survey_score_for_the_site",
         "label": "Client survey score for the site",
@@ -1074,7 +1074,7 @@
         "description": "Slope of the site score over five surveys."
       }
     ],
-    "risk.ops.complaint_log": [
+    "ops.complaint_log": [
       {
         "column_id": "odor_complaints",
         "label": "Odor complaints",
@@ -1088,7 +1088,7 @@
         "description": "Odor complaints logged this year; mail to the site is read for ones not logged (in twelve months)."
       }
     ],
-    "risk.fin.community_spend": [
+    "fin.community_spend": [
       {
         "column_id": "community_investment_per_year",
         "label": "Community investment per year",
@@ -1114,7 +1114,7 @@
         "description": "Slope of the annual spend over five years."
       }
     ],
-    "risk.cmms.work_order": [
+    "cmms.work_order": [
       {
         "column_id": "maintenance_hours_logged_to_work_orders",
         "label": "Maintenance hours logged to work orders",
@@ -1152,7 +1152,7 @@
         "description": "Corrective hours over all maintenance hours, twelve months (% corrective)."
       }
     ],
-    "risk.gis.parcels_2mi": [
+    "gis.parcels_2mi": [
       {
         "column_id": "homes_within_two_miles",
         "label": "Homes within two miles",
@@ -1166,7 +1166,7 @@
         "description": "Residential parcels within 2 miles of the plant fence line; recounted when the county parcel file changes (homes)."
       }
     ],
-    "risk.ops.overflow_event": [
+    "ops.overflow_event": [
       {
         "column_id": "sewer_overflows_sso_and_cso",
         "label": "Sewer overflows (SSO and CSO)",
@@ -1180,7 +1180,7 @@
         "description": "Reported overflows, rolling twelve months (in twelve months)."
       }
     ],
-    "risk.hr.license": [
+    "hr.license": [
       {
         "column_id": "key_person_dependence",
         "label": "Key-person dependence",
@@ -1194,7 +1194,7 @@
         "description": "Holders of each licence the contract requires, and their hours."
       }
     ],
-    "risk.asset.register": [
+    "asset.register": [
       {
         "column_id": "asset_age",
         "label": "Asset age",
@@ -1208,7 +1208,7 @@
         "description": "Weighted age of the critical assets (years)."
       }
     ],
-    "risk.lab.result": [
+    "lab.result": [
       {
         "column_id": "pfas_in_biosolids_and_effluent",
         "label": "PFAS in biosolids and effluent",
@@ -1222,7 +1222,7 @@
         "description": "Lab results against the rules proposed or in force in the state."
       }
     ],
-    "risk.fin.contract_pnl": [
+    "fin.contract_pnl": [
       {
         "column_id": "margin_against_budget",
         "label": "Margin against budget",
@@ -1284,7 +1284,7 @@
         "description": "Margin in dollars, last twelve months ($k a year)."
       }
     ],
-    "risk.fin.change_order": [
+    "fin.change_order": [
       {
         "column_id": "unbilled_or_disputed_change_orders",
         "label": "Unbilled or disputed change orders",
@@ -1298,7 +1298,7 @@
         "description": "Open change orders older than 60 days, over the annual fee."
       }
     ],
-    "risk.fin.gl_detail": [
+    "fin.gl_detail": [
       {
         "column_id": "penalties_and_liquidated_damages_paid",
         "label": "Penalties and liquidated damages paid",
@@ -1871,7 +1871,125 @@
       "credential_handle": "drive-handle-fb778712"
     }
   ],
-  "document_extractions": {},
+  "document_extractions": {
+    "DOC:hc-contract": {
+      "extraction_id": "ex_hc-contract",
+      "extracted_entity": "Harlow Creek WWTP",
+      "entity_type": "Project",
+      "resolved_node": "NCO-047",
+      "resolved_facility": "Harlow Creek WWTP",
+      "state": "Northline Water Group",
+      "linked_manifests": 4,
+      "confidence": 1,
+      "document_id": "DOC:hc-contract",
+      "source_file": "Harlow_Creek_OM_Agreement_2018.pdf",
+      "method": "project field (documents.json)"
+    },
+    "DOC:hc-demand": {
+      "extraction_id": "ex_hc-demand",
+      "extracted_entity": "Harlow Creek WWTP",
+      "entity_type": "Project",
+      "resolved_node": "NCO-047",
+      "resolved_facility": "Harlow Creek WWTP",
+      "state": "Northline Water Group",
+      "linked_manifests": 4,
+      "confidence": 1,
+      "document_id": "DOC:hc-demand",
+      "source_file": "Baines_Ortega_Demand_Letter_2026-11-19.pdf",
+      "method": "project field (documents.json)"
+    },
+    "DOC:hc-complaints": {
+      "extraction_id": "ex_hc-complaints",
+      "extracted_entity": "Harlow Creek WWTP",
+      "entity_type": "Project",
+      "resolved_node": "NCO-047",
+      "resolved_facility": "Harlow Creek WWTP",
+      "state": "Northline Water Group",
+      "linked_manifests": 4,
+      "confidence": 1,
+      "document_id": "DOC:hc-complaints",
+      "source_file": "Harlow_Creek_Odor_Complaint_Log_2026.xlsx",
+      "method": "project field (documents.json)"
+    },
+    "DOC:hc-cip": {
+      "extraction_id": "ex_hc-cip",
+      "extracted_entity": "Harlow Creek WWTP",
+      "entity_type": "Project",
+      "resolved_node": "NCO-047",
+      "resolved_facility": "Harlow Creek WWTP",
+      "state": "Northline Water Group",
+      "linked_manifests": 4,
+      "confidence": 1,
+      "document_id": "DOC:hc-cip",
+      "source_file": "City_of_Harlow_Creek_CIP_FY2027-2031.pdf",
+      "method": "project field (documents.json)"
+    },
+    "DOC:af-contract": {
+      "extraction_id": "ex_af-contract",
+      "extracted_entity": "Ashby Falls Water and Sewer",
+      "entity_type": "Project",
+      "resolved_node": "NCO-111",
+      "resolved_facility": "Ashby Falls Water and Sewer",
+      "state": "Northline Water Group",
+      "linked_manifests": 2,
+      "confidence": 1,
+      "document_id": "DOC:af-contract",
+      "source_file": "Ashby_Falls_OM_Agreement_2017.pdf",
+      "method": "project field (documents.json)"
+    },
+    "DOC:rm-sampling": {
+      "extraction_id": "ex_rm-sampling",
+      "extracted_entity": "Red Mesa Regional Water Reclamation Facility",
+      "entity_type": "Project",
+      "resolved_node": "NCO-184",
+      "resolved_facility": "Red Mesa Regional Water Reclamation Facility",
+      "state": "Northline Water Group",
+      "linked_manifests": 2,
+      "confidence": 1,
+      "document_id": "DOC:rm-sampling",
+      "source_file": "Red_Mesa_Sampling_Plan_and_Exceptions_2026.pdf",
+      "method": "project field (documents.json)"
+    },
+    "DOC:calder-review": {
+      "extraction_id": "ex_calder-review",
+      "extracted_entity": "Calder Valley WWTP",
+      "entity_type": "Project",
+      "resolved_node": "SITE:calder-valley-wwtp",
+      "resolved_facility": "Calder Valley WWTP",
+      "state": "Northline Water Group",
+      "linked_manifests": 0,
+      "confidence": 0.85,
+      "document_id": "DOC:calder-review",
+      "source_file": "Calder_Valley_Loss_Review_2026-03.pdf",
+      "method": "document title"
+    },
+    "DOC:renewal-2025": {
+      "extraction_id": "ex_renewal-2025",
+      "extracted_entity": "Renewal risk review process",
+      "entity_type": "Process",
+      "resolved_node": "PROC:renewal-risk-review",
+      "resolved_facility": "Renewal risk review process",
+      "state": "Northline Water Group",
+      "linked_manifests": 2,
+      "confidence": 0.85,
+      "document_id": "DOC:renewal-2025",
+      "source_file": "Renewal_Review_2025-12.pptx",
+      "method": "document title"
+    },
+    "DOC:claims-proc": {
+      "extraction_id": "ex_claims-proc",
+      "extracted_entity": "Claims Notice and Legal Hold Procedure",
+      "entity_type": "Policy",
+      "resolved_node": "PROC:claims-notice-legal-hold",
+      "resolved_facility": "Claims Notice and Legal Hold Procedure",
+      "state": "Northline Water Group",
+      "linked_manifests": 2,
+      "confidence": 0.85,
+      "document_id": "DOC:claims-proc",
+      "source_file": "Claims_Notice_and_Legal_Hold_Procedure.pdf",
+      "method": "document title"
+    }
+  },
   "mail_corpus": {
     "documents": [
       {

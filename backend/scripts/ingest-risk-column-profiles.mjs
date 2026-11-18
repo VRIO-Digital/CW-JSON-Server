@@ -186,8 +186,17 @@ if (problems.length > 0) {
   process.exit()
 }
 
+/*
+ * Keyed `<dataset_id>.<table_id>` — the same convention `column_profiles` uses for every other
+ * dataset (CAPEX's own keys are `epbcs.plan`, `epbcs.forecast`, never `capex.epbcs.plan`). An
+ * earlier version of this script prefixed the dataset *name* here, which matched nothing any real
+ * reader looks up by: `studioLanes.js`'s `row.key` is `dataset_id.table_id` with no such prefix, so
+ * the Graph Studio canvas found zero columns for every table despite the Catalog tile correctly
+ * reading 68 — that count is a flat sum over column_profiles, which does not care what the keys are,
+ * so the mismatch cost nothing there and everything in the one reader that looks a table up by key.
+ */
 const columnProfiles = {
-  'risk.master.contract': CONTRACT_COLUMNS,
+  'master.contract': CONTRACT_COLUMNS,
 }
 /*
  * `master.contract` is also named by three signals (cr1/im3/im1) as a table-kind source — and each
@@ -197,7 +206,7 @@ const columnProfiles = {
  */
 for (const [full, signalsForTable] of tableSignals) {
   if (full === 'master.contract') continue
-  columnProfiles[`risk.${full}`] = [...signalsForTable.values()].map(columnFor)
+  columnProfiles[full] = [...signalsForTable.values()].map(columnFor)
 }
 
 /* ---------------- Write both: the dictionary, and each table's real declared count ---------------- */
@@ -209,7 +218,7 @@ let updated = 0
 for (const project of existing.projects ?? []) {
   for (const dataset of project.datasets ?? []) {
     for (const table of dataset.tables ?? []) {
-      const key = `risk.${dataset.dataset_id}.${table.table_id}`
+      const key = `${dataset.dataset_id}.${table.table_id}`
       const cols = columnProfiles[key]
       if (cols) {
         table.columns = cols.length
