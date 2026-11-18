@@ -100,6 +100,30 @@ seeded.whatif = {
   document: null,
 }
 
+/*
+ * `new_role`/`document_readings` are `primary` too, and **this one is read** — `GET /role-library`
+ * serves it straight to `hydrateRoleLibrary`, unlike `goals`/`submissions` below. Carried whole it
+ * would hand RISK's New Role wizard CAPEX's own 4 roles under CAPEX's own `_meta`
+ * (`package: "veolia_capex_demo_data_package_…"`, `dataset: "NORTHLINE"`) — a package RISK never
+ * shipped, stated as if it had. Nulled instead: `hydrateRoleLibrary` already "ignores rather than
+ * half-applies" a missing library, falling back to the bundled default role list (which happens to
+ * be the same four generic roles) — so the wizard looks identical, minus the false provenance claim.
+ */
+seeded.new_role = null
+seeded.document_readings = null
+
+/*
+ * `goals`/`submissions` are `primary` and **confirmed unread anywhere in server.js** — vestigial,
+ * the same waiting-for-a-caller state `/change-signals` is in. That made them low *risk*, never
+ * low *honesty*: carried whole they are 700+ KB each of CAPEX's own real goal journeys, chat
+ * transcripts and submission templates sitting in RISK's own files under RISK's own name — found
+ * by inspecting the file directly, which "nothing reads it" does not protect against. Nulled for
+ * the same reason `_meta`/`_provenance` were: the moment anyone reads the file, a `null` reads as
+ * "RISK has none yet," which is true, and CAPEX's content does not.
+ */
+seeded.goals = null
+seeded.submissions = null
+
 seeded.reports = {
   ...seeded.reports,
   meta: {
