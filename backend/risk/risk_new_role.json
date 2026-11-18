@@ -1,4 +1,1286 @@
 {
-  "new_role": null,
-  "document_readings": null
+  "new_role": {
+    "roles": [
+      {
+        "id": "cra",
+        "name": "Contract Risk Analyst",
+        "blurb": "Scores the risk of every operations and maintenance contract on one scorecard, watches every contract each morning, says what moved and why, writes a mitigation plan for each site, and answers questions about the portfolio.",
+        "defaults": {
+          "reportsTo": "owner",
+          "worksFor": [
+            "owner",
+            "legal",
+            "compliance",
+            "hr",
+            "cx",
+            "comms"
+          ]
+        },
+        "areas": [
+          {
+            "id": "gr",
+            "name": "Non-negotiable Contract Terms",
+            "what": "Contract terms the company should never accept, such as uncapped liability.",
+            "tasks": [
+              "Legal review of the non-negotiable terms"
+            ]
+          },
+          {
+            "id": "cr",
+            "name": "Commercial Terms",
+            "what": "Terms and conditions that make the contract harder or costlier to run.",
+            "tasks": [
+              "Prevailing wage state",
+              "Days sales outstanding",
+              "Biosolids handling in scope",
+              "Unionized workforce",
+              "Water distribution network in scope",
+              "Sewer collection network in scope",
+              "Fixed-price exposure on energy, chemicals and biosolids",
+              "Performance guarantees and penalty clauses",
+              "Price escalation clause"
+            ]
+          },
+          {
+            "id": "os",
+            "name": "Workplace Safety",
+            "what": "How safely the site operates.",
+            "tasks": [
+              "Lost-time injuries",
+              "Recordable injuries",
+              "Safety observations per employee"
+            ]
+          },
+          {
+            "id": "en",
+            "name": "Permit Compliance",
+            "what": "Whether the plant meets its permits. Three-year average.",
+            "tasks": [
+              "Days within permit limits",
+              "Required samples missed",
+              "Notices of violation",
+              "Operators using the plant data system",
+              "Sewer overflows (SSO and CSO)",
+              "Permit renewal status"
+            ]
+          },
+          {
+            "id": "st",
+            "name": "Workforce",
+            "what": "Whether the site has enough qualified people.",
+            "tasks": [
+              "Positions open more than 60 days",
+              "Licensed operators against the contract",
+              "Staff retention",
+              "Overtime share of payroll",
+              "Site manager tenure",
+              "Key-person dependence"
+            ]
+          },
+          {
+            "id": "cu",
+            "name": "Client Satisfaction",
+            "what": "How the client feels about us.",
+            "tasks": [
+              "Client survey score for the site",
+              "Client survey score for the region",
+              "Client survey trend, five years"
+            ]
+          },
+          {
+            "id": "co",
+            "name": "Community Standing",
+            "what": "How residents and local media see the operation.",
+            "tasks": [
+              "Odor complaints",
+              "Local media coverage: % negative",
+              "Local media coverage: % positive",
+              "Community investment per year",
+              "Community investment trend, five years"
+            ]
+          },
+          {
+            "id": "sl",
+            "name": "State Legal Climate",
+            "what": "How costly the state is for lawsuits.",
+            "tasks": [
+              "Lawsuit cost ranking of the state"
+            ]
+          },
+          {
+            "id": "li",
+            "name": "Legal Action",
+            "what": "Legal action against the operation.",
+            "tasks": [
+              "Lawsuits filed",
+              "Consent orders",
+              "Lawsuits threatened"
+            ]
+          },
+          {
+            "id": "in",
+            "name": "Asset Condition and Complexity",
+            "what": "The condition and complexity of the assets we run.",
+            "tasks": [
+              "Services covered by the contract",
+              "Year of the last major upgrade",
+              "Maintenance hours logged to work orders",
+              "Planned maintenance done on time",
+              "Client capital plan, next five years",
+              "Corrective against preventive maintenance",
+              "Asset age"
+            ]
+          },
+          {
+            "id": "sp",
+            "name": "Neighbors",
+            "what": "How many homes sit near the plant.",
+            "tasks": [
+              "Homes within two miles"
+            ]
+          },
+          {
+            "id": "iq",
+            "name": "Water Quality and Contaminants",
+            "what": "The water coming in, and the contaminants new rules target.",
+            "tasks": [
+              "Lead in drinking water",
+              "PFAS in drinking water",
+              "Nitrogen in effluent",
+              "Copper in drinking water",
+              "Suspended solids in effluent",
+              "Phosphorus in effluent",
+              "PFAS in biosolids and effluent",
+              "Rules on the way (nutrients, lead)"
+            ]
+          },
+          {
+            "id": "fp",
+            "name": "Financial Performance",
+            "what": "How the contract is doing commercially. Money problems tend to show before the others.",
+            "tasks": [
+              "Margin against budget",
+              "Margin trend, 24 months",
+              "Cost overruns",
+              "Unbilled or disputed change orders",
+              "Penalties and liquidated damages paid"
+            ]
+          },
+          {
+            "id": "cp",
+            "name": "Client and Political Environment",
+            "what": "The people and the politics on the client side, where most renewals are decided.",
+            "tasks": [
+              "Change in key client contacts",
+              "Election or council turnover",
+              "Talk of in-house operation or a re-bid",
+              "Client financial health",
+              "The contract in public meetings",
+              "Client escalations"
+            ]
+          },
+          {
+            "id": "cl",
+            "name": "Competitive Landscape",
+            "what": "Who else wants this contract.",
+            "tasks": [
+              "Competitor nearby",
+              "Recent competitor wins",
+              "Price pressure"
+            ]
+          },
+          {
+            "id": "rs",
+            "name": "Climate and Operational Resilience",
+            "what": "Sudden events that no monthly figure predicts.",
+            "tasks": [
+              "Flood and extreme weather exposure",
+              "Drought and source water",
+              "Cybersecurity of plant controls",
+              "Emergency response readiness"
+            ]
+          },
+          {
+            "id": "im",
+            "name": "What is at stake",
+            "what": "How much a loss would matter and how soon. Kept beside the risk score, not inside it.",
+            "tasks": [
+              "Annual contract revenue",
+              "Margin contribution",
+              "Months to renewal or end",
+              "Options left at the end of the term",
+              "Termination for convenience",
+              "Strategic and reference value"
+            ]
+          }
+        ],
+        "metrics": [
+          {
+            "id": "gr1",
+            "name": "Legal review of the non-negotiable terms",
+            "def": "Read clause by clause; a draft for Legal to confirm",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Misses the core terms and other important ones",
+            "area": "gr"
+          },
+          {
+            "id": "cr1",
+            "name": "Prevailing wage state",
+            "def": "State of the plant against the eight listed states",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "In CA, MA, NY, IL, WA, NJ, CT or OR",
+            "area": "cr"
+          },
+          {
+            "id": "cr2",
+            "name": "Days sales outstanding",
+            "def": "Average receivables over revenue, times the days in the period",
+            "unit": "days",
+            "cadence": "checked every morning",
+            "threshold": "90 days or more",
+            "area": "cr"
+          },
+          {
+            "id": "cr3",
+            "name": "Biosolids handling in scope",
+            "def": "Scope read from the contract and checked against the master list",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Yes",
+            "area": "cr"
+          },
+          {
+            "id": "cr4",
+            "name": "Unionized workforce",
+            "def": "Bargaining unit on the site roster",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Yes",
+            "area": "cr"
+          },
+          {
+            "id": "cr5",
+            "name": "Water distribution network in scope",
+            "def": "Scope read from the contract and checked against the master list",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": null,
+            "area": "cr"
+          },
+          {
+            "id": "cr6",
+            "name": "Sewer collection network in scope",
+            "def": "Scope read from the contract and checked against the master list",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": null,
+            "area": "cr"
+          },
+          {
+            "id": "os1",
+            "name": "Lost-time injuries",
+            "def": "Lost time injuries per 200,000 hours, rolling twelve months",
+            "unit": "per 200,000 hours",
+            "cadence": "checked every morning",
+            "threshold": "2 or more",
+            "area": "os"
+          },
+          {
+            "id": "os2",
+            "name": "Recordable injuries",
+            "def": "Recordable injuries per 200,000 hours, rolling twelve months",
+            "unit": "per 200,000 hours",
+            "cadence": "checked every morning",
+            "threshold": "2 or more",
+            "area": "os"
+          },
+          {
+            "id": "os3",
+            "name": "Safety observations per employee",
+            "def": "Near misses and safety observations submitted this year, per employee",
+            "unit": "a year",
+            "cadence": "checked every morning",
+            "threshold": "Under 1 a year",
+            "area": "os"
+          },
+          {
+            "id": "en1",
+            "name": "Days within permit limits",
+            "def": "Share of permit days met, by site, three-year average",
+            "unit": "%",
+            "cadence": "checked every morning",
+            "threshold": "Under 97%",
+            "area": "en"
+          },
+          {
+            "id": "en2",
+            "name": "Required samples missed",
+            "def": "Required samples with no result by the due date, this year",
+            "unit": "in three years",
+            "cadence": "checked every morning",
+            "threshold": "3 or more",
+            "area": "en"
+          },
+          {
+            "id": "en3",
+            "name": "Notices of violation",
+            "def": "Each notice read; the public record catches any not filed",
+            "unit": "in three years",
+            "cadence": "checked every morning",
+            "threshold": "3 or more a year",
+            "area": "en"
+          },
+          {
+            "id": "en4",
+            "name": "Operators using the plant data system",
+            "def": "Operator logins per working day, last 90 days",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Every two weeks or less",
+            "area": "en"
+          },
+          {
+            "id": "st1",
+            "name": "Positions open more than 60 days",
+            "def": "Requisitions open longer than 60 days, by site",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "One or more open over 60 days",
+            "area": "st"
+          },
+          {
+            "id": "st2",
+            "name": "Licensed operators against the contract",
+            "def": "The licence level the contract requires against the licences on the roster",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Required: no holder and no backup",
+            "area": "st"
+          },
+          {
+            "id": "st3",
+            "name": "Staff retention",
+            "def": "Staff at the start of the year still on the roster",
+            "unit": "%",
+            "cadence": "checked every morning",
+            "threshold": "Under 75%",
+            "area": "st"
+          },
+          {
+            "id": "st4",
+            "name": "Overtime share of payroll",
+            "def": "Overtime dollars over payroll dollars, last 13 weeks",
+            "unit": "% overtime",
+            "cadence": "checked every morning",
+            "threshold": "Above 13%",
+            "area": "st"
+          },
+          {
+            "id": "cu1",
+            "name": "Client survey score for the site",
+            "def": "The client's latest answer for the site",
+            "unit": "of 10",
+            "cadence": "checked every morning",
+            "threshold": "0 to 4, very unhappy",
+            "area": "cu"
+          },
+          {
+            "id": "cu2",
+            "name": "Client survey score for the region",
+            "def": "Revenue-weighted score across the region",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Under 40",
+            "area": "cu"
+          },
+          {
+            "id": "cu3",
+            "name": "Client survey trend, five years",
+            "def": "Slope of the site score over five surveys",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Declining by more than 10%",
+            "area": "cu"
+          },
+          {
+            "id": "co1",
+            "name": "Odor complaints",
+            "def": "Odor complaints logged this year; mail to the site is read for ones not logged",
+            "unit": "in twelve months",
+            "cadence": "checked every morning",
+            "threshold": "More than 5 a year",
+            "area": "co"
+          },
+          {
+            "id": "co2",
+            "name": "Local media coverage: % negative",
+            "def": "Every local media report of the last twelve months that names the plant or the operator is read and marked negative, neutral or positive. The figure is the negative reports divided by the total number of reports",
+            "unit": "% negative",
+            "cadence": "checked every morning",
+            "threshold": "80% to 100%",
+            "area": "co"
+          },
+          {
+            "id": "co3",
+            "name": "Local media coverage: % positive",
+            "def": "The same media reports. The figure is the positive reports divided by the total number of reports",
+            "unit": "% positive",
+            "cadence": "checked every morning",
+            "threshold": "Under 40%",
+            "area": "co"
+          },
+          {
+            "id": "co4",
+            "name": "Community investment per year",
+            "def": "Sponsorships, outings and scholarships by cost centre",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "$0",
+            "area": "co"
+          },
+          {
+            "id": "co5",
+            "name": "Community investment trend, five years",
+            "def": "Slope of the annual spend over five years",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Declining by more than 10%",
+            "area": "co"
+          },
+          {
+            "id": "sl1",
+            "name": "Lawsuit cost ranking of the state",
+            "def": "The 2026 edition, read from the page; checked again when a new edition is posted",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "The 12 highest-cost states",
+            "area": "sl"
+          },
+          {
+            "id": "li1",
+            "name": "Lawsuits filed",
+            "def": "Open and closed matters by site; public dockets catch suits not yet on the list",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "High dollar enforcement or personal injury claims, active or in the last 3 years",
+            "area": "li"
+          },
+          {
+            "id": "li2",
+            "name": "Consent orders",
+            "def": "Each order read for who it binds: the client, the operator or both",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Consent order",
+            "area": "li"
+          },
+          {
+            "id": "li3",
+            "name": "Lawsuits threatened",
+            "def": "Demand letters, pre-suit notices and claim correspondence, read as they arrive",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Demand letters or pre-suit notices received",
+            "area": "li"
+          },
+          {
+            "id": "in1",
+            "name": "Services covered by the contract",
+            "def": "Counted from the scope clause: treatment, distribution, collection, biosolids, stormwater, reuse",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "6 to 7",
+            "area": "in"
+          },
+          {
+            "id": "in2",
+            "name": "Year of the last major upgrade",
+            "def": "The last major process upgrade named in the reports",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "More than 20 years, or none",
+            "area": "in"
+          },
+          {
+            "id": "in3",
+            "name": "Maintenance hours logged to work orders",
+            "def": "Share of maintenance labour hours booked to a work order",
+            "unit": "%",
+            "cadence": "checked every morning",
+            "threshold": "70% or less",
+            "area": "in"
+          },
+          {
+            "id": "in4",
+            "name": "Planned maintenance done on time",
+            "def": "Planned maintenance work orders closed on time, last 90 days",
+            "unit": "%",
+            "cadence": "checked every morning",
+            "threshold": "70% or less",
+            "area": "in"
+          },
+          {
+            "id": "in5",
+            "name": "Client capital plan, next five years",
+            "def": "Read from the adopted plan and the council budget",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "None proposed",
+            "area": "in"
+          },
+          {
+            "id": "sp1",
+            "name": "Homes within two miles",
+            "def": "Residential parcels within 2 miles of the plant fence line; recounted when the county parcel file changes",
+            "unit": "homes",
+            "cadence": "checked at contract signing",
+            "threshold": "More than 10,000",
+            "area": "sp"
+          },
+          {
+            "id": "iq1",
+            "name": "Lead in drinking water",
+            "def": "90th percentile of the latest tap sampling round",
+            "unit": "ppb",
+            "cadence": "checked every morning",
+            "threshold": "At or above 15 ppb",
+            "area": "iq"
+          },
+          {
+            "id": "iq2",
+            "name": "PFAS in drinking water",
+            "def": "Latest results against the federal limits, and whether treatment is planned",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Exceeds the MCL; no planning under way",
+            "area": "iq"
+          },
+          {
+            "id": "iq3",
+            "name": "Nitrogen in effluent",
+            "def": "Monthly average against the permit limit",
+            "unit": "% of the limit",
+            "cadence": "checked every morning",
+            "threshold": "Over 80% of the limit for 3 months or more",
+            "area": "iq"
+          },
+          {
+            "id": "iq4",
+            "name": "Copper in drinking water",
+            "def": "90th percentile of the latest tap sampling round",
+            "unit": "ppm",
+            "cadence": "checked every morning",
+            "threshold": "At or above 1.3 ppm",
+            "area": "iq"
+          },
+          {
+            "id": "iq5",
+            "name": "Suspended solids in effluent",
+            "def": "Monthly average against the permit limit",
+            "unit": "% of the limit",
+            "cadence": "checked every morning",
+            "threshold": "Over 80% of the limit for 3 months or more",
+            "area": "iq"
+          },
+          {
+            "id": "iq6",
+            "name": "Phosphorus in effluent",
+            "def": "Monthly average against the permit limit",
+            "unit": "% of the limit",
+            "cadence": "checked every morning",
+            "threshold": "Over 80% of the limit for 3 months or more",
+            "area": "iq"
+          },
+          {
+            "id": "cr7",
+            "name": "Fixed-price exposure on energy, chemicals and biosolids",
+            "def": "Which costs the fee fixes and which pass through",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Fixed for the term",
+            "area": "cr"
+          },
+          {
+            "id": "cr8",
+            "name": "Performance guarantees and penalty clauses",
+            "def": "Guarantees, liquidated damages and their cap",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Uncapped or per-day damages",
+            "area": "cr"
+          },
+          {
+            "id": "cr9",
+            "name": "Price escalation clause",
+            "def": "The index, the cap and how often it applies",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "No escalator",
+            "area": "cr"
+          },
+          {
+            "id": "en5",
+            "name": "Sewer overflows (SSO and CSO)",
+            "def": "Reported overflows, rolling twelve months",
+            "unit": "in twelve months",
+            "cadence": "checked every morning",
+            "threshold": "6 or more",
+            "area": "en"
+          },
+          {
+            "id": "en6",
+            "name": "Permit renewal status",
+            "def": "Permit number matched to the site; expiry date and draft limits",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Expired, running on extension",
+            "area": "en"
+          },
+          {
+            "id": "st5",
+            "name": "Site manager tenure",
+            "def": "Start date of the project leader in the role",
+            "unit": "years",
+            "cadence": "checked every morning",
+            "threshold": "Under 1 year",
+            "area": "st"
+          },
+          {
+            "id": "st6",
+            "name": "Key-person dependence",
+            "def": "Holders of each licence the contract requires, and their hours",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "One holder, no backup",
+            "area": "st"
+          },
+          {
+            "id": "in6",
+            "name": "Corrective against preventive maintenance",
+            "def": "Corrective hours over all maintenance hours, twelve months",
+            "unit": "% corrective",
+            "cadence": "checked every morning",
+            "threshold": "50% or more",
+            "area": "in"
+          },
+          {
+            "id": "in7",
+            "name": "Asset age",
+            "def": "Weighted age of the critical assets",
+            "unit": "years",
+            "cadence": "checked at contract signing",
+            "threshold": "50 years or more",
+            "area": "in"
+          },
+          {
+            "id": "iq7",
+            "name": "PFAS in biosolids and effluent",
+            "def": "Lab results against the rules proposed or in force in the state",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Detected, state rule in force",
+            "area": "iq"
+          },
+          {
+            "id": "iq8",
+            "name": "Rules on the way (nutrients, lead)",
+            "def": "Rules that apply to the permit, with their dates",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "In effect, plant not yet upgraded",
+            "area": "iq"
+          },
+          {
+            "id": "fp1",
+            "name": "Margin against budget",
+            "def": "Actual margin less budget margin, year to date",
+            "unit": "points",
+            "cadence": "checked every morning",
+            "threshold": "More than 5 points under",
+            "area": "fp"
+          },
+          {
+            "id": "fp2",
+            "name": "Margin trend, 24 months",
+            "def": "Slope of monthly margin over 24 months",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Falling more than 3 points",
+            "area": "fp"
+          },
+          {
+            "id": "fp3",
+            "name": "Cost overruns",
+            "def": "Labour, chemicals, energy and repairs against plan",
+            "unit": "% over plan",
+            "cadence": "checked every morning",
+            "threshold": "10% or more",
+            "area": "fp"
+          },
+          {
+            "id": "fp4",
+            "name": "Unbilled or disputed change orders",
+            "def": "Open change orders older than 60 days, over the annual fee",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "More than 3%",
+            "area": "fp"
+          },
+          {
+            "id": "fp5",
+            "name": "Penalties and liquidated damages paid",
+            "def": "Penalty accounts by contract, three years",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Above 1% of the annual fee",
+            "area": "fp"
+          },
+          {
+            "id": "cp1",
+            "name": "Change in key client contacts",
+            "def": "New names and titles on the client side; introductions and hand-overs",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Changed in the last 6 months",
+            "area": "cp"
+          },
+          {
+            "id": "cp2",
+            "name": "Election or council turnover",
+            "def": "Seats on the ballot for the body that owns the contract",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Majority changed in the last 12 months",
+            "area": "cp"
+          },
+          {
+            "id": "cp3",
+            "name": "Talk of in-house operation or a re-bid",
+            "def": "Agendas and minutes searched for the contract, in-house operation and procurement",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "On a public agenda, or an adviser hired",
+            "area": "cp"
+          },
+          {
+            "id": "cp4",
+            "name": "Client financial health",
+            "def": "Rating, outlook and whether the rate increase passed",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Downgraded, or budget in deficit",
+            "area": "cp"
+          },
+          {
+            "id": "cp5",
+            "name": "The contract in public meetings",
+            "def": "Mentions of the operator or the plant, twelve months",
+            "unit": "mentions in twelve months",
+            "cadence": "checked every morning",
+            "threshold": "6 or more",
+            "area": "cp"
+          },
+          {
+            "id": "cp6",
+            "name": "Client escalations",
+            "def": "Complaints from client staff that went above the project leader",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "One open with the client's director or above",
+            "area": "cp"
+          },
+          {
+            "id": "cl1",
+            "name": "Competitor nearby",
+            "def": "Who operates the neighbouring plants",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Two or more in the same county",
+            "area": "cl"
+          },
+          {
+            "id": "cl2",
+            "name": "Recent competitor wins",
+            "def": "Awards in the region, and who presented to which board",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "A competitor has presented to this client",
+            "area": "cl"
+          },
+          {
+            "id": "cl3",
+            "name": "Price pressure",
+            "def": "Requests for benchmarks, price reviews and budget cuts",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Client said in writing that we cost too much",
+            "area": "cl"
+          },
+          {
+            "id": "rs1",
+            "name": "Flood and extreme weather exposure",
+            "def": "The plant address against the flood zone and the storm record",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "In the 100-year zone, flooded in the last 10 years",
+            "area": "rs"
+          },
+          {
+            "id": "rs2",
+            "name": "Drought and source water",
+            "def": "The county of the source, weekly",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Restrictions in force",
+            "area": "rs"
+          },
+          {
+            "id": "rs3",
+            "name": "Cybersecurity of plant controls",
+            "def": "The latest assessment and its open findings",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "Not assessed in 3 years",
+            "area": "rs"
+          },
+          {
+            "id": "rs4",
+            "name": "Emergency response readiness",
+            "def": "Date of the plan and of the last drill",
+            "unit": null,
+            "cadence": "checked every morning",
+            "threshold": "No plan on file",
+            "area": "rs"
+          },
+          {
+            "id": "im1",
+            "name": "Annual contract revenue",
+            "def": "Fee billed, last twelve months",
+            "unit": "$M a year",
+            "cadence": "checked at contract signing",
+            "threshold": "$7M or more",
+            "area": "im"
+          },
+          {
+            "id": "im2",
+            "name": "Margin contribution",
+            "def": "Margin in dollars, last twelve months",
+            "unit": "$k a year",
+            "cadence": "checked at contract signing",
+            "threshold": "$800k or more",
+            "area": "im"
+          },
+          {
+            "id": "im3",
+            "name": "Months to renewal or end",
+            "def": "End date of the current term",
+            "unit": "months",
+            "cadence": "checked at contract signing",
+            "threshold": "Under 12 months",
+            "area": "im"
+          },
+          {
+            "id": "im4",
+            "name": "Options left at the end of the term",
+            "def": "Renewal options used and left",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "No option left: goes to bid",
+            "area": "im"
+          },
+          {
+            "id": "im5",
+            "name": "Termination for convenience",
+            "def": "Whether the client can end the agreement without cause, and the notice",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Yes",
+            "area": "im"
+          },
+          {
+            "id": "im6",
+            "name": "Strategic and reference value",
+            "def": "How often the contract is named in our own proposals",
+            "unit": null,
+            "cadence": "checked at contract signing",
+            "threshold": "Flagship",
+            "area": "im"
+          }
+        ],
+        "questions": [
+          {
+            "id": "the_portfolio_1",
+            "q": "How much of our revenue sits in high-risk contracts?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_2",
+            "q": "How many projects rate 3 or 4 today?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_3",
+            "q": "Which ten projects carry the most risk?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_4",
+            "q": "Which projects need action now?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_5",
+            "q": "Which region carries the most risk?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_6",
+            "q": "Which Regional VP has the most high-risk contracts?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_7",
+            "q": "How are our ten largest contracts rated?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "the_portfolio_8",
+            "q": "What should I worry about this week?",
+            "who": "Chief Operating Officer"
+          },
+          {
+            "id": "what_moved_1",
+            "q": "For which projects did the risk increase in the last 90 days, and why?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_2",
+            "q": "Which projects improved in the last 90 days?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_3",
+            "q": "What changed since yesterday’s check?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_4",
+            "q": "Which projects moved into high risk?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_5",
+            "q": "Which region got worse over the last 90 days?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_6",
+            "q": "Which project had the largest rise in risk?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_7",
+            "q": "Is the portfolio getting riskier or safer?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "what_moved_8",
+            "q": "Which high-risk projects are still getting worse?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "one_project_1",
+            "q": "What is the status of Sable Creek WWTP and why did the risk go up?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_2",
+            "q": "Why did Harlow Creek move to a rating of 3?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_3",
+            "q": "What is the mitigation plan for Harlow Creek?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_4",
+            "q": "What is at stake at Ashby Falls?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_5",
+            "q": "What is happening at Red Mesa?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_6",
+            "q": "Compare Harlow Creek and Sable Creek",
+            "who": "Regional VP"
+          },
+          {
+            "id": "one_project_7",
+            "q": "Who owns Ashby Falls and what should they do first?",
+            "who": "Regional VP"
+          },
+          {
+            "id": "safety_and_compliance_1",
+            "q": "Which projects have not recorded a safety observation in the last two weeks?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_2",
+            "q": "Which sites have the highest lost-time injury rate?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_3",
+            "q": "Where is workplace safety the weakest?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_4",
+            "q": "Which projects missed required samples?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_5",
+            "q": "Which projects received a notice of violation?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_6",
+            "q": "Which sites are under a consent order?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_7",
+            "q": "Which permits are up for renewal with tighter limits?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "safety_and_compliance_8",
+            "q": "Which plants are over the PFAS limits?",
+            "who": "Director, Environmental Compliance and Safety"
+          },
+          {
+            "id": "people_and_operations_1",
+            "q": "Which sites have positions open for more than 60 days?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_2",
+            "q": "Where is overtime above 13% of payroll?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_3",
+            "q": "Which sites lack a licensed operator or a backup?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_4",
+            "q": "Which sites have a new site manager?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_5",
+            "q": "Where is staff retention under 75%?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_6",
+            "q": "Which sites are behind on planned maintenance?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "people_and_operations_7",
+            "q": "Which sites depend on one key person?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "money_1",
+            "q": "Which projects have receivables older than 90 days?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_2",
+            "q": "Which contracts run under their budget margin?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_3",
+            "q": "Which high-risk contracts are also losing margin?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_4",
+            "q": "Where are change orders unbilled or in dispute?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_5",
+            "q": "Which contracts paid penalties in the last three years?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_6",
+            "q": "Which contracts carry fixed-price exposure on energy and chemicals?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "money_7",
+            "q": "How much margin is at risk in the high-risk contracts?",
+            "who": "Chief Financial Officer"
+          },
+          {
+            "id": "client_community_and_competition_1",
+            "q": "Which contracts come up for renewal in the next 18 months, and which of those are high risk?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_2",
+            "q": "Where is the client talking about in-house operation or a re-bid?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_3",
+            "q": "Where did the key client contact change?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_4",
+            "q": "Which clients have an election or council turnover coming?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_5",
+            "q": "Where are competitors active?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_6",
+            "q": "Where is local media coverage mostly negative?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_7",
+            "q": "Which sites get the most odor complaints?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_8",
+            "q": "Which clients gave us a low survey score?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "client_community_and_competition_9",
+            "q": "Where are lawsuits threatened or filed?",
+            "who": "Chief Commercial Officer"
+          },
+          {
+            "id": "plans_and_the_scorecard_1",
+            "q": "How many sites have a mitigation plan, and what happens to the risk if the plans land?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_2",
+            "q": "Which actions are due first?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_3",
+            "q": "Who owns the most mitigation actions?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_4",
+            "q": "Which factor drives the most risk across the portfolio?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_5",
+            "q": "Which red flags are raised today?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_6",
+            "q": "How is the risk score made?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_7",
+            "q": "What data is missing from the scorecard?",
+            "who": "SVP, Contract Operations"
+          },
+          {
+            "id": "plans_and_the_scorecard_8",
+            "q": "Would the scorecard have caught the contracts we lost?",
+            "who": "SVP, Contract Operations"
+          }
+        ],
+        "jd": {
+          "findings": []
+        }
+      }
+    ],
+    "people": [
+      {
+        "id": "owner",
+        "name": "Renee Halvorsen",
+        "title": "SVP, Contract Operations"
+      },
+      {
+        "id": "legal",
+        "name": "Elliot Marsh",
+        "title": "Associate General Counsel"
+      },
+      {
+        "id": "compliance",
+        "name": "Jo Whitcombe",
+        "title": "Director, Environmental Compliance"
+      },
+      {
+        "id": "hr",
+        "name": "Nadia Brooks",
+        "title": "HR Business Partner, Operations"
+      },
+      {
+        "id": "cx",
+        "name": "Camille Roy",
+        "title": "Client Experience Lead"
+      },
+      {
+        "id": "comms",
+        "name": "Adrian Lowe",
+        "title": "Communications Manager"
+      }
+    ],
+    "industries": [
+      {
+        "id": "water_wastewater",
+        "name": "Water and Wastewater",
+        "note": "300 operations and maintenance contracts across 5 regions, worth $1.38B a year."
+      }
+    ],
+    "discovery": {
+      "water_wastewater": {
+        "steps": [
+          "Checking the Operations data hub for a utility or commission table",
+          "Checking the Contract Repository for a franchise or commission filing"
+        ],
+        "found": [],
+        "none": "This role scores operations and maintenance contracts against clients, not regulated utility entities — nothing in the connected data is a utility with a commission filing."
+      }
+    },
+    "domain_of_role": {
+      "cra": "contract-risk"
+    }
+  },
+  "document_readings": {
+    "_about": "What a job-description upload would show on step 2 of the New Role wizard. The Contract Risk Analyst package ships no job-description document for this role, so there is nothing to read — this key is empty rather than a reading invented for a document that does not exist.",
+    "readings": []
+  }
 }
