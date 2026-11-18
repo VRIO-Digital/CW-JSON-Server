@@ -308,6 +308,117 @@
   "drive_credentials": [],
   "document_extractions": {},
   "mail_corpus": {
-    "documents": []
+    "documents": [
+      {
+        "document_id": "H1-1",
+        "label_id": "Inbox",
+        "name": "H1-1 Notice of claim and demand: Harlow Creek Wastewater Treatment Plant.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 220,
+        "chunks": 1,
+        "snippet": "Counsel,\n\nPlease find attached our notice of claim and demand on behalf of 23 residents of the Mill Pond and Eastgate neighbourhoods. A copy has gone to the City Attorney. We ask for a response within 30 days.\n\nL. Ortega",
+        "entities": 1
+      },
+      {
+        "document_id": "H2-1",
+        "label_id": "Inbox",
+        "name": "H2-1 Odor call, Eastgate Dr.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 227,
+        "chunks": 1,
+        "snippet": "Marisol, another odor call this afternoon during load-out, Eastgate again. That is five this year. The biofilter media is nine years old and the City has not funded the replacement. I will call the resident back tomorrow.\n\nWade",
+        "entities": 1
+      },
+      {
+        "document_id": "H2-2",
+        "label_id": "Inbox",
+        "name": "H2-2 Re: Odor call, Eastgate Dr.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 178,
+        "chunks": 1,
+        "snippet": "Sixth one this afternoon, Mill Pond Rd, again during load-out. Logged tonight. I did not get back to the 3 November caller, we have been one operator short since September.\n\nWade",
+        "entities": 1
+      },
+      {
+        "document_id": "H3-1",
+        "label_id": "Inbox",
+        "name": "H3-1 Council questions on plant odor.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 198,
+        "chunks": 1,
+        "snippet": "Wade, two council members asked about the smell at Tuesday's session. Can you give me something I can say on 8 December? I know the biofilter is ours to fund; it did not make the budget again.\n\nGreg",
+        "entities": 1
+      },
+      {
+        "document_id": "A1-1",
+        "label_id": "Inbox",
+        "name": "A1-1 Introductions: new DPW Director.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 233,
+        "chunks": 1,
+        "snippet": "Daniel, Karen Whitlock started as DPW Director on Monday, from the Brindle Valley district where they run their own plants. Bob retired at the end of July. I have asked for an introductory meeting; nothing in the calendar yet.\n\nMiles",
+        "entities": 1
+      },
+      {
+        "document_id": "A2-1",
+        "label_id": "Inbox",
+        "name": "A2-1 Request: cost by scope for the Board.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 207,
+        "chunks": 1,
+        "snippet": "Miles, for the Board's options review I need your annual fee broken down by scope (water treatment, distribution, wastewater treatment, collection) and your staffing by scope, by 24 November.\n\nKaren Whitlock",
+        "entities": 1
+      },
+      {
+        "document_id": "R1-1",
+        "label_id": "Inbox",
+        "name": "R1-1 Missed TSS composite, 15 November.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 285,
+        "chunks": 1,
+        "snippet": "Grant, we lost the weekly TSS composite on Sunday: collected but it sat past holding time, Luis was alone on overtime again. That is the second missed sample this quarter. Both operator posts are still open (since 31 August and 14 September); two off",
+        "entities": 1
+      },
+      {
+        "document_id": "R2-1",
+        "label_id": "Inbox",
+        "name": "R2-1 Red Mesa operator offers declined.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 170,
+        "chunks": 1,
+        "snippet": "Hana, both candidates declined. Our offer was about 9% under what the Phoenix utilities are paying for Grade 3. I can re-post at a revised grade if Grant approves.\n\nNadia",
+        "entities": 1
+      },
+      {
+        "document_id": "P1-1",
+        "label_id": "Inbox",
+        "name": "P1-1 Renewal risk review for 2 December.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 290,
+        "chunks": 1,
+        "snippet": "For the portfolio review on 2 December I need the renewal risk review: of the contracts that decide in the next 18 months, which are we most likely to lose, what are they worth, and what do we do about each. I do not want another Calder Valley. Use l",
+        "entities": 1
+      },
+      {
+        "document_id": "P2-1",
+        "label_id": "Inbox",
+        "name": "P2-1 Re: Renewal risk review for 2 December.eml",
+        "mime_type": "message/rfc822",
+        "pages": 1,
+        "size_chars": 161,
+        "chunks": 1,
+        "snippet": "Renee, one request: count the evergreen contracts. Calder taught us that a client who can walk on notice is deciding every year, whatever the end date says.\n\nTom",
+        "entities": 1
+      }
+    ]
   }
 }

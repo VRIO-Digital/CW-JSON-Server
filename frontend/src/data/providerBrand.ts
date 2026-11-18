@@ -27,6 +27,7 @@ export const PROVIDER_BRANDS: Record<string, ProviderBrand> = {
   CAPEX: 'microsoft',
   SUPPLYCHAIN: 'microsoft',
   ARCWOOD: 'microsoft',
+  RISK: 'microsoft',
 }
 
 export function providerBrandFor(dataset: string): ProviderBrand {
