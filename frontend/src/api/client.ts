@@ -517,7 +517,12 @@ export interface BrowseTable {
   type: string
   /** What one row is. A Gold view is only readable if its grain is stated. */
   grain: string
-  columns: number
+  /**
+   * `null` when the source names a table but never gives its shape — RISK's structured source
+   * states which real tables the scorecard reads and what each computes, never a column list, so
+   * a column *count* is as unknowable as a row count. Not zero, which would claim an empty table.
+   */
+  columns: number | null
   /** `null` when the table is catalogued but has never been profiled — not zero, which would be a claim. */
   rows: number | null
   profiled: boolean
@@ -2208,7 +2213,14 @@ const BROWSE_PAYLOAD = shape({
           label: str,
           type: str,
           grain: str,
-          columns: num,
+          /*
+           * **Nullable for the same reason `rows` below is.** RISK's structured source states real
+           * table names and what each is read for, never a schema — so the shape of the table (how
+           * many columns it has) is as unstated as its row count. Declaring `num` here made every
+           * browse of that source fail validation with "columns should be a number, got null",
+           * which is the same fault the comment on `rows` already names for CAPEX's own tables.
+           */
+          columns: nullable(num),
           /*
            * **Nullable, because a catalogued table need not have been profiled.** CAPEX's own provenance
            * says it: "rows is null for the 60 tables the package catalogued but did not profile — that is

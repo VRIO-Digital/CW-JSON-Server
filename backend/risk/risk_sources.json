@@ -1,6 +1,452 @@
 {
-  "projects": [],
-  "credentials": [],
+  "projects": [
+    {
+      "project_id": "risk-operations-data-hub",
+      "display_name": "Operations data hub",
+      "location": "not stated by the source",
+      "datasets": [
+        {
+          "dataset_id": "asset",
+          "dataset_ref": "ds_asset",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the asset schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "register",
+              "label": "Weighted age of the critical assets",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "cmms",
+          "dataset_ref": "ds_cmms",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the cmms schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "work_order",
+              "label": "Share of maintenance labour hours booked to a work order; Planned maintenance work orders closed on time, last 90 days; Corrective hours over all maintenance hours, twelve months",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "crm",
+          "dataset_ref": "ds_crm",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the crm schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "nps_response",
+              "label": "The client's latest answer for the site; Revenue-weighted score across the region; Slope of the site score over five surveys",
+              "type": "TABLE",
+              "grain": "one row per client account or region",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "ehs",
+          "dataset_ref": "ds_ehs",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the ehs schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "incident",
+              "label": "Lost time injuries per 200,000 hours, rolling twelve months; Recordable injuries per 200,000 hours, rolling twelve months",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "observation",
+              "label": "Near misses and safety observations submitted this year, per employee",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "fin",
+          "dataset_ref": "ds_fin",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the fin schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "ar_aging",
+              "label": "Average receivables over revenue, times the days in the period",
+              "type": "TABLE",
+              "grain": "one row per profit center",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "change_order",
+              "label": "Open change orders older than 60 days, over the annual fee",
+              "type": "TABLE",
+              "grain": "one row per profit center",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "community_spend",
+              "label": "Sponsorships, outings and scholarships by cost centre; Slope of the annual spend over five years",
+              "type": "TABLE",
+              "grain": "one row per profit center",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "contract_pnl",
+              "label": "Actual margin less budget margin, year to date; Slope of monthly margin over 24 months; Labour, chemicals, energy and repairs against plan; Fee billed, last twelve months; Margin in dollars, last twelve months",
+              "type": "TABLE",
+              "grain": "one row per profit center",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "gl_detail",
+              "label": "Penalty accounts by contract, three years",
+              "type": "TABLE",
+              "grain": "one row per profit center",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "gis",
+          "dataset_ref": "ds_gis",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the gis schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "parcels_2mi",
+              "label": "Residential parcels within 2 miles of the plant fence line; recounted when the county parcel file changes",
+              "type": "TABLE",
+              "grain": "one row per project",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "hr",
+          "dataset_ref": "ds_hr",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the hr schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "license",
+              "label": "Holders of each licence the contract requires, and their hours",
+              "type": "TABLE",
+              "grain": "one row per project",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "requisition",
+              "label": "Requisitions open longer than 60 days, by site",
+              "type": "TABLE",
+              "grain": "one row per project",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "roster",
+              "label": "Bargaining unit on the site roster; Near misses and safety observations submitted this year, per employee; Staff at the start of the year still on the roster; Start date of the project leader in the role",
+              "type": "TABLE",
+              "grain": "one row per project or facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "lab",
+          "dataset_ref": "ds_lab",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the lab schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "result",
+              "label": "Lab results against the rules proposed or in force in the state",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "master",
+          "dataset_ref": "ds_master",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the master schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "contract",
+              "label": "State of the plant against the eight listed states; Fee billed, last twelve months; End date of the current term",
+              "type": "TABLE",
+              "grain": "one row per state or profit center or project",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "ops",
+          "dataset_ref": "ds_ops",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the ops schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "complaint_log",
+              "label": "Odor complaints logged this year; mail to the site is read for ones not logged",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "compliance_daily",
+              "label": "Share of permit days met, by site, three-year average",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "hours",
+              "label": "Lost time injuries per 200,000 hours, rolling twelve months; Recordable injuries per 200,000 hours, rolling twelve months",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "labor_weekly",
+              "label": "Overtime dollars over payroll dollars, last 13 weeks; Holders of each licence the contract requires, and their hours",
+              "type": "TABLE",
+              "grain": "one row per profit center or project",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "overflow_event",
+              "label": "Reported overflows, rolling twelve months",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        },
+        {
+          "dataset_id": "plantdata",
+          "dataset_ref": "ds_plantdata",
+          "location": "not stated by the source",
+          "description": "Real tables the contract risk scorecard reads under the plantdata schema of the tenant's operations data hub. The package never ships a column-level profile, so this dataset carries table names and what each is read for, not a sampled schema.",
+          "semantic_layer": null,
+          "as_of": null,
+          "freshness": null,
+          "tables": [
+            {
+              "table_id": "login_audit",
+              "label": "Operator logins per working day, last 90 days",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "results",
+              "label": "Required samples with no result by the due date, this year; 90th percentile of the latest tap sampling round; Latest results against the federal limits, and whether treatment is planned; Monthly average against the permit limit",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            },
+            {
+              "table_id": "sample_schedule",
+              "label": "Required samples with no result by the due date, this year",
+              "type": "TABLE",
+              "grain": "one row per facility",
+              "rows": null,
+              "columns": null,
+              "pii_columns": null,
+              "size_gb": null,
+              "partitioned": false,
+              "profiled_in_full": false,
+              "rows_basis": "not stated by the source — table name and the measures read from it only"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "credentials": [
+    {
+      "project_id": "risk-operations-data-hub",
+      "credential_handle": "project-handle-c70f103c"
+    }
+  ],
   "column_profiles": {},
   "column_vocabulary": [
     {

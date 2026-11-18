@@ -32,3 +32,12 @@ export function rowCountLabel(rows: number | null): string {
 export function profiledRowCountLabel(rows: number | null): string {
   return rows === null ? 'row count not profiled' : `~${rows.toLocaleString()} rows`
 }
+
+/**
+ * The same move for a table's column count. `null` here means the source never gave a schema at
+ * all — RISK's structured source states which tables the scorecard reads and nothing about their
+ * shape — so `0 col(s)` would claim an empty table rather than an unstated one.
+ */
+export function columnCountLabel(columns: number | null): string {
+  return columns === null ? 'column count not stated' : `${columns.toLocaleString()} col(s)`
+}

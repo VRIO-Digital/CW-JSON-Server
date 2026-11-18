@@ -49,7 +49,7 @@ import {
 } from '../data/schemaUpload'
 import { SP } from '../theme'
 import './CatalogPage.css'
-import { rowCountLabel } from '../data/rowCount'
+import { columnCountLabel, rowCountLabel } from '../data/rowCount'
 
 /* Tree keys encode the pair so a leaf can be turned back into an object. */
 const leafKey = (dataset: string, table: string) => `t:${dataset}::${table}`
@@ -187,7 +187,7 @@ function BrowsePanel({
             <span className="cat-tree-grain">{t.grain}</span>
           </span>
           <span className="cat-tree-count">
-            {t.columns} col(s) · {rowCountLabel(t.rows)}
+            {columnCountLabel(t.columns)} · {rowCountLabel(t.rows)}
             {t.profiled ? ' · profiled' : ''}
           </span>
         </span>
