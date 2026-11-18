@@ -1,0 +1,2746 @@
+{
+  "new_role": {
+    "_meta": {
+      "package": "veolia_capex_demo_data_package_2026-10-19",
+      "tenant": "Northline Water Group (fictional; the Veolia CAPEX demo world)",
+      "dataset": "NORTHLINE",
+      "asOf": "2026-10-15",
+      "today": "2026-10-19",
+      "exported_from": "ContextWeave_Veolia_CPA_offline.html source (veolia_cpa_prototype_2026-10-19): src/data/*.ts, src/store/*.ts",
+      "note": "What the New Role wizard offers before the graph pools (graph_personas, graph_metrics, graph_hero_questions) take over. The first screen is \"Add a new role\": no role cards. Six steps; every drafted step waits as model work does. No agent is named anywhere in New Role."
+    },
+    "first_screen": {
+      "heading": "Add a new role",
+      "role_cards": false,
+      "note": "Pick a role, then an industry; the utilities the role covers are found by reading the connected data."
+    },
+    "steps": [
+      {
+        "n": 1,
+        "key": "role",
+        "label": "Role",
+        "fields": [
+          "role",
+          "industry",
+          "utilities (found in the connected data, then selected)",
+          "reports to (any email address)",
+          "role name (filled from role and utilities, editable)"
+        ],
+        "wait_ms": {
+          "per_discovery_line": 850
+        }
+      },
+      {
+        "n": 2,
+        "key": "responsibilities",
+        "label": "Responsibilities",
+        "fields": [
+          "responsibilities with their tasks (keep, take out with a reason, open to change tasks)",
+          "optional job description: suggested changes to accept or dismiss"
+        ],
+        "wait_ms": {
+          "draft": 2600,
+          "job_description": 3200
+        },
+        "draft_stages": [
+          "Read the role library",
+          "Read the utilities and their commissions",
+          "Draft responsibilities and tasks"
+        ],
+        "jd_stages": [
+          "Read the job description",
+          "Compare it with the drafted responsibilities",
+          "Suggest changes"
+        ],
+        "out_reasons": [
+          "Done by another team",
+          "Not something we do here",
+          "Later, not now"
+        ]
+      },
+      {
+        "n": 3,
+        "key": "sources",
+        "label": "Sources",
+        "fields": [
+          "the connected sources (projects, drives, mailbox) as in New Graph; in the live demo they come from the connected environment"
+        ]
+      },
+      {
+        "n": 4,
+        "key": "personas",
+        "label": "Personas",
+        "endpoint": "POST /graph-personas/suggest",
+        "wait_ms": {
+          "suggest": 2200
+        },
+        "pool": "graph_personas"
+      },
+      {
+        "n": 5,
+        "key": "metrics",
+        "label": "Metrics",
+        "endpoint": "POST /graph-metrics/suggest",
+        "wait_ms": {
+          "suggest": 2400
+        },
+        "pool": "graph_metrics",
+        "note": "Offered for the personas kept, each with a \"Matters to\" line; every kept metric shows its SQL."
+      },
+      {
+        "n": 6,
+        "key": "hero_questions",
+        "label": "Hero questions",
+        "endpoint": "POST /graph-questions/suggest and POST /graph-questions/sql",
+        "wait_ms": {
+          "suggest": 2400,
+          "sql": 700
+        },
+        "pool": "graph_hero_questions"
+      }
+    ],
+    "on_save": "Save and build graph commits the role (graph_use_cases, status committed) and opens it in Graph Studio on Build.",
+    "industries": [
+      {
+        "id": "water",
+        "name": "Water",
+        "note": "Drinking water: treatment, storage and distribution"
+      },
+      {
+        "id": "wastewater",
+        "name": "Wastewater",
+        "note": "Collection and treatment"
+      },
+      {
+        "id": "electricity",
+        "name": "Electricity",
+        "note": "Generation, transmission and distribution"
+      },
+      {
+        "id": "gas",
+        "name": "Natural gas",
+        "note": "Transmission and distribution"
+      },
+      {
+        "id": "transit",
+        "name": "Transport and transit",
+        "note": "Bus, rail and tram networks"
+      }
+    ],
+    "discovery": {
+      "water": {
+        "steps": [
+          "Reading pmo.project in the PMO project master: 4,500 projects, 5 utility codes",
+          "Matching utility codes to pmo.utility: 4 regulated water utilities and 1 shared services division",
+          "Reading the commission and region for each one",
+          "Counting approved projects and budget per utility in epbcs.plan"
+        ],
+        "found": [
+          {
+            "code": "ARD",
+            "name": "Northline Water of Ardenia",
+            "region": "Northvale Region",
+            "commission": "Ardenia Public Service Commission (APSC)",
+            "projects": 1111,
+            "approvedB": 1.88,
+            "preselect": true
+          },
+          {
+            "code": "BEL",
+            "name": "Northline Water of Belmara",
+            "region": "Eastmoor Region",
+            "commission": "Belmara Public Utility Commission (BPUC)",
+            "projects": 1100,
+            "approvedB": 2.18,
+            "preselect": true
+          },
+          {
+            "code": "COR",
+            "name": "Northline Water of Corvale",
+            "region": "Cascadia Region",
+            "commission": "Corvale Utilities Commission (CUC)",
+            "projects": 1100,
+            "approvedB": 1.83,
+            "preselect": true
+          },
+          {
+            "code": "DUN",
+            "name": "Northline Water of Dunmoor",
+            "region": "Lakeshore Region",
+            "commission": "Dunmoor Public Service Commission (DPSC)",
+            "projects": 1114,
+            "approvedB": 2.32,
+            "preselect": true
+          },
+          {
+            "code": "SSD",
+            "name": "Shared Services Division",
+            "region": "No region",
+            "commission": "Not regulated",
+            "projects": 75,
+            "approvedB": 0.06,
+            "preselect": false
+          }
+        ]
+      },
+      "wastewater": {
+        "steps": [
+          "Reading pmo.project in the PMO project master: 4,500 projects",
+          "Looking for wastewater programs and assets"
+        ],
+        "found": [],
+        "none": "No wastewater utilities in the connected data. pmo.project holds water projects only. Pick Water, or connect the wastewater systems first."
+      },
+      "electricity": {
+        "steps": [
+          "Reading pmo.project in the PMO project master: 4,500 projects",
+          "Looking for electric utilities"
+        ],
+        "found": [],
+        "none": "No electric utilities in the connected data. Northline Water Group runs water utilities only."
+      },
+      "gas": {
+        "steps": [
+          "Reading pmo.project in the PMO project master: 4,500 projects",
+          "Looking for gas utilities"
+        ],
+        "found": [],
+        "none": "No gas utilities in the connected data. Northline Water Group runs water utilities only."
+      },
+      "transit": {
+        "steps": [
+          "Reading pmo.project in the PMO project master: 4,500 projects",
+          "Looking for transit networks and operators"
+        ],
+        "found": [],
+        "none": "No transit networks in the connected data. Northline Water Group runs water utilities only."
+      }
+    },
+    "domain_of_role": {
+      "cpa": "capital-program",
+      "reg": "rate-case-recovery",
+      "sca": "contract-change",
+      "fa": "capital-program"
+    },
+    "roles": [
+      {
+        "id": "cpa",
+        "name": "Capital Program Analyst",
+        "blurb": "Plans, funds, tracks and reports the capital program across thousands of projects, and supports rate cases with the evidence behind them.",
+        "deep": true,
+        "defaults": {
+          "reportsTo": "raman",
+          "worksFor": [
+            "hargrove",
+            "raman",
+            "beaulieu",
+            "nakamura"
+          ]
+        },
+        "areas": [
+          {
+            "id": "cip",
+            "name": "Capital plan (CIP)",
+            "what": "Builds and keeps the 5-year capital improvement plan from master plans, asset needs, mandates and growth.",
+            "tasks": [
+              "Collect project requests from engineering and operations",
+              "Maintain the 5-year CIP and its annual update",
+              "Calendarize spend by month (Jan Calendarization)",
+              "Tie projects to mandates (lead service lines, PFAS treatment)",
+              "Track what changed between plan vintages"
+            ]
+          },
+          {
+            "id": "prior",
+            "name": "Prioritization and business cases",
+            "what": "Ranks projects by risk and value and makes the case for the funded list.",
+            "tasks": [
+              "Score projects on asset risk, compliance and customer value",
+              "Recommend the funded list within each utility envelope",
+              "Prepare business cases for the WIN gate",
+              "Record the alternatives considered"
+            ]
+          },
+          {
+            "id": "budget",
+            "name": "Budgeting and funding",
+            "what": "Turns the plan into approved budgets and lines up the money to pay for them.",
+            "tasks": [
+              "Prepare the annual capital budget per utility",
+              "Process WIN authorizations and budget transfers",
+              "Track funding sources (SRF loans, WIFIA, PFAS grants, contributions)",
+              "Forecast capital cash flow for Treasury"
+            ]
+          },
+          {
+            "id": "cost",
+            "name": "Cost tracking and forecasting",
+            "what": "Keeps actuals, commitments and forecasts current for every project and explains the variances.",
+            "tasks": [
+              "Report monthly actuals against plan and forecast",
+              "Track commitments, open orders and retainage",
+              "Keep the forecast at completion current with project managers",
+              "Explain variances above threshold",
+              "Track change orders and contingency use",
+              "Check the program can spend the annual plan by December"
+            ]
+          },
+          {
+            "id": "sched",
+            "name": "Schedule and delivery",
+            "what": "Follows milestones and critical paths and what slippage does to spend.",
+            "tasks": [
+              "Track milestones against the baseline schedule",
+              "Flag critical path slippage and its effect on spend",
+              "Follow stage gates from planning to close-out"
+            ]
+          },
+          {
+            "id": "reg",
+            "name": "Rate case and regulatory support",
+            "what": "Provides the capital schedules, eligible plant and evidence the four commissions ask for.",
+            "tasks": [
+              "Prepare capital schedules and rate base additions for rate cases",
+              "Answer data requests from commission staff and intervenors",
+              "Support DSIC and SIC surcharge filings with eligible plant",
+              "Confirm in-service dates for projects claimed in a test year",
+              "Keep the prudence record (decisions, alternatives, approvals)"
+            ]
+          },
+          {
+            "id": "acct",
+            "name": "Capital accounting and close-out",
+            "what": "Keeps CWIP, AFUDC and plant in service right and closes finished projects.",
+            "tasks": [
+              "Apply the capitalization policy (capital or expense)",
+              "Review CWIP balances and AFUDC",
+              "Move completed projects to plant in service",
+              "Close out finished projects and release unused budget",
+              "Record retirements of replaced assets"
+            ]
+          },
+          {
+            "id": "comp",
+            "name": "Grant and loan compliance",
+            "what": "Keeps SRF, WIFIA and PFAS grant work compliant and draws the money on time.",
+            "tasks": [
+              "Prepare SRF and WIFIA draw requests",
+              "Track Davis-Bacon and Build America, Buy America records",
+              "Report lead service line replacement progress",
+              "Report to lenders and funding agencies"
+            ]
+          },
+          {
+            "id": "report",
+            "name": "Program reporting",
+            "what": "Tells the Capital Steering Committee, leadership and the commissions where the program stands.",
+            "tasks": [
+              "Write the monthly capital program report",
+              "Prepare the quarterly Capital Steering Committee review",
+              "Answer ad hoc questions from leadership",
+              "Keep the program dashboard current"
+            ]
+          }
+        ],
+        "concepts": {
+          "project": {
+            "name": "Capital project",
+            "desc": "A piece of capital work with a code, a phase, a budget and an in-service date.",
+            "data": [
+              "d_project",
+              "d_plan"
+            ]
+          },
+          "plan": {
+            "name": "Plan line (CIP)",
+            "desc": "A project’s planned spend by year in a plan vintage.",
+            "data": [
+              "d_plan",
+              "d_cip"
+            ]
+          },
+          "budget": {
+            "name": "Approved budget",
+            "desc": "Active Budget Plan, WIN approvals and transfers.",
+            "data": [
+              "d_plan",
+              "d_commit"
+            ]
+          },
+          "cost": {
+            "name": "Posted actual",
+            "desc": "Actual cost posted to a project in the ledger.",
+            "data": [
+              "d_ledger"
+            ]
+          },
+          "commit": {
+            "name": "Commitment",
+            "desc": "Contract or order value not yet invoiced.",
+            "data": [
+              "d_commit"
+            ]
+          },
+          "forecast": {
+            "name": "Forecast at completion",
+            "desc": "The working forecast kept by the project manager, refreshed on the 15th.",
+            "data": [
+              "d_forecast"
+            ]
+          },
+          "contract": {
+            "name": "Contract",
+            "desc": "A construction, engineering or supply agreement and its value.",
+            "data": [
+              "d_contracts"
+            ]
+          },
+          "co": {
+            "name": "Change order",
+            "desc": "An approved change to contract value, scope or time.",
+            "data": [
+              "d_contracts",
+              "d_mail"
+            ]
+          },
+          "milestone": {
+            "name": "Schedule milestone",
+            "desc": "A dated schedule event on the critical path.",
+            "data": [
+              "d_sched"
+            ]
+          },
+          "inservice": {
+            "name": "In-service date",
+            "desc": "When a project is expected to be used and useful.",
+            "data": [
+              "d_inservice"
+            ]
+          },
+          "risk": {
+            "name": "Risk and priority",
+            "desc": "Asset risk, compliance driver and CAPEX priority level.",
+            "data": [
+              "d_risk"
+            ]
+          },
+          "funding": {
+            "name": "Funding source",
+            "desc": "SRF loan, WIFIA, PFAS grant or contribution.",
+            "data": [
+              "d_funding"
+            ]
+          },
+          "ratecase": {
+            "name": "Rate case",
+            "desc": "A filing and the capital it asks the commission to include.",
+            "data": [
+              "d_reg"
+            ]
+          },
+          "order": {
+            "name": "Rate order",
+            "desc": "What the commission allowed, including capital additions.",
+            "data": [
+              "d_reg"
+            ]
+          },
+          "dsic": {
+            "name": "Surcharge filing",
+            "desc": "DSIC or SIC filing and its eligible plant.",
+            "data": [
+              "d_reg",
+              "d_cwip"
+            ]
+          },
+          "pis": {
+            "name": "Plant in service",
+            "desc": "Completed work moved out of CWIP.",
+            "data": [
+              "d_cwip"
+            ]
+          },
+          "cwip": {
+            "name": "CWIP balance",
+            "desc": "Construction work in progress, with AFUDC.",
+            "data": [
+              "d_cwip"
+            ]
+          },
+          "dr": {
+            "name": "Data request",
+            "desc": "A question from commission staff or an intervenor.",
+            "data": [
+              "d_reg",
+              "d_mail"
+            ]
+          },
+          "lsl": {
+            "name": "Lead service line",
+            "desc": "A service line in the inventory and its replacement status.",
+            "data": [
+              "d_lsl"
+            ]
+          },
+          "compdoc": {
+            "name": "Compliance record",
+            "desc": "Payroll and Build America, Buy America certifications.",
+            "data": [
+              "d_funding",
+              "d_contracts"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "m1",
+            "area": "cip",
+            "name": "CIP total vs funding envelope",
+            "def": "Planned spend per year / approved envelope per utility",
+            "unit": "$ and %",
+            "cadence": "Each plan vintage",
+            "threshold": "Over 100% of envelope",
+            "concepts": [
+              "plan",
+              "funding"
+            ]
+          },
+          {
+            "id": "m2",
+            "area": "cip",
+            "name": "Mandated share of the plan",
+            "def": "Planned spend on mandated projects / total planned spend",
+            "unit": "%",
+            "cadence": "Each plan vintage",
+            "threshold": "",
+            "concepts": [
+              "plan",
+              "project"
+            ]
+          },
+          {
+            "id": "m3",
+            "area": "cip",
+            "name": "Plan stability",
+            "def": "Year-1 projects carried from the prior vintage / year-1 projects",
+            "unit": "%",
+            "cadence": "Annual",
+            "threshold": "Below 80%",
+            "concepts": [
+              "plan"
+            ]
+          },
+          {
+            "id": "m4",
+            "area": "prior",
+            "name": "Risk reduced per dollar",
+            "def": "Asset risk reduction / project cost",
+            "unit": "points per $M",
+            "cadence": "Each plan vintage",
+            "threshold": "",
+            "concepts": [
+              "risk",
+              "project"
+            ]
+          },
+          {
+            "id": "m5",
+            "area": "prior",
+            "name": "Unfunded high-risk backlog",
+            "def": "Cost of priority 1 projects not in the funded list",
+            "unit": "$",
+            "cadence": "Quarterly",
+            "threshold": "",
+            "concepts": [
+              "risk",
+              "plan"
+            ]
+          },
+          {
+            "id": "m6",
+            "area": "budget",
+            "name": "Budget authorized vs plan",
+            "def": "WIN-authorized budget / planned spend for the year",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 90%",
+            "concepts": [
+              "budget",
+              "plan"
+            ]
+          },
+          {
+            "id": "m7",
+            "area": "budget",
+            "name": "Funding coverage",
+            "def": "Next 12 months of forecast spend with a funding source / next 12 months of forecast spend",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 95%",
+            "concepts": [
+              "funding",
+              "forecast"
+            ]
+          },
+          {
+            "id": "m8",
+            "area": "cost",
+            "name": "Spend vs plan, year to date",
+            "def": "Posted actuals YTD / calendarized plan YTD",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Outside 90% to 105%",
+            "concepts": [
+              "cost",
+              "budget"
+            ]
+          },
+          {
+            "id": "m9",
+            "area": "cost",
+            "name": "Forecast variance (forecast vs approved budget)",
+            "def": "Forecast at completion minus approved budget, per project",
+            "unit": "$ and %",
+            "cadence": "Monthly, after the 15th",
+            "threshold": "Over 10%",
+            "concepts": [
+              "forecast",
+              "budget"
+            ]
+          },
+          {
+            "id": "m10",
+            "area": "cost",
+            "name": "Change order rate",
+            "def": "Approved change orders / original contract value",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Over 8%",
+            "concepts": [
+              "co",
+              "contract"
+            ]
+          },
+          {
+            "id": "m11",
+            "area": "cost",
+            "name": "Contingency remaining",
+            "def": "Unused contingency / original contingency",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 25%",
+            "concepts": [
+              "budget",
+              "co"
+            ]
+          },
+          {
+            "id": "m12",
+            "area": "cost",
+            "name": "Annual plan delivery",
+            "def": "Posted to date plus forecast to year end / annual plan",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 95%",
+            "concepts": [
+              "cost",
+              "forecast",
+              "plan"
+            ]
+          },
+          {
+            "id": "m13",
+            "area": "sched",
+            "name": "Schedule Performance Index (SPI)",
+            "def": "Earned value / planned value",
+            "unit": "ratio",
+            "cadence": "Monthly, large projects",
+            "threshold": "Below 0.95",
+            "concepts": [
+              "milestone",
+              "cost"
+            ]
+          },
+          {
+            "id": "m14",
+            "area": "sched",
+            "name": "Critical path float used",
+            "def": "Float consumed this month on large projects in delivery",
+            "unit": "days",
+            "cadence": "Monthly",
+            "threshold": "Over 20 days",
+            "concepts": [
+              "milestone",
+              "project"
+            ]
+          },
+          {
+            "id": "m15",
+            "area": "reg",
+            "name": "Plant additions vs rate order",
+            "def": "Plant placed in service / capital additions assumed in the last order",
+            "unit": "$ and %",
+            "cadence": "Quarterly",
+            "threshold": "Below 95%",
+            "concepts": [
+              "pis",
+              "order"
+            ]
+          },
+          {
+            "id": "m16",
+            "area": "reg",
+            "name": "Test-year in-service at risk",
+            "def": "Projects claimed in a test year whose in-service date is now after its end",
+            "unit": "count and $",
+            "cadence": "Monthly",
+            "threshold": "Any",
+            "concepts": [
+              "inservice",
+              "ratecase",
+              "project"
+            ]
+          },
+          {
+            "id": "m17",
+            "area": "reg",
+            "name": "Data requests answered on time",
+            "def": "Responses sent by the due date / responses due",
+            "unit": "%",
+            "cadence": "Per rate case",
+            "threshold": "Below 100%",
+            "concepts": [
+              "dr"
+            ]
+          },
+          {
+            "id": "m18",
+            "area": "acct",
+            "name": "CWIP aging",
+            "def": "CWIP balance by months since first charge",
+            "unit": "$ by age band",
+            "cadence": "Monthly",
+            "threshold": "Over 24 months",
+            "concepts": [
+              "cwip"
+            ]
+          },
+          {
+            "id": "m19",
+            "area": "acct",
+            "name": "In service, not yet moved from CWIP",
+            "def": "Projects past their in-service date with an open CWIP balance",
+            "unit": "count and $",
+            "cadence": "Monthly",
+            "threshold": "Any older than 60 days",
+            "concepts": [
+              "cwip",
+              "pis",
+              "project"
+            ]
+          },
+          {
+            "id": "m20",
+            "area": "acct",
+            "name": "AFUDC accrued",
+            "def": "AFUDC posted year to date, by project",
+            "unit": "$",
+            "cadence": "Monthly",
+            "threshold": "",
+            "concepts": [
+              "cwip"
+            ]
+          },
+          {
+            "id": "m21",
+            "area": "comp",
+            "name": "Draws vs eligible spend",
+            "def": "SRF and WIFIA draws submitted / eligible spend incurred",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 90%",
+            "concepts": [
+              "funding",
+              "cost"
+            ]
+          },
+          {
+            "id": "m22",
+            "area": "comp",
+            "name": "Missing compliance records",
+            "def": "Funded contracts without current payroll or BABA records",
+            "unit": "count",
+            "cadence": "Monthly",
+            "threshold": "Any",
+            "concepts": [
+              "compdoc",
+              "contract"
+            ]
+          },
+          {
+            "id": "m23",
+            "area": "comp",
+            "name": "Lead service lines replaced vs plan",
+            "def": "Replacements completed / replacements planned",
+            "unit": "count and %",
+            "cadence": "Monthly",
+            "threshold": "Below 90%",
+            "concepts": [
+              "lsl"
+            ]
+          },
+          {
+            "id": "m24",
+            "area": "report",
+            "name": "Program health",
+            "def": "Large projects within 10% of budget / large projects in delivery",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 90%",
+            "concepts": [
+              "forecast",
+              "project"
+            ]
+          },
+          {
+            "id": "m25",
+            "area": "report",
+            "name": "Forecast freshness",
+            "def": "Projects with a working forecast refreshed in the last 45 days / active projects",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 95%",
+            "concepts": [
+              "forecast",
+              "project"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "q1",
+            "area": "cip",
+            "q": "What changed between the 2026 and 2027 capital plans, and why?",
+            "who": "hargrove",
+            "concepts": [
+              "plan",
+              "project"
+            ],
+            "answer": {
+              "figure": "+$214M",
+              "figLabel": "2027-2031 plan vs 2026-2030",
+              "text": "The 2027-2031 plan is $6.42B, up $214M on the 2026 vintage. Most of the increase is the Federal PFAS Program in Belmara and Ardenia (+$151M) and the lead service line program brought forward in Ardenia (+$88M). Thirty-one renewal projects moved out to 2031 or later (-$25M).",
+              "sources": [
+                "epbcs.plan · MTP2026_v3 vs Working",
+                "CIP 2027-2031 workbook, Changes tab"
+              ]
+            }
+          },
+          {
+            "id": "q2",
+            "area": "cip",
+            "q": "How much of the 5-year plan is driven by mandates rather than discretionary renewal?",
+            "who": "hargrove",
+            "concepts": [
+              "plan",
+              "project"
+            ],
+            "answer": {
+              "figure": "47.3%",
+              "figLabel": "of the 5-year plan is mandated",
+              "text": "$3.04B of the $6.42B plan is tied to a government mandate: PFAS treatment, lead service line replacement and two consent orders in Dunmoor. Another $0.58B is committed to third parties.",
+              "sources": [
+                "pmo.project · Compliance Driver",
+                "epbcs.plan · Working"
+              ]
+            }
+          },
+          {
+            "id": "q3",
+            "area": "prior",
+            "q": "Which unfunded projects carry the highest risk, and what would funding the top five cost?",
+            "who": "hargrove",
+            "concepts": [
+              "risk",
+              "plan",
+              "project"
+            ],
+            "answer": {
+              "figure": "$38.6M",
+              "figLabel": "to fund the top five",
+              "text": "Five unfunded priority 1 projects carry Intolerable asset risk, led by the Kestrel Valley clearwell replacement. Funding all five would cost $38.6M over 2027-2029. The ranking uses the project-level risk rating in the PMO master; there is no asset-level condition score connected.",
+              "sources": [
+                "pmo.project · Asset Risk Assessment, CAPEX Priority Level",
+                "epbcs.plan · unfunded lines"
+              ]
+            }
+          },
+          {
+            "id": "q4",
+            "area": "budget",
+            "q": "How much of next year’s capital spend is covered by SRF loans and grants?",
+            "who": "raman",
+            "concepts": [
+              "funding",
+              "forecast"
+            ],
+            "answer": {
+              "figure": "18.4%",
+              "figLabel": "of 2027 forecast spend has a loan or grant",
+              "text": "$226M of the $1.23B forecast for 2027 is covered by executed SRF loan agreements and two PFAS grants. Another $41M has applications pending, including the $18.5M Belmara SRF loan for Quarrydown WTP.",
+              "sources": [
+                "Funding tracker: SRF, WIFIA, PFAS grants",
+                "epbcs.forecast · 2027"
+              ]
+            }
+          },
+          {
+            "id": "q5",
+            "area": "cost",
+            "q": "Which large projects in delivery are forecast to overrun their approved budget by more than 10%?",
+            "who": "raman",
+            "concepts": [
+              "forecast",
+              "budget",
+              "project"
+            ],
+            "answer": {
+              "figure": "9 projects",
+              "figLabel": "above 10% at the 15 October refresh",
+              "text": "Nine of 1,419 large projects in delivery are more than 10% over their approved budget, $6.21M together. Six have a WIN budget revision in the Level 03 queue; three have none: the Kestrel Valley clearwell, Jarrowfield WTP and the Bellwater PFAS install. Dunmoor East Filter Media Renewal is still on its June figure (+6.1%) and its manager expects it above 10% when the Lakeshore batch lands on 23 October.",
+              "sources": [
+                "epbcs.forecast · 15 Oct working",
+                "epbcs.plan · Active Budget Plan",
+                "psoft.commitments · WIN revisions"
+              ]
+            }
+          },
+          {
+            "id": "q6",
+            "area": "cost",
+            "q": "Why is Dunmoor East Filter Media Renewal over budget?",
+            "who": "raman",
+            "concepts": [
+              "co",
+              "contract",
+              "forecast"
+            ],
+            "answer": {
+              "figure": "$4.58M",
+              "figLabel": "net change orders against $4.15M contingency",
+              "text": "On Dunmoor East, change orders have used the whole contingency and $0.43M more: concrete deterioration in the filter walls (CO-001, $1.88M), asbestos gasket abatement (CO-002, $0.64M), the engineer’s floor investigation ($0.40M), a media credit (−$0.41M), filter floors out of level in Filters 8, 9 and 11 (CO-003, $1.21M) and a 214-day extension (CO-004, $0.85M). The rest of the $5.5M is the extension’s owner costs, interest, escalation and a $2.1M risk on Filters 10 and 12.",
+              "sources": [
+                "Contracts and change orders: DEF-2023-C01, DEF-2026-C02, Exhibit F logs",
+                "Mail thread \"Dunmoor East filters: Phase 2 floors\""
+              ]
+            }
+          },
+          {
+            "id": "q7",
+            "area": "cost",
+            "q": "How much contingency is left across the program, and where is it going?",
+            "who": "hargrove",
+            "concepts": [
+              "budget",
+              "co"
+            ],
+            "answer": {
+              "figure": "41%",
+              "figLabel": "of program contingency remains",
+              "text": "$92M of $224M contingency remains. 58% of the draw went to treatment plant projects (PFAS and filters); network blankets have used 19% of theirs.",
+              "sources": [
+                "epbcs.plan · contingency lines",
+                "Contracts and change orders"
+              ]
+            }
+          },
+          {
+            "id": "q8",
+            "area": "cost",
+            "q": "Are we on track to spend the FY26 plan by December?",
+            "who": "raman",
+            "concepts": [
+              "cost",
+              "forecast",
+              "plan"
+            ],
+            "answer": {
+              "figure": "94.1%",
+              "figLabel": "of the FY26 plan by December",
+              "text": "Posted actuals to 30 September are $812.0M against $844.5M planned, and the working forecast for October to December is $297.8M: $1,109.8M against the $1,180.0M plan, so $70.2M would move into FY27. The gap sits in PFAS projects in Belmara and the Lakeshore projects that have not been re-forecast since June.",
+              "sources": [
+                "psoft.gl · Jan to Sep 2026",
+                "epbcs.forecast · 15 Oct working",
+                "epbcs.plan · Jan Calendarization"
+              ]
+            }
+          },
+          {
+            "id": "q9",
+            "area": "sched",
+            "q": "Which large projects slipped on their critical path this month?",
+            "who": "nakamura",
+            "concepts": [
+              "milestone",
+              "project"
+            ]
+          },
+          {
+            "id": "q10",
+            "area": "sched",
+            "q": "What does schedule slippage on large projects do to this year’s spend?",
+            "who": "raman",
+            "concepts": [
+              "milestone",
+              "cost",
+              "forecast"
+            ]
+          },
+          {
+            "id": "q11",
+            "area": "reg",
+            "q": "How does plant placed in service compare with what the last Belmara rate order assumed?",
+            "who": "beaulieu",
+            "concepts": [
+              "pis",
+              "order"
+            ],
+            "answer": {
+              "figure": "93.6%",
+              "figLabel": "of plant additions the order assumed",
+              "text": "Through Q3 2026, $247M has been placed in service in Belmara against $264M assumed in the 2025 BPUC order for the same period. The order allows $431M over 2025-2027.",
+              "sources": [
+                "psoft.asset_accounting",
+                "Rate cases and orders: BPUC 2025 order, Appendix C"
+              ]
+            }
+          },
+          {
+            "id": "q12",
+            "area": "reg",
+            "q": "Which projects claimed in the Belmara test year are now at risk of missing it?",
+            "who": "beaulieu",
+            "concepts": [
+              "inservice",
+              "ratecase",
+              "project"
+            ],
+            "answer": {
+              "figure": "7 of 38",
+              "figLabel": "test-year projects at risk",
+              "text": "Seven of the 38 projects claimed in service by 31 December 2026 now carry an in-service date in 2027, $41.3M of rate base. Two of the 38 have no row in the in-service file, so they are checked from the forecast phase only.",
+              "sources": [
+                "upload.inservice",
+                "Rate cases and orders: BPUC test-year schedule"
+              ]
+            }
+          },
+          {
+            "id": "q13",
+            "area": "reg",
+            "q": "What evidence do we have that the Dunmoor East cost increase was prudent?",
+            "who": "beaulieu",
+            "concepts": [
+              "co",
+              "contract",
+              "ratecase"
+            ],
+            "answer": {
+              "figure": "4 of 5",
+              "figLabel": "prudence items on file",
+              "text": "The record holds the condition finding (structural investigation, Amendment No. 2), the engineer’s two priced alternatives for the filter floors, the WIN Level 03 approval of CO-003 and the committee note of 6 August. No record shows that rebidding the Phase 2 work was considered.",
+              "sources": [
+                "Contracts and change orders: DEF-2026-C02 CO-003 file",
+                "Mail thread \"Filters 8 to 11, floor levels\"",
+                "Capital Steering Committee packs"
+              ]
+            }
+          },
+          {
+            "id": "q14",
+            "area": "acct",
+            "q": "Which projects are in service but still sitting in CWIP?",
+            "who": "raman",
+            "concepts": [
+              "cwip",
+              "pis",
+              "project"
+            ],
+            "answer": {
+              "figure": "46 projects",
+              "figLabel": "$31.8M still in CWIP",
+              "text": "46 projects with an in-service date before 1 August still carry an open CWIP balance of $31.8M; 12 of them are in Dunmoor, where unitization is three months behind.",
+              "sources": [
+                "psoft.asset_accounting",
+                "upload.inservice"
+              ]
+            }
+          },
+          {
+            "id": "q15",
+            "area": "acct",
+            "q": "How much AFUDC have we accrued this year, by project?",
+            "who": "raman",
+            "concepts": [
+              "cwip"
+            ],
+            "answer": {
+              "figure": "$24.7M",
+              "figLabel": "AFUDC year to date",
+              "text": "$24.7M year to date. The PFAS projects at Quarrydown and Yarnton account for $6.9M of it.",
+              "sources": [
+                "psoft.asset_accounting"
+              ]
+            }
+          },
+          {
+            "id": "q16",
+            "area": "comp",
+            "q": "Which SRF-funded contracts are missing Build America, Buy America records?",
+            "who": "stroud",
+            "concepts": [
+              "compdoc",
+              "contract",
+              "funding"
+            ],
+            "answer": {
+              "figure": "3 of 22",
+              "figLabel": "SRF-funded contracts missing BABA records",
+              "text": "Three of 22 SRF-funded contracts have no current BABA certification: the Quarrydown vessel supply (Ridgeform), the Westbrook restoration term agreement and one Selby Point valve order.",
+              "sources": [
+                "Funding tracker: SRF, WIFIA, PFAS grants",
+                "Contracts and change orders: certification folders"
+              ]
+            }
+          },
+          {
+            "id": "q17",
+            "area": "comp",
+            "q": "How many lead service lines have we replaced this year against plan?",
+            "who": "stroud",
+            "concepts": [
+              "lsl"
+            ]
+          },
+          {
+            "id": "q18",
+            "area": "report",
+            "q": "Give me a one-page summary of the capital program for the Capital Steering Committee.",
+            "who": "hargrove",
+            "concepts": [
+              "forecast",
+              "project",
+              "plan"
+            ],
+            "answer": {
+              "figure": "1 page",
+              "figLabel": "drafted from four results",
+              "text": "Drafted from the overrun, plan delivery, rate order and freshness results: $812M posted of a $1.18B FY26 plan (94% expected by December), nine large projects above 10% with Dunmoor East expected to cross on 23 October, Belmara plant additions at 94% of the order. Schedule items are left out because Primavera P6 is not connected.",
+              "sources": [
+                "Results of the questions on overruns, plan delivery and plant additions"
+              ]
+            }
+          },
+          {
+            "id": "q19",
+            "area": "report",
+            "q": "Which projects have not been re-forecast for more than 45 days?",
+            "who": "nakamura",
+            "concepts": [
+              "forecast",
+              "project"
+            ],
+            "answer": {
+              "figure": "63 projects",
+              "figLabel": "no working forecast since 15 June",
+              "text": "63 large projects in the Lakeshore Region have no working forecast since the 6+6 round of 15 June, after the Lakeshore project office moved to a new project controls tool. They hold $612.4M of approved budget. All 63 re-forecasts load in one catch-up batch on Friday 23 October.",
+              "sources": [
+                "epbcs.forecast · last refresh per project",
+                "Mail thread \"Lakeshore forecasts: 63 projects still on June figures\""
+              ]
+            }
+          }
+        ],
+        "routines": [
+          {
+            "id": "r1",
+            "area": "cost",
+            "name": "Monthly capital variance report",
+            "cadence": "Monthly, business day 8",
+            "to": "raman",
+            "output": "Report and project table"
+          },
+          {
+            "id": "r2",
+            "area": "cost",
+            "name": "Forecast refresh check",
+            "cadence": "Monthly, the day after the 15th",
+            "to": "nakamura",
+            "output": "Projects not refreshed, by PM"
+          },
+          {
+            "id": "r3",
+            "area": "budget",
+            "name": "Capital cash flow forecast",
+            "cadence": "Monthly",
+            "to": "raman",
+            "output": "12-month cash flow"
+          },
+          {
+            "id": "r4",
+            "area": "cip",
+            "name": "Annual CIP update",
+            "cadence": "Yearly, July to September",
+            "to": "hargrove",
+            "output": "Plan workbook and change log"
+          },
+          {
+            "id": "r5",
+            "area": "reg",
+            "name": "DSIC and SIC filing support",
+            "cadence": "Quarterly",
+            "to": "beaulieu",
+            "output": "Eligible plant schedule"
+          },
+          {
+            "id": "r6",
+            "area": "reg",
+            "name": "Rate case data requests",
+            "cadence": "As received, due in 10 days",
+            "to": "beaulieu",
+            "output": "Response with evidence"
+          },
+          {
+            "id": "r7",
+            "area": "acct",
+            "name": "CWIP review with Plant Accounting",
+            "cadence": "Monthly",
+            "to": "raman",
+            "output": "Aging list and actions"
+          },
+          {
+            "id": "r8",
+            "area": "comp",
+            "name": "SRF draw requests",
+            "cadence": "Monthly",
+            "to": "raman",
+            "output": "Draw package"
+          },
+          {
+            "id": "r9",
+            "area": "report",
+            "name": "Monthly capital program report",
+            "cadence": "Monthly",
+            "to": "hargrove",
+            "output": "Report"
+          },
+          {
+            "id": "r10",
+            "area": "report",
+            "name": "Quarterly Capital Steering Committee review",
+            "cadence": "Quarterly",
+            "to": "hargrove",
+            "output": "Committee deck"
+          }
+        ],
+        "data": [
+          {
+            "id": "d_plan",
+            "label": "Approved plan and plan vintages",
+            "obj": "epbcs.plan"
+          },
+          {
+            "id": "d_forecast",
+            "label": "Monthly working forecast",
+            "obj": "epbcs.forecast"
+          },
+          {
+            "id": "d_ledger",
+            "label": "Posted actuals",
+            "obj": "psoft.gl"
+          },
+          {
+            "id": "d_commit",
+            "label": "Commitments and WIN authorizations",
+            "obj": "psoft.commitments"
+          },
+          {
+            "id": "d_project",
+            "label": "Project master: phase, PM, drivers",
+            "obj": "pmo.project"
+          },
+          {
+            "id": "d_risk",
+            "label": "Asset risk and priority",
+            "obj": "pmo.project",
+            "partly": "Risk is rated per project in the PMO master; there is no asset-level condition score."
+          },
+          {
+            "id": "d_cip",
+            "label": "5-year capital plan workbook",
+            "obj": "od.cip"
+          },
+          {
+            "id": "d_sched",
+            "label": "Project schedules and milestones",
+            "obj": "p6.schedules"
+          },
+          {
+            "id": "d_inservice",
+            "label": "In-service dates",
+            "obj": "upload.inservice",
+            "partly": "990 of 4,500 projects have no row in the in-service file, and 260 rows name codes that do not exist."
+          },
+          {
+            "id": "d_contracts",
+            "label": "Contracts, change orders and pay applications",
+            "obj": "od.contracts"
+          },
+          {
+            "id": "d_reg",
+            "label": "Rate cases, orders and surcharge filings",
+            "obj": "od.regulatory"
+          },
+          {
+            "id": "d_mail",
+            "label": "Project manager and contractor correspondence",
+            "obj": "outlook.capital"
+          },
+          {
+            "id": "d_cwip",
+            "label": "CWIP, AFUDC and plant in service",
+            "obj": "psoft.assets"
+          },
+          {
+            "id": "d_funding",
+            "label": "Loan and grant agreements, draws",
+            "obj": "od.funding"
+          },
+          {
+            "id": "d_lsl",
+            "label": "Lead service line inventory",
+            "obj": "gis.assets"
+          }
+        ],
+        "jd": {
+          "file": "Northline_Job_Description_Capital_Program_Analyst.pdf",
+          "pages": 4,
+          "findings": [
+            {
+              "id": "j1",
+              "kind": "confirm",
+              "text": "Confirms 8 of your 9 areas: plan, prioritization, budgets, cost and forecast, schedule, rate cases, close-out and reporting.",
+              "quote": "“Maintains the capital plan, tracks cost and forecast for every project and supports rate case filings with capital schedules.”"
+            },
+            {
+              "id": "j2",
+              "kind": "task",
+              "area": "cost",
+              "text": "Add a task to Cost tracking and forecasting: review contractor claims and change order requests before WIN approval.",
+              "quote": "“Reviews contractor claims and change order requests against the contract before they go to WIN approval.”",
+              "value": "Review contractor claims and change order requests before WIN approval"
+            },
+            {
+              "id": "j3",
+              "kind": "scope",
+              "area": "comp",
+              "text": "Take Grant and loan compliance out of scope. Treasury prepares SRF and WIFIA draws and keeps the compliance records.",
+              "quote": "“SRF and WIFIA draws and their compliance records are prepared by Treasury; the analyst supplies eligible spend on request.”",
+              "reason": "Done by another team"
+            },
+            {
+              "id": "j4",
+              "kind": "threshold",
+              "metric": "m9",
+              "area": "cost",
+              "text": "Set the threshold on Forecast variance: over 10% on a large project, or over $250,000, needs a written explanation.",
+              "quote": "§4.2 “A large project whose forecast exceeds its approved budget by more than 10%, or by more than $250,000, needs a written variance explanation.”",
+              "value": "Over 10% on a large project, or over $250,000"
+            },
+            {
+              "id": "j5",
+              "kind": "routine",
+              "area": "reg",
+              "text": "Add a routine: monthly test-year in-service check for Marc Beaulieu while a rate case is open.",
+              "quote": "“While a rate case is open, confirms each month that projects claimed in the test year remain on track to be in service.”",
+              "routine": {
+                "id": "r_jd1",
+                "area": "reg",
+                "name": "Test-year in-service check",
+                "cadence": "Monthly, while a rate case is open",
+                "to": "beaulieu",
+                "output": "At-risk list with rate base"
+              }
+            },
+            {
+              "id": "j6",
+              "kind": "people",
+              "text": "Add Sofia Lindqvist to the people it works for. The description says the analyst hands the plan workbook to Capital Planning.",
+              "quote": "“Works with the Senior Analyst, Capital Planning on each plan vintage.”",
+              "person": "lindqvist"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "i1",
+            "data": "d_mail",
+            "text": "Mail names projects by contractor job number, not project code. 81% of threads matched a project; 540 threads did not.",
+            "actions": [
+              "Use the job number list in the contracts folder",
+              "Leave as a caveat"
+            ]
+          },
+          {
+            "id": "i2",
+            "data": "d_inservice",
+            "text": "260 rows in the in-service file name project codes that do not exist in the PMO master.",
+            "actions": [
+              "Ignore the 260 rows",
+              "Keep them as unmatched and flag them"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reg",
+        "name": "Regulatory Analyst",
+        "deep": false,
+        "blurb": "Prepares rate cases and compliance filings for the four commissions, answers their staff and tracks what the company owes them.",
+        "defaults": {
+          "reportsTo": "beaulieu",
+          "worksFor": [
+            "beaulieu",
+            "raman"
+          ]
+        },
+        "areas": [
+          {
+            "id": "rc",
+            "name": "Rate case preparation",
+            "what": "Builds revenue requirement and cost of service schedules for filings.",
+            "tasks": [
+              "Build revenue requirement schedules",
+              "Prepare cost of service and rate design inputs",
+              "Assemble the test year"
+            ]
+          },
+          {
+            "id": "dr",
+            "name": "Data requests and discovery",
+            "what": "Answers staff and intervenor questions on time with evidence.",
+            "tasks": [
+              "Log and route data requests",
+              "Draft responses with supporting evidence",
+              "Track due dates"
+            ]
+          },
+          {
+            "id": "filings",
+            "name": "Compliance filings",
+            "what": "Files the reports each commission requires.",
+            "tasks": [
+              "Prepare the annual report to each commission",
+              "File tariff changes",
+              "Keep the filing calendar"
+            ]
+          },
+          {
+            "id": "riders",
+            "name": "Surcharges and riders",
+            "what": "Runs DSIC, SIC and other adjustment mechanisms within their caps.",
+            "tasks": [
+              "Calculate surcharge rates each quarter",
+              "Reconcile rider revenue to cost"
+            ]
+          },
+          {
+            "id": "watch",
+            "name": "Regulatory monitoring",
+            "what": "Follows orders, rulemakings and their deadlines.",
+            "tasks": [
+              "Track orders and their obligations",
+              "Summarize rulemakings that affect the company"
+            ]
+          }
+        ],
+        "concepts": {
+          "obligation": {
+            "name": "Obligation",
+            "desc": "Something an order or rule requires, with a due date.",
+            "data": [
+              "r_orders"
+            ]
+          },
+          "order": {
+            "name": "Order",
+            "desc": "A commission order and its ordering paragraphs.",
+            "data": [
+              "r_orders"
+            ]
+          },
+          "filing": {
+            "name": "Filing",
+            "desc": "A document filed with a commission.",
+            "data": [
+              "r_filings"
+            ]
+          },
+          "dr": {
+            "name": "Data request",
+            "desc": "A discovery question and its response.",
+            "data": [
+              "r_filings",
+              "r_mail"
+            ]
+          },
+          "revreq": {
+            "name": "Revenue requirement",
+            "desc": "Costs plus return the rates must recover.",
+            "data": [
+              "r_gl",
+              "r_plant"
+            ]
+          },
+          "rider": {
+            "name": "Rider",
+            "desc": "A surcharge mechanism and its cap.",
+            "data": [
+              "r_orders",
+              "r_billing"
+            ]
+          },
+          "revenue": {
+            "name": "Billed revenue",
+            "desc": "Revenue by class and charge.",
+            "data": [
+              "r_billing"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "rm1",
+            "area": "dr",
+            "name": "Data requests answered on time",
+            "def": "Responses by due date / responses due",
+            "unit": "%",
+            "cadence": "Per case",
+            "threshold": "Below 100%",
+            "concepts": [
+              "dr"
+            ]
+          },
+          {
+            "id": "rm2",
+            "area": "filings",
+            "name": "Filings on time",
+            "def": "Filings made by due date / filings due",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 100%",
+            "concepts": [
+              "filing",
+              "obligation"
+            ]
+          },
+          {
+            "id": "rm3",
+            "area": "rc",
+            "name": "Earned vs authorized return",
+            "def": "Earned ROE minus authorized ROE, per utility",
+            "unit": "basis points",
+            "cadence": "Quarterly",
+            "threshold": "Below -100 bp",
+            "concepts": [
+              "revreq",
+              "order"
+            ]
+          },
+          {
+            "id": "rm4",
+            "area": "riders",
+            "name": "Surcharge headroom",
+            "def": "Cap minus current surcharge revenue as a share of billed revenue",
+            "unit": "%",
+            "cadence": "Quarterly",
+            "threshold": "Below 0.5 points",
+            "concepts": [
+              "rider",
+              "revenue"
+            ]
+          },
+          {
+            "id": "rm5",
+            "area": "watch",
+            "name": "Open obligations",
+            "def": "Obligations from orders not yet met",
+            "unit": "count",
+            "cadence": "Weekly",
+            "threshold": "",
+            "concepts": [
+              "obligation"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "rq1",
+            "area": "dr",
+            "q": "Which data requests are due this week, and which have no draft yet?",
+            "who": "beaulieu",
+            "concepts": [
+              "dr"
+            ]
+          },
+          {
+            "id": "rq2",
+            "area": "filings",
+            "q": "What filings are due in the next 60 days across the four commissions?",
+            "who": "beaulieu",
+            "concepts": [
+              "filing",
+              "obligation"
+            ]
+          },
+          {
+            "id": "rq3",
+            "area": "rc",
+            "q": "How far is each utility’s earned return below its authorized return, and why?",
+            "who": "raman",
+            "concepts": [
+              "revreq",
+              "order"
+            ]
+          },
+          {
+            "id": "rq4",
+            "area": "riders",
+            "q": "How much DSIC headroom is left in Belmara before the cap?",
+            "who": "beaulieu",
+            "concepts": [
+              "rider",
+              "revenue"
+            ]
+          },
+          {
+            "id": "rq5",
+            "area": "watch",
+            "q": "What does the latest BPUC order require of us, and by when?",
+            "who": "beaulieu",
+            "concepts": [
+              "order",
+              "obligation"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "rr1",
+            "area": "riders",
+            "name": "Quarterly surcharge rate calculation",
+            "cadence": "Quarterly",
+            "to": "beaulieu",
+            "output": "Rate schedule"
+          },
+          {
+            "id": "rr2",
+            "area": "filings",
+            "name": "Filing calendar review",
+            "cadence": "Weekly",
+            "to": "beaulieu",
+            "output": "Calendar with owners"
+          },
+          {
+            "id": "rr3",
+            "area": "filings",
+            "name": "Annual report to each commission",
+            "cadence": "Yearly, by 30 April",
+            "to": "beaulieu",
+            "output": "Annual reports"
+          }
+        ],
+        "data": [
+          {
+            "id": "r_orders",
+            "label": "Orders, tariffs and rulemakings",
+            "obj": "od.regulatory"
+          },
+          {
+            "id": "r_filings",
+            "label": "Filings and data request log",
+            "obj": "od.regulatory",
+            "partly": "The data request log is a spreadsheet in the folder; 41 rows have no due date."
+          },
+          {
+            "id": "r_mail",
+            "label": "Correspondence with staff and counsel",
+            "obj": "outlook.capital"
+          },
+          {
+            "id": "r_gl",
+            "label": "Operating costs (general ledger)",
+            "obj": "psoft.om"
+          },
+          {
+            "id": "r_plant",
+            "label": "Plant in service and rate base",
+            "obj": "psoft.assets"
+          },
+          {
+            "id": "r_billing",
+            "label": "Billed revenue by class",
+            "obj": "psoft.billing"
+          }
+        ],
+        "jd": {
+          "file": "Northline_Job_Description_Regulatory_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "rj1",
+              "kind": "confirm",
+              "text": "Confirms 4 of your areas: rate cases, data requests, compliance filings and riders.",
+              "quote": "“Prepares revenue requirement schedules and responds to data requests.”"
+            },
+            {
+              "id": "rj2",
+              "kind": "task",
+              "area": "filings",
+              "text": "Add a task to Compliance filings: prepare the annual service quality report.",
+              "quote": "“Prepares the annual service quality report for each commission.”",
+              "value": "Prepare the annual service quality report"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "ri1",
+            "data": "r_filings",
+            "text": "The data request log has 41 rows with no due date.",
+            "actions": [
+              "Use 10 days from receipt",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sca",
+        "name": "Supply Chain Analyst",
+        "deep": false,
+        "blurb": "Keeps pipe, meters, chemicals and spares available at the right cost and tracks supplier performance.",
+        "defaults": {
+          "reportsTo": "adeyemi",
+          "worksFor": [
+            "adeyemi",
+            "raman"
+          ]
+        },
+        "areas": [
+          {
+            "id": "demand",
+            "name": "Materials demand planning",
+            "what": "Forecasts what capital and operations will need and when.",
+            "tasks": [
+              "Forecast pipe, fittings and meters from the capital plan",
+              "Forecast chemical use by plant"
+            ]
+          },
+          {
+            "id": "inv",
+            "name": "Inventory management",
+            "what": "Keeps stock and critical spares at the right level.",
+            "tasks": [
+              "Set reorder points",
+              "Watch critical spares",
+              "Find slow-moving stock"
+            ]
+          },
+          {
+            "id": "supplier",
+            "name": "Supplier performance",
+            "what": "Measures delivery and quality by supplier.",
+            "tasks": [
+              "Track on-time delivery",
+              "Track lead times",
+              "Run quarterly supplier reviews"
+            ]
+          },
+          {
+            "id": "spend",
+            "name": "Contract and spend analysis",
+            "what": "Checks spend is under contract and at contract price.",
+            "tasks": [
+              "Measure spend under contract",
+              "Find price variances against contract"
+            ]
+          },
+          {
+            "id": "chem",
+            "name": "Chemical supply continuity",
+            "what": "Makes sure treatment chemicals never run short.",
+            "tasks": [
+              "Track days of supply per plant",
+              "Keep alternate suppliers ready"
+            ]
+          }
+        ],
+        "concepts": {
+          "item": {
+            "name": "Material item",
+            "desc": "A stocked or ordered material.",
+            "data": [
+              "s_inv",
+              "s_po"
+            ]
+          },
+          "po": {
+            "name": "Purchase order",
+            "desc": "An order line with price and dates.",
+            "data": [
+              "s_po"
+            ]
+          },
+          "supplier": {
+            "name": "Supplier",
+            "desc": "A vendor and its agreements.",
+            "data": [
+              "s_po",
+              "s_agreements"
+            ]
+          },
+          "agreement": {
+            "name": "Supply agreement",
+            "desc": "Contract prices and terms.",
+            "data": [
+              "s_agreements"
+            ]
+          },
+          "stock": {
+            "name": "Stock level",
+            "desc": "On hand by store and item.",
+            "data": [
+              "s_inv"
+            ]
+          },
+          "demand": {
+            "name": "Demand",
+            "desc": "Forecast need from the plan and from use.",
+            "data": [
+              "s_plan"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "sm1",
+            "area": "inv",
+            "name": "Critical spares below minimum",
+            "def": "Critical items with on hand below minimum",
+            "unit": "count",
+            "cadence": "Daily",
+            "threshold": "Any",
+            "concepts": [
+              "stock",
+              "item"
+            ]
+          },
+          {
+            "id": "sm2",
+            "area": "supplier",
+            "name": "On-time delivery",
+            "def": "Lines received by promised date / lines received",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 92%",
+            "concepts": [
+              "po",
+              "supplier"
+            ]
+          },
+          {
+            "id": "sm3",
+            "area": "spend",
+            "name": "Spend under contract",
+            "def": "Spend on agreements / total spend",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 80%",
+            "concepts": [
+              "po",
+              "agreement"
+            ]
+          },
+          {
+            "id": "sm4",
+            "area": "chem",
+            "name": "Days of chemical supply",
+            "def": "On hand / average daily use, per plant and chemical",
+            "unit": "days",
+            "cadence": "Daily",
+            "threshold": "Below 14 days",
+            "concepts": [
+              "stock",
+              "demand"
+            ]
+          },
+          {
+            "id": "sm5",
+            "area": "demand",
+            "name": "Forecast accuracy",
+            "def": "1 minus |actual minus forecast| / actual",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 85%",
+            "concepts": [
+              "demand",
+              "item"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "sq1",
+            "area": "inv",
+            "q": "Which critical spares are below minimum right now?",
+            "who": "adeyemi",
+            "concepts": [
+              "stock",
+              "item"
+            ]
+          },
+          {
+            "id": "sq2",
+            "area": "supplier",
+            "q": "Which suppliers delivered late most often this quarter?",
+            "who": "adeyemi",
+            "concepts": [
+              "po",
+              "supplier"
+            ]
+          },
+          {
+            "id": "sq3",
+            "area": "spend",
+            "q": "Where are we paying more than the contract price?",
+            "who": "raman",
+            "concepts": [
+              "po",
+              "agreement"
+            ]
+          },
+          {
+            "id": "sq4",
+            "area": "chem",
+            "q": "Which plants have less than two weeks of any treatment chemical?",
+            "who": "adeyemi",
+            "concepts": [
+              "stock",
+              "demand"
+            ]
+          },
+          {
+            "id": "sq5",
+            "area": "demand",
+            "q": "How much ductile iron pipe will the capital plan need next year?",
+            "who": "adeyemi",
+            "concepts": [
+              "demand",
+              "item"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "sr1",
+            "area": "inv",
+            "name": "Critical spares check",
+            "cadence": "Daily",
+            "to": "adeyemi",
+            "output": "Exception list"
+          },
+          {
+            "id": "sr2",
+            "area": "supplier",
+            "name": "Quarterly supplier review",
+            "cadence": "Quarterly",
+            "to": "adeyemi",
+            "output": "Scorecard"
+          }
+        ],
+        "data": [
+          {
+            "id": "s_po",
+            "label": "Purchase orders and receipts",
+            "obj": "psoft.po"
+          },
+          {
+            "id": "s_inv",
+            "label": "Inventory on hand by store",
+            "obj": "psoft.inventory"
+          },
+          {
+            "id": "s_agreements",
+            "label": "Supply agreements and price lists",
+            "obj": "od.suppliers"
+          },
+          {
+            "id": "s_plan",
+            "label": "Capital plan quantities",
+            "obj": "od.cip"
+          }
+        ],
+        "jd": {
+          "file": "Northline_Job_Description_Supply_Chain_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "sj1",
+              "kind": "confirm",
+              "text": "Confirms all 5 of your areas.",
+              "quote": "“Monitors inventory, supplier performance and chemical supply.”"
+            },
+            {
+              "id": "sj2",
+              "kind": "task",
+              "area": "supplier",
+              "text": "Add a task to Supplier performance: collect Build America, Buy America certifications for funded orders.",
+              "quote": "“Collects BABA certifications from suppliers on SRF-funded orders.”",
+              "value": "Collect BABA certifications for funded orders"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "si1",
+            "data": "s_po",
+            "text": "7% of order lines have no promised date, so on-time delivery skips them.",
+            "actions": [
+              "Use the agreement lead time",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fa",
+        "name": "Financial Analyst",
+        "deep": false,
+        "blurb": "Runs the operating budget and forecast, explains variances and reports unit costs and revenue.",
+        "defaults": {
+          "reportsTo": "raman",
+          "worksFor": [
+            "raman"
+          ]
+        },
+        "areas": [
+          {
+            "id": "budget",
+            "name": "Operating budget and forecast",
+            "what": "Builds the O&M budget and keeps the forecast current.",
+            "tasks": [
+              "Prepare the O&M budget",
+              "Update the monthly forecast"
+            ]
+          },
+          {
+            "id": "close",
+            "name": "Month-end variance analysis",
+            "what": "Explains actuals against budget after close.",
+            "tasks": [
+              "Explain variances by department",
+              "Review accruals with Accounting"
+            ]
+          },
+          {
+            "id": "revenue",
+            "name": "Revenue and consumption",
+            "what": "Tracks billed revenue and demand against forecast.",
+            "tasks": [
+              "Compare billed revenue with forecast",
+              "Watch consumption by customer class"
+            ]
+          },
+          {
+            "id": "mgmt",
+            "name": "Management reporting",
+            "what": "Reports financial results to leadership.",
+            "tasks": [
+              "Monthly financial report",
+              "Board financial summary"
+            ]
+          }
+        ],
+        "concepts": {
+          "gl": {
+            "name": "GL actual",
+            "desc": "Posted operating cost by account and department.",
+            "data": [
+              "f_gl"
+            ]
+          },
+          "budgetline": {
+            "name": "Budget line",
+            "desc": "Budget by account, department and month.",
+            "data": [
+              "f_budget"
+            ]
+          },
+          "revenue": {
+            "name": "Billed revenue",
+            "desc": "Revenue by class and month.",
+            "data": [
+              "f_billing"
+            ]
+          },
+          "dept": {
+            "name": "Department",
+            "desc": "Cost centre and owner.",
+            "data": [
+              "f_gl"
+            ]
+          }
+        },
+        "metrics": [
+          {
+            "id": "fm1",
+            "area": "close",
+            "name": "O&M variance",
+            "def": "Actual minus budget, by department",
+            "unit": "$ and %",
+            "cadence": "Monthly",
+            "threshold": "Over 5%",
+            "concepts": [
+              "gl",
+              "budgetline"
+            ]
+          },
+          {
+            "id": "fm2",
+            "area": "revenue",
+            "name": "Revenue vs forecast",
+            "def": "Billed revenue / forecast revenue",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Below 97%",
+            "concepts": [
+              "revenue"
+            ]
+          },
+          {
+            "id": "fm3",
+            "area": "budget",
+            "name": "Forecast accuracy",
+            "def": "Actual / forecast made three months earlier",
+            "unit": "%",
+            "cadence": "Monthly",
+            "threshold": "Outside 97% to 103%",
+            "concepts": [
+              "gl",
+              "budgetline"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "id": "fq1",
+            "area": "close",
+            "q": "Which departments are over their O&M budget this year, and why?",
+            "who": "raman",
+            "concepts": [
+              "gl",
+              "budgetline",
+              "dept"
+            ]
+          },
+          {
+            "id": "fq2",
+            "area": "revenue",
+            "q": "Is billed revenue tracking the forecast, and which class is off?",
+            "who": "raman",
+            "concepts": [
+              "revenue"
+            ]
+          },
+          {
+            "id": "fq3",
+            "area": "mgmt",
+            "q": "Summarize this month’s results for the leadership team.",
+            "who": "raman",
+            "concepts": [
+              "gl",
+              "revenue"
+            ]
+          }
+        ],
+        "routines": [
+          {
+            "id": "fr1",
+            "area": "close",
+            "name": "Monthly variance pack",
+            "cadence": "Monthly, business day 6",
+            "to": "raman",
+            "output": "Variance report"
+          },
+          {
+            "id": "fr2",
+            "area": "mgmt",
+            "name": "Monthly financial report",
+            "cadence": "Monthly",
+            "to": "raman",
+            "output": "Report"
+          }
+        ],
+        "data": [
+          {
+            "id": "f_gl",
+            "label": "General ledger actuals",
+            "obj": "psoft.om"
+          },
+          {
+            "id": "f_budget",
+            "label": "O&M budget and forecast",
+            "obj": "od.budget"
+          },
+          {
+            "id": "f_billing",
+            "label": "Billing and consumption",
+            "obj": "psoft.billing"
+          }
+        ],
+        "jd": {
+          "file": "Northline_Job_Description_Financial_Analyst.pdf",
+          "pages": 3,
+          "findings": [
+            {
+              "id": "fj1",
+              "kind": "confirm",
+              "text": "Confirms all 4 of your areas.",
+              "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+            },
+            {
+              "id": "fj2",
+              "kind": "task",
+              "area": "close",
+              "text": "Add a task to Month-end variance analysis: reconcile chemical and power costs to plant usage.",
+              "quote": "“Reconciles chemical and power costs to plant usage monthly.”",
+              "value": "Reconcile chemical and power costs to usage"
+            }
+          ]
+        },
+        "issues": [
+          {
+            "id": "fi1",
+            "data": "f_budget",
+            "text": "Two departments keep their forecast in a separate workbook that is not in the folder.",
+            "actions": [
+              "Use the budget pack figures",
+              "Leave as a caveat"
+            ]
+          }
+        ]
+      }
+    ],
+    "job_description_findings": {
+      "cpa": [
+        {
+          "id": "j1",
+          "kind": "confirm",
+          "text": "Confirms 8 of your 9 areas: plan, prioritization, budgets, cost and forecast, schedule, rate cases, close-out and reporting.",
+          "quote": "“Maintains the capital plan, tracks cost and forecast for every project and supports rate case filings with capital schedules.”"
+        },
+        {
+          "id": "j2",
+          "kind": "task",
+          "area": "cost",
+          "text": "Add a task to Cost tracking and forecasting: review contractor claims and change order requests before WIN approval.",
+          "quote": "“Reviews contractor claims and change order requests against the contract before they go to WIN approval.”",
+          "value": "Review contractor claims and change order requests before WIN approval"
+        },
+        {
+          "id": "j3",
+          "kind": "scope",
+          "area": "comp",
+          "text": "Take Grant and loan compliance out of scope. Treasury prepares SRF and WIFIA draws and keeps the compliance records.",
+          "quote": "“SRF and WIFIA draws and their compliance records are prepared by Treasury; the analyst supplies eligible spend on request.”",
+          "reason": "Done by another team"
+        }
+      ],
+      "reg": [
+        {
+          "id": "rj1",
+          "kind": "confirm",
+          "text": "Confirms 4 of your areas: rate cases, data requests, compliance filings and riders.",
+          "quote": "“Prepares revenue requirement schedules and responds to data requests.”"
+        },
+        {
+          "id": "rj2",
+          "kind": "task",
+          "area": "filings",
+          "text": "Add a task to Compliance filings: prepare the annual service quality report.",
+          "quote": "“Prepares the annual service quality report for each commission.”",
+          "value": "Prepare the annual service quality report"
+        }
+      ],
+      "sca": [
+        {
+          "id": "sj1",
+          "kind": "confirm",
+          "text": "Confirms all 5 of your areas.",
+          "quote": "“Monitors inventory, supplier performance and chemical supply.”"
+        },
+        {
+          "id": "sj2",
+          "kind": "task",
+          "area": "supplier",
+          "text": "Add a task to Supplier performance: collect Build America, Buy America certifications for funded orders.",
+          "quote": "“Collects BABA certifications from suppliers on SRF-funded orders.”",
+          "value": "Collect BABA certifications for funded orders"
+        }
+      ],
+      "fa": [
+        {
+          "id": "fj1",
+          "kind": "confirm",
+          "text": "Confirms all 4 of your areas.",
+          "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+        },
+        {
+          "id": "fj2",
+          "kind": "task",
+          "area": "close",
+          "text": "Add a task to Month-end variance analysis: reconcile chemical and power costs to plant usage.",
+          "quote": "“Reconciles chemical and power costs to plant usage monthly.”",
+          "value": "Reconcile chemical and power costs to usage"
+        }
+      ]
+    },
+    "organisation": {
+      "name": "Northline Water Group",
+      "kind": "Investor-owned · four regulated state water utilities"
+    },
+    "utilities": [
+      {
+        "id": "ard",
+        "name": "Northline Water of Ardenia",
+        "region": "Northvale Region",
+        "commission": "Ardenia Public Service Commission (APSC)"
+      },
+      {
+        "id": "bel",
+        "name": "Northline Water of Belmara",
+        "region": "Eastmoor Region",
+        "commission": "Belmara Public Utility Commission (BPUC)"
+      },
+      {
+        "id": "cor",
+        "name": "Northline Water of Corvale",
+        "region": "Cascadia Region",
+        "commission": "Corvale Utilities Commission (CUC)"
+      },
+      {
+        "id": "dun",
+        "name": "Northline Water of Dunmoor",
+        "region": "Lakeshore Region",
+        "commission": "Dunmoor Public Service Commission (DPSC)"
+      },
+      {
+        "id": "ssd",
+        "name": "Shared Services Division",
+        "region": "No state",
+        "commission": "No commission"
+      }
+    ],
+    "people": [
+      {
+        "id": "hargrove",
+        "name": "Ellis Hargrove",
+        "title": "SVP Capital Delivery"
+      },
+      {
+        "id": "raman",
+        "name": "Priya Raman",
+        "title": "Capital Controller, Finance"
+      },
+      {
+        "id": "beaulieu",
+        "name": "Marc Beaulieu",
+        "title": "Director, Rate Case and Regulatory"
+      },
+      {
+        "id": "nakamura",
+        "name": "Rei Nakamura",
+        "title": "Project Controls Manager, Lakeshore"
+      },
+      {
+        "id": "lindqvist",
+        "name": "Sofia Lindqvist",
+        "title": "Senior Analyst, Capital Planning"
+      },
+      {
+        "id": "adeyemi",
+        "name": "Tolu Adeyemi",
+        "title": "Category Manager, Capital Works"
+      },
+      {
+        "id": "stroud",
+        "name": "Karen Stroud",
+        "title": "Compliance Manager"
+      },
+      {
+        "id": "okafor",
+        "name": "Grace Okafor",
+        "title": "Project Manager, Dunmoor East"
+      },
+      {
+        "id": "baptiste",
+        "name": "Clio Baptiste",
+        "title": "Project Manager, Quarrydown WTP"
+      }
+    ],
+    "sources": [
+      {
+        "id": "epbcs",
+        "name": "Oracle EPBCS",
+        "system": "Plan and forecast",
+        "kind": "Planning",
+        "state": "connected"
+      },
+      {
+        "id": "psoft",
+        "name": "PeopleSoft Financials",
+        "system": "GL, commitments, asset accounting",
+        "kind": "Finance",
+        "state": "connected"
+      },
+      {
+        "id": "pmo",
+        "name": "PMO project master",
+        "system": "Project attributes",
+        "kind": "Warehouse",
+        "state": "connected"
+      },
+      {
+        "id": "upload",
+        "name": "In-service date file",
+        "system": "Governed upload",
+        "kind": "File",
+        "state": "connected"
+      },
+      {
+        "id": "onedrive",
+        "name": "OneDrive · Capital Program",
+        "system": "Documents",
+        "kind": "Documents",
+        "state": "connected"
+      },
+      {
+        "id": "outlook",
+        "name": "Outlook · capital program mailboxes",
+        "system": "Mail",
+        "kind": "Mail",
+        "state": "connected"
+      },
+      {
+        "id": "p6",
+        "name": "Primavera P6",
+        "system": "Schedules and critical path",
+        "kind": "Schedules",
+        "state": "missing"
+      },
+      {
+        "id": "gis",
+        "name": "GIS asset layer",
+        "system": "Mains, service lines, locations",
+        "kind": "Spatial",
+        "state": "missing"
+      }
+    ],
+    "data_objects": {
+      "epbcs.plan": {
+        "src": "epbcs",
+        "label": "epbcs.plan",
+        "type": "table",
+        "size": "4,500 projects · 3 vintages",
+        "lane": "structured"
+      },
+      "epbcs.forecast": {
+        "src": "epbcs",
+        "label": "epbcs.forecast",
+        "type": "table",
+        "size": "monthly working forecast · 3+9, 6+6",
+        "lane": "structured"
+      },
+      "psoft.gl": {
+        "src": "psoft",
+        "label": "psoft.gl",
+        "type": "table",
+        "size": "6.2M posted lines",
+        "lane": "structured"
+      },
+      "psoft.commitments": {
+        "src": "psoft",
+        "label": "psoft.commitments",
+        "type": "table",
+        "size": "211,480 lines · WIN approvals",
+        "lane": "structured"
+      },
+      "psoft.assets": {
+        "src": "psoft",
+        "label": "psoft.asset_accounting",
+        "type": "table",
+        "size": "CWIP, AFUDC, plant in service",
+        "lane": "structured"
+      },
+      "pmo.project": {
+        "src": "pmo",
+        "label": "pmo.project",
+        "type": "table",
+        "size": "4,500 rows · 57 attributes",
+        "lane": "structured"
+      },
+      "upload.inservice": {
+        "src": "upload",
+        "label": "upload.inservice",
+        "type": "file",
+        "size": "3,770 rows · 3,510 projects",
+        "lane": "structured"
+      },
+      "od.cip": {
+        "src": "onedrive",
+        "label": "CIP 2027-2031 workbook",
+        "type": "folder",
+        "size": "4 files",
+        "lane": "documents"
+      },
+      "od.contracts": {
+        "src": "onedrive",
+        "label": "Contracts and change orders",
+        "type": "folder",
+        "size": "1,264 documents",
+        "lane": "documents"
+      },
+      "od.regulatory": {
+        "src": "onedrive",
+        "label": "Rate cases and orders",
+        "type": "folder",
+        "size": "312 documents · four commissions",
+        "lane": "documents"
+      },
+      "od.committee": {
+        "src": "onedrive",
+        "label": "Capital Steering Committee packs",
+        "type": "folder",
+        "size": "38 documents",
+        "lane": "documents"
+      },
+      "od.funding": {
+        "src": "onedrive",
+        "label": "Funding tracker: SRF, WIFIA, PFAS grants",
+        "type": "folder",
+        "size": "74 documents",
+        "lane": "documents"
+      },
+      "outlook.capital": {
+        "src": "outlook",
+        "label": "Capital program mailboxes",
+        "type": "mailbox",
+        "size": "6 mailboxes · 2,916 threads",
+        "lane": "mail"
+      },
+      "p6.schedules": {
+        "src": "p6",
+        "label": "Project schedules",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "gis.assets": {
+        "src": "gis",
+        "label": "Mains and service line inventory",
+        "type": "table",
+        "size": "",
+        "lane": "structured"
+      },
+      "psoft.billing": {
+        "src": "psoft",
+        "label": "psoft.billing",
+        "type": "table",
+        "size": "9.8M rows",
+        "lane": "structured"
+      },
+      "psoft.om": {
+        "src": "psoft",
+        "label": "psoft.gl (O&M accounts)",
+        "type": "table",
+        "size": "4.4M rows",
+        "lane": "structured"
+      },
+      "psoft.po": {
+        "src": "psoft",
+        "label": "psoft.po_lines",
+        "type": "table",
+        "size": "702,115 rows",
+        "lane": "structured"
+      },
+      "psoft.inventory": {
+        "src": "psoft",
+        "label": "psoft.inventory",
+        "type": "table",
+        "size": "61,240 rows",
+        "lane": "structured"
+      },
+      "od.suppliers": {
+        "src": "onedrive",
+        "label": "Supply agreements",
+        "type": "folder",
+        "size": "143 documents",
+        "lane": "documents"
+      },
+      "od.budget": {
+        "src": "onedrive",
+        "label": "O&M budget and forecast packs",
+        "type": "folder",
+        "size": "96 documents",
+        "lane": "documents"
+      }
+    }
+  },
+  "document_readings": {
+    "_about": "What each job description in uploads/01_new_role actually says, as the New Role step 2 shows it. The prototype reads the same content from src/data/roleLibrary.ts by file name; it is not in the merged db.",
+    "readings": [
+      {
+        "file": "Northline_Job_Description_Capital_Program_Analyst.pdf",
+        "role_id": "cpa",
+        "role": "Capital Program Analyst",
+        "pages": 4,
+        "findings": [
+          {
+            "id": "j1",
+            "kind": "confirm",
+            "text": "Confirms 8 of your 9 areas: plan, prioritization, budgets, cost and forecast, schedule, rate cases, close-out and reporting.",
+            "quote": "“Maintains the capital plan, tracks cost and forecast for every project and supports rate case filings with capital schedules.”"
+          },
+          {
+            "id": "j2",
+            "kind": "task",
+            "area": "cost",
+            "text": "Add a task to Cost tracking and forecasting: review contractor claims and change order requests before WIN approval.",
+            "quote": "“Reviews contractor claims and change order requests against the contract before they go to WIN approval.”",
+            "value": "Review contractor claims and change order requests before WIN approval"
+          },
+          {
+            "id": "j3",
+            "kind": "scope",
+            "area": "comp",
+            "text": "Take Grant and loan compliance out of scope. Treasury prepares SRF and WIFIA draws and keeps the compliance records.",
+            "quote": "“SRF and WIFIA draws and their compliance records are prepared by Treasury; the analyst supplies eligible spend on request.”",
+            "reason": "Done by another team"
+          },
+          {
+            "id": "j4",
+            "kind": "threshold",
+            "metric": "m9",
+            "area": "cost",
+            "text": "Set the threshold on Forecast variance: over 10% on a large project, or over $250,000, needs a written explanation.",
+            "quote": "§4.2 “A large project whose forecast exceeds its approved budget by more than 10%, or by more than $250,000, needs a written variance explanation.”",
+            "value": "Over 10% on a large project, or over $250,000"
+          },
+          {
+            "id": "j5",
+            "kind": "routine",
+            "area": "reg",
+            "text": "Add a routine: monthly test-year in-service check for Marc Beaulieu while a rate case is open.",
+            "quote": "“While a rate case is open, confirms each month that projects claimed in the test year remain on track to be in service.”",
+            "routine": {
+              "id": "r_jd1",
+              "area": "reg",
+              "name": "Test-year in-service check",
+              "cadence": "Monthly, while a rate case is open",
+              "to": "beaulieu",
+              "output": "At-risk list with rate base"
+            }
+          },
+          {
+            "id": "j6",
+            "kind": "people",
+            "text": "Add Sofia Lindqvist to the people it works for. The description says the analyst hands the plan workbook to Capital Planning.",
+            "quote": "“Works with the Senior Analyst, Capital Planning on each plan vintage.”",
+            "person": "lindqvist"
+          }
+        ],
+        "source": "uploads/01_new_role/Northline_Job_Description_Capital_Program_Analyst.pdf"
+      },
+      {
+        "file": "Northline_Job_Description_Regulatory_Analyst.pdf",
+        "role_id": "reg",
+        "role": "Regulatory Analyst",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "rj1",
+            "kind": "confirm",
+            "text": "Confirms 4 of your areas: rate cases, data requests, compliance filings and riders.",
+            "quote": "“Prepares revenue requirement schedules and responds to data requests.”"
+          },
+          {
+            "id": "rj2",
+            "kind": "task",
+            "area": "filings",
+            "text": "Add a task to Compliance filings: prepare the annual service quality report.",
+            "quote": "“Prepares the annual service quality report for each commission.”",
+            "value": "Prepare the annual service quality report"
+          }
+        ],
+        "source": "uploads/01_new_role/Northline_Job_Description_Regulatory_Analyst.pdf"
+      },
+      {
+        "file": "Northline_Job_Description_Supply_Chain_Analyst.pdf",
+        "role_id": "sca",
+        "role": "Supply Chain Analyst",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "sj1",
+            "kind": "confirm",
+            "text": "Confirms all 5 of your areas.",
+            "quote": "“Monitors inventory, supplier performance and chemical supply.”"
+          },
+          {
+            "id": "sj2",
+            "kind": "task",
+            "area": "supplier",
+            "text": "Add a task to Supplier performance: collect Build America, Buy America certifications for funded orders.",
+            "quote": "“Collects BABA certifications from suppliers on SRF-funded orders.”",
+            "value": "Collect BABA certifications for funded orders"
+          }
+        ],
+        "source": "uploads/01_new_role/Northline_Job_Description_Supply_Chain_Analyst.pdf"
+      },
+      {
+        "file": "Northline_Job_Description_Financial_Analyst.pdf",
+        "role_id": "fa",
+        "role": "Financial Analyst",
+        "pages": 3,
+        "findings": [
+          {
+            "id": "fj1",
+            "kind": "confirm",
+            "text": "Confirms all 4 of your areas.",
+            "quote": "“Prepares the O&M budget, monthly variance analysis and management reports.”"
+          },
+          {
+            "id": "fj2",
+            "kind": "task",
+            "area": "close",
+            "text": "Add a task to Month-end variance analysis: reconcile chemical and power costs to plant usage.",
+            "quote": "“Reconciles chemical and power costs to plant usage monthly.”",
+            "value": "Reconcile chemical and power costs to usage"
+          }
+        ],
+        "source": "uploads/01_new_role/Northline_Job_Description_Financial_Analyst.pdf"
+      }
+    ]
+  }
+}

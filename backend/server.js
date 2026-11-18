@@ -132,6 +132,7 @@ import { loadCapexDocument } from './capex-loader.js'
 import { loadKeolisDocument } from './keolis-loader.js'
 import { loadSupplychainDocument } from './supplychain-loader.js'
 import { loadArcwoodDocument } from './arcwood-loader.js'
+import { loadRiskDocument } from './risk-loader.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -315,6 +316,16 @@ mock-server: refusing to start — cannot load ARCWOOD split files.`)
   Rebuild the split files from the package:
       npm run ingest:arcwood
 `)
+        process.exit(1)
+      })
+    }
+    /* RISK (Contract Risk Analyst) loads from split files in risk/, seeded off CAPEX's structure —
+       see backend/scripts/ingest-risk-json.mjs for why it is seeded rather than ingested. */
+    if (name === 'RISK') {
+      return loadRiskDocument().catch((error) => {
+        console.error(`\nmock-server: refusing to start — cannot load RISK split files.`)
+        console.error(`  · ${error.message}`)
+        console.error(`\n  Rebuild the split files:\n      npm run ingest:risk\n`)
         process.exit(1)
       })
     }

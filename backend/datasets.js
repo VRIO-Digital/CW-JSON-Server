@@ -36,7 +36,9 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * `both` therefore merges real documents, which is what the merge plan below was written for and
  * was under-exercised while there was one.
  */
-export const DATASETS = ['CAPEX', 'KEOLIS', 'SUPPLYCHAIN', 'ARCWOOD']
+/* RISK, not CONTRACTRISK: the URL segment is a dataset's first letter (`datasetSegment`), and
+   CAPEX already owns C — a name starting with C here would make /C/... ambiguous between the two. */
+export const DATASETS = ['CAPEX', 'KEOLIS', 'SUPPLYCHAIN', 'ARCWOOD', 'RISK']
 
 /**
  * What the Settings dataset picker prints for a dataset, where its name is not a readable label.
@@ -52,6 +54,7 @@ export const DATASET_LABELS = {
   KEOLIS: 'Capital program analyst - Transport',
   SUPPLYCHAIN: 'Supply chain analyst',
   ARCWOOD: 'Waste stream analyst',
+  RISK: 'Contract risk analyst',
 }
 export const datasetLabel = (name) => DATASET_LABELS[name] ?? name
 export const PRIMARY = 'CAPEX'
@@ -74,7 +77,7 @@ export const BOTH = 'both'
  */
 /* CAPEX joined the Microsoft tenants on request: its connectors are Azure SQL Database, OneDrive and
    Outlook, so its mail corpus is filed under Outlook's folders (`Inbox`, not Gmail's `INBOX`). */
-export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', CAPEX: 'microsoft', SUPPLYCHAIN: 'microsoft', ARCWOOD: 'microsoft' }
+export const PROVIDER_BRANDS = { KEOLIS: 'microsoft', CAPEX: 'microsoft', SUPPLYCHAIN: 'microsoft', ARCWOOD: 'microsoft', RISK: 'microsoft' }
 export const providerBrandFor = (dataset) => PROVIDER_BRANDS[dataset] ?? 'google'
 
 /**

@@ -1,0 +1,91 @@
+{
+  "audit": {
+    "stats": [],
+    "events": [],
+    "policies": [],
+    "event_window": "Last 7 days · 10 events",
+    "policy_total": 0,
+    "categories": [
+      {
+        "id": "all",
+        "label": "All"
+      },
+      {
+        "id": "pub",
+        "label": "Publishing"
+      },
+      {
+        "id": "open",
+        "label": "Opens"
+      },
+      {
+        "id": "rule",
+        "label": "Rule changes"
+      },
+      {
+        "id": "ref",
+        "label": "Refreshes"
+      },
+      {
+        "id": "export",
+        "label": "Exports"
+      }
+    ]
+  },
+  "traces": {
+    "stats": [],
+    "items": [],
+    "sampling": "Every question is sealed - no sampling. A trace a viewer cannot find is a trace that does not exist.",
+    "waterfall": {
+      "trace_id": "trace_nwg01",
+      "operation": "What is Belmara's rate base at the end of the test year, and how does it compare with the last order?",
+      "total_ms": 7300,
+      "unaccounted_ms": 690,
+      "unaccounted_why": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+      "spans": [
+        {
+          "name": "Understand & plan",
+          "start": 0,
+          "duration": 330,
+          "agent": "supervisor",
+          "detail": "classified: rate base roll-forward · Belmara · test year end 31 Dec 2026"
+        },
+        {
+          "name": "Resolve the subject",
+          "start": 330,
+          "duration": 560,
+          "agent": "graph agent",
+          "detail": "Northline Water of Belmara → order 2025-RC-118 → 38 post-test-year projects → plant by class"
+        },
+        {
+          "name": "Read governed facts",
+          "start": 890,
+          "duration": 2420,
+          "agent": "graph agent",
+          "detail": "psoft.asset · psoft.cwip · rate base components · pmo.inservice (as of 2026-10-12)"
+        },
+        {
+          "name": "Pull correspondence",
+          "start": 3310,
+          "duration": 1960,
+          "agent": "runtime agent",
+          "detail": "outlook · 90-day window · threads R1, R2, P1 · permissions follow the reader"
+        },
+        {
+          "name": "Compose and check",
+          "start": 5270,
+          "duration": 1340,
+          "agent": "supervisor",
+          "detail": "approved rates only · the seven dated 2027 out · the nine as completed construction · totals foot"
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [],
+    "runs": [],
+    "checks": [],
+    "run_trigger": "On graph build and on query-set regeneration",
+    "failure_summary": "0 low-confidence answers · 8 graph items awaiting review · 1 reconciliation difference (project posted $818.1M vs ledger $812.0M, timing of reclasses) open with the controller"
+  }
+}

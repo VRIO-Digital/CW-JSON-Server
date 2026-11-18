@@ -1,0 +1,196 @@
+{
+  "document_vocabulary": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "project_code",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.97
+    },
+    {
+      "name": "contract_no",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "document_title",
+      "type": "string",
+      "class": "label",
+      "confidence": 0.93
+    },
+    {
+      "name": "document_type",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.91
+    },
+    {
+      "name": "revision",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.88
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.87
+    },
+    {
+      "name": "signed_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.89
+    },
+    {
+      "name": "party_authority",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.92
+    },
+    {
+      "name": "party_operator",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.93
+    },
+    {
+      "name": "supplier_name",
+      "type": "string",
+      "class": "organisation",
+      "confidence": 0.9
+    },
+    {
+      "name": "clause_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.86
+    },
+    {
+      "name": "asset_ref",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "amount_eur",
+      "type": "numeric",
+      "class": "measure_record",
+      "confidence": 0.85
+    },
+    {
+      "name": "amount_basis",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.8
+    },
+    {
+      "name": "cap_eur",
+      "type": "numeric",
+      "class": "measure_commitment",
+      "confidence": 0.84
+    },
+    {
+      "name": "notice_days",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.83
+    },
+    {
+      "name": "status_stated",
+      "type": "string",
+      "class": "lifecycle_state",
+      "confidence": 0.82
+    },
+    {
+      "name": "finding_severity",
+      "type": "string",
+      "class": "risk_score",
+      "confidence": 0.84
+    },
+    {
+      "name": "chainage",
+      "type": "string",
+      "class": "geography",
+      "confidence": 0.81
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "author_name",
+      "type": "string",
+      "class": "person",
+      "confidence": 0.88,
+      "pii": true
+    },
+    {
+      "name": "statement_kind",
+      "type": "string",
+      "class": "classification",
+      "confidence": 0.79
+    }
+  ],
+  "data_model": {
+    "suggestions": [],
+    "entities": []
+  },
+  "change_signals": [],
+  "_meta": {
+    "package": "veolia_capex_demo_data_package_2026-10-19",
+    "tenant": "Northline Water Group (invented - four regulated US water utilities standing in for the prospect; no figure is Veolia’s)",
+    "schema_source": "the development team’s db.CAPEX.json key set and field shapes, as carried by the reference packages of 2026-09-24 and 2026-10-12",
+    "generated_by": "_build/build_platform.py",
+    "as_of": "2026-10-15",
+    "today": "2026-10-19",
+    "note": "Every value is generated from the datasets in datasets/ and the scripts in _build/. Never hand-edit this file - change the generator and rebuild.",
+    "keys_carried_from_capex_schema": 31
+  },
+  "_provenance": {
+    "google_account": "demo login identity (the presenter); unchanged from the existing datasets",
+    "auth_roles": "the four persona roles the app already defines; access notes written for Northline Water Group",
+    "credentials": "one handle per Azure SQL source (northline_epbcs, northline_psoft, northline_pmo); deterministic",
+    "projects": "gen/gen_graph_northline.py - 3 Azure SQL sources, 6 datasets, 19 tables; row counts are the invented warehouse’s",
+    "audit": "authored for the demo week (13 to 19 October 2026)",
+    "traces": "sealed traces over recorded answers; stats computed from them",
+    "evals": "computed from ask_answers, the review queue and the sanity checks",
+    "change_signals": "the graph’s own gaps - what the data cannot support, with the do-not clause",
+    "column_profiles": "every column of the 19 tables, with profiler statistics; the dictionaries in uploads/05_data_catalog carry the same columns",
+    "column_vocabulary": "the highest-confidence profiled columns",
+    "document_vocabulary": "the document-corpus profile of the OneDrive source",
+    "drives": "the Capital Program folder in OneDrive: 7 folders, 30 documents; page, character and chunk counts measured from the rendered files in drive_corpus/",
+    "drive_credentials": "one handle per drive; deterministic",
+    "document_extractions": "_build/extractions_northline.py - what the document graph builder reads from each document, resolved to canvas node ids",
+    "graph_domains": "domains ranked by what the connected data supports",
+    "graph_studio": "_build/graph_northline.py canvas (concepts, thin instances, measures; spring layout seed 7) + 8 review items with 1 pivot + 5 sanity checks",
+    "graph_personas": "the personas of the Capital Program Analyst role; top_questions are the hero ids each one asks",
+    "graph_hero_questions": "every question the Ask answers carry (HQ1 to HQ45)",
+    "graph_answer_formats": "the block mixes the answers use",
+    "graph_use_cases": "the one committed role - Capital Program Analyst for Northline Water",
+    "graph_use_case_templates": "assembled from the ids above",
+    "ask_answers": "_build/answers_northline.py - 49 recorded answers (HQ1 to HQ45 and four extra declines Q46 to Q49); every figure computed from the datasets",
+    "reports": "_build/gov_northline.py - three reports and their governance; Reports is hidden from the sidebar for every persona, but governance feeds Audit & Governance",
+    "settings": "the eight demo users (all on the demo login domain) and the nav permissions the app uses today (Reports hidden)",
+    "reports_prototype": "the Authoring tab fixture - the large projects above 10% and the projects the stories name, in USD millions",
+    "data_model": "declared relationships between the tables, confirmed by the presenter, plus open suggestions",
+    "graph_metrics": "the governed measures of the Capital Program Analyst role",
+    "mail_corpus": "the capital program mailbox - 22 messages in 16 threads (mailbox_export/)",
+    "studio_graph": "the as-built graph-version shape: structured lane over the selected tables, document lane extracted from the corpus, Bridge type links"
+  }
+}
