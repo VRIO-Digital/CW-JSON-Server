@@ -48,6 +48,19 @@ const screenOf = (hash: string): View =>
  */
 const HIDE_SHELL_CSS = ' .ant-layout-sider, .mobile-bar { display: none !important }'
 
+/**
+ * The Ask screen's own suggested-question library (`.aq-lib`, one bare `<section>` per theme, each
+ * holding an `h4` and a run of `button.aq-q`) is the bundle's own 62-question catalogue — asked for
+ * narrowed to one or two, which this app's own `AskPage` already keeps to (a short opener row, not a
+ * library). Hidden at the frame rather than edited into the bundle, for the same reason the shell is:
+ * `_meta` on a generated export forbids hand-editing it, and a rule applied here holds for whatever
+ * version is dropped in next. Keeps the first theme's heading and its first two questions; every
+ * other theme, and every later question within the first, goes.
+ */
+const HIDE_EXTRA_QUESTIONS_CSS =
+  ' .aq-lib section:not(:first-of-type) { display: none !important }' +
+  ' .aq-lib section:first-of-type button.aq-q:nth-of-type(n+3) { display: none !important }'
+
 export default function ContractRiskPage({ view }: { view: View }) {
   const entry = useRef(VIEWS[view]).current
   const frameWinRef = useRef<Window | null>(null)
@@ -79,7 +92,7 @@ export default function ContractRiskPage({ view }: { view: View }) {
         fragment={entry.fragment}
         enhance={(inner) => {
           const style = inner.createElement('style')
-          style.textContent = HIDE_SHELL_CSS
+          style.textContent = HIDE_SHELL_CSS + HIDE_EXTRA_QUESTIONS_CSS
           inner.head?.appendChild(style)
 
           const win = inner.defaultView
