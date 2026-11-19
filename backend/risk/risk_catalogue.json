@@ -148,8 +148,313 @@
     }
   ],
   "data_model": {
-    "suggestions": [],
-    "entities": []
+    "suggestions": [
+      {
+        "suggestion_id": "sg_risk_incident_hours_ltif",
+        "from_table_key": "ehs.incident",
+        "from_column": "lost_time_injuries",
+        "to_table_key": "ops.hours",
+        "to_column": "lost_time_injuries",
+        "relationship_type": "MEASURED_AGAINST_HOURS_WORKED",
+        "relationship_type_alternatives": [
+          "HAS_HOURS_DENOMINATOR",
+          "LTIF_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal os1 (\"Lost-time injuries\") reads this exact column from both tables to compute one rate per 200,000 hours — the package states the two tables together, not a shared key. Both are declared one row per facility, which is the grain-consistent reading (1:1); neither side has been sampled, so treat this as a starting point to confirm rather than a measured fact.",
+        "confidence": 0.65
+      },
+      {
+        "suggestion_id": "sg_risk_incident_hours_recordable",
+        "from_table_key": "ehs.incident",
+        "from_column": "recordable_injuries",
+        "to_table_key": "ops.hours",
+        "to_column": "recordable_injuries",
+        "relationship_type": "MEASURED_AGAINST_HOURS_WORKED",
+        "relationship_type_alternatives": [
+          "HAS_HOURS_DENOMINATOR",
+          "RECORDABLE_RATE_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal os2 (\"Recordable injuries\") reads this same column from both tables for the same reason os1 does, one row apart in the scorecard rather than a second, independent join. Both tables are declared one row per facility; not sampled, so confirm before relying on 1:1.",
+        "confidence": 0.65
+      },
+      {
+        "suggestion_id": "sg_risk_observation_roster",
+        "from_table_key": "ehs.observation",
+        "from_column": "safety_observations_per_employee",
+        "to_table_key": "hr.roster",
+        "to_column": "safety_observations_per_employee",
+        "relationship_type": "OBSERVATIONS_PER_ROSTER_HEADCOUNT",
+        "relationship_type_alternatives": [
+          "HAS_ROSTER_DENOMINATOR",
+          "RATE_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal os3 divides a facility's observation count by its roster headcount, so the package names both tables for one figure. Both are declared one row per facility (hr.roster's own grain is \"one row per project or facility\"), which is the grain-consistent 1:1 reading — inferred from the stated grain, not from a sampled row count on either side.",
+        "confidence": 0.6
+      },
+      {
+        "suggestion_id": "sg_risk_sample_schedule_results",
+        "from_table_key": "plantdata.sample_schedule",
+        "from_column": "required_samples_missed",
+        "to_table_key": "plantdata.results",
+        "to_column": "required_samples_missed",
+        "relationship_type": "SCHEDULED_SAMPLE_HAS_RESULT",
+        "relationship_type_alternatives": [
+          "MISSED_IF_NO_RESULT_BY_DUE_DATE",
+          "SCHEDULE_RESULT_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal en2 (\"Required samples missed\") is a schedule checked against whether a result landed by its due date — the package states both tables for this one figure. Both are declared one row per facility, the grain-consistent reading; a real sample-level join (one schedule row to many result attempts) is plausible and would make this N:1 once somebody samples the tables.",
+        "confidence": 0.6
+      },
+      {
+        "suggestion_id": "sg_risk_license_labor",
+        "from_table_key": "hr.license",
+        "from_column": "key_person_dependence",
+        "to_table_key": "ops.labor_weekly",
+        "to_column": "key_person_dependence",
+        "relationship_type": "LICENCE_HOLDER_HOURS",
+        "relationship_type_alternatives": [
+          "HAS_LABOR_RECORD",
+          "KEY_PERSON_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal st6 names a licence holder's hours by reading both tables together. Both are declared one row per project, the grain-consistent reading — but a licence table plausibly carries one row per holder and labor_weekly one row per employee per week, which would make this N:N once sampled; recorded as 1:1 only because that is what the stated grain supports today.",
+        "confidence": 0.55
+      },
+      {
+        "suggestion_id": "sg_risk_contract_pnl_revenue",
+        "from_table_key": "master.contract",
+        "from_column": "revenue_a_year",
+        "to_table_key": "fin.contract_pnl",
+        "to_column": "annual_contract_revenue",
+        "relationship_type": "HAS_PNL_REVENUE",
+        "relationship_type_alternatives": [
+          "BOOKED_UNDER_PROFIT_CENTER",
+          "CONTRACT_PNL_PAIR"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Signal im1 (\"Annual contract revenue\") reads contracts.json's own revenue_a_year and fin.contract_pnl's annual_contract_revenue as the same real figure, fee billed over the last twelve months — two differently-spelled columns for one measure rather than a shared id. master.contract.id and .profit_center are real identifiers; contract_pnl is declared one row per profit center, the same unit a contract's own profit_center names, which is the grain-consistent 1:1 reading rather than a sampled one.",
+        "confidence": 0.6
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "ent-ops-hours-mwn850oi2",
+        "confirmed_by": null,
+        "table_key": "ops.hours",
+        "entity_name": "hours",
+        "description": "Entity for hours, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:58.002Z"
+      },
+      {
+        "entity_id": "ent-ehs-incident-mwn850ss3",
+        "confirmed_by": null,
+        "table_key": "ehs.incident",
+        "entity_name": "incident",
+        "description": "Entity for incident, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.hours",
+            "from_columns": [
+              "lost_time_injuries"
+            ],
+            "to_columns": [
+              "lost_time_injuries"
+            ],
+            "relationship_type": "MEASURED_AGAINST_HOURS_WORKED",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal os1 (\"Lost-time injuries\") reads this exact column from both tables to compute one rate per 200,000 hours — the package states the two tables together, not a shared key. Both are declared one row per facility, which is the grain-consistent reading (1:1); neither side has been sampled, so treat this as a starting point to confirm rather than a measured fact.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          },
+          {
+            "target_table_key": "ops.hours",
+            "from_columns": [
+              "recordable_injuries"
+            ],
+            "to_columns": [
+              "recordable_injuries"
+            ],
+            "relationship_type": "MEASURED_AGAINST_HOURS_WORKED",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal os2 (\"Recordable injuries\") reads this same column from both tables for the same reason os1 does, one row apart in the scorecard rather than a second, independent join. Both tables are declared one row per facility; not sampled, so confirm before relying on 1:1.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:58.408Z"
+      },
+      {
+        "entity_id": "ent-hr-roster-mwn8519f4",
+        "confirmed_by": null,
+        "table_key": "hr.roster",
+        "entity_name": "roster",
+        "description": "Entity for roster, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:58.755Z"
+      },
+      {
+        "entity_id": "ent-ehs-observation-mwn851co5",
+        "confirmed_by": null,
+        "table_key": "ehs.observation",
+        "entity_name": "observation",
+        "description": "Entity for observation, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "hr.roster",
+            "from_columns": [
+              "safety_observations_per_employee"
+            ],
+            "to_columns": [
+              "safety_observations_per_employee"
+            ],
+            "relationship_type": "OBSERVATIONS_PER_ROSTER_HEADCOUNT",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal os3 divides a facility's observation count by its roster headcount, so the package names both tables for one figure. Both are declared one row per facility (hr.roster's own grain is \"one row per project or facility\"), which is the grain-consistent 1:1 reading — inferred from the stated grain, not from a sampled row count on either side.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:58.872Z"
+      },
+      {
+        "entity_id": "ent-plantdata-results-mwn851hf6",
+        "confirmed_by": null,
+        "table_key": "plantdata.results",
+        "entity_name": "results",
+        "description": "Entity for results, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.043Z"
+      },
+      {
+        "entity_id": "ent-plantdata-sample-schedule-mwn851le7",
+        "confirmed_by": null,
+        "table_key": "plantdata.sample_schedule",
+        "entity_name": "sample_schedule",
+        "description": "Entity for sample_schedule, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "plantdata.results",
+            "from_columns": [
+              "required_samples_missed"
+            ],
+            "to_columns": [
+              "required_samples_missed"
+            ],
+            "relationship_type": "SCHEDULED_SAMPLE_HAS_RESULT",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal en2 (\"Required samples missed\") is a schedule checked against whether a result landed by its due date — the package states both tables for this one figure. Both are declared one row per facility, the grain-consistent reading; a real sample-level join (one schedule row to many result attempts) is plausible and would make this N:1 once somebody samples the tables.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.186Z"
+      },
+      {
+        "entity_id": "ent-ops-labor-weekly-mwn851sr8",
+        "confirmed_by": null,
+        "table_key": "ops.labor_weekly",
+        "entity_name": "labor_weekly",
+        "description": "Entity for labor_weekly, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.451Z"
+      },
+      {
+        "entity_id": "ent-hr-license-mwn851wg9",
+        "confirmed_by": null,
+        "table_key": "hr.license",
+        "entity_name": "license",
+        "description": "Entity for license, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "ops.labor_weekly",
+            "from_columns": [
+              "key_person_dependence"
+            ],
+            "to_columns": [
+              "key_person_dependence"
+            ],
+            "relationship_type": "LICENCE_HOLDER_HOURS",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal st6 names a licence holder's hours by reading both tables together. Both are declared one row per project, the grain-consistent reading — but a licence table plausibly carries one row per holder and labor_weekly one row per employee per week, which would make this N:N once sampled; recorded as 1:1 only because that is what the stated grain supports today.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.584Z"
+      },
+      {
+        "entity_id": "ent-fin-contract-pnl-mwn8522ca",
+        "confirmed_by": null,
+        "table_key": "fin.contract_pnl",
+        "entity_name": "contract_pnl",
+        "description": "Entity for contract_pnl, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.796Z"
+      },
+      {
+        "entity_id": "ent-master-contract-mwn85279b",
+        "confirmed_by": null,
+        "table_key": "master.contract",
+        "entity_name": "contract",
+        "description": "Entity for contract, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "fin.contract_pnl",
+            "from_columns": [
+              "revenue_a_year"
+            ],
+            "to_columns": [
+              "annual_contract_revenue"
+            ],
+            "relationship_type": "HAS_PNL_REVENUE",
+            "cardinality_hint": "1:1",
+            "rationale": "Signal im1 (\"Annual contract revenue\") reads contracts.json's own revenue_a_year and fin.contract_pnl's annual_contract_revenue as the same real figure, fee billed over the last twelve months — two differently-spelled columns for one measure rather than a shared id. master.contract.id and .profit_center are real identifiers; contract_pnl is declared one row per profit center, the same unit a contract's own profit_center names, which is the grain-consistent 1:1 reading rather than a sampled one.",
+            "confirmed_by": "nishant.srivastav@vriodigital.com"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-11-19T07:23:59.973Z"
+      }
+    ]
   },
   "change_signals": [],
   "_meta": {
