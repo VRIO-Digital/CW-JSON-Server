@@ -1,0 +1,26 @@
+[
+  {
+    "id": "n-g-contract-risk-every-contract-scored--nc001-nc024-executed",
+    "at": "2026-11-19T14:06:15.280Z",
+    "kind": "executed",
+    "goalId": "g-contract-risk-every-contract-scored--nc001",
+    "title": "Ashby Falls and Harlow Creek moved up a rating: handled",
+    "text": "Agent Ledger re-scored 300 contracts, read the evidence, wrote the plan for each site and did 11 of 11 things your rules ask for.",
+    "read": false,
+    "tab": "deliverables",
+    "found": "Ashby Falls, Harlow Creek, Red Mesa",
+    "cta": "Open it"
+  },
+  {
+    "id": "n-g-contract-risk-every-contract-scored--nc001-nc022-fired",
+    "at": "2026-11-19T14:04:33.260Z",
+    "kind": "fired",
+    "goalId": "g-contract-risk-every-contract-scored--nc001",
+    "title": "Contract risk: Ashby Falls and Harlow Creek moved up a rating",
+    "text": "Agent Ledger is handling it now: why, what is at stake, the plan for each site, and what your rules say to do. You hear back when it is done.",
+    "read": false,
+    "tab": "runs",
+    "found": "A demand letter in the legal notices mailbox, a council agenda on the web and a missed sample in the lab data.",
+    "cta": "Watch it run"
+  }
+]

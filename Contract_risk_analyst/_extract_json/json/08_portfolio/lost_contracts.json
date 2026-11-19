@@ -1,0 +1,55 @@
+{
+  "caught": 3,
+  "of": 3,
+  "contracts": [
+    {
+      "site": "Calder Valley WWTP",
+      "state": "OH",
+      "lost": "December 2025",
+      "how": "Lost at re-bid to Clearbrook Operations",
+      "revenue": 6900000,
+      "int": 1.84,
+      "ext": 2.11,
+      "rated": 2,
+      "moved": [
+        "New utilities director nine months before",
+        "Procurement adviser hired seven months before",
+        "No NPS answer from the new director"
+      ],
+      "doc": "DOC:calder-review",
+      "would_have_rated": 3
+    },
+    {
+      "site": "Wren Hollow Water System",
+      "state": "PA",
+      "lost": "June 2025",
+      "how": "Taken in-house by the Township",
+      "revenue": 3200000,
+      "int": 1.67,
+      "ext": 1.92,
+      "rated": 2,
+      "moved": [
+        "In-house operation on three council agendas in the year before",
+        "Township budget review of all service contracts"
+      ],
+      "doc": "",
+      "would_have_rated": 3
+    },
+    {
+      "site": "Thorn Landing Utilities",
+      "state": "FL",
+      "lost": "September 2024",
+      "how": "Not renewed after a consent order",
+      "revenue": 4400000,
+      "int": 2.71,
+      "ext": 3.02,
+      "rated": 3,
+      "moved": [
+        "Two notices of violation in the year before",
+        "Consent order signed four months before"
+      ],
+      "doc": "",
+      "would_have_rated": 3
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "tenant": "Northline Water Group",
+  "role": "Contract Risk Analyst",
+  "industry": "Water and Wastewater",
+  "lens": "OPERATOR",
+  "what_it_does": "Scores the risk of every operations and maintenance contract on one scorecard, watches every contract each morning, says what moved and why, writes a mitigation plan for each site, and answers questions about the portfolio.",
+  "seats": [
+    "Ask",
+    "Goals",
+    "Submissions"
+  ],
+  "as_of": {
+    "first_scoring": "2026-11-19",
+    "morning_check": "2026-11-20T06:00",
+    "history_from": "2025-12"
+  },
+  "portfolio": {
+    "contracts": 300,
+    "revenue_a_year": 1375350000,
+    "pcs": 267,
+    "sharedPcs": 25,
+    "inShared": 58,
+    "multiFac": 86,
+    "facilities": 425,
+    "negDso": 11,
+    "npsMatched": 268
+  }
+}

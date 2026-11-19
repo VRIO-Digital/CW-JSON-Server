@@ -1,0 +1,62 @@
+[
+  {
+    "k": "kpi",
+    "name": "Headline figures",
+    "what": "Projects by rating, revenue at risk, what changed, sites with a plan",
+    "rec": true
+  },
+  {
+    "k": "matrix",
+    "name": "Risk, time left and size",
+    "what": "Every project by risk score and months left on the contract; the bubble is annual revenue",
+    "rec": true
+  },
+  {
+    "k": "movers",
+    "name": "What changed",
+    "what": "Projects whose score rose or fell since the last check and over 90 days",
+    "rec": true
+  },
+  {
+    "k": "travel",
+    "name": "Direction of travel",
+    "what": "Every project as one line over twelve months: which rose, which fell and which held",
+    "rec": true
+  },
+  {
+    "k": "ranked",
+    "name": "The project list",
+    "what": "Every project with one score, its direction, what drives it, revenue and end date",
+    "rec": true
+  },
+  {
+    "k": "heat",
+    "name": "Where the risk sits",
+    "what": "Regions against factors: is a problem local or across the business",
+    "rec": true
+  },
+  {
+    "k": "plans",
+    "name": "Mitigation plans",
+    "what": "Every site with a signal at 3 or 4, its plan and what the plan would bring the score to",
+    "rec": true
+  },
+  {
+    "k": "grid",
+    "name": "All projects at a glance",
+    "what": "One square per project, by region",
+    "rec": false
+  },
+  {
+    "k": "cover",
+    "name": "Where every signal comes from",
+    "what": "Each signal, its source, the level it sits at, how many projects it covers",
+    "rec": false
+  },
+  {
+    "k": "back",
+    "name": "Tested against contracts already lost",
+    "what": "What this scorecard would have said a year before each loss",
+    "rec": false
+  }
+]

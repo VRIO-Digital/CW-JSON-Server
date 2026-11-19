@@ -1,0 +1,356 @@
+{
+  "goal": "Contract risk: every contract scored, and watched every morning",
+  "kind": "standing goal (keep watching)",
+  "prompt": "I need to monitor the risk of all the contracts in our portfolio. Work out what the important risk factors and signals are from everything we have connected, and help me build the scorecard: what to measure, how to score it and how much each thing counts. Then watch every contract, and tell me when the risk of one goes up, why, and what we should do about it at that site.",
+  "reads": [
+    {
+      "tool": "look at what is connected",
+      "res": "Operations data hub (214 tables), the contract repository (2,460 documents), three shared mailboxes and the public web",
+      "rv": [
+        "watch",
+        "src:fin",
+        "src:proc",
+        "src:mail",
+        "src:web"
+      ]
+    },
+    {
+      "tool": "find the projects · master.contract",
+      "res": "300 active operations and maintenance projects in five regions, $1,375.4M a year, booked under 267 profit centers and running 425 facilities. I give each project one score",
+      "rv": [
+        "against",
+        "where"
+      ]
+    },
+    {
+      "tool": "look for a scoring template you already use",
+      "res": "None is connected. I found your Contracting Policy (the non-negotiable terms), three loss reviews and the monthly KPI pack, but nothing that says what to score and how. Upload yours, or I propose one",
+      "warn": true,
+      "rv": [
+        "miss:frame",
+        "memory"
+      ]
+    },
+    {
+      "tool": "read the contracts you lost or left since 2021",
+      "res": "7 contracts: 3 lost at renewal, 2 taken in-house, 2 ended early. What came first in each: a new client lead (5 of 7), margin under budget (7 of 7), in-house operation on a public agenda (both in-house losses)",
+      "rv": [
+        "prior"
+      ]
+    },
+    {
+      "tool": "fetch public sources",
+      "res": "richstatespoorstates.org (state liability ranking, 2026 edition) · EPA ECHO (permits) · FEMA flood maps · council and board agendas · municipal bond ratings",
+      "rv": [
+        "src:web",
+        "fixed"
+      ]
+    },
+    {
+      "tool": "check where each figure sits",
+      "res": "Not everything is recorded by project. Finance figures are booked by profit center, compliance and maintenance by facility, the client survey by client account. I say how each one is brought to the project and ask you to confirm",
+      "rv": [
+        "until",
+        "steps",
+        "miss:design",
+        "miss:check"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "key": "frame",
+      "title": "Do you have a scoring template?",
+      "text": "A file with your factors and their weights, the signals in each factor, and how each signal scores 1 to 4. If you have one I use it exactly as written. If not, I propose a scorecard. Either way it appears on the right once you answer.",
+      "tiles": [
+        {
+          "v": "upload",
+          "t": "Yes, I will upload it",
+          "s": "Use our factors, weights and rules as written"
+        },
+        {
+          "v": "none",
+          "t": "No. Propose one",
+          "s": "From what is connected and the contracts already lost"
+        }
+      ]
+    },
+    {
+      "key": "design",
+      "title": "This is how every project will be scored",
+      "text": "The scorecard is on the Plan tab: every factor with its share of the final score, every signal with its weight and its rule for 1 to 4. Drop a signal, add one to a factor, add a factor, or change a weight or a rule, there or here in the chat. The preview shows what each change does to your projects.",
+      "tiles": [
+        {
+          "v": "ok",
+          "t": "Score on it as it stands now",
+          "s": "You can change it at any time, also after the goal is live",
+          "rec": true
+        }
+      ]
+    },
+    {
+      "key": "check",
+      "title": "The data check: a few assumptions need your call",
+      "text": "I tested every signal against the connected data. Most are ready. Some figures do not sit at project level (profit center, facility, client account), and one signal has no source. The data check on the plan lists each signal, how it is measured, and the assumptions I would make to get one figure per project.",
+      "tiles": [
+        {
+          "v": "ok",
+          "t": "Confirm the assumptions as they stand",
+          "s": "Or change any of them on the plan first",
+          "rec": true
+        }
+      ]
+    }
+  ],
+  "upload_box": {
+    "accepts": [
+      ".xlsx",
+      ".xls",
+      ".csv"
+    ],
+    "template": "Contract_Risk_Scorecard_Template.xlsx",
+    "refuses": "a file with no table that has a Factor column and a Signal column"
+  },
+  "workflow": {
+    "nodes": [
+      {
+        "id": "w1",
+        "col": 0,
+        "row": 1,
+        "type": "gather",
+        "title": "Read every signal again and re-score",
+        "purpose": "Which contracts changed, and by how much.",
+        "how": "Every signal of every contract read again from its source and scored on your bands; factor scores from your weights; the contracts whose readings changed, with the old and the new score.",
+        "draws": [
+          "Operations data hub",
+          "Contracts and documents",
+          "Mailboxes",
+          "Public web"
+        ],
+        "check": "Each score recomputes from its signals, bands and weights."
+      },
+      {
+        "id": "w2",
+        "col": 1,
+        "row": 0,
+        "type": "gather",
+        "title": "Read the evidence behind each change",
+        "purpose": "Why it changed, and what the contract says about it.",
+        "how": "The message, document, row or page behind each changed reading; then the agreement: liability, who pays for the fix, how the client can leave.",
+        "draws": [
+          "Mail: legal notices and operations",
+          "The signed agreements",
+          "Council agendas and local news"
+        ],
+        "check": "Every change points at a dated message, row or page."
+      },
+      {
+        "id": "w3",
+        "col": 1,
+        "row": 2,
+        "type": "compute",
+        "title": "Weigh what is at stake and where it is heading",
+        "purpose": "Which of the contracts that rose come first.",
+        "how": "Annual revenue, margin, months to a decision and how the contract can end, beside the risk; the twelve-month direction of each score; anything I read that your scorecard does not score.",
+        "draws": [
+          "master.contract · fin.contract_pnl",
+          "Twelve months of scores"
+        ],
+        "check": "What is at stake never changes the risk score unless you asked for it."
+      },
+      {
+        "id": "w4",
+        "col": 2,
+        "row": 1,
+        "type": "synthesize",
+        "title": "Write the mitigation plan for each site",
+        "purpose": "One action for every signal at 3 or 4 that can be moved, for that site.",
+        "how": "For each site: the action, written from the reading, the mail about it, the contract clause and what is public; the owner from the contract master, a date, and the score the plan would bring the project to. Facts of the site are listed, not actioned.",
+        "draws": [
+          "Steps 1 to 3",
+          "The contract master: who owns each contract"
+        ],
+        "check": "Every action names the signal it answers, an owner and a date."
+      },
+      {
+        "id": "w5",
+        "col": 3,
+        "row": 1,
+        "type": "deliver",
+        "title": "Do what you told me to do when risk goes up",
+        "purpose": "Your rules from set-up, applied to what changed this morning.",
+        "how": "The dashboard refreshed; then each rule that applies: tell the people named, build the deck on why it moved, write the plan. A rule set to \"ask me first\" waits for your OK.",
+        "draws": [
+          "Steps 1 to 4",
+          "Your rules on the Plan tab"
+        ],
+        "check": "Only your rules run. Nothing is sent outside the company."
+      }
+    ],
+    "edges": [
+      [
+        "w1",
+        "w2"
+      ],
+      [
+        "w1",
+        "w3"
+      ],
+      [
+        "w2",
+        "w4"
+      ],
+      [
+        "w3",
+        "w4"
+      ],
+      [
+        "w4",
+        "w5"
+      ]
+    ]
+  },
+  "rules_when_a_score_rises": {
+    "_about": "Agreed when the watch is set up: each kind of action runs by itself (auto) or waits for your OK (ask). When the watch fires it does the chosen option's actions under these modes. {to} is who is told (tellNames by the answer to the question tell).",
+    "categories": [
+      {
+        "key": "dash",
+        "when": "After every check",
+        "text": "Refresh the dashboard",
+        "why": "So nobody collates it",
+        "mode": "auto"
+      },
+      {
+        "key": "tell",
+        "when": "A rating goes up",
+        "text": "Tell the Regional VP and the project leader of that contract, with the reason and the evidence",
+        "why": "Inside Northline",
+        "mode": "auto"
+      },
+      {
+        "key": "deck",
+        "when": "A rating goes up",
+        "text": "Build a short deck on why that contract's risk went up",
+        "why": "For the people who own it",
+        "mode": "auto"
+      },
+      {
+        "key": "plan",
+        "when": "A signal reaches 3 or 4",
+        "text": "Write the mitigation plan for that site, one action per signal, each with an owner and a date",
+        "why": "Specific to the site",
+        "mode": "auto"
+      },
+      {
+        "key": "svp",
+        "when": "A contract becomes \"Act now\"",
+        "text": "Tell the SVP, Contract Operations the same morning",
+        "why": "High risk with a lot at stake",
+        "mode": "auto"
+      },
+      {
+        "key": "digest",
+        "when": "A score rises but the rating holds",
+        "text": "List it in the Monday digest, with what changed",
+        "why": "Early warning, no noise",
+        "mode": "auto"
+      },
+      {
+        "key": "chase",
+        "when": "A plan action is 7 days late",
+        "text": "Remind the owner, and tell the Regional VP a week later",
+        "why": "A plan is only worth something if someone checks",
+        "mode": "ask"
+      }
+    ],
+    "tellNames": {
+      "me": "you",
+      "pm": "you and the Regional VP of each contract",
+      "controller": "you, the Regional VPs, the project leaders and Legal"
+    },
+    "byOption": {
+      "r1": [
+        {
+          "cat": "send",
+          "text": "Send the Harlow Creek risk brief and the refreshed scorecard to {to}"
+        },
+        {
+          "cat": "legal",
+          "text": "Send the demand letter to Elliot Marsh in Legal with a document hold on the odor records since January 2024, and draft the notice to the insurer"
+        },
+        {
+          "cat": "tracker",
+          "text": "Open 16 actions in the mitigation tracker: 7 for Harlow Creek, 5 for Red Mesa, 4 for Ashby Falls"
+        },
+        {
+          "cat": "brief",
+          "text": "Brief Grant Leung on Red Mesa (float pool cover from Monday) and Daniel Okoro on Ashby Falls (the 2 December agenda)"
+        },
+        {
+          "cat": "client",
+          "text": "Propose a meeting between Marisol Vega and the Harlow Creek City Manager before the 8 December council, and between Daniel Okoro and the Ashby Falls DPW Director before 2 December"
+        },
+        {
+          "cat": "claimant",
+          "text": "Return the two unanswered complaint calls at Harlow Creek, with Legal's wording"
+        },
+        {
+          "cat": "checks",
+          "text": "Check the three contracts each morning and report when an action is done or late"
+        }
+      ],
+      "r2": [
+        {
+          "cat": "send",
+          "text": "Send the Harlow Creek risk brief and the refreshed scorecard to {to}"
+        },
+        {
+          "cat": "legal",
+          "text": "Send the demand letter to Elliot Marsh in Legal with a document hold, and draft the notice to the insurer"
+        },
+        {
+          "cat": "tracker",
+          "text": "Open 7 actions in the mitigation tracker for Harlow Creek"
+        },
+        {
+          "cat": "client",
+          "text": "Propose a meeting between Marisol Vega and the Harlow Creek City Manager before the 8 December council"
+        },
+        {
+          "cat": "checks",
+          "text": "List Red Mesa and Ashby Falls as watch items for the 2 December review"
+        }
+      ],
+      "r3": [
+        {
+          "cat": "send",
+          "text": "Send the refreshed scorecard to {to}"
+        },
+        {
+          "cat": "legal",
+          "text": "Send the demand letter to Elliot Marsh in Legal with a document hold, and draft the notice to the insurer"
+        },
+        {
+          "cat": "tracker",
+          "text": "Add the three contracts to the agenda of the 2 December review"
+        },
+        {
+          "cat": "checks",
+          "text": "Check the three contracts each morning until the review"
+        }
+      ]
+    }
+  },
+  "deliverables": [
+    "sub-risk-scorecard",
+    "sub-risk-brief",
+    "sub-risk-plan"
+  ],
+  "schedule": "Every morning at 06:00, when the nightly data has landed",
+  "chat_commands": [
+    "drop <signal or factor>",
+    "put back <signal or factor>",
+    "add a factor <name> [under what we do not control]",
+    "add a signal <what to measure> to <factor>: 1 = .., 2 = .., 3 = .., 4 = .."
+  ]
+}

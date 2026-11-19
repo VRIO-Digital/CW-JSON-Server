@@ -1,0 +1,9 @@
+{
+  "package": "Contract Risk Analyst demo data package",
+  "tenant": "Northline Water Group",
+  "built": "2026-11-17",
+  "prototype_version": 10,
+  "demo_date": "2026-11-19",
+  "language": "English",
+  "every_figure_is": "invented; computed from the prototype source by _build/export_package.ts"
+}

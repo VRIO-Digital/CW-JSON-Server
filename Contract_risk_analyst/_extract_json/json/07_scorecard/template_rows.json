@@ -1,0 +1,1173 @@
+{
+  "file": "Contract_Risk_Scorecard_Template.xlsx",
+  "columns": [
+    "Group",
+    "Factor",
+    "Factor weight (%)",
+    "Signal",
+    "Signal weight (%)",
+    "Scores 1 when (good)",
+    "Scores 2 when",
+    "Scores 3 when",
+    "Scores 4 when (bad)",
+    "How it is measured",
+    "Red flag"
+  ],
+  "rows": [
+    {
+      "group": "What we control",
+      "factor": "Non-negotiable Contract Terms",
+      "fw": 8.7,
+      "signal": "Legal review of the non-negotiable terms",
+      "sw": 100,
+      "b": [
+        "Meets every non-negotiable term",
+        "Meets the three core terms, misses other important ones",
+        "Misses one of the three core terms (liability cap, consequential damages waiver, indemnity limited to negligence)",
+        "Misses the core terms and other important ones"
+      ],
+      "how": "Read clause by clause; a draft for Legal to confirm",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Prevailing wage state",
+      "sw": 20,
+      "b": [
+        "Not in a state with strict prevailing wage rules",
+        "",
+        "",
+        "In CA, MA, NY, IL, WA, NJ, CT or OR"
+      ],
+      "how": "State of the plant against the eight listed states",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Days sales outstanding",
+      "sw": 17.8,
+      "b": [
+        "Under 45 days",
+        "45 to 60 days",
+        "60 to 90 days",
+        "90 days or more"
+      ],
+      "how": "Average receivables over revenue, times the days in the period",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Biosolids handling in scope",
+      "sw": 15.6,
+      "b": [
+        "No",
+        "",
+        "",
+        "Yes"
+      ],
+      "how": "Scope read from the contract and checked against the master list",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Unionized workforce",
+      "sw": 13.3,
+      "b": [
+        "No",
+        "",
+        "",
+        "Yes"
+      ],
+      "how": "Bargaining unit on the site roster",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Water distribution network in scope",
+      "sw": 11.1,
+      "b": [
+        "No",
+        "Yes",
+        "",
+        ""
+      ],
+      "how": "Scope read from the contract and checked against the master list",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Sewer collection network in scope",
+      "sw": 8.9,
+      "b": [
+        "No",
+        "Yes",
+        "",
+        ""
+      ],
+      "how": "Scope read from the contract and checked against the master list",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Fixed-price exposure on energy, chemicals and biosolids",
+      "sw": 6.7,
+      "b": [
+        "Costs passed through",
+        "Passed through above a threshold",
+        "Fixed, with a re-opener",
+        "Fixed for the term"
+      ],
+      "how": "Which costs the fee fixes and which pass through",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Performance guarantees and penalty clauses",
+      "sw": 4.4,
+      "b": [
+        "None",
+        "Capped at 5% of the annual fee",
+        "Capped above 5%",
+        "Uncapped or per-day damages"
+      ],
+      "how": "Guarantees, liquidated damages and their cap",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Commercial Terms",
+      "fw": 17.4,
+      "signal": "Price escalation clause",
+      "sw": 2.2,
+      "b": [
+        "Indexed to cost, yearly",
+        "CPI, yearly",
+        "CPI with a cap under 3%",
+        "No escalator"
+      ],
+      "how": "The index, the cap and how often it applies",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workplace Safety",
+      "fw": 13,
+      "signal": "Lost-time injuries",
+      "sw": 50,
+      "b": [
+        "Zero",
+        "0.1 to 0.99",
+        "1 to 1.99",
+        "2 or more"
+      ],
+      "how": "Lost time injuries per 200,000 hours, rolling twelve months",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workplace Safety",
+      "fw": 13,
+      "signal": "Recordable injuries",
+      "sw": 33.3,
+      "b": [
+        "Zero",
+        "0.1 to 0.99",
+        "1 to 1.99",
+        "2 or more"
+      ],
+      "how": "Recordable injuries per 200,000 hours, rolling twelve months",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workplace Safety",
+      "fw": 13,
+      "signal": "Safety observations per employee",
+      "sw": 16.7,
+      "b": [
+        "2 or more a year",
+        "1.5 to 2 a year",
+        "1 to 1.5 a year",
+        "Under 1 a year"
+      ],
+      "how": "Near misses and safety observations submitted this year, per employee",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Days within permit limits",
+      "sw": 28.6,
+      "b": [
+        "100%",
+        "98% to under 100%",
+        "97% to under 98%",
+        "Under 97%"
+      ],
+      "how": "Share of permit days met, by site, three-year average",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Required samples missed",
+      "sw": 23.8,
+      "b": [
+        "0",
+        "1",
+        "2",
+        "3 or more"
+      ],
+      "how": "Required samples with no result by the due date, this year",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Notices of violation",
+      "sw": 19,
+      "b": [
+        "0",
+        "1 a year",
+        "2 a year",
+        "3 or more a year"
+      ],
+      "how": "Each notice read; the public record catches any not filed",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Operators using the plant data system",
+      "sw": 14.3,
+      "b": [
+        "Every day",
+        "Every other day",
+        "Weekly",
+        "Every two weeks or less"
+      ],
+      "how": "Operator logins per working day, last 90 days",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Sewer overflows (SSO and CSO)",
+      "sw": 9.5,
+      "b": [
+        "None",
+        "1 to 2",
+        "3 to 5",
+        "6 or more"
+      ],
+      "how": "Reported overflows, rolling twelve months",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Permit Compliance",
+      "fw": 17.4,
+      "signal": "Permit renewal status",
+      "sw": 4.8,
+      "b": [
+        "Renewed in the last 2 years",
+        "Renews in 3 to 5 years",
+        "Renews within 2 years",
+        "Expired, running on extension"
+      ],
+      "how": "Permit number matched to the site; expiry date and draft limits",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Positions open more than 60 days",
+      "sw": 28.6,
+      "b": [
+        "None open over 60 days",
+        "",
+        "",
+        "One or more open over 60 days"
+      ],
+      "how": "Requisitions open longer than 60 days, by site",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Licensed operators against the contract",
+      "sw": 23.8,
+      "b": [
+        "No licensed operator required",
+        "Required: holder and backup on the roster",
+        "Required: holder on the roster, no backup",
+        "Required: no holder and no backup"
+      ],
+      "how": "The licence level the contract requires against the licences on the roster",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Staff retention",
+      "sw": 19,
+      "b": [
+        "Over 90%",
+        "80% to 90%",
+        "75% to 80%",
+        "Under 75%"
+      ],
+      "how": "Staff at the start of the year still on the roster",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Overtime share of payroll",
+      "sw": 14.3,
+      "b": [
+        "5% or below",
+        "6% to 9%",
+        "10% to 13%",
+        "Above 13%"
+      ],
+      "how": "Overtime dollars over payroll dollars, last 13 weeks",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Site manager tenure",
+      "sw": 9.5,
+      "b": [
+        "5 years or more",
+        "2 to 5 years",
+        "1 to 2 years",
+        "Under 1 year"
+      ],
+      "how": "Start date of the project leader in the role",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Workforce",
+      "fw": 8.7,
+      "signal": "Key-person dependence",
+      "sw": 4.8,
+      "b": [
+        "Three or more holders of each required licence",
+        "Two holders",
+        "One holder, backup in training",
+        "One holder, no backup"
+      ],
+      "how": "Holders of each licence the contract requires, and their hours",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Client Satisfaction",
+      "fw": 8.7,
+      "signal": "Client survey score for the site",
+      "sw": 50,
+      "b": [
+        "9 to 10, would recommend us",
+        "7 to 8, neutral",
+        "5 to 6, unhappy",
+        "0 to 4, very unhappy"
+      ],
+      "how": "The client's latest answer for the site",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Client Satisfaction",
+      "fw": 8.7,
+      "signal": "Client survey score for the region",
+      "sw": 33.3,
+      "b": [
+        "Above 70",
+        "55 to 70",
+        "40 to 55",
+        "Under 40"
+      ],
+      "how": "Revenue-weighted score across the region",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Client Satisfaction",
+      "fw": 8.7,
+      "signal": "Client survey trend, five years",
+      "sw": 16.7,
+      "b": [
+        "Increasing",
+        "Stable (scores 2.5)",
+        "",
+        "Declining by more than 10%"
+      ],
+      "how": "Slope of the site score over five surveys",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Community Standing",
+      "fw": 13,
+      "signal": "Odor complaints",
+      "sw": 33.3,
+      "b": [
+        "0",
+        "1 to 3 a year",
+        "4 to 5 a year",
+        "More than 5 a year"
+      ],
+      "how": "Odor complaints logged this year; mail to the site is read for ones not logged",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Community Standing",
+      "fw": 13,
+      "signal": "Local media coverage: % negative",
+      "sw": 26.7,
+      "b": [
+        "Under 40% negative",
+        "40% to 59%",
+        "60% to 79%",
+        "80% to 100%"
+      ],
+      "how": "Every local media report of the last twelve months that names the plant or the operator is read and marked negative, neutral or positive. The figure is the negative reports divided by the total number of reports",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Community Standing",
+      "fw": 13,
+      "signal": "Local media coverage: % positive",
+      "sw": 20,
+      "b": [
+        "80% to 100% positive",
+        "60% to 79%",
+        "40% to 59%",
+        "Under 40%"
+      ],
+      "how": "The same media reports. The figure is the positive reports divided by the total number of reports",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Community Standing",
+      "fw": 13,
+      "signal": "Community investment per year",
+      "sw": 13.3,
+      "b": [
+        "More than $20,000",
+        "$10,000 to $20,000",
+        "$1 to $10,000",
+        "$0"
+      ],
+      "how": "Sponsorships, outings and scholarships by cost centre",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Community Standing",
+      "fw": 13,
+      "signal": "Community investment trend, five years",
+      "sw": 6.7,
+      "b": [
+        "Increasing",
+        "Stable (scores 2.5)",
+        "",
+        "Declining by more than 10%"
+      ],
+      "how": "Slope of the annual spend over five years",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Financial Performance",
+      "fw": 13,
+      "signal": "Margin against budget",
+      "sw": 33.3,
+      "b": [
+        "At or above budget",
+        "Up to 2 points under",
+        "2 to 5 points under",
+        "More than 5 points under"
+      ],
+      "how": "Actual margin less budget margin, year to date",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Financial Performance",
+      "fw": 13,
+      "signal": "Margin trend, 24 months",
+      "sw": 26.7,
+      "b": [
+        "Rising",
+        "Flat",
+        "Falling up to 3 points",
+        "Falling more than 3 points"
+      ],
+      "how": "Slope of monthly margin over 24 months",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Financial Performance",
+      "fw": 13,
+      "signal": "Cost overruns",
+      "sw": 20,
+      "b": [
+        "Under 2% over plan",
+        "2% to 5%",
+        "5% to 10%",
+        "10% or more"
+      ],
+      "how": "Labour, chemicals, energy and repairs against plan",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Financial Performance",
+      "fw": 13,
+      "signal": "Unbilled or disputed change orders",
+      "sw": 13.3,
+      "b": [
+        "None",
+        "Under 1% of the annual fee",
+        "1% to 3%",
+        "More than 3%"
+      ],
+      "how": "Open change orders older than 60 days, over the annual fee",
+      "flag": false
+    },
+    {
+      "group": "What we control",
+      "factor": "Financial Performance",
+      "fw": 13,
+      "signal": "Penalties and liquidated damages paid",
+      "sw": 6.7,
+      "b": [
+        "None in 3 years",
+        "One, minor",
+        "More than one",
+        "Above 1% of the annual fee"
+      ],
+      "how": "Penalty accounts by contract, three years",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "State Legal Climate",
+      "fw": 7.1,
+      "signal": "Lawsuit cost ranking of the state",
+      "sw": 100,
+      "b": [
+        "The 12 lowest-cost states",
+        "The next 13",
+        "The next 13",
+        "The 12 highest-cost states"
+      ],
+      "how": "The 2026 edition, read from the page; checked again when a new edition is posted",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Legal Action",
+      "fw": 25,
+      "signal": "Lawsuits filed",
+      "sw": 50,
+      "b": [
+        "No recent, past or ongoing lawsuits",
+        "None active; a history of low dollar claims",
+        "Low dollar enforcement or tort claims active now",
+        "High dollar enforcement or personal injury claims, active or in the last 3 years"
+      ],
+      "how": "Open and closed matters by site; public dockets catch suits not yet on the list",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Legal Action",
+      "fw": 25,
+      "signal": "Consent orders",
+      "sw": 33.3,
+      "b": [
+        "No consent order",
+        "",
+        "",
+        "Consent order"
+      ],
+      "how": "Each order read for who it binds: the client, the operator or both",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Legal Action",
+      "fw": 25,
+      "signal": "Lawsuits threatened",
+      "sw": 16.7,
+      "b": [
+        "No threatened lawsuits, no negative campaign",
+        "No active campaign; a history of complaints being addressed",
+        "An active negative campaign about legal action",
+        "Demand letters or pre-suit notices received"
+      ],
+      "how": "Demand letters, pre-suit notices and claim correspondence, read as they arrive",
+      "flag": true
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Services covered by the contract",
+      "sw": 28.6,
+      "b": [
+        "1 to 2",
+        "3 to 4",
+        "5",
+        "6 to 7"
+      ],
+      "how": "Counted from the scope clause: treatment, distribution, collection, biosolids, stormwater, reuse",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Year of the last major upgrade",
+      "sw": 0,
+      "b": [
+        "5 years ago or less",
+        "6 to 10 years",
+        "11 to 20 years",
+        "More than 20 years, or none"
+      ],
+      "how": "The last major process upgrade named in the reports",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Maintenance hours logged to work orders",
+      "sw": 23.8,
+      "b": [
+        "95% or more",
+        "90% to 95%",
+        "70% to 90%",
+        "70% or less"
+      ],
+      "how": "Share of maintenance labour hours booked to a work order",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Planned maintenance done on time",
+      "sw": 19,
+      "b": [
+        "95% or more",
+        "90% to 95%",
+        "70% to 90%",
+        "70% or less"
+      ],
+      "how": "Planned maintenance work orders closed on time, last 90 days",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Client capital plan, next five years",
+      "sw": 14.3,
+      "b": [
+        "Funded and approved",
+        "Partially funded",
+        "Planned but unfunded",
+        "None proposed"
+      ],
+      "how": "Read from the adopted plan and the council budget",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Corrective against preventive maintenance",
+      "sw": 9.5,
+      "b": [
+        "Under 20% corrective",
+        "20% to 35%",
+        "35% to 50%",
+        "50% or more"
+      ],
+      "how": "Corrective hours over all maintenance hours, twelve months",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Asset Condition and Complexity",
+      "fw": 17.9,
+      "signal": "Asset age",
+      "sw": 4.8,
+      "b": [
+        "Under 20 years",
+        "20 to 35 years",
+        "35 to 50 years",
+        "50 years or more"
+      ],
+      "how": "Weighted age of the critical assets",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Neighbors",
+      "fw": 14.3,
+      "signal": "Homes within two miles",
+      "sw": 100,
+      "b": [
+        "0 to 2,000",
+        "2,001 to 4,000",
+        "4,001 to 10,000",
+        "More than 10,000"
+      ],
+      "how": "Residential parcels within 2 miles of the plant fence line; recounted when the county parcel file changes",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Lead in drinking water",
+      "sw": 22.2,
+      "b": [
+        "Under 60% of the action level",
+        "60% to 80% of the action level",
+        "80% to under the action level",
+        "At or above 15 ppb"
+      ],
+      "how": "90th percentile of the latest tap sampling round",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "PFAS in drinking water",
+      "sw": 19.4,
+      "b": [
+        "Below the MCL",
+        "Exceeds the MCL; treatment in place or will be by 2029",
+        "Exceeds the MCL; treatment planned, may run past 2029",
+        "Exceeds the MCL; no planning under way"
+      ],
+      "how": "Latest results against the federal limits, and whether treatment is planned",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Nitrogen in effluent",
+      "sw": 16.7,
+      "b": [
+        "Under 50% of the permit limit for 12 months",
+        "Around 60% of the limit for 9 months",
+        "Around 70% of the limit for 3 months or more",
+        "Over 80% of the limit for 3 months or more"
+      ],
+      "how": "Monthly average against the permit limit",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Copper in drinking water",
+      "sw": 13.9,
+      "b": [
+        "Under 60% of the action level",
+        "60% to 80% of the action level",
+        "80% to under the action level",
+        "At or above 1.3 ppm"
+      ],
+      "how": "90th percentile of the latest tap sampling round",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Suspended solids in effluent",
+      "sw": 11.1,
+      "b": [
+        "Under 50% of the permit limit for 12 months",
+        "Around 60% of the limit for 9 months",
+        "Around 70% of the limit for 3 months or more",
+        "Over 80% of the limit for 3 months or more"
+      ],
+      "how": "Monthly average against the permit limit",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Phosphorus in effluent",
+      "sw": 8.3,
+      "b": [
+        "Under 50% of the permit limit for 12 months",
+        "Around 60% of the limit for 9 months",
+        "Around 70% of the limit for 3 months or more",
+        "Over 80% of the limit for 3 months or more"
+      ],
+      "how": "Monthly average against the permit limit",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "PFAS in biosolids and effluent",
+      "sw": 5.6,
+      "b": [
+        "Not detected",
+        "Detected, no state rule",
+        "Detected, state rule proposed",
+        "Detected, state rule in force"
+      ],
+      "how": "Lab results against the rules proposed or in force in the state",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Water Quality and Contaminants",
+      "fw": 7.1,
+      "signal": "Rules on the way (nutrients, lead)",
+      "sw": 2.8,
+      "b": [
+        "None proposed",
+        "Proposed, more than 3 years out",
+        "Final, takes effect within 3 years",
+        "In effect, plant not yet upgraded"
+      ],
+      "how": "Rules that apply to the permit, with their dates",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "Change in key client contacts",
+      "sw": 28.6,
+      "b": [
+        "Same contacts for 3 years or more",
+        "Changed more than 18 months ago",
+        "Changed in the last 18 months",
+        "Changed in the last 6 months"
+      ],
+      "how": "New names and titles on the client side; introductions and hand-overs",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "Election or council turnover",
+      "sw": 23.8,
+      "b": [
+        "No election within 24 months",
+        "Election in 12 to 24 months",
+        "Election within 12 months",
+        "Majority changed in the last 12 months"
+      ],
+      "how": "Seats on the ballot for the body that owns the contract",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "Talk of in-house operation or a re-bid",
+      "sw": 19,
+      "b": [
+        "None found",
+        "Raised once, more than a year ago",
+        "Raised by staff or a member this year",
+        "On a public agenda, or an adviser hired"
+      ],
+      "how": "Agendas and minutes searched for the contract, in-house operation and procurement",
+      "flag": true
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "Client financial health",
+      "sw": 14.3,
+      "b": [
+        "Rated AA or better, rates approved",
+        "Rated A",
+        "Rate increase deferred or outlook negative",
+        "Downgraded, or budget in deficit"
+      ],
+      "how": "Rating, outlook and whether the rate increase passed",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "The contract in public meetings",
+      "sw": 9.5,
+      "b": [
+        "Not mentioned",
+        "1 to 2 mentions",
+        "3 to 5 mentions",
+        "6 or more"
+      ],
+      "how": "Mentions of the operator or the plant, twelve months",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Client and Political Environment",
+      "fw": 14.3,
+      "signal": "Client escalations",
+      "sw": 4.8,
+      "b": [
+        "None in twelve months",
+        "One, closed",
+        "Two or more, closed",
+        "One open with the client's director or above"
+      ],
+      "how": "Complaints from client staff that went above the project leader",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Competitive Landscape",
+      "fw": 7.1,
+      "signal": "Competitor nearby",
+      "sw": 50,
+      "b": [
+        "None within 50 miles",
+        "One within 50 miles",
+        "One in the same county",
+        "Two or more in the same county"
+      ],
+      "how": "Who operates the neighbouring plants",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Competitive Landscape",
+      "fw": 7.1,
+      "signal": "Recent competitor wins",
+      "sw": 33.3,
+      "b": [
+        "None in the region in 2 years",
+        "One in the region",
+        "One taken from us in the region",
+        "A competitor has presented to this client"
+      ],
+      "how": "Awards in the region, and who presented to which board",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Competitive Landscape",
+      "fw": 7.1,
+      "signal": "Price pressure",
+      "sw": 16.7,
+      "b": [
+        "None",
+        "Client asked for a benchmark",
+        "Client asked for a price review",
+        "Client said in writing that we cost too much"
+      ],
+      "how": "Requests for benchmarks, price reviews and budget cuts",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Climate and Operational Resilience",
+      "fw": 7.1,
+      "signal": "Flood and extreme weather exposure",
+      "sw": 40,
+      "b": [
+        "Outside the 500-year flood zone",
+        "In the 500-year zone",
+        "In the 100-year zone",
+        "In the 100-year zone, flooded in the last 10 years"
+      ],
+      "how": "The plant address against the flood zone and the storm record",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Climate and Operational Resilience",
+      "fw": 7.1,
+      "signal": "Drought and source water",
+      "sw": 30,
+      "b": [
+        "No drought in 5 years",
+        "Moderate drought in 5 years",
+        "Severe drought in 2 years",
+        "Restrictions in force"
+      ],
+      "how": "The county of the source, weekly",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Climate and Operational Resilience",
+      "fw": 7.1,
+      "signal": "Cybersecurity of plant controls",
+      "sw": 20,
+      "b": [
+        "Assessed this year, no open findings",
+        "Assessed, findings closed on plan",
+        "Assessed, findings overdue",
+        "Not assessed in 3 years"
+      ],
+      "how": "The latest assessment and its open findings",
+      "flag": false
+    },
+    {
+      "group": "What we do not control",
+      "factor": "Climate and Operational Resilience",
+      "fw": 7.1,
+      "signal": "Emergency response readiness",
+      "sw": 10,
+      "b": [
+        "Plan current, drill this year",
+        "Plan current, no drill this year",
+        "Plan older than 3 years",
+        "No plan on file"
+      ],
+      "how": "Date of the plan and of the last drill",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Annual contract revenue",
+      "sw": 28.6,
+      "b": [
+        "Under $2M",
+        "$2M to $4M",
+        "$4M to $7M",
+        "$7M or more"
+      ],
+      "how": "Fee billed, last twelve months",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Margin contribution",
+      "sw": 23.8,
+      "b": [
+        "Under $150k",
+        "$150k to $400k",
+        "$400k to $800k",
+        "$800k or more"
+      ],
+      "how": "Margin in dollars, last twelve months",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Months to renewal or end",
+      "sw": 19,
+      "b": [
+        "More than 36 months",
+        "18 to 36 months",
+        "12 to 18 months",
+        "Under 12 months"
+      ],
+      "how": "End date of the current term",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Options left at the end of the term",
+      "sw": 14.3,
+      "b": [
+        "Renewal options left, at our choice",
+        "One mutual option left",
+        "",
+        "No option left: goes to bid"
+      ],
+      "how": "Renewal options used and left",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Termination for convenience",
+      "sw": 9.5,
+      "b": [
+        "No",
+        "",
+        "",
+        "Yes"
+      ],
+      "how": "Whether the client can end the agreement without cause, and the notice",
+      "flag": false
+    },
+    {
+      "group": "What is at stake",
+      "factor": "What is at stake",
+      "fw": null,
+      "signal": "Strategic and reference value",
+      "sw": 4.8,
+      "b": [
+        "Standard",
+        "Used as a reference in bids",
+        "Regional anchor",
+        "Flagship"
+      ],
+      "how": "How often the contract is named in our own proposals",
+      "flag": false
+    }
+  ]
+}

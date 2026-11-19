@@ -1,0 +1,965 @@
+{
+  "_about": "Five questions typed into Ask after the morning check, as the prototype answered them. The last one is a miss on purpose: Ask says it cannot answer rather than invent.",
+  "as_of": "Answers come from your contract risk scorecard: 16 factors, 70 signals, version 1, as of the 20 November morning check. Open the goal Scored on your template, Contract_Risk_Scorecard_Template.xlsx.",
+  "messages": [
+    {
+      "id": 1,
+      "q": "Tell me for which all projects the risk increased in the last 90 days, and what are the reasons",
+      "steps": [
+        "understand the question",
+        "read the scorecard for 300 projects",
+        "read gis.parcels_2mi",
+        "read richstatespoorstates.org · State Liability System Survey",
+        "write the answer"
+      ],
+      "done": 5,
+      "a": {
+        "key": "risers",
+        "head": "**9 projects rose in the last 90 days**; 5 of them now rate 3 or 4. The largest rise is Ashby Falls (+0.83).",
+        "points": [
+          "Ashby Falls, Northeast: 1.67 to 2.50. Talk of in-house operation or a re-bid: On the Select Board agenda for 2 December: \"options including in-house operation\"; The contract in public meetings: 3 mentions in twelve months.",
+          "Harlow Creek, Southeast: 2.17 to 2.50. Lawsuits threatened: Demand letter received 19 November, for 23 residents; Odor complaints: 6.",
+          "Red Mesa, West: 1.52 to 1.67. Required samples missed: 2 (the second recorded 19 November)."
+        ],
+        "table": {
+          "cols": [
+            "Project",
+            "Region",
+            "90 days ago",
+            "Change",
+            "Main reason",
+            "Risk score",
+            "Rating",
+            "Revenue a year"
+          ],
+          "rows": [
+            [
+              "Ashby Falls",
+              "Northeast",
+              "1.67",
+              "+0.83",
+              "Talk of in-house operation or a re-bid: On the Select Board agenda for 2 December: \"options including in-house operation\"; The contract in public meetings: 3 mentions in twelve months",
+              "2.50",
+              "3 · medium to high",
+              "$7.4M"
+            ],
+            [
+              "Harlow Creek",
+              "Southeast",
+              "2.17",
+              "+0.33",
+              "Lawsuits threatened: Demand letter received 19 November, for 23 residents; Odor complaints: 6",
+              "2.50",
+              "3 · medium to high",
+              "$5.8M"
+            ],
+            [
+              "Red Mesa",
+              "West",
+              "1.52",
+              "+0.16",
+              "Required samples missed: 2 (the second recorded 19 November)",
+              "1.67",
+              "2 · low to medium",
+              "$4.1M"
+            ],
+            [
+              "Sable Creek",
+              "Southeast",
+              "2.58",
+              "+0.15",
+              "Days within permit limits: 94.0% (was 3, now 4); Notices of violation: 2 (was 2, now 3)",
+              "2.73",
+              "3 · medium to high",
+              "$3.6M"
+            ],
+            [
+              "Thorn Bend",
+              "West",
+              "2.30",
+              "+0.10",
+              "Recordable injuries: 2.68 (was 3, now 4); Safety observations per employee: 0.4 per employee (was 3, now 4)",
+              "2.40",
+              "2 · low to medium",
+              "$10.1M"
+            ],
+            [
+              "Ember Valley",
+              "Southeast",
+              "2.63",
+              "+0.10",
+              "Operators using the plant data system: 0.07 logins a day (was 3, now 4); Positions open more than 60 days: 3 open over 60 days (was 3, now 4)",
+              "2.73",
+              "3 · medium to high",
+              "$5.0M"
+            ],
+            [
+              "Norvale Valley",
+              "South Central",
+              "1.69",
+              "+0.10",
+              "Licensed operators against the contract: Holder and backup (was 1, now 2); Lawsuits filed: None active; 1 small claim closed (was 1, now 2)",
+              "1.79",
+              "2 · low to medium",
+              "$3.0M"
+            ],
+            [
+              "Gable Hollow",
+              "Southeast",
+              "1.87",
+              "+0.09",
+              "Staff retention: 85% (was 1, now 2); Odor complaints: 4 (was 2, now 3)",
+              "1.97",
+              "2 · low to medium",
+              "$6.7M"
+            ],
+            [
+              "Alder Ridge",
+              "Midwest",
+              "2.78",
+              "+0.09",
+              "Required samples missed: 4 (was 3, now 4); Overtime share of payroll: 14.8% (was 3, now 4)",
+              "2.87",
+              "3 · medium to high",
+              "$8.4M"
+            ]
+          ],
+          "ids": [
+            "NCO-111",
+            "NCO-047",
+            "NCO-184",
+            "NCO-287",
+            "NCO-220",
+            "NCO-282",
+            "NCO-294",
+            "NCO-167",
+            "NCO-133"
+          ],
+          "num": [
+            5,
+            7,
+            2,
+            3
+          ]
+        },
+        "sources": [
+          {
+            "kind": "table",
+            "name": "The contract risk scorecard"
+          },
+          {
+            "kind": "table",
+            "name": "gis.parcels_2mi"
+          },
+          {
+            "kind": "web",
+            "name": "richstatespoorstates.org · State Liability System Survey"
+          }
+        ],
+        "follow": [
+          "What is the status of Ashby Falls and why?",
+          "Which projects improved in the last 90 days?",
+          "Which projects moved into high risk?"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "q": "For Sable Creek wastewater treatment plant, what is the status and why did the risk go up?",
+      "steps": [
+        "understand the question",
+        "read the scorecard for 300 projects",
+        "read Legal matter files, checked against the county court docket",
+        "read richstatespoorstates.org · State Liability System Survey",
+        "write the answer"
+      ],
+      "done": 5,
+      "a": {
+        "key": "site:NCO-287",
+        "head": "**Sable Creek rates 3 (medium to high) with a risk score of 2.73.** It rose by 0.15 over the last 90 days. Priority: manage.",
+        "points": [
+          "The contract: wastewater for Sable Creek Utility District, MS. $3.6M a year at 7.4% margin, 43 months left. Regional VP Marisol Vega, project leader Uma Tanaka.",
+          "Why it went up in the last 90 days: days within permit limits went from 3 to 4 (94.0%); notices of violation went from 2 to 3 (2); positions open more than 60 days went from 3 to 4 (1 open over 60 days).",
+          "Why it scores 2.73: 40 signals at 3 or 4. The ones that carry most are in the table.",
+          "What to do: 5 actions in the plan, first “Litigation: 1 high dollar claim active. Legal reviews the reserve and briefs the Regional VP on what Sable Creek must and must not say. The same claimant settled a smaller claim in 2022” (Elliot Marsh, Legal, by 4 Dec). If the plan lands the score goes from 2.73 to 2.57."
+        ],
+        "table": {
+          "cols": [
+            "Signal",
+            "Reading",
+            "Scores",
+            "Factor"
+          ],
+          "rows": [
+            [
+              "Lawsuits filed",
+              "1 high dollar claim active",
+              "4",
+              "Legal Action"
+            ],
+            [
+              "Lawsuit cost ranking of the state",
+              "Mississippi: rank 40 of 50",
+              "4",
+              "State Legal Climate"
+            ],
+            [
+              "Days within permit limits",
+              "94.0%",
+              "4",
+              "Permit Compliance"
+            ],
+            [
+              "Client survey score for the site",
+              "2",
+              "4",
+              "Client Satisfaction"
+            ],
+            [
+              "Lost-time injuries",
+              "1.37",
+              "3",
+              "Workplace Safety"
+            ],
+            [
+              "Margin against budget",
+              "-6.1 points",
+              "4",
+              "Financial Performance"
+            ],
+            [
+              "Maintenance hours logged to work orders",
+              "49%",
+              "4",
+              "Asset Condition and Complexity"
+            ],
+            [
+              "Required samples missed",
+              "4",
+              "4",
+              "Permit Compliance"
+            ]
+          ],
+          "num": [
+            2
+          ]
+        },
+        "sources": [
+          {
+            "kind": "document",
+            "name": "Legal matter files, checked against the county court docket"
+          },
+          {
+            "kind": "web",
+            "name": "richstatespoorstates.org · State Liability System Survey"
+          },
+          {
+            "kind": "table",
+            "name": "ops.compliance_daily"
+          },
+          {
+            "kind": "table",
+            "name": "crm.nps_response"
+          },
+          {
+            "kind": "table",
+            "name": "master.contract"
+          },
+          {
+            "kind": "table",
+            "name": "The contract risk scorecard"
+          }
+        ],
+        "follow": [
+          "What is the mitigation plan for Sable Creek?",
+          "What is at stake at Sable Creek?",
+          "For which projects did the risk increase in the last 90 days, and why?"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "q": "Which projects have not recorded any safety observation in the last 2 weeks?",
+      "steps": [
+        "understand the question",
+        "read the scorecard for 300 projects",
+        "read ehs.observation",
+        "read hr.roster",
+        "write the answer"
+      ],
+      "done": 5,
+      "a": {
+        "key": "obs",
+        "head": "**46 projects have not recorded a safety observation in the last two weeks.** The longest gap is Osric Flats: 73 days. 27 of them already rate 3 or 4.",
+        "points": [
+          "A site that stops recording observations has usually stopped looking, not stopped having them. On your lost-time injuries of the last three years, the site had gone quiet for three weeks or more before most of them.",
+          "On the scorecard this feeds the signal “Safety observations per employee” in Workplace Safety."
+        ],
+        "table": {
+          "cols": [
+            "Project",
+            "Region",
+            "Last observation",
+            "This year, per employee",
+            "Risk score",
+            "Rating",
+            "Revenue a year"
+          ],
+          "rows": [
+            [
+              "Osric Flats",
+              "Midwest",
+              "8 Sept · 73 days ago",
+              "0.3",
+              "2.02",
+              "2 · low to medium",
+              "$4.6M"
+            ],
+            [
+              "Merrow Creek",
+              "Northeast",
+              "11 Sept · 70 days ago",
+              "0.3",
+              "2.18",
+              "2 · low to medium",
+              "$2.4M"
+            ],
+            [
+              "Ember Hollow",
+              "South Central",
+              "14 Sept · 67 days ago",
+              "0.3",
+              "2.01",
+              "2 · low to medium",
+              "$3.2M"
+            ],
+            [
+              "Alder Springs",
+              "Northeast",
+              "15 Sept · 66 days ago",
+              "0.3",
+              "2.58",
+              "3 · medium to high",
+              "$7.9M"
+            ],
+            [
+              "Osric Creek",
+              "Midwest",
+              "24 Sept · 57 days ago",
+              "0.3",
+              "2.21",
+              "2 · low to medium",
+              "$4.1M"
+            ],
+            [
+              "Hadley Point",
+              "West",
+              "24 Sept · 57 days ago",
+              "0.4",
+              "2.68",
+              "3 · medium to high",
+              "$3.4M"
+            ],
+            [
+              "Keswick Grove",
+              "West",
+              "27 Sept · 54 days ago",
+              "0.4",
+              "2.83",
+              "3 · medium to high",
+              "$3.7M"
+            ],
+            [
+              "Sable Flats",
+              "West",
+              "27 Sept · 54 days ago",
+              "0.4",
+              "2.24",
+              "2 · low to medium",
+              "$2.4M"
+            ],
+            [
+              "Alder Ridge",
+              "Midwest",
+              "1 Oct · 50 days ago",
+              "0.3",
+              "2.87",
+              "3 · medium to high",
+              "$8.4M"
+            ],
+            [
+              "Wren Creek",
+              "South Central",
+              "4 Oct · 47 days ago",
+              "0.3",
+              "2.50",
+              "3 · medium to high",
+              "$2.6M"
+            ],
+            [
+              "Hollis Springs",
+              "Northeast",
+              "5 Oct · 46 days ago",
+              "0.2",
+              "2.82",
+              "3 · medium to high",
+              "$2.4M"
+            ],
+            [
+              "Selby Crossing",
+              "Northeast",
+              "6 Oct · 45 days ago",
+              "0.4",
+              "1.72",
+              "2 · low to medium",
+              "$3.8M"
+            ],
+            [
+              "Ashby Grove",
+              "West",
+              "11 Oct · 40 days ago",
+              "0.3",
+              "2.54",
+              "3 · medium to high",
+              "$3.2M"
+            ],
+            [
+              "Norvale Point",
+              "Northeast",
+              "11 Oct · 40 days ago",
+              "0.4",
+              "2.64",
+              "3 · medium to high",
+              "$2.3M"
+            ],
+            [
+              "Corwin Creek",
+              "Midwest",
+              "13 Oct · 38 days ago",
+              "1.1",
+              "2.15",
+              "2 · low to medium",
+              "$6.5M"
+            ],
+            [
+              "Tollan Valley",
+              "Midwest",
+              "15 Oct · 36 days ago",
+              "0.3",
+              "2.50",
+              "3 · medium to high",
+              "$9.6M"
+            ],
+            [
+              "Merrow Hollow",
+              "Northeast",
+              "17 Oct · 34 days ago",
+              "0.3",
+              "2.72",
+              "3 · medium to high",
+              "$4.4M"
+            ],
+            [
+              "Garnet Valley",
+              "West",
+              "18 Oct · 33 days ago",
+              "1.4",
+              "2.38",
+              "2 · low to medium",
+              "$2.2M"
+            ],
+            [
+              "Elsin Point",
+              "Northeast",
+              "18 Oct · 33 days ago",
+              "0.3",
+              "1.78",
+              "2 · low to medium",
+              "$5.1M"
+            ],
+            [
+              "Fenwick Springs",
+              "Southeast",
+              "19 Oct · 32 days ago",
+              "0.7",
+              "2.06",
+              "2 · low to medium",
+              "$3.3M"
+            ],
+            [
+              "Ashby Landing",
+              "Northeast",
+              "19 Oct · 32 days ago",
+              "1.4",
+              "2.50",
+              "3 · medium to high",
+              "$3.5M"
+            ],
+            [
+              "Sable Creek",
+              "Southeast",
+              "19 Oct · 32 days ago",
+              "1.1",
+              "2.73",
+              "3 · medium to high",
+              "$3.6M"
+            ],
+            [
+              "Thorn Bend",
+              "West",
+              "21 Oct · 30 days ago",
+              "0.4",
+              "2.40",
+              "2 · low to medium",
+              "$10.1M"
+            ],
+            [
+              "Tollan Point",
+              "South Central",
+              "22 Oct · 29 days ago",
+              "0.3",
+              "2.58",
+              "3 · medium to high",
+              "$2.4M"
+            ],
+            [
+              "Keswick Falls",
+              "Northeast",
+              "23 Oct · 28 days ago",
+              "1.2",
+              "2.60",
+              "3 · medium to high",
+              "$3.0M"
+            ],
+            [
+              "Alder Crossing",
+              "West",
+              "23 Oct · 28 days ago",
+              "0.3",
+              "2.82",
+              "3 · medium to high",
+              "$2.9M"
+            ],
+            [
+              "Sable Falls",
+              "Midwest",
+              "25 Oct · 26 days ago",
+              "0.6",
+              "2.64",
+              "3 · medium to high",
+              "$2.3M"
+            ],
+            [
+              "Fenwick Falls",
+              "Midwest",
+              "26 Oct · 25 days ago",
+              "0.6",
+              "2.18",
+              "2 · low to medium",
+              "$6.6M"
+            ],
+            [
+              "Dunmere Grove",
+              "Midwest",
+              "27 Oct · 24 days ago",
+              "0.8",
+              "2.55",
+              "3 · medium to high",
+              "$5.4M"
+            ],
+            [
+              "Corwin Crossing",
+              "Southeast",
+              "30 Oct · 21 days ago",
+              "1.4",
+              "1.53",
+              "2 · low to medium",
+              "$4.6M"
+            ],
+            [
+              "Vance Bend",
+              "Midwest",
+              "30 Oct · 21 days ago",
+              "1.2",
+              "2.82",
+              "3 · medium to high",
+              "$2.6M"
+            ],
+            [
+              "Hollis Point",
+              "Midwest",
+              "31 Oct · 20 days ago",
+              "0.4",
+              "2.50",
+              "3 · medium to high",
+              "$8.8M"
+            ],
+            [
+              "Linden Falls",
+              "Northeast",
+              "31 Oct · 20 days ago",
+              "0.9",
+              "3.24",
+              "3 · medium to high",
+              "$3.7M"
+            ],
+            [
+              "Ashby Creek",
+              "South Central",
+              "31 Oct · 20 days ago",
+              "0.7",
+              "2.79",
+              "3 · medium to high",
+              "$3.7M"
+            ],
+            [
+              "Dunmere Ridge",
+              "Southeast",
+              "31 Oct · 20 days ago",
+              "0.8",
+              "2.64",
+              "3 · medium to high",
+              "$4.1M"
+            ],
+            [
+              "Pell Crossing",
+              "Southeast",
+              "1 Nov · 19 days ago",
+              "0.6",
+              "2.65",
+              "3 · medium to high",
+              "$3.1M"
+            ],
+            [
+              "Tamsin Ridge",
+              "Midwest",
+              "2 Nov · 18 days ago",
+              "3.6",
+              "1.10",
+              "1 · low",
+              "$4.7M"
+            ],
+            [
+              "Calder Grove",
+              "West",
+              "2 Nov · 18 days ago",
+              "0.3",
+              "2.28",
+              "2 · low to medium",
+              "$3.7M"
+            ],
+            [
+              "Brindle Hollow",
+              "Southeast",
+              "2 Nov · 18 days ago",
+              "1.3",
+              "2.53",
+              "3 · medium to high",
+              "$6.1M"
+            ],
+            [
+              "Mossley Grove",
+              "Midwest",
+              "2 Nov · 18 days ago",
+              "5.6",
+              "1.66",
+              "2 · low to medium",
+              "$2.1M"
+            ],
+            [
+              "Ingram Flats",
+              "West",
+              "3 Nov · 17 days ago",
+              "1.1",
+              "2.33",
+              "2 · low to medium",
+              "$2.9M"
+            ],
+            [
+              "Quill Landing",
+              "Midwest",
+              "4 Nov · 16 days ago",
+              "1.4",
+              "2.62",
+              "3 · medium to high",
+              "$10.3M"
+            ],
+            [
+              "Wexley Crossing",
+              "West",
+              "4 Nov · 16 days ago",
+              "6.0",
+              "1.65",
+              "2 · low to medium",
+              "$6.7M"
+            ],
+            [
+              "Norvale Ridge",
+              "Southeast",
+              "4 Nov · 16 days ago",
+              "5.3",
+              "2.50",
+              "3 · medium to high",
+              "$1.9M"
+            ],
+            [
+              "Garnet Springs",
+              "Southeast",
+              "5 Nov · 15 days ago",
+              "1.4",
+              "1.69",
+              "2 · low to medium",
+              "$3.3M"
+            ],
+            [
+              "Quill Flats",
+              "Midwest",
+              "5 Nov · 15 days ago",
+              "0.8",
+              "3.05",
+              "3 · medium to high",
+              "$2.8M"
+            ]
+          ],
+          "ids": [
+            "NCO-218",
+            "NCO-176",
+            "NCO-214",
+            "NCO-196",
+            "NCO-053",
+            "NCO-235",
+            "NCO-120",
+            "NCO-185",
+            "NCO-133",
+            "NCO-069",
+            "NCO-286",
+            "NCO-081",
+            "NCO-110",
+            "NCO-201",
+            "NCO-003",
+            "NCO-108",
+            "NCO-216",
+            "NCO-115",
+            "NCO-206",
+            "NCO-022",
+            "NCO-241",
+            "NCO-287",
+            "NCO-220",
+            "NCO-229",
+            "NCO-076",
+            "NCO-190",
+            "NCO-283",
+            "NCO-178",
+            "NCO-138",
+            "NCO-062",
+            "NCO-153",
+            "NCO-023",
+            "NCO-116",
+            "NCO-129",
+            "NCO-252",
+            "NCO-207",
+            "NCO-048",
+            "NCO-135",
+            "NCO-242",
+            "NCO-293",
+            "NCO-005",
+            "NCO-043",
+            "NCO-075",
+            "NCO-102",
+            "NCO-157",
+            "NCO-183"
+          ],
+          "num": [
+            4,
+            6
+          ]
+        },
+        "sources": [
+          {
+            "kind": "table",
+            "name": "ehs.observation"
+          },
+          {
+            "kind": "table",
+            "name": "hr.roster"
+          },
+          {
+            "kind": "table",
+            "name": "The contract risk scorecard"
+          }
+        ],
+        "follow": [
+          "Which sites have the highest lost-time injury rate?",
+          "Where is workplace safety the weakest?",
+          "What is the status of Osric Flats and why?"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "q": "Compare Ashby Falls and Red Mesa",
+      "steps": [
+        "understand the question",
+        "read the scorecard for 300 projects",
+        "read master.contract",
+        "write the answer"
+      ],
+      "done": 4,
+      "a": {
+        "key": "compare",
+        "head": "**Ashby Falls scores 2.50 (rating 3) and Red Mesa scores 1.67 (rating 2).** They differ most on competitive landscape: 3.17 against 1.00.",
+        "points": [
+          "Ashby Falls: $7.4M a year, 7 months left, Northeast. Main reason: Talk of in-house operation or a re-bid: On the Select Board agenda for 2 December: \"options including in-house operation\"; The contract in public meetings: 3 mentions in twelve months.",
+          "Red Mesa: $4.1M a year, 61 months left, West. Main reason: Required samples missed: 2 (the second recorded 19 November)."
+        ],
+        "table": {
+          "cols": [
+            "Factor",
+            "Ashby Falls",
+            "Red Mesa",
+            "Gap"
+          ],
+          "rows": [
+            [
+              "Competitive Landscape",
+              "3.17",
+              "1.00",
+              "+2.17"
+            ],
+            [
+              "Workforce",
+              "1.43",
+              "3.48",
+              "−2.05"
+            ],
+            [
+              "Client and Political Environment",
+              "3.00",
+              "1.14",
+              "+1.86"
+            ],
+            [
+              "Commercial Terms",
+              "2.33",
+              "1.09",
+              "+1.24"
+            ],
+            [
+              "Water Quality and Contaminants",
+              "1.31",
+              "2.31",
+              "−1.01"
+            ],
+            [
+              "Non-negotiable Contract Terms",
+              "1.00",
+              "2.00",
+              "−1.00"
+            ],
+            [
+              "State Legal Climate",
+              "2.00",
+              "3.00",
+              "−1.00"
+            ],
+            [
+              "Neighbors",
+              "3.00",
+              "2.00",
+              "+1.00"
+            ],
+            [
+              "Permit Compliance",
+              "1.05",
+              "2.05",
+              "−1.00"
+            ],
+            [
+              "Financial Performance",
+              "1.27",
+              "2.00",
+              "−0.73"
+            ],
+            [
+              "Climate and Operational Resilience",
+              "1.60",
+              "1.00",
+              "+0.60"
+            ],
+            [
+              "Client Satisfaction",
+              "2.08",
+              "1.58",
+              "+0.50"
+            ],
+            [
+              "Community Standing",
+              "1.77",
+              "1.43",
+              "+0.33"
+            ],
+            [
+              "Asset Condition and Complexity",
+              "2.19",
+              "1.90",
+              "+0.29"
+            ],
+            [
+              "Workplace Safety",
+              "1.17",
+              "1.33",
+              "−0.17"
+            ],
+            [
+              "Legal Action",
+              "1.00",
+              "1.00",
+              "+0.00"
+            ]
+          ],
+          "num": [
+            1,
+            2,
+            3
+          ]
+        },
+        "sources": [
+          {
+            "kind": "table",
+            "name": "The contract risk scorecard"
+          },
+          {
+            "kind": "table",
+            "name": "master.contract"
+          }
+        ],
+        "follow": [
+          "What is the status of Ashby Falls and why?",
+          "What is the status of Red Mesa and why?",
+          "Which ten projects carry the most risk?"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "q": "What is the weather like?",
+      "steps": [
+        "understand the question"
+      ],
+      "done": 1,
+      "a": {
+        "key": "none",
+        "head": "I cannot answer that from the contract risk scorecard yet.",
+        "points": [
+          "I answer questions about the portfolio, a region, a project by name, a signal such as overtime or missed samples, what moved and why, renewals, mitigation plans and how the score is made."
+        ],
+        "sources": [],
+        "follow": [
+          "What should I worry about this week?",
+          "For which projects did the risk increase in the last 90 days, and why?",
+          "Which projects have not recorded a safety observation in the last two weeks?"
+        ]
+      }
+    }
+  ]
+}

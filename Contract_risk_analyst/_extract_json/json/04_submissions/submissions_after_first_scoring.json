@@ -1,0 +1,84 @@
+[
+  {
+    "id": "sub-contract-risk-dashboard-all-contracts-nc020",
+    "title": "Contract risk dashboard: all contracts",
+    "audience": "Renee Halvorsen, SVP, Contract Operations, and the five Regional VPs",
+    "purpose": "The dashboard you designed, refreshed, with what changed overnight",
+    "template": "Contract risk: Contract risk dashboard",
+    "templateId": "t-risk-scorecard",
+    "format": "Dashboard",
+    "origin": "recommendation",
+    "goalIds": [
+      "g-contract-risk-watch"
+    ],
+    "fromGoal": {
+      "id": "g-contract-risk-watch",
+      "title": "Contract risk: every contract scored, and watched every morning"
+    },
+    "agentName": "Agent Ledger",
+    "stage": "draft",
+    "sections": [
+      {
+        "id": "t-risk-scorecard-0",
+        "heading": "Where the portfolio stands",
+        "body": "Run the full plan at every contract that rose: an odor plan at Harlow Creek, a renewal plan at Ashby Falls, cover at Red Mesa.\nHarlow Creek: an odor source survey, load-out moved to mornings, the complaint calls returned and the Regional VP in front of the City Manager before the 8 December council. Ashby Falls: the Regional VP meets the new DPW Director before 2 December and the renewal plan starts now. Red Mesa: both posts covered from the West float pool on Monday and the sampling schedule given a second owner.\nContracts acted on: 3 of 300\nRevenue they carry: $17.3M a year\nPlans written: 3, one per site\nWritten for: each site, by signal",
+        "from": "Preferred recommendation, Agent Ledger",
+        "role": "summary",
+        "included": true
+      },
+      {
+        "id": "t-risk-scorecard-1",
+        "heading": "What changed since the last check",
+        "body": "1. Overnight, 3 of the 300 contracts changed and one moved a rating: Harlow Creek WWTP in Georgia, from 2 to 3.\nAll 11,973 readings were read again at 06:00. Four changed, on three contracts. Harlow Creek was the contract closest to the line: its internal score went from 2.35 to 2.40 and its external score from 2.30 to 2.38, so it now rates 3, medium to high. Red Mesa in Arizona and Ashby Falls in Massachusetts changed without moving a rating. The other 297 contracts stand where they stood.",
+        "from": "Findings, Agent Ledger",
+        "role": "findings",
+        "included": true
+      },
+      {
+        "id": "t-risk-scorecard-2",
+        "heading": "Ratings by region",
+        "body": "1. Overnight, 3 of the 300 contracts changed and one moved a rating: Harlow Creek WWTP in Georgia, from 2 to 3.\nAll 11,973 readings were read again at 06:00. Four changed, on three contracts. Harlow Creek was the contract closest to the line: its internal score went from 2.35 to 2.40 and its external score from 2.30 to 2.38, so it now rates 3, medium to high. Red Mesa in Arizona and Ashby Falls in Massachusetts changed without moving a rating. The other 297 contracts stand where they stood.\n\n2. Harlow Creek: a demand letter for 23 residents arrived at 16:42 and a sixth odor complaint was logged the same evening.\nThreatened litigation goes from 2 to 4 (a demand letter is the top band) and Odor complaints from 3 to 4 (more than five in a year). The letter asks for abatement, the odor records since January 2024 and talks on compensation within 30 days, and names the City too. Five of the six complaints fall on biosolids load-out afternoons and two were never called back. The setting makes it worse: Georgia rates 4 on the state ranking (rank 46 of 50) and 11,420 homes sit within 2 miles. The contract caps liability at the annual fee but has no waiver of consequential damages.\n\n3. Red Mesa still rates 2, but it now shows the pattern that came before five of the last seven notices of violation.\nA second missed sample this quarter was recorded on 19 November, so Missed samples goes from 2 to 3 and the internal score from 1.74 to 1.78. On its own that moves nothing. Together with two operator posts open more than 60 days and overtime at 14.2% of payroll it is the combination five of the seven sites with a notice of violation since 2024 showed 8 to 12 weeks before. Both missed samples fell on weekend shifts covered on overtime by the one operator who holds the licence the contract requires.\n\n4. Ashby Falls does not move on the scorecard, and it is the contract most likely to be lost: $7.4M a year, ending in seven months.\nThe Select Board agenda posted on 19 November lists \"Water and sewer operations after June 2027: options including in-house operation\" for 2 December, with a vote to hire a procurement adviser. The DPW Director changed in August; the NPS of 8 on file was given by her predecessor. The agreement ends 30 June 2027 with no renewal option left, and a competitor presented to the Finance Committee in October. None of this is a signal on the scorecard, so the rating stays 2. It is the same sequence as Calder Valley in 2025.",
+        "from": "Findings, Agent Ledger",
+        "role": "findings",
+        "included": true
+      },
+      {
+        "id": "t-risk-scorecard-3",
+        "heading": "The action list: high risk with a lot at stake",
+        "body": "1. Overnight, 3 of the 300 contracts changed and one moved a rating: Harlow Creek WWTP in Georgia, from 2 to 3.\nAll 11,973 readings were read again at 06:00. Four changed, on three contracts. Harlow Creek was the contract closest to the line: its internal score went from 2.35 to 2.40 and its external score from 2.30 to 2.38, so it now rates 3, medium to high. Red Mesa in Arizona and Ashby Falls in Massachusetts changed without moving a rating. The other 297 contracts stand where they stood.",
+        "from": "Findings, Agent Ledger",
+        "role": "findings",
+        "included": true
+      },
+      {
+        "id": "t-risk-scorecard-4",
+        "heading": "What needs a decision",
+        "body": "Run the full plan at every contract that rose: an odor plan at Harlow Creek, a renewal plan at Ashby Falls, cover at Red Mesa (preferred)\nHarlow Creek: an odor source survey, load-out moved to mornings, the complaint calls returned and the Regional VP in front of the City Manager before the 8 December council. Ashby Falls: the Regional VP meets the new DPW Director before 2 December and the renewal plan starts now. Red Mesa: both posts covered from the West float pool on Monday and the sampling schedule given a second owner.\nContracts acted on: 3 of 300 · Revenue they carry: $17.3M a year · Plans written: 3, one per site · Written for: each site, by signal\nTrade-off: Three regions get work this week, one of them for a contract that still rates 2.\n\nPlans only where a rating moved; list the rest in the Monday digest\nFollow the ratings strictly: a contract that moved up gets the full plan today. A contract that rose inside its rating goes into the Monday digest.\nContracts acted on: 1 of 300 · Actions opened: 7 · Red Mesa: pattern left to run · Ashby Falls: council meets first\nTrade-off: Simple to explain, since it follows the ratings. But the Ashby Falls board meets on 2 December, the same day as the review, and Red Mesa goes on with one licence holder working weekends.\n\nTell the owners now and decide the rest at the 2 December review\nTell the people who own each contract this morning. Take the contracts to the leadership team on 2 December and decide the plans there.\nDone today: Owners told · Days used of the 30: 13 · Odor survey: not started · Disruption this week: none\nTrade-off: The least work now. It uses 13 of the 30 days the letter gives, and the Ashby Falls board meets on the same day as the review.",
+        "from": "Recommendations, Agent Ledger",
+        "role": "options",
+        "included": true
+      },
+      {
+        "id": "t-risk-scorecard-5",
+        "heading": "Sources",
+        "body": "• The scorecard before and after the 06:00 check: 300 contracts, 4 readings changed (table: Scorecard · all contracts, 2026-11-20)\n• The bands and weights applied are those agreed on the plan (table: Scorecard design, 2026-11-19)\n• Baines & Ortega LLP, 19 November 16:42: notice of claim and demand, copied to the City Attorney (mail: Thread H1, legal notices mailbox, 2026-11-19)\n• Complaint log: six this year, five on load-out afternoons, two not called back (document: Harlow_Creek_Odor_Complaint_Log_2026.xlsx, 2026-11-19)\n• Agreement: liability capped at the annual fee (14.1); no waiver of consequential damages; odor control capital is the City's (9.4) (document: Harlow_Creek_OM_Agreement_2018.pdf, 2018-06-12)\n• Georgia ranks 46 of 50 on liability cost, 2026 edition (web: richstatespoorstates.org, 2026-11-20)\n• Sampling exceptions: 12 September and 15 November, both on a weekend overtime shift (document: Red_Mesa_Sampling_Plan_and_Exceptions_2026.pdf, 2026-11-19)\n• Project leader, 19 November: second missed sample; both posts still open; two offers declined (mail: Thread R1, Missed TSS composite, 2026-11-19)\n• Open requisitions, overtime share and missed samples for every site since 2024, against notices of violation (table: hr.requisition · ops.labor_weekly · plantdata.sample_schedule, 2026-11-20)\n• Select Board agenda for 2 December, item 6a and 6b, posted 19 November (web: Town of Ashby Falls, 2026-11-19)\n• Project leader, 19 August: new DPW Director, from a district that runs its own plants (mail: Thread A1, Introductions, 2026-08-19)\n• Agreement section 2.2: the one renewal option was used in 2022; ends 30 June 2027 (document: Ashby_Falls_OM_Agreement_2017.pdf, 2017-05-30)\n• Calder Valley: new client lead, adviser hired, stale NPS, competitor presenting, then lost at re-bid (document: Calder_Valley_Loss_Review_2026-03.pdf, 2026-03-12)",
+        "from": "Evidence lines, Agent Ledger",
+        "role": "evidence",
+        "included": true
+      }
+    ],
+    "createdBy": "Nishant Srivastav",
+    "createdAt": "2026-11-19T14:04:05.280Z",
+    "journeyId": "g-contract-risk-every-contract-scored--nc001",
+    "delivId": "sub-risk-scorecard",
+    "version": 1,
+    "basis": "the findings",
+    "log": [
+      {
+        "at": "2026-11-19T14:04:05.280Z",
+        "who": "Agent Ledger",
+        "what": "Built from the run of \"Contract risk: every contract scored, and watched every morning\" on the template \"Contract risk dashboard\", on the findings."
+      }
+    ]
+  }
+]

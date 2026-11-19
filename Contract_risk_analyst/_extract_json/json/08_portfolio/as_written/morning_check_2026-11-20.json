@@ -1,0 +1,101 @@
+{
+  "scorecard": "as_written",
+  "as_of": "2026-11-20T06:00",
+  "headline": "Ashby Falls and Harlow Creek moved up a rating",
+  "summary": "**3 of the 300 contracts changed overnight and 2 moved up a rating: Ashby Falls Water and Sewer, from 2 to 3; Harlow Creek WWTP, from 2 to 3.** Red Mesa rose inside its rating.",
+  "moved": [
+    {
+      "id": "NCO-111",
+      "site": "Ashby Falls Water and Sewer",
+      "score_before": 1.72,
+      "score_after": 2.5,
+      "rating_before": 2,
+      "rating_after": 3,
+      "priority_before": "Routine",
+      "priority_after": "Act now",
+      "signals_that_changed": [
+        {
+          "signal": "cp3",
+          "name": "Talk of in-house operation or a re-bid",
+          "from": 1,
+          "to": 4,
+          "reading": "On the Select Board agenda for 2 December: \"options including in-house operation\""
+        },
+        {
+          "signal": "cp5",
+          "name": "The contract in public meetings",
+          "from": 2,
+          "to": 3,
+          "reading": "3 mentions in twelve months"
+        },
+        {
+          "signal": "cl2",
+          "name": "Recent competitor wins",
+          "from": 2,
+          "to": 4,
+          "reading": "Clearbrook Operations presented to the Finance Committee in October (minutes published 19 November)"
+        }
+      ],
+      "seen_not_scored": []
+    },
+    {
+      "id": "NCO-047",
+      "site": "Harlow Creek WWTP",
+      "score_before": 2.327,
+      "score_after": 2.5,
+      "rating_before": 2,
+      "rating_after": 3,
+      "priority_before": "Watch",
+      "priority_after": "Act now",
+      "signals_that_changed": [
+        {
+          "signal": "li3",
+          "name": "Lawsuits threatened",
+          "from": 2,
+          "to": 4,
+          "reading": "Demand letter received 19 November, for 23 residents"
+        },
+        {
+          "signal": "co1",
+          "name": "Odor complaints",
+          "from": 3,
+          "to": 4,
+          "reading": "6"
+        }
+      ],
+      "seen_not_scored": []
+    },
+    {
+      "id": "NCO-184",
+      "site": "Red Mesa Regional Water Reclamation Facility",
+      "score_before": 1.65,
+      "score_after": 1.671,
+      "rating_before": 2,
+      "rating_after": 2,
+      "priority_before": "Routine",
+      "priority_after": "Routine",
+      "signals_that_changed": [
+        {
+          "signal": "en2",
+          "name": "Required samples missed",
+          "from": 2,
+          "to": 3,
+          "reading": "2 (the second recorded 19 November)"
+        }
+      ],
+      "seen_not_scored": [
+        {
+          "k": "chain",
+          "night": true,
+          "label": "The pattern before a notice of violation",
+          "text": "Positions open over 60 days, overtime above 13% and a second missed sample in a quarter: five of the seven sites that received a notice of violation since 2024 showed all three 8 to 12 weeks before.",
+          "tone": "crit",
+          "src": {
+            "kind": "table",
+            "name": "hr.requisition · ops.labor_weekly · plantdata.sample_schedule, 2024 to 2026"
+          }
+        }
+      ]
+    }
+  ]
+}

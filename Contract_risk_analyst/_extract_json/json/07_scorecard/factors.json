@@ -1,0 +1,283 @@
+[
+  {
+    "id": "gr",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Non-negotiable Contract Terms",
+    "what_it_is": "Contract terms the company should never accept, such as uncapped liability.",
+    "weight": 10,
+    "share_of_final_score": 0.043,
+    "signals": [
+      "gr1"
+    ],
+    "portfolio_average": 1.973
+  },
+  {
+    "id": "cr",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Commercial Terms",
+    "what_it_is": "Terms and conditions that make the contract harder or costlier to run.",
+    "weight": 20,
+    "share_of_final_score": 0.087,
+    "signals": [
+      "cr1",
+      "cr2",
+      "cr3",
+      "cr4",
+      "cr5",
+      "cr6",
+      "cr7",
+      "cr8",
+      "cr9"
+    ],
+    "portfolio_average": 1.703
+  },
+  {
+    "id": "os",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Workplace Safety",
+    "what_it_is": "How safely the site operates.",
+    "weight": 15,
+    "share_of_final_score": 0.065,
+    "signals": [
+      "os1",
+      "os2",
+      "os3"
+    ],
+    "portfolio_average": 1.792
+  },
+  {
+    "id": "en",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Permit Compliance",
+    "what_it_is": "Whether the plant meets its permits. Three-year average.",
+    "weight": 20,
+    "share_of_final_score": 0.087,
+    "signals": [
+      "en1",
+      "en2",
+      "en3",
+      "en4",
+      "en5",
+      "en6"
+    ],
+    "portfolio_average": 1.859
+  },
+  {
+    "id": "st",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Workforce",
+    "what_it_is": "Whether the site has enough qualified people.",
+    "weight": 10,
+    "share_of_final_score": 0.043,
+    "signals": [
+      "st1",
+      "st2",
+      "st3",
+      "st4",
+      "st5",
+      "st6"
+    ],
+    "portfolio_average": 2.13
+  },
+  {
+    "id": "cu",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Client Satisfaction",
+    "what_it_is": "How the client feels about us.",
+    "weight": 10,
+    "share_of_final_score": 0.043,
+    "signals": [
+      "cu1",
+      "cu2",
+      "cu3"
+    ],
+    "portfolio_average": 2.086
+  },
+  {
+    "id": "co",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Community Standing",
+    "what_it_is": "How residents and local media see the operation.",
+    "weight": 15,
+    "share_of_final_score": 0.065,
+    "signals": [
+      "co1",
+      "co2",
+      "co3",
+      "co4",
+      "co5"
+    ],
+    "portfolio_average": 2.096
+  },
+  {
+    "id": "sl",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "State Legal Climate",
+    "what_it_is": "How costly the state is for lawsuits.",
+    "weight": 10,
+    "share_of_final_score": 0.036,
+    "signals": [
+      "sl1"
+    ],
+    "portfolio_average": 2.627
+  },
+  {
+    "id": "li",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Legal Action",
+    "what_it_is": "Legal action against the operation.",
+    "weight": 35,
+    "share_of_final_score": 0.125,
+    "signals": [
+      "li1",
+      "li2",
+      "li3"
+    ],
+    "portfolio_average": 1.524
+  },
+  {
+    "id": "in",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Asset Condition and Complexity",
+    "what_it_is": "The condition and complexity of the assets we run.",
+    "weight": 25,
+    "share_of_final_score": 0.089,
+    "signals": [
+      "in1",
+      "in2",
+      "in3",
+      "in4",
+      "in5",
+      "in6",
+      "in7"
+    ],
+    "portfolio_average": 1.967
+  },
+  {
+    "id": "sp",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Neighbors",
+    "what_it_is": "How many homes sit near the plant.",
+    "weight": 20,
+    "share_of_final_score": 0.071,
+    "signals": [
+      "sp1"
+    ],
+    "portfolio_average": 2.29
+  },
+  {
+    "id": "iq",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Water Quality and Contaminants",
+    "what_it_is": "The water coming in, and the contaminants new rules target.",
+    "weight": 10,
+    "share_of_final_score": 0.036,
+    "signals": [
+      "iq1",
+      "iq2",
+      "iq3",
+      "iq4",
+      "iq5",
+      "iq6",
+      "iq7",
+      "iq8"
+    ],
+    "portfolio_average": 1.711
+  },
+  {
+    "id": "fp",
+    "group": "internal",
+    "group_name": "What we control",
+    "name": "Financial Performance",
+    "what_it_is": "How the contract is doing commercially. Money problems tend to show before the others.",
+    "weight": 15,
+    "share_of_final_score": 0.065,
+    "signals": [
+      "fp1",
+      "fp2",
+      "fp3",
+      "fp4",
+      "fp5"
+    ],
+    "portfolio_average": 2.095
+  },
+  {
+    "id": "cp",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Client and Political Environment",
+    "what_it_is": "The people and the politics on the client side, where most renewals are decided.",
+    "weight": 20,
+    "share_of_final_score": 0.071,
+    "signals": [
+      "cp1",
+      "cp2",
+      "cp3",
+      "cp4",
+      "cp5",
+      "cp6"
+    ],
+    "portfolio_average": 1.676
+  },
+  {
+    "id": "cl",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Competitive Landscape",
+    "what_it_is": "Who else wants this contract.",
+    "weight": 10,
+    "share_of_final_score": 0.036,
+    "signals": [
+      "cl1",
+      "cl2",
+      "cl3"
+    ],
+    "portfolio_average": 1.621
+  },
+  {
+    "id": "rs",
+    "group": "external",
+    "group_name": "What we do not control",
+    "name": "Climate and Operational Resilience",
+    "what_it_is": "Sudden events that no monthly figure predicts.",
+    "weight": 10,
+    "share_of_final_score": 0.036,
+    "signals": [
+      "rs1",
+      "rs2",
+      "rs3",
+      "rs4"
+    ],
+    "portfolio_average": 1.892
+  },
+  {
+    "id": "im",
+    "group": "impact",
+    "group_name": "What is at stake",
+    "name": "What is at stake",
+    "what_it_is": "How much a loss would matter and how soon. Kept beside the risk score, not inside it.",
+    "weight": 100,
+    "share_of_final_score": null,
+    "signals": [
+      "im1",
+      "im2",
+      "im3",
+      "im4",
+      "im5",
+      "im6"
+    ],
+    "portfolio_average": null
+  }
+]

@@ -1,0 +1,98 @@
+[
+  {
+    "file": "edited_01_scorecard_as_uploaded.json",
+    "note": "A template the person changed before uploading (a rule rewritten, a signal and a factor added, signals removed). It is used exactly as written."
+  },
+  {
+    "file": "edited_02_morning_check_seen_not_scored.json",
+    "note": "A miss, on purpose: this template has no signal for talk of in-house operation, so Ashby Falls stays at 2. The agenda item is shown as seen, not scored, with a one-click offer to add the signal."
+  },
+  {
+    "file": "propose_01_drafting.json",
+    "note": "Answered \"No. Propose one\". The scorecard is drafted step by step (six steps, three years of history behind every figure)."
+  },
+  {
+    "file": "propose_02_scorecard_proposed.json",
+    "note": "The proposed scorecard: 16 factors and 70 signals in use, 7 more offered and switched off, one signal with no source. It catches 3 of the 3 lost contracts."
+  },
+  {
+    "file": "propose_03_factor_dropped_in_chat.json",
+    "note": "Typed in the chat: \"drop competitive landscape\". The factor is taken out and the weights are shared out again."
+  },
+  {
+    "file": "propose_04_live_dashboard_version_1.json",
+    "note": "Scored on the proposed scorecard and armed: 46 / 189 / 65 / 0 projects at ratings 1 to 4."
+  },
+  {
+    "file": "upload_01_asked_for_a_template.json",
+    "note": "The goal is sent in plain words. The analyst has read the connected sources, found the 300 projects, and asks whether there is a scoring template."
+  },
+  {
+    "file": "upload_02_upload_box.json",
+    "note": "Answered \"Yes, I will upload it\". The upload box is shown; no scorecard is drawn yet."
+  },
+  {
+    "file": "upload_03_wrong_file_refused.json",
+    "note": "A miss, on purpose: a workbook with no Factor and Signal columns is refused in plain words and the upload box stays."
+  },
+  {
+    "file": "upload_04_reading_the_template.json",
+    "note": "The template is read step by step (six steps) before anything is shown."
+  },
+  {
+    "file": "upload_05_scorecard_as_uploaded.json",
+    "note": "The scorecard exactly as the template has it: 17 factors, 77 signals, the rules and weights as written. Nothing is added and nothing is questioned."
+  },
+  {
+    "file": "upload_06_threshold_taken_from_history.json",
+    "note": "Edit on \"Safety observations per employee\": the history shows the written rule puts most projects in one score. The thresholds from history are taken with one click."
+  },
+  {
+    "file": "upload_07_data_check.json",
+    "note": "The data check: for every signal, where the data sits, how it is measured and how it is brought to one project. Six assumptions wait for the person."
+  },
+  {
+    "file": "upload_08_dashboard_and_rules.json",
+    "note": "One card confirms the dashboard views and the rules for when a rating goes up."
+  },
+  {
+    "file": "upload_09_live_dashboard_version_1.json",
+    "note": "All 300 projects scored. The dashboard is a deliverable, version 1 (first scoring). The goal now watches every morning at 06:00."
+  },
+  {
+    "file": "upload_10_morning_check_running.json",
+    "note": "The 20 November 06:00 check has fired by itself: three projects changed overnight."
+  },
+  {
+    "file": "upload_11_morning_check_handled.json",
+    "note": "Handled without anyone: Ashby Falls and Harlow Creek moved from 2 to 3, the owners were told, the deck and the plans were built. The dashboard is still version 1, refreshed 20 Nov 06:08."
+  },
+  {
+    "file": "upload_12_change_asked.json",
+    "note": "Back in the standing goal, after the morning check. \"Change the scorecard\" in the chat: the analyst says what can be changed, that nothing is published until the person says so, and offers four examples."
+  },
+  {
+    "file": "upload_13_change_plan_new_signal.json",
+    "note": "Asked in plain words for a new signal, as a red flag. The analyst works in six steps and puts a change plan in the chat: what changes, what it does to the scores against version 1, which projects change rating, and what publishing does. The dashboard still shows version 1."
+  },
+  {
+    "file": "upload_14_change_plan_two_changes.json",
+    "note": "A second change joins the same draft: days sales outstanding scores 4 from 75 days. The earlier change plan is folded into the new one."
+  },
+  {
+    "file": "upload_15_change_refused.json",
+    "note": "A miss, on purpose: thresholds that are out of order are refused in plain words. The draft is not touched."
+  },
+  {
+    "file": "upload_16_version_2_published.json",
+    "note": "Published from the chat. All 300 projects are scored again, the dashboard is version 2 and says why, version 1 stays in its list. Nobody is alerted: the scores moved because the scoring changed."
+  },
+  {
+    "file": "upload_17_change_plan_version_3_draft.json",
+    "note": "One more request: Legal Action should count for less. The change plan is a draft of version 3."
+  },
+  {
+    "file": "upload_18_change_discarded.json",
+    "note": "Discarded. The scorecard is back as in version 2 and the dashboard did not change."
+  }
+]

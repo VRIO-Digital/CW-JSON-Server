@@ -1,0 +1,4318 @@
+{
+  "about": "For every signal scored on a figure: how the 300 projects are spread, the thresholds as written, and the thresholds history would give (better half scores 1, next 30% score 2, next 15% score 3, worst 5% score 4). Flagged = the written rule puts 60% or more of the projects in one score. Rules that follow a regulatory limit are never flagged.",
+  "flagged": [
+    "os3",
+    "co2"
+  ],
+  "signals": [
+    {
+      "signal": "cr2",
+      "name": "Days sales outstanding",
+      "unit": "days",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": -14,
+      "highest": 129,
+      "median": 43,
+      "thresholds_as_written": [
+        45,
+        60,
+        90
+      ],
+      "thresholds_from_history": [
+        45,
+        75,
+        105
+      ],
+      "share_by_score_as_written": [
+        0.533,
+        0.197,
+        0.15,
+        0.12
+      ],
+      "largest_share": 0.533,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": -14,
+          "to": -6.056,
+          "projects": 8,
+          "score_today": 1
+        },
+        {
+          "from": -6.056,
+          "to": 1.889,
+          "projects": 3,
+          "score_today": 1
+        },
+        {
+          "from": 1.889,
+          "to": 9.833,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 9.833,
+          "to": 17.778,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 17.778,
+          "to": 25.722,
+          "projects": 10,
+          "score_today": 1
+        },
+        {
+          "from": 25.722,
+          "to": 33.667,
+          "projects": 64,
+          "score_today": 1
+        },
+        {
+          "from": 33.667,
+          "to": 41.611,
+          "projects": 61,
+          "score_today": 1
+        },
+        {
+          "from": 41.611,
+          "to": 49.556,
+          "projects": 34,
+          "score_today": 2
+        },
+        {
+          "from": 49.556,
+          "to": 57.5,
+          "projects": 34,
+          "score_today": 2
+        },
+        {
+          "from": 57.5,
+          "to": 65.444,
+          "projects": 11,
+          "score_today": 3
+        },
+        {
+          "from": 65.444,
+          "to": 73.389,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 73.389,
+          "to": 81.333,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 81.333,
+          "to": 89.278,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 89.278,
+          "to": 97.222,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 97.222,
+          "to": 105.167,
+          "projects": 14,
+          "score_today": 4
+        },
+        {
+          "from": 105.167,
+          "to": 113.111,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 113.111,
+          "to": 121.056,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 121.056,
+          "to": 129,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "os1",
+      "name": "Lost-time injuries",
+      "unit": "per 200,000 hours",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 3.4,
+      "median": 0,
+      "thresholds_as_written": [
+        0.1,
+        1,
+        2
+      ],
+      "thresholds_from_history": [
+        0.1,
+        1,
+        2.5
+      ],
+      "share_by_score_as_written": [
+        0.647,
+        0.133,
+        0.083,
+        0.137
+      ],
+      "largest_share": 0.647,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.189,
+          "projects": 194,
+          "score_today": 1
+        },
+        {
+          "from": 0.189,
+          "to": 0.378,
+          "projects": 12,
+          "score_today": 2
+        },
+        {
+          "from": 0.378,
+          "to": 0.567,
+          "projects": 10,
+          "score_today": 2
+        },
+        {
+          "from": 0.567,
+          "to": 0.756,
+          "projects": 9,
+          "score_today": 2
+        },
+        {
+          "from": 0.756,
+          "to": 0.944,
+          "projects": 9,
+          "score_today": 2
+        },
+        {
+          "from": 0.944,
+          "to": 1.133,
+          "projects": 2,
+          "score_today": 3
+        },
+        {
+          "from": 1.133,
+          "to": 1.322,
+          "projects": 9,
+          "score_today": 3
+        },
+        {
+          "from": 1.322,
+          "to": 1.511,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 1.511,
+          "to": 1.7,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 1.7,
+          "to": 1.889,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 1.889,
+          "to": 2.078,
+          "projects": 1,
+          "score_today": 3
+        },
+        {
+          "from": 2.078,
+          "to": 2.267,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 2.267,
+          "to": 2.456,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 2.456,
+          "to": 2.644,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 2.644,
+          "to": 2.833,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 2.833,
+          "to": 3.022,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 3.022,
+          "to": 3.211,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 3.211,
+          "to": 3.4,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "os2",
+      "name": "Recordable injuries",
+      "unit": "per 200,000 hours",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 4.19,
+      "median": 0,
+      "thresholds_as_written": [
+        0.1,
+        1,
+        2
+      ],
+      "thresholds_from_history": [
+        0.1,
+        1.5,
+        3.5
+      ],
+      "share_by_score_as_written": [
+        0.54,
+        0.177,
+        0.107,
+        0.177
+      ],
+      "largest_share": 0.54,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.233,
+          "projects": 162,
+          "score_today": 2
+        },
+        {
+          "from": 0.233,
+          "to": 0.466,
+          "projects": 15,
+          "score_today": 2
+        },
+        {
+          "from": 0.466,
+          "to": 0.698,
+          "projects": 17,
+          "score_today": 2
+        },
+        {
+          "from": 0.698,
+          "to": 0.931,
+          "projects": 20,
+          "score_today": 2
+        },
+        {
+          "from": 0.931,
+          "to": 1.164,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 1.164,
+          "to": 1.397,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 1.397,
+          "to": 1.629,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 1.629,
+          "to": 1.862,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 1.862,
+          "to": 2.095,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 2.095,
+          "to": 2.328,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 2.328,
+          "to": 2.561,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 2.561,
+          "to": 2.793,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 2.793,
+          "to": 3.026,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 3.026,
+          "to": 3.259,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 3.259,
+          "to": 3.492,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 3.492,
+          "to": 3.724,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 3.724,
+          "to": 3.957,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 3.957,
+          "to": 4.19,
+          "projects": 9,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "os3",
+      "name": "Safety observations per employee",
+      "unit": "a year",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 0.2,
+      "highest": 6.4,
+      "median": 3.4,
+      "thresholds_as_written": [
+        2,
+        1.5,
+        1
+      ],
+      "thresholds_from_history": [
+        3.5,
+        1.5,
+        0.5
+      ],
+      "share_by_score_as_written": [
+        0.603,
+        0.15,
+        0.107,
+        0.14
+      ],
+      "largest_share": 0.603,
+      "follows_regulatory_limit": false,
+      "flagged": true,
+      "histogram": [
+        {
+          "from": 0.2,
+          "to": 0.544,
+          "projects": 22,
+          "score_today": 4
+        },
+        {
+          "from": 0.544,
+          "to": 0.889,
+          "projects": 19,
+          "score_today": 4
+        },
+        {
+          "from": 0.889,
+          "to": 1.233,
+          "projects": 19,
+          "score_today": 3
+        },
+        {
+          "from": 1.233,
+          "to": 1.578,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 1.578,
+          "to": 1.922,
+          "projects": 45,
+          "score_today": 2
+        },
+        {
+          "from": 1.922,
+          "to": 2.267,
+          "projects": 1,
+          "score_today": 1
+        },
+        {
+          "from": 2.267,
+          "to": 2.611,
+          "projects": 9,
+          "score_today": 1
+        },
+        {
+          "from": 2.611,
+          "to": 2.956,
+          "projects": 6,
+          "score_today": 1
+        },
+        {
+          "from": 2.956,
+          "to": 3.3,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 3.3,
+          "to": 3.644,
+          "projects": 13,
+          "score_today": 1
+        },
+        {
+          "from": 3.644,
+          "to": 3.989,
+          "projects": 13,
+          "score_today": 1
+        },
+        {
+          "from": 3.989,
+          "to": 4.333,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 4.333,
+          "to": 4.678,
+          "projects": 16,
+          "score_today": 1
+        },
+        {
+          "from": 4.678,
+          "to": 5.022,
+          "projects": 11,
+          "score_today": 1
+        },
+        {
+          "from": 5.022,
+          "to": 5.367,
+          "projects": 19,
+          "score_today": 1
+        },
+        {
+          "from": 5.367,
+          "to": 5.711,
+          "projects": 21,
+          "score_today": 1
+        },
+        {
+          "from": 5.711,
+          "to": 6.056,
+          "projects": 25,
+          "score_today": 1
+        },
+        {
+          "from": 6.056,
+          "to": 6.4,
+          "projects": 17,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "en1",
+      "name": "Days within permit limits",
+      "unit": "%",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 93.5,
+      "highest": 100,
+      "median": 99.8,
+      "thresholds_as_written": [
+        100,
+        98,
+        97
+      ],
+      "thresholds_from_history": [
+        100,
+        97.5,
+        94.5
+      ],
+      "share_by_score_as_written": [
+        0.49,
+        0.253,
+        0.103,
+        0.153
+      ],
+      "largest_share": 0.49,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 93.5,
+          "to": 93.861,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 93.861,
+          "to": 94.222,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 94.222,
+          "to": 94.583,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 94.583,
+          "to": 94.944,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 94.944,
+          "to": 95.306,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 95.306,
+          "to": 95.667,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 95.667,
+          "to": 96.028,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 96.028,
+          "to": 96.389,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 96.389,
+          "to": 96.75,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 96.75,
+          "to": 97.111,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 97.111,
+          "to": 97.472,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 97.472,
+          "to": 97.833,
+          "projects": 18,
+          "score_today": 3
+        },
+        {
+          "from": 97.833,
+          "to": 98.194,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 98.194,
+          "to": 98.556,
+          "projects": 21,
+          "score_today": 2
+        },
+        {
+          "from": 98.556,
+          "to": 98.917,
+          "projects": 16,
+          "score_today": 2
+        },
+        {
+          "from": 98.917,
+          "to": 99.278,
+          "projects": 12,
+          "score_today": 2
+        },
+        {
+          "from": 99.278,
+          "to": 99.639,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 99.639,
+          "to": 100,
+          "projects": 156,
+          "score_today": 2
+        }
+      ]
+    },
+    {
+      "signal": "en2",
+      "name": "Required samples missed",
+      "unit": "in three years",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 5,
+      "median": 0,
+      "thresholds_as_written": [
+        1,
+        2,
+        3
+      ],
+      "thresholds_from_history": [
+        1,
+        2,
+        4
+      ],
+      "share_by_score_as_written": [
+        0.57,
+        0.17,
+        0.077,
+        0.183
+      ],
+      "largest_share": 0.57,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.278,
+          "projects": 171,
+          "score_today": 1
+        },
+        {
+          "from": 0.278,
+          "to": 0.556,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.556,
+          "to": 0.833,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.833,
+          "to": 1.111,
+          "projects": 51,
+          "score_today": 1
+        },
+        {
+          "from": 1.111,
+          "to": 1.389,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.389,
+          "to": 1.667,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.667,
+          "to": 1.944,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.944,
+          "to": 2.222,
+          "projects": 23,
+          "score_today": 3
+        },
+        {
+          "from": 2.222,
+          "to": 2.5,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 2.5,
+          "to": 2.778,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 2.778,
+          "to": 3.056,
+          "projects": 16,
+          "score_today": 3
+        },
+        {
+          "from": 3.056,
+          "to": 3.333,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.333,
+          "to": 3.611,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.611,
+          "to": 3.889,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.889,
+          "to": 4.167,
+          "projects": 25,
+          "score_today": 4
+        },
+        {
+          "from": 4.167,
+          "to": 4.444,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 4.444,
+          "to": 4.722,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 4.722,
+          "to": 5,
+          "projects": 14,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "en3",
+      "name": "Notices of violation",
+      "unit": "in three years",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 4,
+      "median": 0,
+      "thresholds_as_written": [
+        1,
+        2,
+        3
+      ],
+      "thresholds_from_history": [
+        1,
+        2,
+        3
+      ],
+      "share_by_score_as_written": [
+        0.677,
+        0.13,
+        0.073,
+        0.12
+      ],
+      "largest_share": 0.677,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.222,
+          "projects": 203,
+          "score_today": 1
+        },
+        {
+          "from": 0.222,
+          "to": 0.444,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.444,
+          "to": 0.667,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.667,
+          "to": 0.889,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.889,
+          "to": 1.111,
+          "projects": 39,
+          "score_today": 2
+        },
+        {
+          "from": 1.111,
+          "to": 1.333,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.333,
+          "to": 1.556,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.556,
+          "to": 1.778,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 1.778,
+          "to": 2,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 2,
+          "to": 2.222,
+          "projects": 22,
+          "score_today": 3
+        },
+        {
+          "from": 2.222,
+          "to": 2.444,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 2.444,
+          "to": 2.667,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 2.667,
+          "to": 2.889,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 2.889,
+          "to": 3.111,
+          "projects": 21,
+          "score_today": 4
+        },
+        {
+          "from": 3.111,
+          "to": 3.333,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.333,
+          "to": 3.556,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.556,
+          "to": 3.778,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.778,
+          "to": 4,
+          "projects": 15,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "st3",
+      "name": "Staff retention",
+      "unit": "%",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 62,
+      "highest": 98,
+      "median": 87,
+      "thresholds_as_written": [
+        90,
+        80,
+        75
+      ],
+      "thresholds_from_history": [
+        87,
+        77,
+        67
+      ],
+      "share_by_score_as_written": [
+        0.463,
+        0.253,
+        0.127,
+        0.157
+      ],
+      "largest_share": 0.463,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 62,
+          "to": 64,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 64,
+          "to": 66,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 66,
+          "to": 68,
+          "projects": 13,
+          "score_today": 4
+        },
+        {
+          "from": 68,
+          "to": 70,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 70,
+          "to": 72,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 72,
+          "to": 74,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 74,
+          "to": 76,
+          "projects": 1,
+          "score_today": 3
+        },
+        {
+          "from": 76,
+          "to": 78,
+          "projects": 17,
+          "score_today": 3
+        },
+        {
+          "from": 78,
+          "to": 80,
+          "projects": 21,
+          "score_today": 3
+        },
+        {
+          "from": 80,
+          "to": 82,
+          "projects": 5,
+          "score_today": 2
+        },
+        {
+          "from": 82,
+          "to": 84,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 84,
+          "to": 86,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 86,
+          "to": 88,
+          "projects": 26,
+          "score_today": 2
+        },
+        {
+          "from": 88,
+          "to": 90,
+          "projects": 9,
+          "score_today": 2
+        },
+        {
+          "from": 90,
+          "to": 92,
+          "projects": 8,
+          "score_today": 1
+        },
+        {
+          "from": 92,
+          "to": 94,
+          "projects": 38,
+          "score_today": 1
+        },
+        {
+          "from": 94,
+          "to": 96,
+          "projects": 39,
+          "score_today": 1
+        },
+        {
+          "from": 96,
+          "to": 98,
+          "projects": 54,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "st4",
+      "name": "Overtime share of payroll",
+      "unit": "% overtime",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 2,
+      "highest": 18.9,
+      "median": 7.4,
+      "thresholds_as_written": [
+        6,
+        10,
+        13
+      ],
+      "thresholds_from_history": [
+        7,
+        13,
+        18
+      ],
+      "share_by_score_as_written": [
+        0.323,
+        0.34,
+        0.15,
+        0.187
+      ],
+      "largest_share": 0.34,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 2,
+          "to": 2.939,
+          "projects": 35,
+          "score_today": 1
+        },
+        {
+          "from": 2.939,
+          "to": 3.878,
+          "projects": 26,
+          "score_today": 1
+        },
+        {
+          "from": 3.878,
+          "to": 4.817,
+          "projects": 35,
+          "score_today": 1
+        },
+        {
+          "from": 4.817,
+          "to": 5.756,
+          "projects": 1,
+          "score_today": 1
+        },
+        {
+          "from": 5.756,
+          "to": 6.694,
+          "projects": 25,
+          "score_today": 2
+        },
+        {
+          "from": 6.694,
+          "to": 7.633,
+          "projects": 39,
+          "score_today": 2
+        },
+        {
+          "from": 7.633,
+          "to": 8.572,
+          "projects": 28,
+          "score_today": 2
+        },
+        {
+          "from": 8.572,
+          "to": 9.511,
+          "projects": 10,
+          "score_today": 2
+        },
+        {
+          "from": 9.511,
+          "to": 10.45,
+          "projects": 9,
+          "score_today": 2
+        },
+        {
+          "from": 10.45,
+          "to": 11.389,
+          "projects": 13,
+          "score_today": 3
+        },
+        {
+          "from": 11.389,
+          "to": 12.328,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 12.328,
+          "to": 13.267,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 13.267,
+          "to": 14.206,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 14.206,
+          "to": 15.144,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 15.144,
+          "to": 16.083,
+          "projects": 12,
+          "score_today": 4
+        },
+        {
+          "from": 16.083,
+          "to": 17.022,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 17.022,
+          "to": 17.961,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 17.961,
+          "to": 18.9,
+          "projects": 14,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "cu1",
+      "name": "Client survey score for the site",
+      "unit": "of 10",
+      "higher_is_worse": false,
+      "projects": 268,
+      "lowest": 2,
+      "highest": 10,
+      "median": 8,
+      "thresholds_as_written": [
+        9,
+        7,
+        5
+      ],
+      "thresholds_from_history": [
+        8,
+        5,
+        3
+      ],
+      "share_by_score_as_written": [
+        0.418,
+        0.306,
+        0.146,
+        0.131
+      ],
+      "largest_share": 0.418,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 2,
+          "to": 2.444,
+          "projects": 12,
+          "score_today": 4
+        },
+        {
+          "from": 2.444,
+          "to": 2.889,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 2.889,
+          "to": 3.333,
+          "projects": 16,
+          "score_today": 4
+        },
+        {
+          "from": 3.333,
+          "to": 3.778,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 3.778,
+          "to": 4.222,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 4.222,
+          "to": 4.667,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 4.667,
+          "to": 5.111,
+          "projects": 26,
+          "score_today": 4
+        },
+        {
+          "from": 5.111,
+          "to": 5.556,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 5.556,
+          "to": 6,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 6,
+          "to": 6.444,
+          "projects": 13,
+          "score_today": 3
+        },
+        {
+          "from": 6.444,
+          "to": 6.889,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 6.889,
+          "to": 7.333,
+          "projects": 48,
+          "score_today": 2
+        },
+        {
+          "from": 7.333,
+          "to": 7.778,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 7.778,
+          "to": 8.222,
+          "projects": 34,
+          "score_today": 2
+        },
+        {
+          "from": 8.222,
+          "to": 8.667,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 8.667,
+          "to": 9.111,
+          "projects": 49,
+          "score_today": 2
+        },
+        {
+          "from": 9.111,
+          "to": 9.556,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 9.556,
+          "to": 10,
+          "projects": 63,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "co1",
+      "name": "Odor complaints",
+      "unit": "in twelve months",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 14,
+      "median": 1,
+      "thresholds_as_written": [
+        1,
+        4,
+        6
+      ],
+      "thresholds_from_history": [
+        1,
+        5,
+        11
+      ],
+      "share_by_score_as_written": [
+        0.483,
+        0.25,
+        0.103,
+        0.163
+      ],
+      "largest_share": 0.483,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.778,
+          "projects": 145,
+          "score_today": 1
+        },
+        {
+          "from": 0.778,
+          "to": 1.556,
+          "projects": 12,
+          "score_today": 2
+        },
+        {
+          "from": 1.556,
+          "to": 2.333,
+          "projects": 46,
+          "score_today": 2
+        },
+        {
+          "from": 2.333,
+          "to": 3.111,
+          "projects": 17,
+          "score_today": 2
+        },
+        {
+          "from": 3.111,
+          "to": 3.889,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 3.889,
+          "to": 4.667,
+          "projects": 19,
+          "score_today": 3
+        },
+        {
+          "from": 4.667,
+          "to": 5.444,
+          "projects": 12,
+          "score_today": 3
+        },
+        {
+          "from": 5.444,
+          "to": 6.222,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 6.222,
+          "to": 7,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 7,
+          "to": 7.778,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 7.778,
+          "to": 8.556,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 8.556,
+          "to": 9.333,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 9.333,
+          "to": 10.111,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 10.111,
+          "to": 10.889,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 10.889,
+          "to": 11.667,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 11.667,
+          "to": 12.444,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 12.444,
+          "to": 13.222,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 13.222,
+          "to": 14,
+          "projects": 2,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "co2",
+      "name": "Local media coverage: % negative",
+      "unit": "% negative",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 100,
+      "median": 27,
+      "thresholds_as_written": [
+        40,
+        60,
+        80
+      ],
+      "thresholds_from_history": [
+        25,
+        65,
+        90
+      ],
+      "share_by_score_as_written": [
+        0.62,
+        0.127,
+        0.14,
+        0.113
+      ],
+      "largest_share": 0.62,
+      "follows_regulatory_limit": false,
+      "flagged": true,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 5.556,
+          "projects": 32,
+          "score_today": 1
+        },
+        {
+          "from": 5.556,
+          "to": 11.111,
+          "projects": 38,
+          "score_today": 1
+        },
+        {
+          "from": 11.111,
+          "to": 16.667,
+          "projects": 25,
+          "score_today": 1
+        },
+        {
+          "from": 16.667,
+          "to": 22.222,
+          "projects": 30,
+          "score_today": 1
+        },
+        {
+          "from": 22.222,
+          "to": 27.778,
+          "projects": 28,
+          "score_today": 1
+        },
+        {
+          "from": 27.778,
+          "to": 33.333,
+          "projects": 26,
+          "score_today": 1
+        },
+        {
+          "from": 33.333,
+          "to": 38.889,
+          "projects": 7,
+          "score_today": 1
+        },
+        {
+          "from": 38.889,
+          "to": 44.444,
+          "projects": 12,
+          "score_today": 2
+        },
+        {
+          "from": 44.444,
+          "to": 50,
+          "projects": 14,
+          "score_today": 2
+        },
+        {
+          "from": 50,
+          "to": 55.556,
+          "projects": 7,
+          "score_today": 2
+        },
+        {
+          "from": 55.556,
+          "to": 61.111,
+          "projects": 7,
+          "score_today": 2
+        },
+        {
+          "from": 61.111,
+          "to": 66.667,
+          "projects": 17,
+          "score_today": 3
+        },
+        {
+          "from": 66.667,
+          "to": 72.222,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 72.222,
+          "to": 77.778,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 77.778,
+          "to": 83.333,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 83.333,
+          "to": 88.889,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 88.889,
+          "to": 94.444,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 94.444,
+          "to": 100,
+          "projects": 11,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "co3",
+      "name": "Local media coverage: % positive",
+      "unit": "% positive",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 10,
+      "highest": 100,
+      "median": 64,
+      "thresholds_as_written": [
+        80,
+        60,
+        40
+      ],
+      "thresholds_from_history": [
+        65,
+        40,
+        20
+      ],
+      "share_by_score_as_written": [
+        0.277,
+        0.277,
+        0.257,
+        0.19
+      ],
+      "largest_share": 0.277,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 10,
+          "to": 15,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 15,
+          "to": 20,
+          "projects": 12,
+          "score_today": 4
+        },
+        {
+          "from": 20,
+          "to": 25,
+          "projects": 15,
+          "score_today": 4
+        },
+        {
+          "from": 25,
+          "to": 30,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 30,
+          "to": 35,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 35,
+          "to": 40,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 40,
+          "to": 45,
+          "projects": 18,
+          "score_today": 3
+        },
+        {
+          "from": 45,
+          "to": 50,
+          "projects": 22,
+          "score_today": 3
+        },
+        {
+          "from": 50,
+          "to": 55,
+          "projects": 16,
+          "score_today": 3
+        },
+        {
+          "from": 55,
+          "to": 60,
+          "projects": 21,
+          "score_today": 3
+        },
+        {
+          "from": 60,
+          "to": 65,
+          "projects": 22,
+          "score_today": 2
+        },
+        {
+          "from": 65,
+          "to": 70,
+          "projects": 17,
+          "score_today": 2
+        },
+        {
+          "from": 70,
+          "to": 75,
+          "projects": 20,
+          "score_today": 2
+        },
+        {
+          "from": 75,
+          "to": 80,
+          "projects": 24,
+          "score_today": 2
+        },
+        {
+          "from": 80,
+          "to": 85,
+          "projects": 21,
+          "score_today": 1
+        },
+        {
+          "from": 85,
+          "to": 90,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 90,
+          "to": 95,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 95,
+          "to": 100,
+          "projects": 32,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "in3",
+      "name": "Maintenance hours logged to work orders",
+      "unit": "%",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 48,
+      "highest": 99,
+      "median": 91,
+      "thresholds_as_written": [
+        95,
+        90,
+        71
+      ],
+      "thresholds_from_history": [
+        91,
+        76,
+        55
+      ],
+      "share_by_score_as_written": [
+        0.29,
+        0.277,
+        0.293,
+        0.14
+      ],
+      "largest_share": 0.293,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 48,
+          "to": 50.833,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 50.833,
+          "to": 53.667,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 53.667,
+          "to": 56.5,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 56.5,
+          "to": 59.333,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 59.333,
+          "to": 62.167,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 62.167,
+          "to": 65,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 65,
+          "to": 67.833,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 67.833,
+          "to": 70.667,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 70.667,
+          "to": 73.5,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 73.5,
+          "to": 76.333,
+          "projects": 17,
+          "score_today": 3
+        },
+        {
+          "from": 76.333,
+          "to": 79.167,
+          "projects": 16,
+          "score_today": 3
+        },
+        {
+          "from": 79.167,
+          "to": 82,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 82,
+          "to": 84.833,
+          "projects": 20,
+          "score_today": 3
+        },
+        {
+          "from": 84.833,
+          "to": 87.667,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 87.667,
+          "to": 90.5,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 90.5,
+          "to": 93.333,
+          "projects": 66,
+          "score_today": 2
+        },
+        {
+          "from": 93.333,
+          "to": 96.167,
+          "projects": 49,
+          "score_today": 2
+        },
+        {
+          "from": 96.167,
+          "to": 99,
+          "projects": 49,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "in4",
+      "name": "Planned maintenance done on time",
+      "unit": "%",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": 55,
+      "highest": 100,
+      "median": 92,
+      "thresholds_as_written": [
+        95,
+        90,
+        71
+      ],
+      "thresholds_from_history": [
+        92,
+        82,
+        67
+      ],
+      "share_by_score_as_written": [
+        0.367,
+        0.29,
+        0.263,
+        0.08
+      ],
+      "largest_share": 0.367,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 55,
+          "to": 57.5,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 57.5,
+          "to": 60,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 60,
+          "to": 62.5,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 62.5,
+          "to": 65,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 65,
+          "to": 67.5,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 67.5,
+          "to": 70,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 70,
+          "to": 72.5,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 72.5,
+          "to": 75,
+          "projects": 7,
+          "score_today": 3
+        },
+        {
+          "from": 75,
+          "to": 77.5,
+          "projects": 11,
+          "score_today": 3
+        },
+        {
+          "from": 77.5,
+          "to": 80,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 80,
+          "to": 82.5,
+          "projects": 9,
+          "score_today": 3
+        },
+        {
+          "from": 82.5,
+          "to": 85,
+          "projects": 13,
+          "score_today": 3
+        },
+        {
+          "from": 85,
+          "to": 87.5,
+          "projects": 20,
+          "score_today": 3
+        },
+        {
+          "from": 87.5,
+          "to": 90,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 90,
+          "to": 92.5,
+          "projects": 63,
+          "score_today": 2
+        },
+        {
+          "from": 92.5,
+          "to": 95,
+          "projects": 24,
+          "score_today": 2
+        },
+        {
+          "from": 95,
+          "to": 97.5,
+          "projects": 55,
+          "score_today": 1
+        },
+        {
+          "from": 97.5,
+          "to": 100,
+          "projects": 55,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "sp1",
+      "name": "Homes within two miles",
+      "unit": "homes",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 192,
+      "highest": 30642,
+      "median": 3422,
+      "thresholds_as_written": [
+        2000,
+        4000,
+        10000
+      ],
+      "thresholds_from_history": [
+        3500,
+        8500,
+        24000
+      ],
+      "share_by_score_as_written": [
+        0.317,
+        0.243,
+        0.273,
+        0.167
+      ],
+      "largest_share": 0.317,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 192,
+          "to": 1883.667,
+          "projects": 88,
+          "score_today": 1
+        },
+        {
+          "from": 1883.667,
+          "to": 3575.333,
+          "projects": 70,
+          "score_today": 2
+        },
+        {
+          "from": 3575.333,
+          "to": 5267,
+          "projects": 30,
+          "score_today": 3
+        },
+        {
+          "from": 5267,
+          "to": 6958.667,
+          "projects": 27,
+          "score_today": 3
+        },
+        {
+          "from": 6958.667,
+          "to": 8650.333,
+          "projects": 23,
+          "score_today": 3
+        },
+        {
+          "from": 8650.333,
+          "to": 10342,
+          "projects": 12,
+          "score_today": 3
+        },
+        {
+          "from": 10342,
+          "to": 12033.667,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 12033.667,
+          "to": 13725.333,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 13725.333,
+          "to": 15417,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 15417,
+          "to": 17108.667,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 17108.667,
+          "to": 18800.333,
+          "projects": 1,
+          "score_today": 4
+        },
+        {
+          "from": 18800.333,
+          "to": 20492,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 20492,
+          "to": 22183.667,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 22183.667,
+          "to": 23875.333,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 23875.333,
+          "to": 25567,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 25567,
+          "to": 27258.667,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 27258.667,
+          "to": 28950.333,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 28950.333,
+          "to": 30642,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "iq1",
+      "name": "Lead in drinking water",
+      "unit": "ppb",
+      "higher_is_worse": true,
+      "projects": 167,
+      "lowest": 2.2,
+      "highest": 21.3,
+      "median": 6.5,
+      "thresholds_as_written": [
+        9,
+        12,
+        15
+      ],
+      "thresholds_from_history": [
+        7,
+        11,
+        14
+      ],
+      "share_by_score_as_written": [
+        0.713,
+        0.192,
+        0.054,
+        0.042
+      ],
+      "largest_share": 0.713,
+      "follows_regulatory_limit": true,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 2.2,
+          "to": 3.261,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 3.261,
+          "to": 4.322,
+          "projects": 21,
+          "score_today": 1
+        },
+        {
+          "from": 4.322,
+          "to": 5.383,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 5.383,
+          "to": 6.444,
+          "projects": 22,
+          "score_today": 1
+        },
+        {
+          "from": 6.444,
+          "to": 7.506,
+          "projects": 20,
+          "score_today": 1
+        },
+        {
+          "from": 7.506,
+          "to": 8.567,
+          "projects": 17,
+          "score_today": 1
+        },
+        {
+          "from": 8.567,
+          "to": 9.628,
+          "projects": 5,
+          "score_today": 2
+        },
+        {
+          "from": 9.628,
+          "to": 10.689,
+          "projects": 7,
+          "score_today": 2
+        },
+        {
+          "from": 10.689,
+          "to": 11.75,
+          "projects": 19,
+          "score_today": 2
+        },
+        {
+          "from": 11.75,
+          "to": 12.811,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 12.811,
+          "to": 13.872,
+          "projects": 3,
+          "score_today": 3
+        },
+        {
+          "from": 13.872,
+          "to": 14.933,
+          "projects": 3,
+          "score_today": 3
+        },
+        {
+          "from": 14.933,
+          "to": 15.994,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 15.994,
+          "to": 17.056,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 17.056,
+          "to": 18.117,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 18.117,
+          "to": 19.178,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 19.178,
+          "to": 20.239,
+          "projects": 1,
+          "score_today": 4
+        },
+        {
+          "from": 20.239,
+          "to": 21.3,
+          "projects": 1,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "iq3",
+      "name": "Nitrogen in effluent",
+      "unit": "% of the limit",
+      "higher_is_worse": true,
+      "projects": 224,
+      "lowest": 28,
+      "highest": 97,
+      "median": 48,
+      "thresholds_as_written": [
+        50,
+        66,
+        80
+      ],
+      "thresholds_from_history": [
+        50,
+        75,
+        90
+      ],
+      "share_by_score_as_written": [
+        0.509,
+        0.228,
+        0.161,
+        0.103
+      ],
+      "largest_share": 0.509,
+      "follows_regulatory_limit": true,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 28,
+          "to": 31.833,
+          "projects": 16,
+          "score_today": 1
+        },
+        {
+          "from": 31.833,
+          "to": 35.667,
+          "projects": 26,
+          "score_today": 1
+        },
+        {
+          "from": 35.667,
+          "to": 39.5,
+          "projects": 23,
+          "score_today": 1
+        },
+        {
+          "from": 39.5,
+          "to": 43.333,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 43.333,
+          "to": 47.167,
+          "projects": 20,
+          "score_today": 1
+        },
+        {
+          "from": 47.167,
+          "to": 51,
+          "projects": 5,
+          "score_today": 1
+        },
+        {
+          "from": 51,
+          "to": 54.833,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 54.833,
+          "to": 58.667,
+          "projects": 11,
+          "score_today": 2
+        },
+        {
+          "from": 58.667,
+          "to": 62.5,
+          "projects": 24,
+          "score_today": 2
+        },
+        {
+          "from": 62.5,
+          "to": 66.333,
+          "projects": 16,
+          "score_today": 2
+        },
+        {
+          "from": 66.333,
+          "to": 70.167,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 70.167,
+          "to": 74,
+          "projects": 11,
+          "score_today": 3
+        },
+        {
+          "from": 74,
+          "to": 77.833,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 77.833,
+          "to": 81.667,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 81.667,
+          "to": 85.5,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 85.5,
+          "to": 89.333,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 89.333,
+          "to": 93.167,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 93.167,
+          "to": 97,
+          "projects": 6,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "iq4",
+      "name": "Copper in drinking water",
+      "unit": "ppm",
+      "higher_is_worse": true,
+      "projects": 167,
+      "lowest": 0.21,
+      "highest": 1.66,
+      "median": 0.56,
+      "thresholds_as_written": [
+        0.8,
+        1.05,
+        1.3
+      ],
+      "thresholds_from_history": [
+        0.6,
+        0.9,
+        1.2
+      ],
+      "share_by_score_as_written": [
+        0.766,
+        0.114,
+        0.078,
+        0.042
+      ],
+      "largest_share": 0.766,
+      "follows_regulatory_limit": true,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0.21,
+          "to": 0.291,
+          "projects": 23,
+          "score_today": 1
+        },
+        {
+          "from": 0.291,
+          "to": 0.371,
+          "projects": 19,
+          "score_today": 1
+        },
+        {
+          "from": 0.371,
+          "to": 0.452,
+          "projects": 13,
+          "score_today": 1
+        },
+        {
+          "from": 0.452,
+          "to": 0.532,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 0.532,
+          "to": 0.613,
+          "projects": 16,
+          "score_today": 1
+        },
+        {
+          "from": 0.613,
+          "to": 0.693,
+          "projects": 25,
+          "score_today": 1
+        },
+        {
+          "from": 0.693,
+          "to": 0.774,
+          "projects": 8,
+          "score_today": 1
+        },
+        {
+          "from": 0.774,
+          "to": 0.854,
+          "projects": 5,
+          "score_today": 2
+        },
+        {
+          "from": 0.854,
+          "to": 0.935,
+          "projects": 4,
+          "score_today": 2
+        },
+        {
+          "from": 0.935,
+          "to": 1.016,
+          "projects": 10,
+          "score_today": 2
+        },
+        {
+          "from": 1.016,
+          "to": 1.096,
+          "projects": 2,
+          "score_today": 3
+        },
+        {
+          "from": 1.096,
+          "to": 1.177,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 1.177,
+          "to": 1.257,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 1.257,
+          "to": 1.338,
+          "projects": 1,
+          "score_today": 3
+        },
+        {
+          "from": 1.338,
+          "to": 1.418,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 1.418,
+          "to": 1.499,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 1.499,
+          "to": 1.579,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 1.579,
+          "to": 1.66,
+          "projects": 2,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "iq5",
+      "name": "Suspended solids in effluent",
+      "unit": "% of the limit",
+      "higher_is_worse": true,
+      "projects": 224,
+      "lowest": 28,
+      "highest": 96,
+      "median": 48,
+      "thresholds_as_written": [
+        50,
+        66,
+        80
+      ],
+      "thresholds_from_history": [
+        50,
+        70,
+        90
+      ],
+      "share_by_score_as_written": [
+        0.513,
+        0.246,
+        0.147,
+        0.094
+      ],
+      "largest_share": 0.513,
+      "follows_regulatory_limit": true,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 28,
+          "to": 31.778,
+          "projects": 22,
+          "score_today": 1
+        },
+        {
+          "from": 31.778,
+          "to": 35.556,
+          "projects": 18,
+          "score_today": 1
+        },
+        {
+          "from": 35.556,
+          "to": 39.333,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 39.333,
+          "to": 43.111,
+          "projects": 21,
+          "score_today": 1
+        },
+        {
+          "from": 43.111,
+          "to": 46.889,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 46.889,
+          "to": 50.667,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 50.667,
+          "to": 54.444,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 54.444,
+          "to": 58.222,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 58.222,
+          "to": 62,
+          "projects": 17,
+          "score_today": 2
+        },
+        {
+          "from": 62,
+          "to": 65.778,
+          "projects": 20,
+          "score_today": 2
+        },
+        {
+          "from": 65.778,
+          "to": 69.556,
+          "projects": 2,
+          "score_today": 3
+        },
+        {
+          "from": 69.556,
+          "to": 73.333,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 73.333,
+          "to": 77.111,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 77.111,
+          "to": 80.889,
+          "projects": 2,
+          "score_today": 3
+        },
+        {
+          "from": 80.889,
+          "to": 84.667,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 84.667,
+          "to": 88.444,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 88.444,
+          "to": 92.222,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 92.222,
+          "to": 96,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "iq6",
+      "name": "Phosphorus in effluent",
+      "unit": "% of the limit",
+      "higher_is_worse": true,
+      "projects": 224,
+      "lowest": 29,
+      "highest": 95,
+      "median": 55,
+      "thresholds_as_written": [
+        50,
+        66,
+        80
+      ],
+      "thresholds_from_history": [
+        55,
+        70,
+        90
+      ],
+      "share_by_score_as_written": [
+        0.482,
+        0.241,
+        0.188,
+        0.089
+      ],
+      "largest_share": 0.482,
+      "follows_regulatory_limit": true,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 29,
+          "to": 32.667,
+          "projects": 9,
+          "score_today": 1
+        },
+        {
+          "from": 32.667,
+          "to": 36.333,
+          "projects": 23,
+          "score_today": 1
+        },
+        {
+          "from": 36.333,
+          "to": 40,
+          "projects": 18,
+          "score_today": 1
+        },
+        {
+          "from": 40,
+          "to": 43.667,
+          "projects": 25,
+          "score_today": 1
+        },
+        {
+          "from": 43.667,
+          "to": 47.333,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 47.333,
+          "to": 51,
+          "projects": 9,
+          "score_today": 1
+        },
+        {
+          "from": 51,
+          "to": 54.667,
+          "projects": 0,
+          "score_today": 2
+        },
+        {
+          "from": 54.667,
+          "to": 58.333,
+          "projects": 16,
+          "score_today": 2
+        },
+        {
+          "from": 58.333,
+          "to": 62,
+          "projects": 19,
+          "score_today": 2
+        },
+        {
+          "from": 62,
+          "to": 65.667,
+          "projects": 19,
+          "score_today": 2
+        },
+        {
+          "from": 65.667,
+          "to": 69.333,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 69.333,
+          "to": 73,
+          "projects": 13,
+          "score_today": 3
+        },
+        {
+          "from": 73,
+          "to": 76.667,
+          "projects": 18,
+          "score_today": 3
+        },
+        {
+          "from": 76.667,
+          "to": 80.333,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 80.333,
+          "to": 84,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 84,
+          "to": 87.667,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 87.667,
+          "to": 91.333,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 91.333,
+          "to": 95,
+          "projects": 10,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "en5",
+      "name": "Sewer overflows (SSO and CSO)",
+      "unit": "in twelve months",
+      "higher_is_worse": true,
+      "projects": 224,
+      "lowest": 0,
+      "highest": 8.5,
+      "median": 0,
+      "thresholds_as_written": [
+        1,
+        3,
+        6
+      ],
+      "thresholds_from_history": [
+        1,
+        4,
+        7.5
+      ],
+      "share_by_score_as_written": [
+        0.536,
+        0.223,
+        0.121,
+        0.121
+      ],
+      "largest_share": 0.536,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.472,
+          "projects": 120,
+          "score_today": 1
+        },
+        {
+          "from": 0.472,
+          "to": 0.944,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.944,
+          "to": 1.417,
+          "projects": 10,
+          "score_today": 2
+        },
+        {
+          "from": 1.417,
+          "to": 1.889,
+          "projects": 11,
+          "score_today": 2
+        },
+        {
+          "from": 1.889,
+          "to": 2.361,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 2.361,
+          "to": 2.833,
+          "projects": 11,
+          "score_today": 2
+        },
+        {
+          "from": 2.833,
+          "to": 3.306,
+          "projects": 1,
+          "score_today": 3
+        },
+        {
+          "from": 3.306,
+          "to": 3.778,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 3.778,
+          "to": 4.25,
+          "projects": 7,
+          "score_today": 3
+        },
+        {
+          "from": 4.25,
+          "to": 4.722,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": 4.722,
+          "to": 5.194,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 5.194,
+          "to": 5.667,
+          "projects": 3,
+          "score_today": 3
+        },
+        {
+          "from": 5.667,
+          "to": 6.139,
+          "projects": 1,
+          "score_today": 3
+        },
+        {
+          "from": 6.139,
+          "to": 6.611,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 6.611,
+          "to": 7.083,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 7.083,
+          "to": 7.556,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 7.556,
+          "to": 8.028,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 8.028,
+          "to": 8.5,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "st5",
+      "name": "Site manager tenure",
+      "unit": "years",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": -1.7,
+      "highest": 8.2,
+      "median": 3.5,
+      "thresholds_as_written": [
+        5,
+        2,
+        1
+      ],
+      "thresholds_from_history": [
+        3.5,
+        1,
+        -1
+      ],
+      "share_by_score_as_written": [
+        0.347,
+        0.317,
+        0.16,
+        0.177
+      ],
+      "largest_share": 0.347,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": -1.7,
+          "to": -1.15,
+          "projects": 11,
+          "score_today": 4
+        },
+        {
+          "from": -1.15,
+          "to": -0.6,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": -0.6,
+          "to": -0.05,
+          "projects": 15,
+          "score_today": 4
+        },
+        {
+          "from": -0.05,
+          "to": 0.5,
+          "projects": 12,
+          "score_today": 4
+        },
+        {
+          "from": 0.5,
+          "to": 1.05,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 1.05,
+          "to": 1.6,
+          "projects": 27,
+          "score_today": 3
+        },
+        {
+          "from": 1.6,
+          "to": 2.15,
+          "projects": 21,
+          "score_today": 3
+        },
+        {
+          "from": 2.15,
+          "to": 2.7,
+          "projects": 24,
+          "score_today": 2
+        },
+        {
+          "from": 2.7,
+          "to": 3.25,
+          "projects": 14,
+          "score_today": 2
+        },
+        {
+          "from": 3.25,
+          "to": 3.8,
+          "projects": 23,
+          "score_today": 2
+        },
+        {
+          "from": 3.8,
+          "to": 4.35,
+          "projects": 15,
+          "score_today": 2
+        },
+        {
+          "from": 4.35,
+          "to": 4.9,
+          "projects": 19,
+          "score_today": 2
+        },
+        {
+          "from": 4.9,
+          "to": 5.45,
+          "projects": 8,
+          "score_today": 1
+        },
+        {
+          "from": 5.45,
+          "to": 6,
+          "projects": 15,
+          "score_today": 1
+        },
+        {
+          "from": 6,
+          "to": 6.55,
+          "projects": 29,
+          "score_today": 1
+        },
+        {
+          "from": 6.55,
+          "to": 7.1,
+          "projects": 23,
+          "score_today": 1
+        },
+        {
+          "from": 7.1,
+          "to": 7.65,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 7.65,
+          "to": 8.2,
+          "projects": 5,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "in6",
+      "name": "Corrective against preventive maintenance",
+      "unit": "% corrective",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 6,
+      "highest": 69,
+      "median": 27,
+      "thresholds_as_written": [
+        20,
+        35,
+        50
+      ],
+      "thresholds_from_history": [
+        25,
+        40,
+        65
+      ],
+      "share_by_score_as_written": [
+        0.333,
+        0.38,
+        0.193,
+        0.093
+      ],
+      "largest_share": 0.38,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 6,
+          "to": 9.5,
+          "projects": 24,
+          "score_today": 1
+        },
+        {
+          "from": 9.5,
+          "to": 13,
+          "projects": 25,
+          "score_today": 1
+        },
+        {
+          "from": 13,
+          "to": 16.5,
+          "projects": 34,
+          "score_today": 1
+        },
+        {
+          "from": 16.5,
+          "to": 20,
+          "projects": 17,
+          "score_today": 1
+        },
+        {
+          "from": 20,
+          "to": 23.5,
+          "projects": 21,
+          "score_today": 2
+        },
+        {
+          "from": 23.5,
+          "to": 27,
+          "projects": 25,
+          "score_today": 2
+        },
+        {
+          "from": 27,
+          "to": 30.5,
+          "projects": 48,
+          "score_today": 2
+        },
+        {
+          "from": 30.5,
+          "to": 34,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 34,
+          "to": 37.5,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 37.5,
+          "to": 41,
+          "projects": 13,
+          "score_today": 3
+        },
+        {
+          "from": 41,
+          "to": 44.5,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 44.5,
+          "to": 48,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 48,
+          "to": 51.5,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 51.5,
+          "to": 55,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 55,
+          "to": 58.5,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 58.5,
+          "to": 62,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 62,
+          "to": 65.5,
+          "projects": 11,
+          "score_today": 4
+        },
+        {
+          "from": 65.5,
+          "to": 69,
+          "projects": 7,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "in7",
+      "name": "Asset age",
+      "unit": "years",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 6,
+      "highest": 69,
+      "median": 33,
+      "thresholds_as_written": [
+        20,
+        35,
+        50
+      ],
+      "thresholds_from_history": [
+        35,
+        45,
+        65
+      ],
+      "share_by_score_as_written": [
+        0.17,
+        0.343,
+        0.327,
+        0.16
+      ],
+      "largest_share": 0.343,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 6,
+          "to": 9.5,
+          "projects": 12,
+          "score_today": 1
+        },
+        {
+          "from": 9.5,
+          "to": 13,
+          "projects": 6,
+          "score_today": 1
+        },
+        {
+          "from": 13,
+          "to": 16.5,
+          "projects": 21,
+          "score_today": 1
+        },
+        {
+          "from": 16.5,
+          "to": 20,
+          "projects": 12,
+          "score_today": 1
+        },
+        {
+          "from": 20,
+          "to": 23.5,
+          "projects": 19,
+          "score_today": 2
+        },
+        {
+          "from": 23.5,
+          "to": 27,
+          "projects": 16,
+          "score_today": 2
+        },
+        {
+          "from": 27,
+          "to": 30.5,
+          "projects": 28,
+          "score_today": 2
+        },
+        {
+          "from": 30.5,
+          "to": 34,
+          "projects": 38,
+          "score_today": 2
+        },
+        {
+          "from": 34,
+          "to": 37.5,
+          "projects": 14,
+          "score_today": 3
+        },
+        {
+          "from": 37.5,
+          "to": 41,
+          "projects": 18,
+          "score_today": 3
+        },
+        {
+          "from": 41,
+          "to": 44.5,
+          "projects": 26,
+          "score_today": 3
+        },
+        {
+          "from": 44.5,
+          "to": 48,
+          "projects": 30,
+          "score_today": 3
+        },
+        {
+          "from": 48,
+          "to": 51.5,
+          "projects": 12,
+          "score_today": 3
+        },
+        {
+          "from": 51.5,
+          "to": 55,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 55,
+          "to": 58.5,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 58.5,
+          "to": 62,
+          "projects": 14,
+          "score_today": 4
+        },
+        {
+          "from": 62,
+          "to": 65.5,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 65.5,
+          "to": 69,
+          "projects": 10,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "fp1",
+      "name": "Margin against budget",
+      "unit": "points",
+      "higher_is_worse": false,
+      "projects": 300,
+      "lowest": -6.8,
+      "highest": 1.8,
+      "median": -0.8,
+      "thresholds_as_written": [
+        0,
+        -2,
+        -5
+      ],
+      "thresholds_from_history": [
+        -1,
+        -4.5,
+        -6.5
+      ],
+      "share_by_score_as_written": [
+        0.417,
+        0.243,
+        0.16,
+        0.18
+      ],
+      "largest_share": 0.417,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": -6.8,
+          "to": -6.322,
+          "projects": 15,
+          "score_today": 4
+        },
+        {
+          "from": -6.322,
+          "to": -5.844,
+          "projects": 24,
+          "score_today": 4
+        },
+        {
+          "from": -5.844,
+          "to": -5.367,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": -5.367,
+          "to": -4.889,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": -4.889,
+          "to": -4.411,
+          "projects": 7,
+          "score_today": 3
+        },
+        {
+          "from": -4.411,
+          "to": -3.933,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": -3.933,
+          "to": -3.456,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": -3.456,
+          "to": -2.978,
+          "projects": 9,
+          "score_today": 3
+        },
+        {
+          "from": -2.978,
+          "to": -2.5,
+          "projects": 5,
+          "score_today": 3
+        },
+        {
+          "from": -2.5,
+          "to": -2.022,
+          "projects": 9,
+          "score_today": 3
+        },
+        {
+          "from": -2.022,
+          "to": -1.544,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": -1.544,
+          "to": -1.067,
+          "projects": 20,
+          "score_today": 2
+        },
+        {
+          "from": -1.067,
+          "to": -0.589,
+          "projects": 21,
+          "score_today": 2
+        },
+        {
+          "from": -0.589,
+          "to": -0.111,
+          "projects": 14,
+          "score_today": 2
+        },
+        {
+          "from": -0.111,
+          "to": 0.367,
+          "projects": 13,
+          "score_today": 1
+        },
+        {
+          "from": 0.367,
+          "to": 0.844,
+          "projects": 48,
+          "score_today": 1
+        },
+        {
+          "from": 0.844,
+          "to": 1.322,
+          "projects": 26,
+          "score_today": 1
+        },
+        {
+          "from": 1.322,
+          "to": 1.8,
+          "projects": 38,
+          "score_today": 1
+        }
+      ]
+    },
+    {
+      "signal": "fp3",
+      "name": "Cost overruns",
+      "unit": "% over plan",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0.2,
+      "highest": 13.9,
+      "median": 3.5,
+      "thresholds_as_written": [
+        2,
+        5,
+        10
+      ],
+      "thresholds_from_history": [
+        4,
+        10,
+        13
+      ],
+      "share_by_score_as_written": [
+        0.407,
+        0.203,
+        0.187,
+        0.203
+      ],
+      "largest_share": 0.407,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0.2,
+          "to": 0.961,
+          "projects": 59,
+          "score_today": 1
+        },
+        {
+          "from": 0.961,
+          "to": 1.722,
+          "projects": 56,
+          "score_today": 1
+        },
+        {
+          "from": 1.722,
+          "to": 2.483,
+          "projects": 10,
+          "score_today": 2
+        },
+        {
+          "from": 2.483,
+          "to": 3.244,
+          "projects": 22,
+          "score_today": 2
+        },
+        {
+          "from": 3.244,
+          "to": 4.006,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 4.006,
+          "to": 4.767,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 4.767,
+          "to": 5.528,
+          "projects": 0,
+          "score_today": 3
+        },
+        {
+          "from": 5.528,
+          "to": 6.289,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 6.289,
+          "to": 7.05,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 7.05,
+          "to": 7.811,
+          "projects": 10,
+          "score_today": 3
+        },
+        {
+          "from": 7.811,
+          "to": 8.572,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 8.572,
+          "to": 9.333,
+          "projects": 9,
+          "score_today": 3
+        },
+        {
+          "from": 9.333,
+          "to": 10.094,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 10.094,
+          "to": 10.856,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 10.856,
+          "to": 11.617,
+          "projects": 19,
+          "score_today": 4
+        },
+        {
+          "from": 11.617,
+          "to": 12.378,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 12.378,
+          "to": 13.139,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 13.139,
+          "to": 13.9,
+          "projects": 13,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "cp5",
+      "name": "The contract in public meetings",
+      "unit": "mentions in twelve months",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 0,
+      "highest": 8.5,
+      "median": 0,
+      "thresholds_as_written": [
+        1,
+        3,
+        6
+      ],
+      "thresholds_from_history": [
+        1,
+        3,
+        6
+      ],
+      "share_by_score_as_written": [
+        0.527,
+        0.28,
+        0.143,
+        0.05
+      ],
+      "largest_share": 0.527,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 0,
+          "to": 0.472,
+          "projects": 158,
+          "score_today": 1
+        },
+        {
+          "from": 0.472,
+          "to": 0.944,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 0.944,
+          "to": 1.417,
+          "projects": 18,
+          "score_today": 2
+        },
+        {
+          "from": 1.417,
+          "to": 1.889,
+          "projects": 21,
+          "score_today": 2
+        },
+        {
+          "from": 1.889,
+          "to": 2.361,
+          "projects": 25,
+          "score_today": 2
+        },
+        {
+          "from": 2.361,
+          "to": 2.833,
+          "projects": 20,
+          "score_today": 2
+        },
+        {
+          "from": 2.833,
+          "to": 3.306,
+          "projects": 4,
+          "score_today": 3
+        },
+        {
+          "from": 3.306,
+          "to": 3.778,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 3.778,
+          "to": 4.25,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 4.25,
+          "to": 4.722,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 4.722,
+          "to": 5.194,
+          "projects": 8,
+          "score_today": 3
+        },
+        {
+          "from": 5.194,
+          "to": 5.667,
+          "projects": 6,
+          "score_today": 3
+        },
+        {
+          "from": 5.667,
+          "to": 6.139,
+          "projects": 3,
+          "score_today": 3
+        },
+        {
+          "from": 6.139,
+          "to": 6.611,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 6.611,
+          "to": 7.083,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 7.083,
+          "to": 7.556,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 7.556,
+          "to": 8.028,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 8.028,
+          "to": 8.5,
+          "projects": 4,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "im1",
+      "name": "Annual contract revenue",
+      "unit": "$M a year",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 1.57,
+      "highest": 13.29,
+      "median": 3.98,
+      "thresholds_as_written": [
+        2,
+        4,
+        7
+      ],
+      "thresholds_from_history": [
+        4,
+        6,
+        9.5
+      ],
+      "share_by_score_as_written": [
+        0.013,
+        0.497,
+        0.373,
+        0.117
+      ],
+      "largest_share": 0.497,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 1.57,
+          "to": 2.221,
+          "projects": 11,
+          "score_today": 1
+        },
+        {
+          "from": 2.221,
+          "to": 2.872,
+          "projects": 54,
+          "score_today": 2
+        },
+        {
+          "from": 2.872,
+          "to": 3.523,
+          "projects": 49,
+          "score_today": 2
+        },
+        {
+          "from": 3.523,
+          "to": 4.174,
+          "projects": 48,
+          "score_today": 2
+        },
+        {
+          "from": 4.174,
+          "to": 4.826,
+          "projects": 40,
+          "score_today": 3
+        },
+        {
+          "from": 4.826,
+          "to": 5.477,
+          "projects": 19,
+          "score_today": 3
+        },
+        {
+          "from": 5.477,
+          "to": 6.128,
+          "projects": 27,
+          "score_today": 3
+        },
+        {
+          "from": 6.128,
+          "to": 6.779,
+          "projects": 15,
+          "score_today": 3
+        },
+        {
+          "from": 6.779,
+          "to": 7.43,
+          "projects": 8,
+          "score_today": 4
+        },
+        {
+          "from": 7.43,
+          "to": 8.081,
+          "projects": 6,
+          "score_today": 4
+        },
+        {
+          "from": 8.081,
+          "to": 8.732,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 8.732,
+          "to": 9.383,
+          "projects": 4,
+          "score_today": 4
+        },
+        {
+          "from": 9.383,
+          "to": 10.034,
+          "projects": 5,
+          "score_today": 4
+        },
+        {
+          "from": 10.034,
+          "to": 10.686,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 10.686,
+          "to": 11.337,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 11.337,
+          "to": 11.988,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 11.988,
+          "to": 12.639,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 12.639,
+          "to": 13.29,
+          "projects": 3,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "im2",
+      "name": "Margin contribution",
+      "unit": "$k a year",
+      "higher_is_worse": true,
+      "projects": 300,
+      "lowest": 116,
+      "highest": 2069,
+      "median": 478,
+      "thresholds_as_written": [
+        150,
+        400,
+        800
+      ],
+      "thresholds_from_history": [
+        500,
+        750,
+        1250
+      ],
+      "share_by_score_as_written": [
+        0.003,
+        0.387,
+        0.443,
+        0.167
+      ],
+      "largest_share": 0.443,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 116,
+          "to": 224.5,
+          "projects": 16,
+          "score_today": 2
+        },
+        {
+          "from": 224.5,
+          "to": 333,
+          "projects": 62,
+          "score_today": 2
+        },
+        {
+          "from": 333,
+          "to": 441.5,
+          "projects": 59,
+          "score_today": 2
+        },
+        {
+          "from": 441.5,
+          "to": 550,
+          "projects": 44,
+          "score_today": 3
+        },
+        {
+          "from": 550,
+          "to": 658.5,
+          "projects": 37,
+          "score_today": 3
+        },
+        {
+          "from": 658.5,
+          "to": 767,
+          "projects": 29,
+          "score_today": 3
+        },
+        {
+          "from": 767,
+          "to": 875.5,
+          "projects": 9,
+          "score_today": 4
+        },
+        {
+          "from": 875.5,
+          "to": 984,
+          "projects": 11,
+          "score_today": 4
+        },
+        {
+          "from": 984,
+          "to": 1092.5,
+          "projects": 10,
+          "score_today": 4
+        },
+        {
+          "from": 1092.5,
+          "to": 1201,
+          "projects": 7,
+          "score_today": 4
+        },
+        {
+          "from": 1201,
+          "to": 1309.5,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 1309.5,
+          "to": 1418,
+          "projects": 2,
+          "score_today": 4
+        },
+        {
+          "from": 1418,
+          "to": 1526.5,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 1526.5,
+          "to": 1635,
+          "projects": 1,
+          "score_today": 4
+        },
+        {
+          "from": 1635,
+          "to": 1743.5,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 1743.5,
+          "to": 1852,
+          "projects": 3,
+          "score_today": 4
+        },
+        {
+          "from": 1852,
+          "to": 1960.5,
+          "projects": 0,
+          "score_today": 4
+        },
+        {
+          "from": 1960.5,
+          "to": 2069,
+          "projects": 1,
+          "score_today": 4
+        }
+      ]
+    },
+    {
+      "signal": "im3",
+      "name": "Months to renewal or end",
+      "unit": "months",
+      "higher_is_worse": false,
+      "projects": 280,
+      "lowest": 4,
+      "highest": 202,
+      "median": 37,
+      "thresholds_as_written": [
+        36,
+        18,
+        12
+      ],
+      "thresholds_from_history": [
+        35,
+        20,
+        5
+      ],
+      "share_by_score_as_written": [
+        0.525,
+        0.279,
+        0.061,
+        0.136
+      ],
+      "largest_share": 0.525,
+      "follows_regulatory_limit": false,
+      "flagged": false,
+      "histogram": [
+        {
+          "from": 4,
+          "to": 15,
+          "projects": 48,
+          "score_today": 4
+        },
+        {
+          "from": 15,
+          "to": 26,
+          "projects": 54,
+          "score_today": 2
+        },
+        {
+          "from": 26,
+          "to": 37,
+          "projects": 31,
+          "score_today": 2
+        },
+        {
+          "from": 37,
+          "to": 48,
+          "projects": 40,
+          "score_today": 1
+        },
+        {
+          "from": 48,
+          "to": 59,
+          "projects": 41,
+          "score_today": 1
+        },
+        {
+          "from": 59,
+          "to": 70,
+          "projects": 16,
+          "score_today": 1
+        },
+        {
+          "from": 70,
+          "to": 81,
+          "projects": 11,
+          "score_today": 1
+        },
+        {
+          "from": 81,
+          "to": 92,
+          "projects": 3,
+          "score_today": 1
+        },
+        {
+          "from": 92,
+          "to": 103,
+          "projects": 4,
+          "score_today": 1
+        },
+        {
+          "from": 103,
+          "to": 114,
+          "projects": 9,
+          "score_today": 1
+        },
+        {
+          "from": 114,
+          "to": 125,
+          "projects": 4,
+          "score_today": 1
+        },
+        {
+          "from": 125,
+          "to": 136,
+          "projects": 4,
+          "score_today": 1
+        },
+        {
+          "from": 136,
+          "to": 147,
+          "projects": 5,
+          "score_today": 1
+        },
+        {
+          "from": 147,
+          "to": 158,
+          "projects": 4,
+          "score_today": 1
+        },
+        {
+          "from": 158,
+          "to": 169,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 169,
+          "to": 180,
+          "projects": 2,
+          "score_today": 1
+        },
+        {
+          "from": 180,
+          "to": 191,
+          "projects": 0,
+          "score_today": 1
+        },
+        {
+          "from": 191,
+          "to": 202,
+          "projects": 4,
+          "score_today": 1
+        }
+      ]
+    }
+  ]
+}

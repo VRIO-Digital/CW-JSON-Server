@@ -1,0 +1,275 @@
+[
+  {
+    "id": "DOC:hc-contract",
+    "name": "Harlow_Creek_OM_Agreement_2018.pdf",
+    "folder": "Contracts / Southeast",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2018-06-12",
+    "org": "City of Harlow Creek",
+    "author": "",
+    "type": "O&M agreement",
+    "project": "NCO-047",
+    "pages": [
+      "OPERATIONS AND MAINTENANCE AGREEMENT\nCity of Harlow Creek, Georgia and Northline Contract Operations, Inc.\n\n2.1 Term. Ten years from 1 July 2018 to 30 June 2028.\n\n3.1 Scope of services. The Operator shall operate and maintain (a) the Harlow Creek Wastewater Treatment Plant, (b) the wastewater collection system including 14 lift stations, and (c) biosolids handling, hauling and disposal.",
+      "9.4 Capital improvements. Capital repairs and replacements above $25,000 per item, including odor control equipment and media, are the responsibility of the City. The Operator shall recommend such improvements in the annual capital plan.\n\n9.6 Odor. The Operator shall operate the odor control systems as installed and respond to each odor complaint within one business day.",
+      "14.1 Limitation of liability. The Operator's total liability under this Agreement in any contract year shall not exceed the annual fee for that year.\n\n14.2 [Reserved.]\n\n15.1 Indemnification. The Operator shall indemnify the City against third party claims to the extent caused by the negligence or wilful misconduct of the Operator.\n\nAnalyst note: 14.1 is a liability cap and 15.1 limits indemnity to negligence. There is no waiver of consequential, special or punitive damages anywhere in the Agreement or its three amendments. One of the three core terms is missing: rating 3, for Legal to confirm.",
+      "16.3 Claims. Where a third party claim names both parties, the parties shall cooperate in the defense and may agree a joint defense.\n\n21.1 Termination for convenience. The City may terminate this Agreement on 180 days' written notice."
+    ],
+    "evidence_for": "Non-negotiable terms read (liability cap, consequential damages, indemnity), the scope of services, who funds odor control, and how the City can end it.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:hc-demand",
+    "name": "Baines_Ortega_Demand_Letter_2026-11-19.pdf",
+    "folder": "Legal / Notices",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "Baines & Ortega LLP",
+    "author": "L. Ortega",
+    "type": "Demand letter",
+    "project": "NCO-047",
+    "pages": [
+      "BAINES & ORTEGA LLP\n19 November 2026\n\nBy email and certified mail\nNorthline Contract Operations, Inc., Legal Department\ncc: City Attorney, City of Harlow Creek\n\nRe: Notice of claim and demand, Harlow Creek Wastewater Treatment Plant\n\nWe represent 23 residents of the Mill Pond and Eastgate neighbourhoods. Since May 2026 our clients have suffered recurring noxious odors from the plant and from biosolids hauling, which interfere with the use and enjoyment of their homes. Six complaints were made to the plant this year; two received no reply.",
+      "Our clients demand that within 30 days Northline (1) abate the odors, (2) provide the odor logs and complaint records since January 2024, and (3) enter into discussions on compensation. Failing this we are instructed to file an action for nuisance and negligence in the Superior Court of the county, naming Northline and the City.\n\nPlease preserve all records relating to odor control, operator rounds, biosolids load-out and complaints."
+    ],
+    "evidence_for": "A written demand before suit: under the scorecard's bands this rates Threatened litigation at 4.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:hc-complaints",
+    "name": "Harlow_Creek_Odor_Complaint_Log_2026.xlsx",
+    "folder": "Operations / Southeast / Harlow Creek",
+    "fmt": "xlsx",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "Northline Contract Operations",
+    "author": "Wade Pruitt",
+    "type": "Complaint log",
+    "project": "NCO-047",
+    "pages": [
+      "ODOR COMPLAINT LOG 2026, Harlow Creek WWTP\n\n#  Date        Time   Street            Biosolids load-out that day   Returned call\n1  14 May      16:10  Mill Pond Rd      Yes, 13:00 to 17:00           Yes, 15 May\n2  9 July      15:40  Eastgate Dr       Yes, 12:30 to 16:30           Yes, 10 July\n3  21 August   17:05  Mill Pond Rd      Yes, 13:00 to 17:00           Yes, 24 August\n4  30 Sept     11:20  Cannery Ln        No                            Yes, 1 October\n5  3 November  16:30  Eastgate Dr       Yes, 13:00 to 17:00           No\n6  19 November 15:55  Mill Pond Rd      Yes, 13:00 to 17:00           No\n\nFive of the six fall on load-out afternoons. Complaint 6 was logged at 18:10 on 19 November."
+    ],
+    "evidence_for": "The count of odor complaints this year, when they fall, and which were answered.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:hc-cip",
+    "name": "City_of_Harlow_Creek_CIP_FY2027-2031.pdf",
+    "folder": "Client documents / Harlow Creek",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2026-06-22",
+    "org": "City of Harlow Creek",
+    "author": "Finance Department",
+    "type": "Capital improvement plan",
+    "project": "NCO-047",
+    "pages": [
+      "CAPITAL IMPROVEMENT PLAN FY2027 to FY2031, adopted 22 June 2026\n\nWastewater\n  Lift station 6 and 9 rehabilitation        $1,450,000   FY2027   Funded (revenue bonds)\n  Headworks screen replacement               $620,000     FY2028   Funded\n  Biofilter media and fan replacement        $380,000     FY2027   Unfunded; carried from FY2024\n  Aeration blower upgrade                    $2,100,000   FY2030   Unfunded\n\nTwo of four projects funded: partially funded."
+    ],
+    "evidence_for": "Whether the client funds what the plant needs: the capital plan signal, and the biofilter.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:af-contract",
+    "name": "Ashby_Falls_OM_Agreement_2017.pdf",
+    "folder": "Contracts / Northeast",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2017-05-30",
+    "org": "Town of Ashby Falls",
+    "author": "",
+    "type": "O&M agreement",
+    "project": "NCO-111",
+    "pages": [
+      "AGREEMENT FOR OPERATION AND MAINTENANCE OF THE WATER AND SEWER SYSTEMS\nTown of Ashby Falls, Massachusetts and Northline Contract Operations, Inc.\n\n2.1 Initial term. Five years from 1 July 2017.\n2.2 Renewal. The Town may renew for one further term of five years. [Exercised 14 March 2022; the Agreement ends 30 June 2027. No further option.]\n\n3.1 Scope. Water treatment, water distribution, wastewater treatment and wastewater collection.",
+      "17.1 Limitation of liability. Capped at the annual fee.\n17.2 Neither party is liable for consequential, special or punitive damages.\n18.1 Indemnity limited to negligence.\n\nAnalyst note: all three core terms are present, with insurance, force majeure and change-in-law terms. Fully compliant: rating 1, for Legal to confirm."
+    ],
+    "evidence_for": "When the agreement ends and whether any renewal option is left.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:rm-sampling",
+    "name": "Red_Mesa_Sampling_Plan_and_Exceptions_2026.pdf",
+    "folder": "Operations / West / Red Mesa",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "Northline Contract Operations",
+    "author": "Hana Delgado",
+    "type": "Sampling plan",
+    "project": "NCO-184",
+    "pages": [
+      "SAMPLING PLAN 2026, Red Mesa Regional Water Reclamation Facility\nPermit: weekly composite for BOD, TSS, total nitrogen; reuse turbidity daily.\n\nEXCEPTIONS THIS YEAR\n1  Saturday 12 September   Weekly total nitrogen composite not collected. Shift covered on overtime by one operator.\n2  Sunday 15 November      Weekly TSS composite collected, not delivered to the lab within holding time. Shift covered on overtime by the same operator. Recorded 19 November.\n\nNeither has drawn a notice from the Department. Both will appear in the November monthly report to the District."
+    ],
+    "evidence_for": "Which required samples were missed this year, and on which shift.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:calder-review",
+    "name": "Calder_Valley_Loss_Review_2026-03.pdf",
+    "folder": "Contract Operations / Renewals",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2026-03-12",
+    "org": "Northline Contract Operations",
+    "author": "Tom Brandvold",
+    "type": "Loss review",
+    "project": "",
+    "pages": [
+      "CALDER VALLEY WWTP: REVIEW OF THE LOST RENEWAL\nPrepared for the Contract Operations leadership team, March 2026\n\nWe operated Calder Valley for eleven years without a notice of violation. The County re-bid the contract in 2025 and awarded it to Clearbrook Operations in December. Our price was 4% above theirs.\n\nWhat changed in the year before:\n  March 2025    The utilities director who signed both renewals retired.\n  May 2025      The County hired a procurement adviser to \"test the market\".\n  March 2025    The NPS survey went to the retired director's address; no answer was recorded and the last score (9) stayed on file.\n  September 2025 Clearbrook presented to the County Commission.",
+      "What we would do differently: meet a new client lead within 30 days; treat a score given by a predecessor as no score; read the commission agendas. Plant performance was never the issue."
+    ],
+    "evidence_for": "What the record showed in the year before a renewal was lost, to test the scorecard against it.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "DOC:renewal-2025",
+    "name": "Renewal_Review_2025-12.pptx",
+    "folder": "Contract Operations / Renewals",
+    "fmt": "pptx",
+    "status": "current",
+    "date": "2025-12-03",
+    "org": "Northline Contract Operations",
+    "author": "Renee Halvorsen",
+    "type": "Review pack",
+    "project": "",
+    "pages": [
+      "RENEWAL REVIEW, December 2025\n\n1  Contracts ending in the next 18 months\n2  Revenue at stake, by region\n3  Contracts on a renewal plan\n4  Lessons from Calder Valley\n5  Decisions asked of the leadership team"
+    ],
+    "evidence_for": "The structure of last year's renewal review, used as the template for this year's pack.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": false
+  },
+  {
+    "id": "DOC:claims-proc",
+    "name": "Claims_Notice_and_Legal_Hold_Procedure.pdf",
+    "folder": "Legal / Procedures",
+    "fmt": "pdf",
+    "status": "current",
+    "date": "2025-02-01",
+    "org": "Northline Legal",
+    "author": "Elliot Marsh",
+    "type": "Procedure",
+    "project": "",
+    "pages": [
+      "CLAIMS NOTICE AND LEGAL HOLD\n\n1. A written demand or pre-suit notice goes to Legal within one working day.\n2. Legal issues a document hold the same day.\n3. The insurer is notified within 30 days of a written demand.\n4. After a demand, contact with the claimants about the matter goes through Legal. Routine service contact (returning a complaint call) continues, logged.\n5. The client is told where the contract requires it or the client is also named."
+    ],
+    "evidence_for": "What must happen when a written demand arrives, and what may be said to residents.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": false
+  },
+  {
+    "id": "DOC:my-notes",
+    "name": "Renewal_review_working_notes_2026-11.xlsx",
+    "folder": "My drive",
+    "fmt": "xlsx",
+    "status": "current",
+    "date": "2026-11-16",
+    "org": "Northline Contract Operations",
+    "author": "You",
+    "type": "Working notes",
+    "project": "",
+    "pages": [
+      "WORKING NOTES, renewal review\n\nEvergreen contracts: count them. A client that can leave on notice decides every year.\nNPS from a predecessor: do not rely on it. Rate those contracts on what has happened since."
+    ],
+    "evidence_for": "Your own notes on how to treat the evergreen contracts and the stale NPS scores.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": false
+  },
+  {
+    "id": "WEB:state-rank",
+    "name": "State Liability System Survey",
+    "folder": "Web",
+    "fmt": "web",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "richstatespoorstates.org",
+    "author": "Rich States, Poor States, 2026 edition",
+    "type": "Public ranking",
+    "project": "",
+    "pages": [
+      "https://www.richstatespoorstates.org/variables/state_liability_system_survey/\n\nRich States, Poor States, 2026 edition\nTort costs as a share of state GDP, 2022 (U.S. Chamber of Commerce Institute for Legal Reform, Tort Costs in America, Third Edition, November 2024)\nRank 1 is the lowest cost.\n\n 1  North Dakota\n 2  Alaska\n 3  South Dakota\n 4  Wyoming\n 5  Washington\n 6  New Hampshire\n 7  Virginia\n 8  North Carolina\n 8  Ohio\n10  Iowa\n11  Nebraska\n12  Wisconsin\n13  West Virginia\n14  Maine\n15  Minnesota\n16  Kansas\n17  Hawaii\n18  Indiana\n19  Tennessee\n19  Vermont\n21  Maryland\n22  Utah\n23  Massachusetts\n24  Oklahoma\n25  Oregon",
+      "26  Idaho\n27  Colorado\n27  Kentucky\n29  Michigan\n30  Arizona\n30  California\n32  Texas\n33  Illinois\n34  Arkansas\n35  Missouri\n36  New Mexico\n37  Pennsylvania\n38  Alabama\n39  Connecticut\n40  Mississippi\n41  Rhode Island\n42  Nevada\n43  New Jersey\n44  South Carolina\n45  Montana\n46  Georgia\n47  New York\n48  Louisiana\n49  Florida\n50  Delaware\n\nRead as: ranks 1 to 12 rate 1, 13 to 25 rate 2, 26 to 38 rate 3, 39 to 50 rate 4."
+    ],
+    "evidence_for": "The state rating of every contract. The workbook names this page as the source; it is read here, not typed in.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "WEB:hc-ledger",
+    "name": "Residents near treatment plant say the smell is back",
+    "folder": "Web",
+    "fmt": "web",
+    "status": "current",
+    "date": "2026-11-12",
+    "org": "Harlow Creek Ledger",
+    "author": "Staff reporter",
+    "type": "Local news",
+    "project": "NCO-047",
+    "pages": [
+      "harlowcreekledger.example/news/treatment-plant-odor\n\nHARLOW CREEK LEDGER, 12 November 2026\n\nResidents near treatment plant say the smell is back\n\nNeighbours on Mill Pond Road say odors from the city wastewater plant have returned on weekday afternoons. \"We called twice this month and nobody called back,\" said one resident. Council candidate Dee Lanier said the city \"should look hard at who runs that plant\". The city said odor control equipment is scheduled for replacement \"when funding allows\". The plant is operated for the city by Northline.\n\nAnalyst reading: negative. Fourth negative article of nine in twelve months."
+    ],
+    "evidence_for": "Local coverage of the plant: counted in the media share, and read for what residents and candidates say.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "WEB:af-agenda",
+    "name": "Select Board agenda, 2 December 2026",
+    "folder": "Web",
+    "fmt": "web",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "Town of Ashby Falls",
+    "author": "Town Clerk",
+    "type": "Council agenda",
+    "project": "NCO-111",
+    "pages": [
+      "ashbyfalls-ma.example/select-board/agendas/2026-12-02\n\nTOWN OF ASHBY FALLS, SELECT BOARD\nRegular meeting, Wednesday 2 December 2026, 7:00 pm\n\n6. Department of Public Works\n   6a. Water and sewer operations after June 2027: options including in-house operation. Presentation by the DPW Director. Discussion.\n   6b. Authorisation to engage a procurement adviser, not to exceed $40,000.\n\nPosted 19 November 2026."
+    ],
+    "evidence_for": "Whether the client is discussing the contract in public. The scorecard has no signal for it.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  },
+  {
+    "id": "WEB:af-courier",
+    "name": "Town weighs running its own water plants as contract nears end",
+    "folder": "Web",
+    "fmt": "web",
+    "status": "current",
+    "date": "2026-11-19",
+    "org": "Ashby Falls Courier",
+    "author": "Staff reporter",
+    "type": "Local news",
+    "project": "NCO-111",
+    "pages": [
+      "ashbyfallscourier.example/town/water-contract-options\n\nASHBY FALLS COURIER, 19 November 2026\n\nTown weighs running its own water plants as contract nears end\n\nWith the operations contract ending in June, DPW Director Karen Whitlock told the Finance Committee the town should \"look at every option, including doing it ourselves\". Clearbrook Operations, which took over neighbouring Dunmere Ridge in April, presented to the committee in October. Northline, the current operator, was not at the meeting.\n\nAnalyst reading: negative. Two of six articles in twelve months are negative."
+    ],
+    "evidence_for": "Local coverage and who is quoted: one more negative article, and a competitor in the room.",
+    "supersedes": "",
+    "superseded_by": "",
+    "on_the_demo_path": true
+  }
+]
