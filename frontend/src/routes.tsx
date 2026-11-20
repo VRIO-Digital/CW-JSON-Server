@@ -175,14 +175,17 @@ export const routes: RouteObject[] = [
           { path: 'graph-studio', element: <GraphStudioPage /> },
           { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
           /*
-           * Ask queries a *published* graph, so it lists none until one is live — except for RISK,
-           * a dataset seeded deliberately empty (see ContractRiskPage): it has no graph to publish,
-           * so its own Ask (bundled in the same prototype as its Goals/Submissions) stands in. The
-           * check is a plain function call rather than a route-level branch that could go stale,
-           * because switching dataset always reloads the document — the same reason
-           * `goalsSubmissionFiles.ts` reads `currentDataset()` at module scope.
+           * Ask queries a *published* graph, so it lists none until one is live — RISK included.
+           * It used to stand in here with its own bundled Ask screen, on the reasoning that RISK
+           * was seeded deliberately empty and had no graph to ever publish; that stopped being true
+           * once RISK got a real Azure SQL source, profiled columns and Data Modeling relations —
+           * the same New Graph → Graph Studio path every other dataset builds a graph through is
+           * open to it too. So this is the one real `AskPage`, same as every other dataset: the
+           * shared `NoPublishedGraph` gate until a RISK graph is built and published, then the real
+           * graph selector, Chat/History and composer — not a reskinned reading of the vendored
+           * prototype's own, unconnected Ask screen.
            */
-          { path: 'ask', element: currentDataset() === 'RISK' ? <ContractRiskPage view="ask" /> : <AskPage /> },
+          { path: 'ask', element: <AskPage /> },
           { path: 'catalog', element: <CatalogPage /> },
           /*
            * The report section — the authoring prototype from the demo package, vendored into
@@ -204,9 +207,13 @@ export const routes: RouteObject[] = [
           { path: 'aisubmission', element: <AISubmissionsPage /> },
           /*
            * Two framed prototype builds, one per entry, behind the publish gate — see
-           * GoalsSubmissionPage. RISK has no graph to publish (seeded deliberately empty), so its
-           * own Goals/Submissions — the rich, self-contained prototype, ungated — stand in here
-           * too, the same swap `ask` above makes and for the same reason.
+           * GoalsSubmissionPage. RISK's own Goals/Submissions — the same vendored
+           * `ContractRisk.html` its Ask screen used to stand in with — still stand in here, because
+           * the two screens are one hash-routed build with no per-dataset split the way
+           * `goalsSubmissionFiles.ts` gives every other dataset. `ContractRiskPage` keeps its own
+           * publish gate (the same `NoPublishedGraph`, off the same `GET /reports` counts) rather
+           * than being ungated, so this is not the same swap `ask` used to make above — only the
+           * frame, not the gate, differs from `GoalsSubmissionPage` here.
            */
           { path: 'goals', element: currentDataset() === 'RISK' ? <ContractRiskPage view="goals" /> : <GoalsSubmissionPage view="goals" /> },
           { path: 'submission', element: currentDataset() === 'RISK' ? <ContractRiskPage view="submission" /> : <GoalsSubmissionPage view="submission" /> },

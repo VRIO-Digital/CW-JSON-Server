@@ -10,11 +10,12 @@ import { useReportsStore } from '../store/reportsStore'
 import './GoalsSubmissionPage.css'
 
 /**
- * Contract Risk Analyst — one live frame behind three routes (Ask, Goals, Submissions).
+ * Contract Risk Analyst — one live frame behind three *views* (Ask, Goals, Submissions), though
+ * RISK's own sidebar only reaches two of them here now — see below.
  *
  * A vendored reference prototype (`src/ContractRisk/goals-submission/ContractRisk.html`), the same
  * kind of self-contained build as Keolis's / CAPEX's / Arcwood's Goals-and-Submissions pages, except
- * this one bundles its **own Ask** behind the same hash router too — so this page generalises
+ * this one bundles its **own Ask** behind the same hash router too — so this component generalises
  * `GoalsSubmissionPage`'s two-screen sync to three, rather than being a third case bolted onto that
  * file: the two components share no state, and a role with three screens is not a reason to touch the
  * four datasets that already work with two.
@@ -35,11 +36,21 @@ import './GoalsSubmissionPage.css'
  * `builtCount` exactly as every other gated page does. `useSourcesStore`/`NoSourceConnected` are gone
  * from this file along with the source-connected reading of the gate.
  *
- * **Reachable by URL only, like `/trace` and `/validation`** — no `NAV_ITEMS` entry yet. The prototype
- * is Northline Water Group's (CAPEX's tenant) regardless of which dataset is actually selected when a
- * reader opens one of these routes directly; there is no per-dataset nav filter in this app to gate it
- * on, so until that is built (or the entries are added unconditionally) it stays off the sidebar rather
- * than showing Northline content under an unrelated tenant's dataset.
+ * **RISK's own sidebar reaches this component for Goals and Submission only — Ask goes through the
+ * real `AskPage` now, like every other dataset.** `routes.tsx`'s `ask` route used to swap in
+ * `view="ask"` here for RISK, on the reasoning that RISK was seeded with nothing to ever build a
+ * graph from; that stopped being true once it got a real source, profiled columns and Data Modeling
+ * relations, so Ask gets the real graph selector, Chat/History and composer instead of a reskinned
+ * reading of this frame's own, unconnected one. `view="ask"` on this component itself is not dead —
+ * `/contract-risk/ask` below still opens it — it is simply no longer how RISK's own sidebar reaches
+ * Ask.
+ *
+ * **The three `/contract-risk/*` routes are reachable by URL only, like `/trace` and `/validation`** —
+ * no `NAV_ITEMS` entry. The prototype is Northline Water Group's (CAPEX's tenant) regardless of which
+ * dataset is actually selected when a reader opens one of those routes directly; there is no
+ * per-dataset nav filter in this app to gate it on, so until that is built (or the entries are added
+ * unconditionally) they stay off the sidebar rather than showing Northline content under an unrelated
+ * tenant's dataset.
  */
 const FILE = 'ContractRisk.html'
 
