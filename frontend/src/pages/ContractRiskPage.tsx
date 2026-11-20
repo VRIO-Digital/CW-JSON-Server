@@ -1,10 +1,12 @@
+import { Spin } from 'antd'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appPath } from '../api/dataset'
-import NoSourceConnected from '../components/common/NoSourceConnected'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
-import { useSourcesStore } from '../store/sourcesStore'
+import { useReportsStore } from '../store/reportsStore'
 import './GoalsSubmissionPage.css'
 
 /**
@@ -17,19 +19,21 @@ import './GoalsSubmissionPage.css'
  * file: the two components share no state, and a role with three screens is not a reason to touch the
  * four datasets that already work with two.
  *
- * **Self-contained, but not ungated any more.** The package's own README states it plainly: "Nothing
- * is connected. The data is generated in the file" — the scorecard, the 300 contracts, the readings,
- * the morning check are all baked into the bundle, not drawn from a published graph the way the other
- * Goals/Submissions prototypes' figures are framed as being downstream of. So this page still does not
- * read `reportsStore` and does not render `NoPublishedGraph`: there is no graph for it to wait on.
+ * **Self-contained, but not ungated.** The package's own README states it plainly: "Nothing is
+ * connected. The data is generated in the file" — the scorecard, the 300 contracts, the readings, the
+ * morning check are all baked into the bundle rather than drawn from a published graph. That is true
+ * regardless of what this gate reads; it never stopped being true.
  *
- * **It does gate on a connected source, asked for on request, to match every other page's own rule
- * — "nothing exists until a source is connected."** The frame's content is baked in regardless of
- * whether anything is actually connected, which is the one way this page disagreed with that rule:
- * reading it with zero sources registered showed the full scorecard-grounded Q&A as though a source
- * were live. `useSourcesStore`'s `connectedSources` is the same field every other gated page reads
- * (`TracePage`, `ValidationPage`, …), so a reader who has not been through Sources → Connect meets the
- * shared `NoSourceConnected` empty state here too, across all three routes — never the frame.
+ * **It gates on the published graph, not a connected source — reversed on request, the same move
+ * `GoalsSubmissionPage` and `AISubmissionsPage` each took.** Their own reasoning is the reasoning
+ * here too: a prototype asking nothing of the graph produces a *section* on the obvious gate
+ * (connect a source first) where what is wanted is a *sequence* — the graph is released first, and
+ * the surfaces that read the tenant's data open after it. So this reads the same counts those two
+ * pages do, `GET /reports` through `useReportsStore` (one store, one path into the numbers, rather
+ * than a fourth copy of the fetch), and renders the shared `NoPublishedGraph` — the same title, the
+ * same three steps, the same "Open Graph Studio" — across all three routes, forking its own action on
+ * `builtCount` exactly as every other gated page does. `useSourcesStore`/`NoSourceConnected` are gone
+ * from this file along with the source-connected reading of the gate.
  *
  * **Reachable by URL only, like `/trace` and `/validation`** — no `NAV_ITEMS` entry yet. The prototype
  * is Northline Water Group's (CAPEX's tenant) regardless of which dataset is actually selected when a
@@ -151,16 +155,13 @@ export default function ContractRiskPage({ view }: { view: View }) {
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
 
-  const sourcesData = useSourcesStore((s) => s.data)
-  const sourcesLoading = useSourcesStore((s) => s.loading)
-  const loadSources = useSourcesStore((s) => s.load)
+  const index = useReportsStore((s) => s.index)
+  const loading = useReportsStore((s) => s.loading)
+  const error = useReportsStore((s) => s.error)
+  const load = useReportsStore((s) => s.load)
   useEffect(() => {
-    void loadSources()
-  }, [loadSources])
-  /* `=== 0` rather than falsy, for the same reason every other gated page reads it this way: the
-     store holds `null` until the first load lands, and treating that as zero would flash the empty
-     state over a tenant that already has a source connected. */
-  const connected = (sourcesData?.connectedSources ?? 0) > 0
+    void load()
+  }, [load])
 
   /* App → frame: a sidebar/URL move to a different one of the three routes moves the live frame's
      hash, only when the screens disagree — the same guard `GoalsSubmissionPage` uses, so a hash the
@@ -176,14 +177,35 @@ export default function ContractRiskPage({ view }: { view: View }) {
     }
   }, [view])
 
-  if (!sourcesLoading && !connected) {
+  if (loading && !index) {
+    return (
+      <>
+        <PageHeader title={entry.title} subtitle="Grounded in the tenant's own contract risk scorecard, once a graph for this dataset is published." />
+        <Spin />
+      </>
+    )
+  }
+  if (error && !index) {
+    return (
+      <>
+        <PageHeader title={entry.title} subtitle="Grounded in the tenant's own contract risk scorecard, once a graph for this dataset is published." />
+        <ApiErrorAlert error={error} onRetry={() => void load()} />
+      </>
+    )
+  }
+  if (!index) return null
+  if (index.publishedCount === 0) {
     return (
       <>
         <PageHeader
           title={entry.title}
-          subtitle="Grounded in the tenant's own contract risk scorecard, once a source is connected."
+          subtitle="Grounded in the tenant's own contract risk scorecard, once a graph for this dataset is published."
         />
-        <NoSourceConnected detail="The Contract Risk Analyst answers from its own scorecard — 16 factors, 70 signals, scored against 300 contracts on the connected Azure SQL server. Connect it on Sources and Ask, Goals and Submission will all have something real to work from." />
+        <NoPublishedGraph
+          detail="The Contract Risk Analyst's Ask, Goals and Submission screens read from a published graph, never from Sources directly."
+          builtCount={index.builtCount}
+          draftCount={index.draftCount}
+        />
       </>
     )
   }
