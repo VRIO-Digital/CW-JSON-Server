@@ -59,6 +59,57 @@ const HIDE_SHELL_CSS = ' .ant-layout-sider, .mobile-bar { display: none !importa
  */
 const HIDE_EXTRA_QUESTIONS_CSS = ' .aq-lib { display: none !important }'
 
+/**
+ * The Ask screen's own empty-state intro (`.aq-empty`'s `h2` — "What do you want to know about your
+ * contracts?" — and the paragraph naming the question library beneath it) goes with the library it
+ * introduces: a sentence pointing at a box that is no longer there reads as a feature that did not
+ * run. `.aq-empty`'s third child is the composer itself, which stays — the rule is scoped to the two
+ * text children rather than the whole container, or the composer would disappear with them.
+ */
+const HIDE_ASK_INTRO_CSS = ' .aq-empty h2, .aq-empty > p { display: none !important }'
+
+/**
+ * This screen's own branded header — `h1` ("Ask the Contract Risk Analyst") plus a paragraph naming
+ * the live scorecard with an "Open the goal" / "Set up the goal" link (`[data-testid="aq-asof"]`) —
+ * asked to read like this app's own Ask page instead: one plain title and one generic subtitle, not a
+ * scorecard status line. **Rewritten, not hidden** — there is nothing to fall back to underneath it,
+ * and a blank header reads as a page that failed to load rather than as one that was restyled.
+ *
+ * The subtitle is copied verbatim from `AskPage.tsx`'s own `PageHeader`, which is the one place the
+ * two could come to disagree: a real coupling, kept in one place here rather than two, and it fails
+ * visibly — the words simply stop matching — rather than silently.
+ *
+ * Text only. The real Q&A beneath it, grounded in the tenant's own scorecard, is untouched — restyling
+ * the one page that answers from real data was never the ask, and this is not that.
+ */
+const ASK_SUBTITLE =
+  'A query engine, not a search box. Ask in plain language — a supervisor agent grounds the question ' +
+  'in the knowledge graph, routes to source systems, and returns an evidence-backed answer with the ' +
+  'full reasoning open for inspection.'
+
+/**
+ * **Applied once, and kept applied, because `enhance` runs once and the document does not.** This
+ * build signs in and opens its report *after* the static page has loaded — the same asynchronous
+ * boot `DocumentViewer`'s own hold is written around — so the header this function targets is not
+ * painted yet when the frame's native `load` event fires `enhance`, and a one-shot rewrite silently
+ * finds nothing. A `MutationObserver` re-applies it on every change under `<body>` instead of a timer,
+ * for the reason every paced surface here prefers a real signal to a guess at how long something
+ * takes; it never disconnects, because the same scorecard status line can legitimately re-render
+ * later (a goal published mid-session) and a one-shot observer would let the original text back in
+ * exactly then.
+ */
+function restyleAskHeader(inner: Document) {
+  const apply = () => {
+    const heading = inner.querySelector('.aq-top h1')
+    if (heading && heading.textContent !== 'Ask') heading.textContent = 'Ask'
+    const asOf = inner.querySelector('[data-testid="aq-asof"]')
+    if (asOf && asOf.textContent !== ASK_SUBTITLE) asOf.textContent = ASK_SUBTITLE
+  }
+  apply()
+  if (!inner.body) return
+  new MutationObserver(apply).observe(inner.body, { childList: true, subtree: true, characterData: true })
+}
+
 export default function ContractRiskPage({ view }: { view: View }) {
   const entry = useRef(VIEWS[view]).current
   const frameWinRef = useRef<Window | null>(null)
@@ -90,8 +141,9 @@ export default function ContractRiskPage({ view }: { view: View }) {
         fragment={entry.fragment}
         enhance={(inner) => {
           const style = inner.createElement('style')
-          style.textContent = HIDE_SHELL_CSS + HIDE_EXTRA_QUESTIONS_CSS
+          style.textContent = HIDE_SHELL_CSS + HIDE_EXTRA_QUESTIONS_CSS + HIDE_ASK_INTRO_CSS
           inner.head?.appendChild(style)
+          restyleAskHeader(inner)
 
           const win = inner.defaultView
           if (!win) return
