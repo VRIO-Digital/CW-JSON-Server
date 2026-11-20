@@ -13,9 +13,12 @@ set -euo pipefail
 
 here="$(dirname "${BASH_SOURCE[0]}")"
 
+# `bash "$here/…"`, not a direct exec — see trigger-deploy.ps1's own comment: a commit made from
+# the Windows checkout never carries the executable bit, so a direct `"$here/deploy-backend.sh"`
+# would fail on a freshly-pulled copy with nothing having actually gone wrong.
 echo "########## frontend ##########"
-"$here/deploy-frontend.sh"
+bash "$here/deploy-frontend.sh"
 
 echo
 echo "########## backend ##########"
-"$here/deploy-backend.sh" "$@"
+bash "$here/deploy-backend.sh" "$@"

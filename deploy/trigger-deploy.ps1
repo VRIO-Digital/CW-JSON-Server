@@ -36,7 +36,13 @@ $scriptArgs = if ($Force -and $Target -ne "frontend") { " --force" } else { "" }
 # that script for what it actually does and why (it is the one with the real comments). Nothing
 # is scp'd here any more: once this file itself is pulled on the server, every later edit to a
 # deploy script reaches it the same way, through its own safe_pull.
-$remoteCommand = "cd /home/ubuntu/CW-JSON-Server/deploy && ./$script$scriptArgs"
+#
+# **`bash $script`, never `./$script`.** Git committed from this Windows checkout never carries
+# the executable bit — Windows has no such permission to record, so every commit from here
+# writes these scripts back as mode 100644 — and `./script.sh` on the 100644 file that lands from
+# a pull is a flat "Permission denied". Invoking through `bash` reads the file rather than
+# executing it as a binary, so the bit never matters.
+$remoteCommand = "cd /home/ubuntu/CW-JSON-Server/deploy && bash $script$scriptArgs"
 
 if (-not (Test-Path $pemPath)) {
     Write-Error "Can't find the key at $pemPath"
