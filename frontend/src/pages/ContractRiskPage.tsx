@@ -50,14 +50,35 @@ const HIDE_SHELL_CSS = ' .ant-layout-sider, .mobile-bar { display: none !importa
 
 /**
  * The Ask screen's own suggested-question library (`.aq-lib`, one bare `<section>` per theme, each
- * holding an `h4` and a run of `button.aq-q`) is the bundle's own 62-question catalogue — removed on
- * request, having been trimmed to one theme's first two questions first. This app's own `AskPage`
- * carries no such library either (a short opener row above the composer, nothing else), so the Ask
- * screen's own box goes entirely rather than to a smaller one. Hidden at the frame rather than edited
- * into the bundle, for the same reason the shell is: `_meta` on a generated export forbids
- * hand-editing it, and a rule applied here holds for whatever version is dropped in next.
+ * holding an `h4` and a run of `button.aq-q`) is the bundle's own 62-question catalogue — asked, over
+ * two earlier passes (first trimmed to one theme's first two questions under its heading, then
+ * removed entirely), to instead read like this app's own `AskPage`'s short row of opener chips above
+ * the composer. `.aq-q` is a full-width list row by the bundle's own CSS
+ * (`width:100%;display:block;text-align:left`, inside a bordered card per theme) — restyled here into
+ * loose inline pills, the first theme's first three questions, no heading. **The position is not
+ * moved**: `AskPage`'s own chips sit directly above its composer, and this build's library renders
+ * near the top of the empty state instead — moving it there would mean relocating a node a mounted
+ * React tree already manages, which risks the exact "NotFoundError" class of crash a frame-injected
+ * rule must never risk causing. Three chips in the wrong spot beats a page that throws.
+ *
+ * Hidden/restyled at the frame rather than edited into the bundle, for the same reason the shell is:
+ * `_meta` on a generated export forbids hand-editing it, and a rule applied here holds for whatever
+ * version is dropped in next.
  */
-const HIDE_EXTRA_QUESTIONS_CSS = ' .aq-lib { display: none !important }'
+const HIDE_EXTRA_QUESTIONS_CSS =
+  ' .aq-lib section:not(:first-of-type) { display: none !important }' +
+  ' .aq-lib section:first-of-type h4 { display: none !important }' +
+  ' .aq-lib section:first-of-type button.aq-q:nth-of-type(n+4) { display: none !important }' +
+  ' .aq-lib { display: block !important }' +
+  ' .aq-lib section:first-of-type {' +
+  '   background: none !important; border: 0 !important; padding: 0 !important;' +
+  '   display: flex !important; flex-wrap: wrap !important; gap: 8px !important;' +
+  ' }' +
+  ' .aq-lib section:first-of-type button.aq-q {' +
+  '   display: inline-block !important; width: auto !important; text-align: center !important;' +
+  '   border: 1px solid #e3e6ec !important; border-radius: 999px !important;' +
+  '   background: #fff !important; padding: 8px 14px !important; font-size: 13px !important;' +
+  ' }'
 
 /**
  * The Ask screen's own empty-state intro (`.aq-empty`'s `h2` — "What do you want to know about your
