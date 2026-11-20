@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appPath } from '../api/dataset'
+import NoSourceConnected from '../components/common/NoSourceConnected'
+import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
+import { useSourcesStore } from '../store/sourcesStore'
 import './GoalsSubmissionPage.css'
 
 /**
@@ -14,11 +17,19 @@ import './GoalsSubmissionPage.css'
  * file: the two components share no state, and a role with three screens is not a reason to touch the
  * four datasets that already work with two.
  *
- * **Entirely self-contained, and deliberately ungated.** The package's own README states it plainly:
- * "Nothing is connected. The data is generated in the file" — the scorecard, the 300 contracts, the
- * readings, the morning check are all baked into the bundle, not drawn from a published graph the way
- * the other Goals/Submissions prototypes' figures are framed as being downstream of. So this page does
- * not read `reportsStore` and does not render `NoPublishedGraph`: there is no graph for it to wait on.
+ * **Self-contained, but not ungated any more.** The package's own README states it plainly: "Nothing
+ * is connected. The data is generated in the file" — the scorecard, the 300 contracts, the readings,
+ * the morning check are all baked into the bundle, not drawn from a published graph the way the other
+ * Goals/Submissions prototypes' figures are framed as being downstream of. So this page still does not
+ * read `reportsStore` and does not render `NoPublishedGraph`: there is no graph for it to wait on.
+ *
+ * **It does gate on a connected source, asked for on request, to match every other page's own rule
+ * — "nothing exists until a source is connected."** The frame's content is baked in regardless of
+ * whether anything is actually connected, which is the one way this page disagreed with that rule:
+ * reading it with zero sources registered showed the full scorecard-grounded Q&A as though a source
+ * were live. `useSourcesStore`'s `connectedSources` is the same field every other gated page reads
+ * (`TracePage`, `ValidationPage`, …), so a reader who has not been through Sources → Connect meets the
+ * shared `NoSourceConnected` empty state here too, across all three routes — never the frame.
  *
  * **Reachable by URL only, like `/trace` and `/validation`** — no `NAV_ITEMS` entry yet. The prototype
  * is Northline Water Group's (CAPEX's tenant) regardless of which dataset is actually selected when a
@@ -140,9 +151,21 @@ export default function ContractRiskPage({ view }: { view: View }) {
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
 
+  const sourcesData = useSourcesStore((s) => s.data)
+  const sourcesLoading = useSourcesStore((s) => s.loading)
+  const loadSources = useSourcesStore((s) => s.load)
+  useEffect(() => {
+    void loadSources()
+  }, [loadSources])
+  /* `=== 0` rather than falsy, for the same reason every other gated page reads it this way: the
+     store holds `null` until the first load lands, and treating that as zero would flash the empty
+     state over a tenant that already has a source connected. */
+  const connected = (sourcesData?.connectedSources ?? 0) > 0
+
   /* App → frame: a sidebar/URL move to a different one of the three routes moves the live frame's
      hash, only when the screens disagree — the same guard `GoalsSubmissionPage` uses, so a hash the
-     frame itself just set is never clobbered by the route change that caused it. */
+     frame itself just set is never clobbered by the route change that caused it. A no-op while the
+     frame below is not even mounted, which is exactly what it should be. */
   useEffect(() => {
     const win = frameWinRef.current
     if (!win) return
@@ -152,6 +175,18 @@ export default function ContractRiskPage({ view }: { view: View }) {
       /* A frame mid-navigation has no location to read; the next switch lands normally. */
     }
   }, [view])
+
+  if (!sourcesLoading && !connected) {
+    return (
+      <>
+        <PageHeader
+          title={entry.title}
+          subtitle="Grounded in the tenant's own contract risk scorecard, once a source is connected."
+        />
+        <NoSourceConnected detail="The Contract Risk Analyst answers from its own scorecard — 16 factors, 70 signals, scored against 300 contracts on the connected Azure SQL server. Connect it on Sources and Ask, Goals and Submission will all have something real to work from." />
+      </>
+    )
+  }
 
   return (
     <div className="gs-bleed">
